@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hall of Fame</title>
+
+<!-- ============================================================
+     ⚙ НАСТРОЙКА ⚙
+     Замени ссылку ниже на свою опубликованную CSV-ссылку из Google Sheets.
+     Как получить — смотри в INSTRUCTIONS_CODEX.md
+     ============================================================ -->
+<script>
+  const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=287600011&single=true&output=csv";
+</script>
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0e1a;
+    background-image:
+      radial-gradient(ellipse at top left, rgba(255, 199, 117, 0.08), transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(216, 90, 48, 0.06), transparent 50%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #fff;
+    padding: 30px 20px;
+  }
+
+  .wrap { max-width: 1400px; margin: 0 auto; }
+
+  .header {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+
+  .title {
+    font-size: 42px;
+    font-weight: 500;
+    letter-spacing: 4px;
+    color: #FAC775;
+    text-shadow: 0 0 20px rgba(250, 199, 117, 0.4);
+    margin-bottom: 6px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: rgba(255,255,255,0.45);
+    text-transform: uppercase;
+  }
+
+  .filters {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+
+  .f-btn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    padding: 10px 16px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.7);
+    font-family: inherit;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.15s ease;
+  }
+  .f-btn:hover { background: rgba(255,255,255,0.05); color: #fff; transform: translateY(-1px); }
+
+  .count-pill {
+    background: rgba(255,255,255,0.1);
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 12px;
+    letter-spacing: 0;
+  }
+
+  .f-btn.active.f-all { border-color: rgba(255,255,255,0.6); color: #fff; background: rgba(255,255,255,0.05); }
+  .f-btn.active.f-artifact { border-color: #FAC775; color: #FAC775; background: rgba(250,199,117,0.1); box-shadow: 0 0 15px rgba(250,199,117,0.2); }
+  .f-btn.active.f-artifact .count-pill { background: rgba(250,199,117,0.25); color: #FAC775; }
+  .f-btn.active.f-legendary { border-color: #F0997B; color: #F0997B; background: rgba(216,90,48,0.1); box-shadow: 0 0 15px rgba(216,90,48,0.2); }
+  .f-btn.active.f-legendary .count-pill { background: rgba(240,153,123,0.25); color: #F0997B; }
+
+  .sound-toggle {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.5);
+    font-family: inherit;
+    font-size: 13px;
+    transition: all 0.15s ease;
+  }
+  .sound-toggle:hover { color: #fff; }
+  .sound-toggle.on { color: #97C459; border-color: rgba(151,196,89,0.4); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 18px;
+  }
+
+  .card {
+    position: relative;
+    background: #11172a;
+    border: 1px solid;
+    border-radius: 12px;
+    padding: 18px 16px 16px;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    opacity: 0;
+    animation: cardIn 0.5s ease forwards;
+  }
+  .card:hover { transform: translateY(-4px); }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(20px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* Анимация задержки появления карточек по очереди */
+  .card:nth-child(1)  { animation-delay: 0.00s; }
+  .card:nth-child(2)  { animation-delay: 0.05s; }
+  .card:nth-child(3)  { animation-delay: 0.10s; }
+  .card:nth-child(4)  { animation-delay: 0.15s; }
+  .card:nth-child(5)  { animation-delay: 0.20s; }
+  .card:nth-child(6)  { animation-delay: 0.25s; }
+  .card:nth-child(7)  { animation-delay: 0.30s; }
+  .card:nth-child(8)  { animation-delay: 0.35s; }
+  .card:nth-child(n+9) { animation-delay: 0.40s; }
+
+  .r-legendary {
+    border-color: #D85A30;
+    background: linear-gradient(180deg, #2a1408 0%, #11172a 60%);
+  }
+  .r-legendary:hover { box-shadow: 0 8px 30px rgba(216,90,48,0.3); }
+  .r-legendary .rank-badge { background: #993C1D; color: #FAECE7; }
+  .r-legendary .avatar { background: #4A1B0C; border-color: #F0997B; color: #F0997B; }
+  .r-legendary .chance { background: rgba(240, 153, 123, 0.15); color: #F0997B; }
+
+  .r-artifact {
+    border-color: #FAC775;
+    background: linear-gradient(180deg, #2a1d0a 0%, #11172a 60%);
+    box-shadow: 0 0 0 1px rgba(250, 199, 117, 0.3);
+  }
+  .r-artifact::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent 30%, rgba(250,199,117,0.08) 50%, transparent 70%);
+    animation: shimmer 4s infinite;
+    pointer-events: none;
+  }
+  @keyframes shimmer {
+    0%   { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+  }
+  .r-artifact:hover { box-shadow: 0 8px 40px rgba(250,199,117,0.4); }
+  .r-artifact .rank-badge { background: #BA7517; color: #FAEEDA; }
+  .r-artifact .avatar { background: #412402; border-color: #FAC775; color: #FAC775; }
+  .r-artifact .chance { background: rgba(250, 199, 117, 0.15); color: #FAC775; }
+
+  .rank-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    padding: 4px 9px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    font-weight: 500;
+    z-index: 2;
+  }
+
+  .avatar-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 6px 0 14px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 3px solid;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 500;
+    overflow: hidden;
+  }
+
+  .nick {
+    text-align: center;
+    font-size: 17px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    position: relative; z-index: 1;
+    word-break: break-word;
+  }
+
+  .prize {
+    text-align: center;
+    font-size: 13px;
+    margin-bottom: 12px;
+    color: rgba(255,255,255,0.7);
+    position: relative; z-index: 1;
+    word-break: break-word;
+  }
+
+  .chance-row {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 12px;
+    position: relative; z-index: 1;
+  }
+
+  .chance {
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+
+  .quote {
+    font-style: italic;
+    font-family: Georgia, serif;
+    font-size: 12px;
+    text-align: center;
+    color: rgba(255,255,255,0.55);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 12px;
+    margin-bottom: 8px;
+    line-height: 1.5;
+    position: relative; z-index: 1;
+    word-break: break-word;
+  }
+
+  .date {
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: rgba(255,255,255,0.35);
+    text-transform: uppercase;
+    position: relative; z-index: 1;
+  }
+
+  .card.hidden { display: none; }
+
+  .status {
+    text-align: center;
+    color: rgba(255,255,255,0.5);
+    padding: 60px 20px;
+    font-size: 15px;
+  }
+  .status.error { color: #F09595; }
+  .status code { background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 4px; font-family: monospace; }
+
+  @media (max-width: 600px) {
+    .title { font-size: 28px; letter-spacing: 2px; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+  }
+</style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="header">
+      <h1 class="title">⚜ HALL OF FAME ⚜</h1>
+      <p class="subtitle">Те, кому повезло сильнее всех</p>
+    </div>
+
+    <div class="filters">
+      <button class="f-btn f-all active" data-filter="all">Все <span class="count-pill" id="count-all">0</span></button>
+      <button class="f-btn f-artifact" data-filter="artifact">✦ Артефакт <span class="count-pill" id="count-artifact">0</span></button>
+      <button class="f-btn f-legendary" data-filter="legendary">★ Легендарка <span class="count-pill" id="count-legendary">0</span></button>
+      <button class="sound-toggle" id="sound-toggle">🔇 Звук выкл.</button>
+    </div>
+
+    <div id="status" class="status">Загружаю победителей...</div>
+    <div id="grid" class="grid" style="display:none;"></div>
+  </div>
+
+<script>
+// ============================================================
+// Парсер CSV (простой, без зависимостей)
+// Учитывает кавычки, переносы строк внутри ячеек, экранирование
+// ============================================================
+function parseCSV(text) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    const next = text[i + 1];
+    if (inQuotes) {
+      if (c === '"' && next === '"') { cell += '"'; i++; }
+      else if (c === '"') { inQuotes = false; }
+      else { cell += c; }
+    } else {
+      if (c === '"') { inQuotes = true; }
+      else if (c === ',') { row.push(cell); cell = ''; }
+      else if (c === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
+      else if (c === '\r') { /* skip */ }
+      else { cell += c; }
+    }
+  }
+  if (cell.length > 0 || row.length > 0) { row.push(cell); rows.push(row); }
+  return rows;
+}
+
+// ============================================================
+// Преобразуем CSV в массив объектов-победителей
+// ============================================================
+function rowsToWinners(rows) {
+  if (rows.length < 2) return [];
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  const idx = {
+    nick:   headers.indexOf('nick'),
+    avatar: headers.indexOf('avatar_url'),
+    prize:  headers.indexOf('prize'),
+    rank:   headers.indexOf('rank'),
+    quote:  headers.indexOf('quote'),
+    date:   headers.indexOf('date'),
+  };
+  return rows.slice(1)
+    .filter(r => r.length > 1 && r[idx.nick] && r[idx.nick].trim())
+    .map(r => ({
+      nick:   (r[idx.nick]   || '').trim(),
+      avatar: (r[idx.avatar] || '').trim(),
+      prize:  (r[idx.prize]  || '').trim(),
+      rank:   (r[idx.rank]   || '').trim().toLowerCase(),
+      quote:  (r[idx.quote]  || '').trim(),
+      date:   (r[idx.date]   || '').trim(),
+    }))
+    .filter(w => w.rank === 'artifact' || w.rank === 'legendary');
+}
+
+// ============================================================
+// Форматирование даты ISO → "12 марта 2026"
+// ============================================================
+const MONTHS_RU = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+function formatDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return `${d.getDate()} ${MONTHS_RU[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+// ============================================================
+// Инициалы из ника, если нет аватарки
+// ============================================================
+function initials(nick) {
+  const clean = nick.replace(/[^A-Za-zА-Яа-я0-9]/g, '');
+  if (clean.length >= 2) return (clean[0] + clean[1]).toUpperCase();
+  return (clean[0] || '?').toUpperCase();
+}
+
+// ============================================================
+// Экранирование HTML (чтобы никнеймы не ломали разметку)
+// ============================================================
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+// ============================================================
+// Параметры рангов
+// ============================================================
+const RANK_INFO = {
+  artifact:  { label: 'Артефакт',  symbol: '✦', chance: '0.5%' },
+  legendary: { label: 'Легендарка', symbol: '★', chance: '1.5%' },
+};
+
+// ============================================================
+// Звуки через Web Audio API (никаких mp3 файлов)
+// ============================================================
+let audioCtx = null;
+let soundOn = false;
+
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+}
+
+function playHoverSound(rank) {
+  if (!soundOn || !audioCtx) return;
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  // Артефакт — высокий блестящий звон, легендарка — пониже
+  const freq = rank === 'artifact' ? 1200 : 800;
+  osc.frequency.setValueAtTime(freq, now);
+  osc.frequency.exponentialRampToValueAtTime(freq * 1.5, now + 0.15);
+  osc.type = 'sine';
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.08, now + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+  osc.start(now);
+  osc.stop(now + 0.35);
+}
+
+document.getElementById('sound-toggle').addEventListener('click', function() {
+  soundOn = !soundOn;
+  if (soundOn) {
+    initAudio();
+    this.classList.add('on');
+    this.textContent = '🔊 Звук вкл.';
+  } else {
+    this.classList.remove('on');
+    this.textContent = '🔇 Звук выкл.';
+  }
+});
+
+// ============================================================
+// Рендер карточек
+// ============================================================
+function renderCards(winners) {
+  const grid = document.getElementById('grid');
+  // Сортируем: сначала артефакты, потом легендарки; внутри ранга — по дате (свежие сверху)
+  winners.sort((a, b) => {
+    if (a.rank !== b.rank) return a.rank === 'artifact' ? -1 : 1;
+    return (b.date || '').localeCompare(a.date || '');
+  });
+
+  grid.innerHTML = winners.map(w => {
+    const info = RANK_INFO[w.rank];
+    const avatarHtml = w.avatar
+      ? `<div class="avatar" style="background-image:url('${esc(w.avatar)}');"></div>`
+      : `<div class="avatar">${esc(initials(w.nick))}</div>`;
+    return `
+      <div class="card r-${esc(w.rank)}" data-rank="${esc(w.rank)}">
+        <span class="rank-badge">${esc(info.label)}</span>
+        <div class="avatar-wrap">${avatarHtml}</div>
+        <p class="nick">${esc(w.nick)}</p>
+        <p class="prize">${esc(w.prize)}</p>
+        <div class="chance-row"><span class="chance">${info.symbol} ${info.chance}</span></div>
+        ${w.quote ? `<p class="quote">"${esc(w.quote)}"</p>` : '<p class="quote" style="opacity:0.3">—</p>'}
+        <p class="date">${esc(formatDate(w.date))}</p>
+      </div>
+    `;
+  }).join('');
+
+  // Hover sounds
+  grid.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('mouseenter', () => playHoverSound(card.dataset.rank));
+  });
+
+  // Счётчики
+  const counts = winners.reduce((acc, w) => {
+    acc[w.rank] = (acc[w.rank] || 0) + 1;
+    acc.all++;
+    return acc;
+  }, { all: 0, artifact: 0, legendary: 0 });
+  document.getElementById('count-all').textContent = counts.all;
+  document.getElementById('count-artifact').textContent = counts.artifact;
+  document.getElementById('count-legendary').textContent = counts.legendary;
+}
+
+// ============================================================
+// Фильтры
+// ============================================================
+document.querySelectorAll('.f-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const filter = btn.dataset.filter;
+    document.querySelectorAll('.card').forEach(card => {
+      const show = filter === 'all' || card.dataset.rank === filter;
+      card.classList.toggle('hidden', !show);
+    });
+  });
+});
+
+// ============================================================
+// Загрузка данных
+// ============================================================
+async function loadWinners() {
+  const status = document.getElementById('status');
+  const grid = document.getElementById('grid');
+
+  if (!CSV_URL || CSV_URL === 'PASTE_YOUR_GOOGLE_SHEETS_CSV_URL_HERE') {
+    status.classList.add('error');
+    status.innerHTML = '⚠ Не настроена ссылка на Google Sheets.<br>Открой <code>index.html</code> и вставь ссылку в переменную <code>CSV_URL</code>.';
+    return;
+  }
+
+  try {
+    const res = await fetch(CSV_URL);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const csv = await res.text();
+    const rows = parseCSV(csv);
+    const winners = rowsToWinners(rows);
+
+    if (winners.length === 0) {
+      status.innerHTML = 'Пока никто не выбил Легендарку или Артефакт. Скоро здесь будет первая карточка ✦';
+      return;
+    }
+
+    renderCards(winners);
+    status.style.display = 'none';
+    grid.style.display = 'grid';
+  } catch (err) {
+    status.classList.add('error');
+    status.innerHTML = '⚠ Не удалось загрузить таблицу: ' + esc(err.message) +
+      '<br>Проверь, что таблица <b>опубликована</b> (Файл → Поделиться → Опубликовать в интернете → CSV)';
+  }
+}
+
+loadWinners();
+
+// Автообновление раз в 60 секунд (на случай если ты добавил победителя во время стрима)
+setInterval(loadWinners, 60000);
+</script>
+</body>
+</html>
