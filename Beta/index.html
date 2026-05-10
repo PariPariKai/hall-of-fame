@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hall of Fame</title>
+
+<!-- ============================================================
+     ⚙ НАСТРОЙКА ⚙
+     Замени ссылку на свою опубликованную CSV-ссылку из Google Sheets.
+     ============================================================ -->
+<script>
+  const CSV_URL = "PASTE_YOUR_GOOGLE_SHEETS_CSV_URL_HERE";
+</script>
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0e1a;
+    background-image:
+      radial-gradient(ellipse at top left, rgba(255, 199, 117, 0.08), transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(127, 119, 221, 0.06), transparent 50%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #fff;
+    padding: 30px 20px;
+  }
+
+  .wrap { max-width: 1400px; margin: 0 auto; }
+  .header { text-align: center; margin-bottom: 30px; }
+
+  .title {
+    font-size: 42px;
+    font-weight: 500;
+    letter-spacing: 4px;
+    color: #FAC775;
+    text-shadow: 0 0 20px rgba(250, 199, 117, 0.4);
+    margin-bottom: 6px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: rgba(255,255,255,0.45);
+    text-transform: uppercase;
+  }
+
+  .controls {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .f-btn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    padding: 10px 16px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.7);
+    font-family: inherit;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.15s ease;
+  }
+  .f-btn:hover { background: rgba(255,255,255,0.05); color: #fff; transform: translateY(-1px); }
+
+  .count-pill {
+    background: rgba(255,255,255,0.1);
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 12px;
+    letter-spacing: 0;
+  }
+
+  .f-btn.active.f-all { border-color: rgba(255,255,255,0.6); color: #fff; background: rgba(255,255,255,0.05); }
+  .f-btn.active.f-artifact { border-color: #FAC775; color: #FAC775; background: rgba(250,199,117,0.1); box-shadow: 0 0 15px rgba(250,199,117,0.2); }
+  .f-btn.active.f-artifact .count-pill { background: rgba(250,199,117,0.25); color: #FAC775; }
+  .f-btn.active.f-legendary { border-color: #F0997B; color: #F0997B; background: rgba(216,90,48,0.1); box-shadow: 0 0 15px rgba(216,90,48,0.2); }
+  .f-btn.active.f-legendary .count-pill { background: rgba(240,153,123,0.25); color: #F0997B; }
+  .f-btn.active.f-epic { border-color: #AFA9EC; color: #AFA9EC; background: rgba(127,119,221,0.12); box-shadow: 0 0 15px rgba(127,119,221,0.2); }
+  .f-btn.active.f-epic .count-pill { background: rgba(175,169,236,0.25); color: #AFA9EC; }
+  .f-btn.active.f-unique { border-color: #fff; color: #fff; background: rgba(255,255,255,0.08); box-shadow: 0 0 15px rgba(255,255,255,0.15); }
+  .f-btn.active.f-unique .count-pill { background: rgba(255,255,255,0.2); color: #fff; }
+
+  .search-input {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    width: 200px;
+    outline: none;
+    transition: all 0.15s ease;
+  }
+  .search-input:focus { border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.05); }
+  .search-input::placeholder { color: rgba(255,255,255,0.4); }
+
+  .sound-toggle {
+    background: transparent;
+    border: 1px solid rgba(151,196,89,0.4);
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    color: #97C459;
+    font-family: inherit;
+    font-size: 13px;
+    transition: all 0.15s ease;
+  }
+  .sound-toggle:hover { background: rgba(151,196,89,0.05); }
+  .sound-toggle.off { color: rgba(255,255,255,0.5); border-color: rgba(255,255,255,0.15); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 18px;
+    align-items: start;
+  }
+
+  /* ===== Базовая карточка ===== */
+  .card {
+    position: relative;
+    background: #11172a;
+    border: 1px solid;
+    border-radius: 12px;
+    padding: 18px 16px 16px;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    opacity: 0;
+    animation: cardIn 0.5s ease forwards;
+  }
+  .card:hover { transform: translateY(-4px); }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(20px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .card:nth-child(1)  { animation-delay: 0.00s; }
+  .card:nth-child(2)  { animation-delay: 0.05s; }
+  .card:nth-child(3)  { animation-delay: 0.10s; }
+  .card:nth-child(4)  { animation-delay: 0.15s; }
+  .card:nth-child(5)  { animation-delay: 0.20s; }
+  .card:nth-child(6)  { animation-delay: 0.25s; }
+  .card:nth-child(7)  { animation-delay: 0.30s; }
+  .card:nth-child(8)  { animation-delay: 0.35s; }
+  .card:nth-child(n+9) { animation-delay: 0.40s; }
+
+  /* ===== Эпический ===== */
+  .r-epic {
+    border-color: #7F77DD;
+    background: linear-gradient(180deg, #1f1a3a 0%, #11172a 60%);
+  }
+  .r-epic:hover { box-shadow: 0 8px 30px rgba(127,119,221,0.3); }
+  .r-epic .rank-badge { background: #534AB7; color: #EEEDFE; }
+  .r-epic .avatar { background: #26215C; border-color: #AFA9EC; color: #AFA9EC; }
+  .r-epic .chance { background: rgba(175,169,236,0.15); color: #AFA9EC; }
+
+  /* ===== Легендарный ===== */
+  .r-legendary {
+    border-color: #D85A30;
+    background: linear-gradient(180deg, #2a1408 0%, #11172a 60%);
+  }
+  .r-legendary:hover { box-shadow: 0 8px 30px rgba(216,90,48,0.3); }
+  .r-legendary .rank-badge { background: #993C1D; color: #FAECE7; }
+  .r-legendary .avatar { background: #4A1B0C; border-color: #F0997B; color: #F0997B; }
+  .r-legendary .chance { background: rgba(240,153,123,0.15); color: #F0997B; }
+
+  /* ===== Артефакт ===== */
+  .r-artifact {
+    border-color: #FAC775;
+    background: linear-gradient(180deg, #2a1d0a 0%, #11172a 60%);
+    box-shadow: 0 0 0 1px rgba(250,199,117,0.3);
+  }
+  .r-artifact .shimmer-bg {
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: linear-gradient(45deg, transparent 30%, rgba(250,199,117,0.08) 50%, transparent 70%);
+    animation: shimmer 4s infinite linear;
+    pointer-events: none;
+    z-index: 0;
+  }
+  @keyframes shimmer {
+    0%   { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+  }
+  .r-artifact:hover { box-shadow: 0 8px 40px rgba(250,199,117,0.4); }
+  .r-artifact .rank-badge { background: #BA7517; color: #FAEEDA; }
+  .r-artifact .avatar { background: #412402; border-color: #FAC775; color: #FAC775; }
+  .r-artifact .chance { background: rgba(250,199,117,0.15); color: #FAC775; }
+
+  /* ===== Уникальная карточка ===== */
+  /* На 10% больше + 3D flip + радужная рамка */
+  .card.unique {
+    transform: scale(1.08);
+    transform-origin: center;
+    margin: 8px 4px;
+    background: transparent;
+    border: none;
+    padding: 0;
+    overflow: visible;
+    perspective: 1200px;
+    box-shadow: none !important;
+    min-height: 360px;
+  }
+  .card.unique:hover { transform: scale(1.08) translateY(-4px); }
+
+  .unique-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 360px;
+    transform-style: preserve-3d;
+    transition: transform 0.7s cubic-bezier(0.4, 0.2, 0.2, 1);
+  }
+  .card.unique:hover .unique-inner { transform: rotateY(180deg); }
+
+  /* Радужная рамка */
+  .card.unique .unique-inner::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 16px;
+    background: linear-gradient(45deg,
+      #ff3366, #ff9933, #ffee33, #66ff66,
+      #33ddff, #6633ff, #ff33cc, #ff3366);
+    background-size: 400% 400%;
+    animation: rainbowFlow 6s linear infinite;
+    z-index: -1;
+  }
+  @keyframes rainbowFlow {
+    0%   { background-position: 0% 50%; }
+    100% { background-position: 400% 50%; }
+  }
+
+  .unique-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: 14px;
+    overflow: hidden;
+    padding: 18px 16px 16px;
+  }
+
+  .card.unique.r-epic .unique-front { background: linear-gradient(180deg, #1f1a3a 0%, #11172a 60%); }
+  .card.unique.r-legendary .unique-front { background: linear-gradient(180deg, #2a1408 0%, #11172a 60%); }
+  .card.unique.r-artifact .unique-front { background: linear-gradient(180deg, #2a1d0a 0%, #11172a 60%); }
+
+  .unique-back {
+    transform: rotateY(180deg);
+    background: #0a0e1a;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+  .unique-back .prize-image {
+    flex: 1;
+    background-size: cover;
+    background-position: center;
+    background-color: #11172a;
+    min-height: 240px;
+  }
+  .unique-back .prize-name {
+    padding: 14px 14px 16px;
+    text-align: center;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(8px);
+    font-size: 14px;
+    font-weight: 500;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    word-break: break-word;
+  }
+
+  /* Бейдж "UNIQUE" */
+  .unique-mark {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(90deg, #ff3366, #ffee33, #33ddff, #ff33cc);
+    background-size: 200% 200%;
+    animation: rainbowFlow 4s linear infinite;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    font-weight: 600;
+    z-index: 10;
+  }
+
+  /* ===== Общие элементы ===== */
+  .rank-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    padding: 4px 9px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    font-weight: 500;
+    z-index: 2;
+  }
+
+  .avatar-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 6px 0 14px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 3px solid;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 500;
+    overflow: hidden;
+  }
+
+  .nick {
+    text-align: center;
+    font-size: 17px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    position: relative; z-index: 1;
+    word-break: break-word;
+  }
+
+  .prize {
+    text-align: center;
+    font-size: 13px;
+    margin-bottom: 12px;
+    color: rgba(255,255,255,0.7);
+    position: relative; z-index: 1;
+    word-break: break-word;
+  }
+
+  .chance-row {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 12px;
+    position: relative; z-index: 1;
+  }
+
+  .chance {
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+
+  .quote {
+    font-style: italic;
+    font-family: Georgia, serif;
+    font-size: 12px;
+    text-align: center;
+    color: rgba(255,255,255,0.55);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 12px;
+    margin-bottom: 8px;
+    line-height: 1.5;
+    position: relative; z-index: 1;
+    word-break: break-word;
+  }
+
+  .date {
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: rgba(255,255,255,0.35);
+    text-transform: uppercase;
+    position: relative; z-index: 1;
+  }
+
+  .card.hidden { display: none; }
+
+  .status {
+    text-align: center;
+    color: rgba(255,255,255,0.5);
+    padding: 60px 20px;
+    font-size: 15px;
+  }
+  .status.error { color: #F09595; }
+  .status code { background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 4px; font-family: monospace; }
+
+  @media (max-width: 600px) {
+    .title { font-size: 28px; letter-spacing: 2px; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+    .search-input { width: 100%; }
+  }
+</style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="header">
+      <h1 class="title">⚜ HALL OF FAME ⚜</h1>
+      <p class="subtitle">Те, кому повезло сильнее всех</p>
+    </div>
+
+    <div class="controls">
+      <button class="f-btn f-all active" data-filter="all">Все <span class="count-pill" id="count-all">0</span></button>
+      <button class="f-btn f-unique" data-filter="unique">✨ Уникальный <span class="count-pill" id="count-unique">0</span></button>
+      <button class="f-btn f-artifact" data-filter="artifact">✦ Артефакт <span class="count-pill" id="count-artifact">0</span></button>
+      <button class="f-btn f-legendary" data-filter="legendary">★ Легендарка <span class="count-pill" id="count-legendary">0</span></button>
+      <button class="f-btn f-epic" data-filter="epic">◆ Эпическая <span class="count-pill" id="count-epic">0</span></button>
+      <input type="text" class="search-input" id="search-input" placeholder="Поиск по нику...">
+      <button class="sound-toggle" id="sound-toggle">🔊 Звук вкл.</button>
+    </div>
+
+    <div id="status" class="status">Загружаю победителей...</div>
+    <div id="grid" class="grid" style="display:none;"></div>
+  </div>
+
+<script>
+// ============================================================
+// CSV-парсер
+// ============================================================
+function parseCSV(text) {
+  const rows = [];
+  let row = [], cell = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i], next = text[i + 1];
+    if (inQuotes) {
+      if (c === '"' && next === '"') { cell += '"'; i++; }
+      else if (c === '"') { inQuotes = false; }
+      else { cell += c; }
+    } else {
+      if (c === '"') { inQuotes = true; }
+      else if (c === ',') { row.push(cell); cell = ''; }
+      else if (c === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
+      else if (c === '\r') { /* skip */ }
+      else { cell += c; }
+    }
+  }
+  if (cell.length > 0 || row.length > 0) { row.push(cell); rows.push(row); }
+  return rows;
+}
+
+// ============================================================
+// Преобразование строк в объекты-победителей
+// ============================================================
+function rowsToWinners(rows) {
+  if (rows.length < 2) return [];
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  const idx = {
+    nick:        headers.indexOf('nick'),
+    avatar:      headers.indexOf('avatar_url'),
+    prize:       headers.indexOf('prize'),
+    rank:        headers.indexOf('rank'),
+    quote:       headers.indexOf('quote'),
+    date:        headers.indexOf('date'),
+    unique:      headers.indexOf('unique'),
+    prizeImage:  headers.indexOf('prize_image_url'),
+  };
+  return rows.slice(1)
+    .filter(r => r.length > 1 && idx.nick >= 0 && r[idx.nick] && r[idx.nick].trim())
+    .map(r => {
+      const uniqueRaw = (idx.unique >= 0 ? (r[idx.unique] || '') : '').trim().toLowerCase();
+      return {
+        nick:       (r[idx.nick]   || '').trim(),
+        avatar:     (idx.avatar     >= 0 ? (r[idx.avatar]     || '').trim() : ''),
+        prize:      (idx.prize      >= 0 ? (r[idx.prize]      || '').trim() : ''),
+        rank:       (idx.rank       >= 0 ? (r[idx.rank]       || '').trim().toLowerCase() : ''),
+        quote:      (idx.quote      >= 0 ? (r[idx.quote]      || '').trim() : ''),
+        date:       (idx.date       >= 0 ? (r[idx.date]       || '').trim() : ''),
+        unique:     uniqueRaw === 'true' || uniqueRaw === 'yes' || uniqueRaw === '1' || uniqueRaw === 'да',
+        prizeImage: (idx.prizeImage >= 0 ? (r[idx.prizeImage] || '').trim() : ''),
+      };
+    })
+    .filter(w => ['epic', 'legendary', 'artifact'].includes(w.rank));
+}
+
+// ============================================================
+// Утилиты
+// ============================================================
+const MONTHS_RU = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+function formatDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return `${d.getDate()} ${MONTHS_RU[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function initials(nick) {
+  const clean = nick.replace(/[^A-Za-zА-Яа-я0-9]/g, '');
+  if (clean.length >= 2) return (clean[0] + clean[1]).toUpperCase();
+  return (clean[0] || '?').toUpperCase();
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+const RANK_INFO = {
+  epic:      { label: 'Эпическая',  symbol: '◆', chance: '7%' },
+  legendary: { label: 'Легендарка', symbol: '★', chance: '1.5%' },
+  artifact:  { label: 'Артефакт',   symbol: '✦', chance: '0.5%' },
+};
+
+// ============================================================
+// Звуки (Web Audio API)
+// ============================================================
+let audioCtx = null;
+let soundOn = true;
+
+function ensureAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume().catch(() => {});
+  }
+}
+
+function playHoverSound(rank) {
+  if (!soundOn) return;
+  ensureAudio();
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  const freqMap = { artifact: 1200, legendary: 900, epic: 700 };
+  const freq = freqMap[rank] || 800;
+  osc.frequency.setValueAtTime(freq, now);
+  osc.frequency.exponentialRampToValueAtTime(freq * 1.5, now + 0.15);
+  osc.type = 'sine';
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.07, now + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+  osc.start(now);
+  osc.stop(now + 0.35);
+}
+
+// Магический звук — арпеджио для уникальных карточек
+function playUniqueSound() {
+  if (!soundOn) return;
+  ensureAudio();
+  if (!audioCtx) return;
+  const baseTime = audioCtx.currentTime;
+  const notes = [523.25, 659.25, 783.99, 1046.5]; // C5 E5 G5 C6
+  notes.forEach((freq, i) => {
+    const t = baseTime + i * 0.07;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.setValueAtTime(freq, t);
+    osc.type = 'triangle';
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.06, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+    osc.start(t);
+    osc.stop(t + 0.55);
+  });
+}
+
+const soundBtn = document.getElementById('sound-toggle');
+function updateSoundButton() {
+  if (soundOn) {
+    soundBtn.classList.remove('off');
+    soundBtn.textContent = '🔊 Звук вкл.';
+  } else {
+    soundBtn.classList.add('off');
+    soundBtn.textContent = '🔇 Звук выкл.';
+  }
+}
+soundBtn.addEventListener('click', () => {
+  soundOn = !soundOn;
+  if (soundOn) ensureAudio();
+  updateSoundButton();
+});
+updateSoundButton();
+
+// Первый клик в любом месте пробуждает аудиоконтекст (требование браузеров)
+document.addEventListener('click', () => { if (soundOn) ensureAudio(); }, { once: true });
+
+// ============================================================
+// Рендер карточек
+// ============================================================
+function buildCard(w) {
+  const info = RANK_INFO[w.rank];
+  const avatarHtml = w.avatar
+    ? `<div class="avatar" style="background-image:url('${esc(w.avatar)}');"></div>`
+    : `<div class="avatar">${esc(initials(w.nick))}</div>`;
+
+  const cardClasses = `card r-${esc(w.rank)}${w.unique ? ' unique' : ''}`;
+
+  const frontContent = `
+    ${w.rank === 'artifact' ? '<div class="shimmer-bg"></div>' : ''}
+    <span class="rank-badge">${esc(info.label)}</span>
+    <div class="avatar-wrap">${avatarHtml}</div>
+    <p class="nick">${esc(w.nick)}</p>
+    <p class="prize">${esc(w.prize)}</p>
+    <div class="chance-row"><span class="chance">${info.symbol} ${info.chance}</span></div>
+    ${w.quote ? `<p class="quote">"${esc(w.quote)}"</p>` : '<p class="quote" style="opacity:0.3">—</p>'}
+    <p class="date">${esc(formatDate(w.date))}</p>
+  `;
+
+  if (w.unique) {
+    const backImage = w.prizeImage
+      ? `style="background-image:url('${esc(w.prizeImage)}');"`
+      : '';
+    return `
+      <div class="${cardClasses}" data-rank="${esc(w.rank)}" data-unique="1" data-nick="${esc(w.nick.toLowerCase())}">
+        <span class="unique-mark">✨ Unique ✨</span>
+        <div class="unique-inner">
+          <div class="unique-face unique-front">${frontContent}</div>
+          <div class="unique-face unique-back">
+            <div class="prize-image" ${backImage}></div>
+            <div class="prize-name">${esc(w.prize) || '&nbsp;'}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="${cardClasses}" data-rank="${esc(w.rank)}" data-unique="0" data-nick="${esc(w.nick.toLowerCase())}">
+      ${frontContent}
+    </div>
+  `;
+}
+
+function renderCards(winners) {
+  const grid = document.getElementById('grid');
+  // Сортировка по дате убывания (новые сверху), при равной дате — по рангу
+  const rankWeight = { artifact: 3, legendary: 2, epic: 1 };
+  winners.sort((a, b) => {
+    const dateCmp = (b.date || '').localeCompare(a.date || '');
+    if (dateCmp !== 0) return dateCmp;
+    return (rankWeight[b.rank] || 0) - (rankWeight[a.rank] || 0);
+  });
+
+  grid.innerHTML = winners.map(buildCard).join('');
+
+  // Hover sounds
+  grid.querySelectorAll('.card').forEach(card => {
+    const isUnique = card.dataset.unique === '1';
+    card.addEventListener('mouseenter', () => {
+      if (isUnique) playUniqueSound();
+      else playHoverSound(card.dataset.rank);
+    });
+  });
+
+  // Счётчики
+  const counts = winners.reduce((acc, w) => {
+    acc[w.rank] = (acc[w.rank] || 0) + 1;
+    if (w.unique) acc.unique++;
+    acc.all++;
+    return acc;
+  }, { all: 0, epic: 0, legendary: 0, artifact: 0, unique: 0 });
+  document.getElementById('count-all').textContent       = counts.all;
+  document.getElementById('count-unique').textContent    = counts.unique;
+  document.getElementById('count-epic').textContent      = counts.epic;
+  document.getElementById('count-legendary').textContent = counts.legendary;
+  document.getElementById('count-artifact').textContent  = counts.artifact;
+}
+
+// ============================================================
+// Фильтры + поиск
+// ============================================================
+let currentFilter = 'all';
+let currentSearch = '';
+
+function applyFilters() {
+  document.querySelectorAll('.card').forEach(card => {
+    const rank = card.dataset.rank;
+    const isUnique = card.dataset.unique === '1';
+    const nick = card.dataset.nick;
+
+    let matchesFilter;
+    if (currentFilter === 'all') matchesFilter = true;
+    else if (currentFilter === 'unique') matchesFilter = isUnique;
+    else matchesFilter = rank === currentFilter;
+
+    const matchesSearch = !currentSearch || nick.includes(currentSearch);
+    card.classList.toggle('hidden', !(matchesFilter && matchesSearch));
+  });
+}
+
+document.querySelectorAll('.f-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    applyFilters();
+  });
+});
+
+document.getElementById('search-input').addEventListener('input', (e) => {
+  currentSearch = e.target.value.trim().toLowerCase();
+  applyFilters();
+});
+
+// ============================================================
+// Загрузка
+// ============================================================
+async function loadWinners() {
+  const status = document.getElementById('status');
+  const grid = document.getElementById('grid');
+
+  if (!CSV_URL || CSV_URL === 'PASTE_YOUR_GOOGLE_SHEETS_CSV_URL_HERE') {
+    status.classList.add('error');
+    status.innerHTML = '⚠ Не настроена ссылка на Google Sheets.<br>Открой <code>index.html</code> и вставь ссылку в переменную <code>CSV_URL</code>.';
+    return;
+  }
+
+  try {
+    const res = await fetch(CSV_URL);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const csv = await res.text();
+    const rows = parseCSV(csv);
+    const winners = rowsToWinners(rows);
+
+    if (winners.length === 0) {
+      status.innerHTML = 'Пока никто не выбил Эпик / Легендарку / Артефакт. Скоро здесь будет первая карточка ✦';
+      return;
+    }
+
+    renderCards(winners);
+    applyFilters();
+    status.style.display = 'none';
+    grid.style.display = 'grid';
+  } catch (err) {
+    status.classList.add('error');
+    status.innerHTML = '⚠ Не удалось загрузить таблицу: ' + esc(err.message) +
+      '<br>Проверь, что таблица <b>опубликована</b> (Файл → Поделиться → Опубликовать в интернете → CSV)';
+  }
+}
+
+loadWinners();
+setInterval(loadWinners, 60000);
+</script>
+</body>
+</html>
