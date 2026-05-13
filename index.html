@@ -595,18 +595,28 @@ function rowsToCurrentPrizes(rows) {
   if (rows.length < 2) return [];
   const headers = rows[0].map(h => h.trim().toLowerCase());
   const idx = {
-    image: headers.indexOf('image_url'),
-    title: headers.indexOf('title'),
-    link:  headers.indexOf('link'),
+    image:  headers.indexOf('image_url'),
+    title:  headers.indexOf('title'),
+    link:   headers.indexOf('link'),
+    active: headers.indexOf('active'),
   };
   if (idx.image < 0) return [];
   return rows.slice(1)
     .filter(r => r.length > 0 && r[idx.image] && r[idx.image].trim())
-    .map(r => ({
-      image: (r[idx.image] || '').trim(),
-      title: (idx.title >= 0 ? (r[idx.title] || '').trim() : ''),
-      link:  (idx.link  >= 0 ? (r[idx.link]  || '').trim() : ''),
-    }));
+    .map(r => {
+      const activeRaw = (idx.active >= 0 ? (r[idx.active] || 'true') : 'true').trim().toLowerCase();
+      const isActive = idx.active < 0 ||
+                       activeRaw === 'true' || activeRaw === 'yes' ||
+                       activeRaw === '1' || activeRaw === 'да' ||
+                       activeRaw === '';
+      return {
+        image:  (r[idx.image] || '').trim(),
+        title:  (idx.title >= 0 ? (r[idx.title] || '').trim() : ''),
+        link:   (idx.link  >= 0 ? (r[idx.link]  || '').trim() : ''),
+        active: isActive,
+      };
+    })
+    .filter(p => p.active);
 }
 
 // ============================================================
