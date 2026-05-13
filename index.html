@@ -7,10 +7,14 @@
 
 <!-- ============================================================
      ⚙ НАСТРОЙКА ⚙
-     Замени ссылку на свою опубликованную CSV-ссылку из Google Sheets.
+     CSV_URL — таблица победителей (лист Winners)
+     CURRENT_PRIZES_CSV_URL — таблица текущих призов (лист CurrentPrizes)
+     TWITCH_URL — ссылка на твой Twitch-канал (для баннеров без своей ссылки)
      ============================================================ -->
 <script>
   const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=287600011&single=true&output=csv";
+  const CURRENT_PRIZES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=918273645&single=true&output=csv";
+  const TWITCH_URL = "https://www.twitch.tv/pariparikai";
 </script>
 
 <style>
@@ -47,6 +51,96 @@
     text-transform: uppercase;
   }
 
+  /* ===== Карусель текущих призов ===== */
+  .current-prizes {
+    margin-bottom: 32px;
+    display: none; /* Показывается JS-ом если есть призы */
+  }
+
+  .current-prizes-header {
+    text-align: center;
+    margin-bottom: 16px;
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: rgba(255,255,255,0.6);
+    text-transform: uppercase;
+  }
+
+  .current-prizes-header .glow {
+    color: #FAC775;
+    text-shadow: 0 0 10px rgba(250, 199, 117, 0.5);
+  }
+
+  .carousel-viewport {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(250,199,117,0.3) transparent;
+    padding: 4px 0 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .carousel-viewport::-webkit-scrollbar { height: 6px; }
+  .carousel-viewport::-webkit-scrollbar-track { background: transparent; }
+  .carousel-viewport::-webkit-scrollbar-thumb {
+    background: rgba(250,199,117,0.3);
+    border-radius: 3px;
+  }
+
+  .carousel-track {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    min-width: min-content;
+    padding: 0 4px;
+  }
+
+  .prize-banner {
+    flex: 0 0 auto;
+    width: 220px;
+    height: 440px; /* пропорция ~1:2 как у твоего Subnautica баннера */
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    background: #11172a;
+    background-size: cover;
+    background-position: center;
+    border: 2px solid rgba(255,255,255,0.1);
+    transition: all 0.25s ease;
+    text-decoration: none;
+    display: block;
+  }
+  .prize-banner:hover {
+    border-color: rgba(250,199,117,0.5);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 30px rgba(250,199,117,0.2);
+  }
+  .prize-banner::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 30%);
+    opacity: 0.7;
+    transition: opacity 0.25s ease;
+  }
+  .prize-banner:hover::after { opacity: 0.4; }
+
+  .prize-banner-label {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    z-index: 2;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #FAC775;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+    text-align: center;
+    pointer-events: none;
+  }
+
+  /* ===== Фильтры/контролы ===== */
   .controls {
     display: flex;
     justify-content: center;
@@ -128,7 +222,7 @@
     align-items: start;
   }
 
-  /* ===== Базовая карточка ===== */
+  /* ===== Карточка ===== */
   .card {
     position: relative;
     background: #11172a;
@@ -157,7 +251,7 @@
   .card:nth-child(8)  { animation-delay: 0.35s; }
   .card:nth-child(n+9) { animation-delay: 0.40s; }
 
-  /* ===== Эпический ===== */
+  /* Ранги */
   .r-epic {
     border-color: #7F77DD;
     background: linear-gradient(180deg, #1f1a3a 0%, #11172a 60%);
@@ -167,7 +261,6 @@
   .r-epic .avatar { background: #26215C; border-color: #AFA9EC; color: #AFA9EC; }
   .r-epic .chance { background: rgba(175,169,236,0.15); color: #AFA9EC; }
 
-  /* ===== Легендарный ===== */
   .r-legendary {
     border-color: #D85A30;
     background: linear-gradient(180deg, #2a1408 0%, #11172a 60%);
@@ -177,7 +270,6 @@
   .r-legendary .avatar { background: #4A1B0C; border-color: #F0997B; color: #F0997B; }
   .r-legendary .chance { background: rgba(240,153,123,0.15); color: #F0997B; }
 
-  /* ===== Артефакт ===== */
   .r-artifact {
     border-color: #FAC775;
     background: linear-gradient(180deg, #2a1d0a 0%, #11172a 60%);
@@ -201,8 +293,7 @@
   .r-artifact .avatar { background: #412402; border-color: #FAC775; color: #FAC775; }
   .r-artifact .chance { background: rgba(250,199,117,0.15); color: #FAC775; }
 
-  /* ===== Уникальная карточка ===== */
-  /* На 10% больше + 3D flip + радужная рамка */
+  /* Уникальная */
   .card.unique {
     transform: scale(1.08);
     transform-origin: center;
@@ -227,7 +318,6 @@
   }
   .card.unique:hover .unique-inner { transform: rotateY(180deg); }
 
-  /* Радужная рамка */
   .card.unique .unique-inner::before {
     content: '';
     position: absolute;
@@ -284,7 +374,6 @@
     word-break: break-word;
   }
 
-  /* Бейдж "UNIQUE" */
   .unique-mark {
     position: absolute;
     top: -10px;
@@ -304,7 +393,7 @@
     z-index: 10;
   }
 
-  /* ===== Общие элементы ===== */
+  /* Общие */
   .rank-badge {
     position: absolute;
     top: 12px;
@@ -412,6 +501,7 @@
     .title { font-size: 28px; letter-spacing: 2px; }
     .grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
     .search-input { width: 100%; }
+    .prize-banner { width: 160px; height: 320px; }
   }
 </style>
 </head>
@@ -421,6 +511,14 @@
     <div class="header">
       <h1 class="title">⚜ HALL OF FAME ⚜</h1>
       <p class="subtitle">Те, кому повезло сильнее всех</p>
+    </div>
+
+    <!-- Карусель текущих призов -->
+    <div class="current-prizes" id="current-prizes">
+      <div class="current-prizes-header">🎰 <span class="glow">Сейчас в рулетке</span> 🎰</div>
+      <div class="carousel-viewport">
+        <div class="carousel-track" id="carousel-track"></div>
+      </div>
     </div>
 
     <div class="controls">
@@ -462,9 +560,6 @@ function parseCSV(text) {
   return rows;
 }
 
-// ============================================================
-// Преобразование строк в объекты-победителей
-// ============================================================
 function rowsToWinners(rows) {
   if (rows.length < 2) return [];
   const headers = rows[0].map(h => h.trim().toLowerCase());
@@ -494,6 +589,24 @@ function rowsToWinners(rows) {
       };
     })
     .filter(w => ['epic', 'legendary', 'artifact'].includes(w.rank));
+}
+
+function rowsToCurrentPrizes(rows) {
+  if (rows.length < 2) return [];
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  const idx = {
+    image: headers.indexOf('image_url'),
+    title: headers.indexOf('title'),
+    link:  headers.indexOf('link'),
+  };
+  if (idx.image < 0) return [];
+  return rows.slice(1)
+    .filter(r => r.length > 0 && r[idx.image] && r[idx.image].trim())
+    .map(r => ({
+      image: (r[idx.image] || '').trim(),
+      title: (idx.title >= 0 ? (r[idx.title] || '').trim() : ''),
+      link:  (idx.link  >= 0 ? (r[idx.link]  || '').trim() : ''),
+    }));
 }
 
 // ============================================================
@@ -526,7 +639,7 @@ const RANK_INFO = {
 };
 
 // ============================================================
-// Звуки (Web Audio API)
+// Звуки
 // ============================================================
 let audioCtx = null;
 let soundOn = true;
@@ -561,13 +674,12 @@ function playHoverSound(rank) {
   osc.stop(now + 0.35);
 }
 
-// Магический звук — арпеджио для уникальных карточек
 function playUniqueSound() {
   if (!soundOn) return;
   ensureAudio();
   if (!audioCtx) return;
   const baseTime = audioCtx.currentTime;
-  const notes = [523.25, 659.25, 783.99, 1046.5]; // C5 E5 G5 C6
+  const notes = [523.25, 659.25, 783.99, 1046.5];
   notes.forEach((freq, i) => {
     const t = baseTime + i * 0.07;
     const osc = audioCtx.createOscillator();
@@ -600,8 +712,6 @@ soundBtn.addEventListener('click', () => {
   updateSoundButton();
 });
 updateSoundButton();
-
-// Первый клик в любом месте пробуждает аудиоконтекст (требование браузеров)
 document.addEventListener('click', () => { if (soundOn) ensureAudio(); }, { once: true });
 
 // ============================================================
@@ -653,7 +763,6 @@ function buildCard(w) {
 
 function renderCards(winners) {
   const grid = document.getElementById('grid');
-  // Сортировка по дате убывания (новые сверху), при равной дате — по рангу
   const rankWeight = { artifact: 3, legendary: 2, epic: 1 };
   winners.sort((a, b) => {
     const dateCmp = (b.date || '').localeCompare(a.date || '');
@@ -663,7 +772,6 @@ function renderCards(winners) {
 
   grid.innerHTML = winners.map(buildCard).join('');
 
-  // Hover sounds
   grid.querySelectorAll('.card').forEach(card => {
     const isUnique = card.dataset.unique === '1';
     card.addEventListener('mouseenter', () => {
@@ -672,7 +780,6 @@ function renderCards(winners) {
     });
   });
 
-  // Счётчики
   const counts = winners.reduce((acc, w) => {
     acc[w.rank] = (acc[w.rank] || 0) + 1;
     if (w.unique) acc.unique++;
@@ -684,6 +791,35 @@ function renderCards(winners) {
   document.getElementById('count-epic').textContent      = counts.epic;
   document.getElementById('count-legendary').textContent = counts.legendary;
   document.getElementById('count-artifact').textContent  = counts.artifact;
+}
+
+// ============================================================
+// Рендер карусели текущих призов
+// ============================================================
+function renderCurrentPrizes(prizes) {
+  const container = document.getElementById('current-prizes');
+  const track = document.getElementById('carousel-track');
+
+  if (!prizes || prizes.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+
+  const defaultLink = TWITCH_URL && !TWITCH_URL.includes('YOUR_CHANNEL') ? TWITCH_URL : '#';
+
+  track.innerHTML = prizes.map(p => {
+    const link = p.link || defaultLink;
+    const titleAttr = p.title ? `title="${esc(p.title)}"` : '';
+    const labelHtml = p.title ? `<div class="prize-banner-label">${esc(p.title)}</div>` : '';
+    return `
+      <a href="${esc(link)}" target="_blank" rel="noopener" class="prize-banner"
+         style="background-image:url('${esc(p.image)}');" ${titleAttr}>
+         ${labelHtml}
+      </a>
+    `;
+  }).join('');
+
+  container.style.display = 'block';
 }
 
 // ============================================================
@@ -723,15 +859,15 @@ document.getElementById('search-input').addEventListener('input', (e) => {
 });
 
 // ============================================================
-// Загрузка
+// Загрузка данных
 // ============================================================
 async function loadWinners() {
   const status = document.getElementById('status');
   const grid = document.getElementById('grid');
 
-  if (!CSV_URL || CSV_URL === 'PASTE_YOUR_GOOGLE_SHEETS_CSV_URL_HERE') {
+  if (!CSV_URL || CSV_URL === 'PASTE_YOUR_WINNERS_CSV_URL_HERE') {
     status.classList.add('error');
-    status.innerHTML = '⚠ Не настроена ссылка на Google Sheets.<br>Открой <code>index.html</code> и вставь ссылку в переменную <code>CSV_URL</code>.';
+    status.innerHTML = '⚠ Не настроена ссылка на Google Sheets (победители).<br>Открой <code>index.html</code> и вставь ссылку в переменную <code>CSV_URL</code>.';
     return;
   }
 
@@ -758,8 +894,30 @@ async function loadWinners() {
   }
 }
 
+async function loadCurrentPrizes() {
+  // Если ссылка не настроена — просто скрываем карусель, не показываем ошибку (это опциональная фича)
+  if (!CURRENT_PRIZES_CSV_URL || CURRENT_PRIZES_CSV_URL === 'PASTE_YOUR_CURRENT_PRIZES_CSV_URL_HERE') {
+    return;
+  }
+  try {
+    const res = await fetch(CURRENT_PRIZES_CSV_URL);
+    if (!res.ok) return;
+    const csv = await res.text();
+    const rows = parseCSV(csv);
+    const prizes = rowsToCurrentPrizes(rows);
+    renderCurrentPrizes(prizes);
+  } catch (err) {
+    // Тихо игнорируем — карусель опциональна
+    console.warn('Не удалось загрузить текущие призы:', err);
+  }
+}
+
 loadWinners();
-setInterval(loadWinners, 60000);
+loadCurrentPrizes();
+setInterval(() => {
+  loadWinners();
+  loadCurrentPrizes();
+}, 60000);
 </script>
 </body>
 </html>
