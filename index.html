@@ -7,13 +7,15 @@
 
 <!-- ============================================================
      ⚙ НАСТРОЙКА ⚙
-     CSV_URL — таблица победителей (лист Winners)
-     CURRENT_PRIZES_CSV_URL — таблица текущих призов (лист CurrentPrizes)
-     TWITCH_URL — ссылка на твой Twitch-канал (для баннеров без своей ссылки)
+     CSV_URL — лист Winners
+     CURRENT_PRIZES_CSV_URL — лист CurrentPrizes
+     VIEWERS_CSV_URL — лист Viewers (база зрителей с аватарками)
+     TWITCH_URL — твой Twitch-канал
      ============================================================ -->
 <script>
   const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=287600011&single=true&output=csv";
   const CURRENT_PRIZES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=918273645&single=true&output=csv";
+  const VIEWERS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=527100001&single=true&output=csv";
   const TWITCH_URL = "https://www.twitch.tv/pariparikai";
 </script>
 
@@ -43,7 +45,6 @@
     text-shadow: 0 0 20px rgba(250, 199, 117, 0.4);
     margin-bottom: 6px;
   }
-
   .subtitle {
     font-size: 13px;
     letter-spacing: 4px;
@@ -51,12 +52,11 @@
     text-transform: uppercase;
   }
 
-  /* ===== Карусель текущих призов ===== */
+  /* Карусель */
   .current-prizes {
     margin-bottom: 32px;
-    display: none; /* Показывается JS-ом если есть призы */
+    display: none;
   }
-
   .current-prizes-header {
     text-align: center;
     margin-bottom: 16px;
@@ -65,12 +65,10 @@
     color: rgba(255,255,255,0.6);
     text-transform: uppercase;
   }
-
   .current-prizes-header .glow {
     color: #FAC775;
     text-shadow: 0 0 10px rgba(250, 199, 117, 0.5);
   }
-
   .carousel-viewport {
     overflow-x: auto;
     overflow-y: hidden;
@@ -85,7 +83,6 @@
     background: rgba(250,199,117,0.3);
     border-radius: 3px;
   }
-
   .carousel-track {
     display: flex;
     gap: 16px;
@@ -93,11 +90,10 @@
     min-width: min-content;
     padding: 0 4px;
   }
-
   .prize-banner {
     flex: 0 0 auto;
     width: 220px;
-    height: 440px; /* пропорция ~1:2 как у твоего Subnautica баннера */
+    height: 440px;
     border-radius: 12px;
     overflow: hidden;
     position: relative;
@@ -124,7 +120,6 @@
     transition: opacity 0.25s ease;
   }
   .prize-banner:hover::after { opacity: 0.4; }
-
   .prize-banner-label {
     position: absolute;
     bottom: 12px;
@@ -140,7 +135,7 @@
     pointer-events: none;
   }
 
-  /* ===== Фильтры/контролы ===== */
+  /* Фильтры */
   .controls {
     display: flex;
     justify-content: center;
@@ -149,7 +144,6 @@
     flex-wrap: wrap;
     align-items: center;
   }
-
   .f-btn {
     background: transparent;
     border: 1px solid rgba(255,255,255,0.15);
@@ -167,7 +161,6 @@
     transition: all 0.15s ease;
   }
   .f-btn:hover { background: rgba(255,255,255,0.05); color: #fff; transform: translateY(-1px); }
-
   .count-pill {
     background: rgba(255,255,255,0.1);
     padding: 2px 8px;
@@ -175,7 +168,6 @@
     font-size: 12px;
     letter-spacing: 0;
   }
-
   .f-btn.active.f-all { border-color: rgba(255,255,255,0.6); color: #fff; background: rgba(255,255,255,0.05); }
   .f-btn.active.f-artifact { border-color: #FAC775; color: #FAC775; background: rgba(250,199,117,0.1); box-shadow: 0 0 15px rgba(250,199,117,0.2); }
   .f-btn.active.f-artifact .count-pill { background: rgba(250,199,117,0.25); color: #FAC775; }
@@ -185,7 +177,6 @@
   .f-btn.active.f-epic .count-pill { background: rgba(175,169,236,0.25); color: #AFA9EC; }
   .f-btn.active.f-unique { border-color: #fff; color: #fff; background: rgba(255,255,255,0.08); box-shadow: 0 0 15px rgba(255,255,255,0.15); }
   .f-btn.active.f-unique .count-pill { background: rgba(255,255,255,0.2); color: #fff; }
-
   .search-input {
     background: transparent;
     border: 1px solid rgba(255,255,255,0.15);
@@ -200,7 +191,6 @@
   }
   .search-input:focus { border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.05); }
   .search-input::placeholder { color: rgba(255,255,255,0.4); }
-
   .sound-toggle {
     background: transparent;
     border: 1px solid rgba(151,196,89,0.4);
@@ -222,7 +212,7 @@
     align-items: start;
   }
 
-  /* ===== Карточка ===== */
+  /* Карточка */
   .card {
     position: relative;
     background: #11172a;
@@ -235,12 +225,10 @@
     animation: cardIn 0.5s ease forwards;
   }
   .card:hover { transform: translateY(-4px); }
-
   @keyframes cardIn {
     from { opacity: 0; transform: translateY(20px) scale(0.95); }
     to { opacity: 1; transform: translateY(0) scale(1); }
   }
-
   .card:nth-child(1)  { animation-delay: 0.00s; }
   .card:nth-child(2)  { animation-delay: 0.05s; }
   .card:nth-child(3)  { animation-delay: 0.10s; }
@@ -251,7 +239,6 @@
   .card:nth-child(8)  { animation-delay: 0.35s; }
   .card:nth-child(n+9) { animation-delay: 0.40s; }
 
-  /* Ранги */
   .r-epic {
     border-color: #7F77DD;
     background: linear-gradient(180deg, #1f1a3a 0%, #11172a 60%);
@@ -293,7 +280,6 @@
   .r-artifact .avatar { background: #412402; border-color: #FAC775; color: #FAC775; }
   .r-artifact .chance { background: rgba(250,199,117,0.15); color: #FAC775; }
 
-  /* Уникальная */
   .card.unique {
     transform: scale(1.08);
     transform-origin: center;
@@ -307,7 +293,6 @@
     min-height: 360px;
   }
   .card.unique:hover { transform: scale(1.08) translateY(-4px); }
-
   .unique-inner {
     position: relative;
     width: 100%;
@@ -317,7 +302,6 @@
     transition: transform 0.7s cubic-bezier(0.4, 0.2, 0.2, 1);
   }
   .card.unique:hover .unique-inner { transform: rotateY(180deg); }
-
   .card.unique .unique-inner::before {
     content: '';
     position: absolute;
@@ -334,7 +318,6 @@
     0%   { background-position: 0% 50%; }
     100% { background-position: 400% 50%; }
   }
-
   .unique-face {
     position: absolute;
     inset: 0;
@@ -344,11 +327,9 @@
     overflow: hidden;
     padding: 18px 16px 16px;
   }
-
   .card.unique.r-epic .unique-front { background: linear-gradient(180deg, #1f1a3a 0%, #11172a 60%); }
   .card.unique.r-legendary .unique-front { background: linear-gradient(180deg, #2a1408 0%, #11172a 60%); }
   .card.unique.r-artifact .unique-front { background: linear-gradient(180deg, #2a1d0a 0%, #11172a 60%); }
-
   .unique-back {
     transform: rotateY(180deg);
     background: #0a0e1a;
@@ -373,7 +354,6 @@
     border-top: 1px solid rgba(255,255,255,0.1);
     word-break: break-word;
   }
-
   .unique-mark {
     position: absolute;
     top: -10px;
@@ -393,7 +373,6 @@
     z-index: 10;
   }
 
-  /* Общие */
   .rank-badge {
     position: absolute;
     top: 12px;
@@ -406,7 +385,6 @@
     font-weight: 500;
     z-index: 2;
   }
-
   .avatar-wrap {
     display: flex;
     justify-content: center;
@@ -414,7 +392,6 @@
     position: relative;
     z-index: 1;
   }
-
   .avatar {
     width: 80px;
     height: 80px;
@@ -429,7 +406,6 @@
     font-weight: 500;
     overflow: hidden;
   }
-
   .nick {
     text-align: center;
     font-size: 17px;
@@ -438,7 +414,6 @@
     position: relative; z-index: 1;
     word-break: break-word;
   }
-
   .prize {
     text-align: center;
     font-size: 13px;
@@ -447,14 +422,12 @@
     position: relative; z-index: 1;
     word-break: break-word;
   }
-
   .chance-row {
     display: flex;
     justify-content: center;
     margin-bottom: 12px;
     position: relative; z-index: 1;
   }
-
   .chance {
     font-size: 11px;
     letter-spacing: 0.5px;
@@ -462,7 +435,6 @@
     border-radius: 10px;
     font-weight: 500;
   }
-
   .quote {
     font-style: italic;
     font-family: Georgia, serif;
@@ -476,7 +448,6 @@
     position: relative; z-index: 1;
     word-break: break-word;
   }
-
   .date {
     text-align: center;
     font-size: 10px;
@@ -485,9 +456,7 @@
     text-transform: uppercase;
     position: relative; z-index: 1;
   }
-
   .card.hidden { display: none; }
-
   .status {
     text-align: center;
     color: rgba(255,255,255,0.5);
@@ -513,7 +482,6 @@
       <p class="subtitle">Те, кому повезло сильнее всех</p>
     </div>
 
-    <!-- Карусель текущих призов -->
     <div class="current-prizes" id="current-prizes">
       <div class="current-prizes-header">🎰 <span class="glow">Сейчас в рулетке</span> 🎰</div>
       <div class="carousel-viewport">
@@ -536,9 +504,6 @@
   </div>
 
 <script>
-// ============================================================
-// CSV-парсер
-// ============================================================
 function parseCSV(text) {
   const rows = [];
   let row = [], cell = '', inQuotes = false;
@@ -552,7 +517,7 @@ function parseCSV(text) {
       if (c === '"') { inQuotes = true; }
       else if (c === ',') { row.push(cell); cell = ''; }
       else if (c === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
-      else if (c === '\r') { /* skip */ }
+      else if (c === '\r') {}
       else { cell += c; }
     }
   }
@@ -560,12 +525,30 @@ function parseCSV(text) {
   return rows;
 }
 
-function rowsToWinners(rows) {
+function rowsToViewers(rows) {
+  if (rows.length < 2) return {};
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  const nickIdx = headers.indexOf('nick');
+  const avatarIdx = headers.indexOf('avatar_url');
+  if (nickIdx < 0) return {};
+  const map = {};
+  rows.slice(1).forEach(r => {
+    if (r.length > 0 && r[nickIdx] && r[nickIdx].trim()) {
+      const nick = r[nickIdx].trim();
+      map[nick.toLowerCase()] = {
+        nick: nick,
+        avatar: avatarIdx >= 0 ? (r[avatarIdx] || '').trim() : '',
+      };
+    }
+  });
+  return map;
+}
+
+function rowsToWinners(rows, viewersMap) {
   if (rows.length < 2) return [];
   const headers = rows[0].map(h => h.trim().toLowerCase());
   const idx = {
     nick:        headers.indexOf('nick'),
-    avatar:      headers.indexOf('avatar_url'),
     prize:       headers.indexOf('prize'),
     rank:        headers.indexOf('rank'),
     quote:       headers.indexOf('quote'),
@@ -576,10 +559,12 @@ function rowsToWinners(rows) {
   return rows.slice(1)
     .filter(r => r.length > 1 && idx.nick >= 0 && r[idx.nick] && r[idx.nick].trim())
     .map(r => {
+      const nick = (r[idx.nick] || '').trim();
       const uniqueRaw = (idx.unique >= 0 ? (r[idx.unique] || '') : '').trim().toLowerCase();
+      const viewer = viewersMap[nick.toLowerCase()] || {};
       return {
-        nick:       (r[idx.nick]   || '').trim(),
-        avatar:     (idx.avatar     >= 0 ? (r[idx.avatar]     || '').trim() : ''),
+        nick:       nick,
+        avatar:     viewer.avatar || '',
         prize:      (idx.prize      >= 0 ? (r[idx.prize]      || '').trim() : ''),
         rank:       (idx.rank       >= 0 ? (r[idx.rank]       || '').trim().toLowerCase() : ''),
         quote:      (idx.quote      >= 0 ? (r[idx.quote]      || '').trim() : ''),
@@ -619,9 +604,6 @@ function rowsToCurrentPrizes(rows) {
     .filter(p => p.active);
 }
 
-// ============================================================
-// Утилиты
-// ============================================================
 const MONTHS_RU = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 function formatDate(iso) {
   if (!iso) return '';
@@ -648,21 +630,13 @@ const RANK_INFO = {
   artifact:  { label: 'Артефакт',   symbol: '✦', chance: '0.5%' },
 };
 
-// ============================================================
 // Звуки
-// ============================================================
 let audioCtx = null;
 let soundOn = true;
-
 function ensureAudio() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume().catch(() => {});
-  }
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
 }
-
 function playHoverSound(rank) {
   if (!soundOn) return;
   ensureAudio();
@@ -670,8 +644,7 @@ function playHoverSound(rank) {
   const now = audioCtx.currentTime;
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
+  osc.connect(gain); gain.connect(audioCtx.destination);
   const freqMap = { artifact: 1200, legendary: 900, epic: 700 };
   const freq = freqMap[rank] || 800;
   osc.frequency.setValueAtTime(freq, now);
@@ -680,10 +653,8 @@ function playHoverSound(rank) {
   gain.gain.setValueAtTime(0, now);
   gain.gain.linearRampToValueAtTime(0.07, now + 0.02);
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-  osc.start(now);
-  osc.stop(now + 0.35);
+  osc.start(now); osc.stop(now + 0.35);
 }
-
 function playUniqueSound() {
   if (!soundOn) return;
   ensureAudio();
@@ -694,18 +665,15 @@ function playUniqueSound() {
     const t = baseTime + i * 0.07;
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
+    osc.connect(gain); gain.connect(audioCtx.destination);
     osc.frequency.setValueAtTime(freq, t);
     osc.type = 'triangle';
     gain.gain.setValueAtTime(0, t);
     gain.gain.linearRampToValueAtTime(0.06, t + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
-    osc.start(t);
-    osc.stop(t + 0.55);
+    osc.start(t); osc.stop(t + 0.55);
   });
 }
-
 const soundBtn = document.getElementById('sound-toggle');
 function updateSoundButton() {
   if (soundOn) {
@@ -724,17 +692,12 @@ soundBtn.addEventListener('click', () => {
 updateSoundButton();
 document.addEventListener('click', () => { if (soundOn) ensureAudio(); }, { once: true });
 
-// ============================================================
-// Рендер карточек
-// ============================================================
 function buildCard(w) {
   const info = RANK_INFO[w.rank];
   const avatarHtml = w.avatar
     ? `<div class="avatar" style="background-image:url('${esc(w.avatar)}');"></div>`
     : `<div class="avatar">${esc(initials(w.nick))}</div>`;
-
   const cardClasses = `card r-${esc(w.rank)}${w.unique ? ' unique' : ''}`;
-
   const frontContent = `
     ${w.rank === 'artifact' ? '<div class="shimmer-bg"></div>' : ''}
     <span class="rank-badge">${esc(info.label)}</span>
@@ -745,11 +708,8 @@ function buildCard(w) {
     ${w.quote ? `<p class="quote">"${esc(w.quote)}"</p>` : '<p class="quote" style="opacity:0.3">—</p>'}
     <p class="date">${esc(formatDate(w.date))}</p>
   `;
-
   if (w.unique) {
-    const backImage = w.prizeImage
-      ? `style="background-image:url('${esc(w.prizeImage)}');"`
-      : '';
+    const backImage = w.prizeImage ? `style="background-image:url('${esc(w.prizeImage)}');"` : '';
     return `
       <div class="${cardClasses}" data-rank="${esc(w.rank)}" data-unique="1" data-nick="${esc(w.nick.toLowerCase())}">
         <span class="unique-mark">✨ Unique ✨</span>
@@ -763,7 +723,6 @@ function buildCard(w) {
       </div>
     `;
   }
-
   return `
     <div class="${cardClasses}" data-rank="${esc(w.rank)}" data-unique="0" data-nick="${esc(w.nick.toLowerCase())}">
       ${frontContent}
@@ -779,9 +738,7 @@ function renderCards(winners) {
     if (dateCmp !== 0) return dateCmp;
     return (rankWeight[b.rank] || 0) - (rankWeight[a.rank] || 0);
   });
-
   grid.innerHTML = winners.map(buildCard).join('');
-
   grid.querySelectorAll('.card').forEach(card => {
     const isUnique = card.dataset.unique === '1';
     card.addEventListener('mouseenter', () => {
@@ -789,7 +746,6 @@ function renderCards(winners) {
       else playHoverSound(card.dataset.rank);
     });
   });
-
   const counts = winners.reduce((acc, w) => {
     acc[w.rank] = (acc[w.rank] || 0) + 1;
     if (w.unique) acc.unique++;
@@ -803,20 +759,14 @@ function renderCards(winners) {
   document.getElementById('count-artifact').textContent  = counts.artifact;
 }
 
-// ============================================================
-// Рендер карусели текущих призов
-// ============================================================
 function renderCurrentPrizes(prizes) {
   const container = document.getElementById('current-prizes');
   const track = document.getElementById('carousel-track');
-
   if (!prizes || prizes.length === 0) {
     container.style.display = 'none';
     return;
   }
-
   const defaultLink = TWITCH_URL && !TWITCH_URL.includes('YOUR_CHANNEL') ? TWITCH_URL : '#';
-
   track.innerHTML = prizes.map(p => {
     const link = p.link || defaultLink;
     const titleAttr = p.title ? `title="${esc(p.title)}"` : '';
@@ -828,32 +778,24 @@ function renderCurrentPrizes(prizes) {
       </a>
     `;
   }).join('');
-
   container.style.display = 'block';
 }
 
-// ============================================================
-// Фильтры + поиск
-// ============================================================
 let currentFilter = 'all';
 let currentSearch = '';
-
 function applyFilters() {
   document.querySelectorAll('.card').forEach(card => {
     const rank = card.dataset.rank;
     const isUnique = card.dataset.unique === '1';
     const nick = card.dataset.nick;
-
     let matchesFilter;
     if (currentFilter === 'all') matchesFilter = true;
     else if (currentFilter === 'unique') matchesFilter = isUnique;
     else matchesFilter = rank === currentFilter;
-
     const matchesSearch = !currentSearch || nick.includes(currentSearch);
     card.classList.toggle('hidden', !(matchesFilter && matchesSearch));
   });
 }
-
 document.querySelectorAll('.f-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('active'));
@@ -862,31 +804,50 @@ document.querySelectorAll('.f-btn').forEach(btn => {
     applyFilters();
   });
 });
-
 document.getElementById('search-input').addEventListener('input', (e) => {
   currentSearch = e.target.value.trim().toLowerCase();
   applyFilters();
 });
 
-// ============================================================
-// Загрузка данных
-// ============================================================
-async function loadWinners() {
+let viewersMap = {};
+
+async function loadAll() {
   const status = document.getElementById('status');
   const grid = document.getElementById('grid');
 
   if (!CSV_URL || CSV_URL === 'PASTE_YOUR_WINNERS_CSV_URL_HERE') {
     status.classList.add('error');
-    status.innerHTML = '⚠ Не настроена ссылка на Google Sheets (победители).<br>Открой <code>index.html</code> и вставь ссылку в переменную <code>CSV_URL</code>.';
+    status.innerHTML = '⚠ Не настроена ссылка <code>CSV_URL</code>';
     return;
   }
 
   try {
-    const res = await fetch(CSV_URL);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const csv = await res.text();
-    const rows = parseCSV(csv);
-    const winners = rowsToWinners(rows);
+    const [winnersRes, prizesRes, viewersRes] = await Promise.allSettled([
+      fetch(CSV_URL),
+      CURRENT_PRIZES_CSV_URL && CURRENT_PRIZES_CSV_URL !== 'PASTE_YOUR_CURRENT_PRIZES_CSV_URL_HERE'
+        ? fetch(CURRENT_PRIZES_CSV_URL) : Promise.resolve(null),
+      VIEWERS_CSV_URL && VIEWERS_CSV_URL !== 'PASTE_YOUR_VIEWERS_CSV_URL_HERE'
+        ? fetch(VIEWERS_CSV_URL) : Promise.resolve(null),
+    ]);
+
+    // Viewers
+    if (viewersRes.status === 'fulfilled' && viewersRes.value && viewersRes.value.ok) {
+      const csv = await viewersRes.value.text();
+      viewersMap = rowsToViewers(parseCSV(csv));
+    }
+
+    // Current prizes
+    if (prizesRes.status === 'fulfilled' && prizesRes.value && prizesRes.value.ok) {
+      const csv = await prizesRes.value.text();
+      renderCurrentPrizes(rowsToCurrentPrizes(parseCSV(csv)));
+    }
+
+    // Winners
+    if (winnersRes.status === 'rejected' || !winnersRes.value.ok) {
+      throw new Error('Не удалось загрузить Winners');
+    }
+    const csv = await winnersRes.value.text();
+    const winners = rowsToWinners(parseCSV(csv), viewersMap);
 
     if (winners.length === 0) {
       status.innerHTML = 'Пока никто не выбил Эпик / Легендарку / Артефакт. Скоро здесь будет первая карточка ✦';
@@ -899,35 +860,12 @@ async function loadWinners() {
     grid.style.display = 'grid';
   } catch (err) {
     status.classList.add('error');
-    status.innerHTML = '⚠ Не удалось загрузить таблицу: ' + esc(err.message) +
-      '<br>Проверь, что таблица <b>опубликована</b> (Файл → Поделиться → Опубликовать в интернете → CSV)';
+    status.innerHTML = '⚠ Ошибка: ' + esc(err.message);
   }
 }
 
-async function loadCurrentPrizes() {
-  // Если ссылка не настроена — просто скрываем карусель, не показываем ошибку (это опциональная фича)
-  if (!CURRENT_PRIZES_CSV_URL || CURRENT_PRIZES_CSV_URL === 'PASTE_YOUR_CURRENT_PRIZES_CSV_URL_HERE') {
-    return;
-  }
-  try {
-    const res = await fetch(CURRENT_PRIZES_CSV_URL);
-    if (!res.ok) return;
-    const csv = await res.text();
-    const rows = parseCSV(csv);
-    const prizes = rowsToCurrentPrizes(rows);
-    renderCurrentPrizes(prizes);
-  } catch (err) {
-    // Тихо игнорируем — карусель опциональна
-    console.warn('Не удалось загрузить текущие призы:', err);
-  }
-}
-
-loadWinners();
-loadCurrentPrizes();
-setInterval(() => {
-  loadWinners();
-  loadCurrentPrizes();
-}, 60000);
+loadAll();
+setInterval(loadAll, 60000);
 </script>
 </body>
 </html>

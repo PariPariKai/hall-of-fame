@@ -10,10 +10,12 @@
      ⚙ НАСТРОЙКА ⚙
      TICKETS_CSV_URL — лист Tickets
      CONFIG_CSV_URL — лист Config (содержит wheel_access_code)
+     VIEWERS_CSV_URL — лист Viewers (база зрителей с аватарками)
      ============================================================ -->
 <script>
   const TICKETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=427100001&single=true&output=csv";
-  const CONFIG_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=427100002&single=true&output=csv";
+  const CONFIG_CSV_URL  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=427100002&single=true&output=csv";
+  const VIEWERS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=527100001&single=true&output=csv";
 </script>
 
 <style>
@@ -21,8 +23,7 @@
 
   body {
     background: #0a0e1a;
-    background-image:
-      radial-gradient(ellipse at center, rgba(127,119,221,0.08), transparent 60%);
+    background-image: radial-gradient(ellipse at center, rgba(127,119,221,0.08), transparent 60%);
     background-attachment: fixed;
     min-height: 100vh;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -31,347 +32,342 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    overflow-x: hidden;
   }
 
   /* ===== Экран входа ===== */
-  .gate {
-    margin-top: 20vh;
-    text-align: center;
-  }
+  .gate { margin-top: 20vh; text-align: center; }
   .gate-title {
-    font-size: 14px;
-    letter-spacing: 4px;
+    font-size: 14px; letter-spacing: 4px;
     color: rgba(255,255,255,0.5);
-    text-transform: uppercase;
-    margin-bottom: 18px;
+    text-transform: uppercase; margin-bottom: 18px;
   }
   .gate-input {
     background: transparent;
     border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 8px;
-    padding: 12px 16px;
-    color: #fff;
-    font-family: inherit;
-    font-size: 18px;
-    width: 260px;
-    outline: none;
-    text-align: center;
-    letter-spacing: 4px;
+    border-radius: 8px; padding: 12px 16px;
+    color: #fff; font-family: inherit; font-size: 18px;
+    width: 260px; outline: none; text-align: center; letter-spacing: 4px;
   }
   .gate-input:focus { border-color: rgba(250,199,117,0.5); }
-  .gate-error {
-    color: #F09595;
-    font-size: 13px;
-    margin-top: 12px;
-    min-height: 18px;
-  }
+  .gate-error { color: #F09595; font-size: 13px; margin-top: 12px; min-height: 18px; }
   .gate-button {
-    margin-top: 14px;
-    background: transparent;
+    margin-top: 14px; background: transparent;
     border: 1px solid rgba(250,199,117,0.4);
-    color: #FAC775;
-    padding: 10px 24px;
-    font-family: inherit;
-    font-size: 13px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    border-radius: 8px;
-    cursor: pointer;
+    color: #FAC775; padding: 10px 24px;
+    font-family: inherit; font-size: 13px; letter-spacing: 2px;
+    text-transform: uppercase; border-radius: 8px; cursor: pointer;
     transition: all 0.15s ease;
   }
   .gate-button:hover { background: rgba(250,199,117,0.1); }
 
   /* ===== Основной интерфейс ===== */
   .app {
-    width: 100%;
-    max-width: 1100px;
+    width: 100%; max-width: 1100px;
     display: none;
-    flex-direction: column;
-    align-items: center;
+    flex-direction: column; align-items: center;
   }
 
   .app-header {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding: 0 4px;
+    width: 100%; display: flex;
+    justify-content: space-between; align-items: center;
+    margin-bottom: 20px; padding: 0 4px;
   }
-
-  .app-title {
-    font-size: 18px;
-    letter-spacing: 3px;
-    color: #FAC775;
-    text-transform: uppercase;
-  }
-
-  .app-stats {
-    font-size: 12px;
-    color: rgba(255,255,255,0.5);
-    letter-spacing: 1px;
-  }
+  .app-title { font-size: 18px; letter-spacing: 3px; color: #FAC775; text-transform: uppercase; }
+  .app-stats { font-size: 12px; color: rgba(255,255,255,0.5); letter-spacing: 1px; }
 
   /* ===== Колесо ===== */
   .wheel-area {
     position: relative;
-    width: 100%;
-    max-width: 700px;
+    width: 100%; max-width: 700px;
     aspect-ratio: 1 / 1;
     margin-bottom: 24px;
+    padding-top: 36px; /* место для стрелки сверху */
   }
 
   .wheel-svg {
-    width: 100%;
-    height: 100%;
+    width: 100%; height: 100%;
     display: block;
     filter: drop-shadow(0 8px 24px rgba(0,0,0,0.5));
   }
 
+  /* Стрелка сверху, указывает вниз */
   .wheel-pointer {
     position: absolute;
-    top: 50%;
-    right: -8px;
-    transform: translateY(-50%);
-    width: 50px;
-    height: 50px;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 52px;
+    height: 60px;
     z-index: 10;
     filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6));
+    transform-origin: 50% 25%; /* верхушка стрелки = центр поворота */
+    transition: transform 0.05s ease-out;
   }
   .wheel-pointer svg { width: 100%; height: 100%; }
 
+  /* Анимация дёргания стрелки */
+  @keyframes pointerTick {
+    0%   { transform: translateX(-50%) rotate(0deg); }
+    30%  { transform: translateX(-50%) rotate(-18deg); }
+    100% { transform: translateX(-50%) rotate(0deg); }
+  }
+  .wheel-pointer.ticking { animation: pointerTick 0.18s ease-out; }
+
   /* ===== Контролы ===== */
   .controls {
-    display: flex;
-    gap: 14px;
-    flex-wrap: wrap;
-    justify-content: center;
-    margin-bottom: 20px;
+    display: flex; gap: 14px; flex-wrap: wrap;
+    justify-content: center; margin-bottom: 20px;
   }
 
   .ctrl-btn {
     background: transparent;
     border: 1px solid rgba(255,255,255,0.2);
-    color: #fff;
-    padding: 12px 22px;
-    font-family: inherit;
-    font-size: 14px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    border-radius: 8px;
-    cursor: pointer;
+    color: #fff; padding: 12px 22px;
+    font-family: inherit; font-size: 14px; letter-spacing: 1.5px;
+    text-transform: uppercase; border-radius: 8px; cursor: pointer;
     transition: all 0.15s ease;
   }
   .ctrl-btn:hover:not(:disabled) {
     background: rgba(255,255,255,0.05);
     transform: translateY(-1px);
   }
-  .ctrl-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
+  .ctrl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .ctrl-btn.primary {
-    border-color: #FAC775;
-    color: #FAC775;
-    background: rgba(250,199,117,0.08);
+    border-color: #FAC775; color: #FAC775; background: rgba(250,199,117,0.08);
   }
   .ctrl-btn.primary:hover:not(:disabled) {
     background: rgba(250,199,117,0.15);
     box-shadow: 0 0 20px rgba(250,199,117,0.3);
   }
-
   .ctrl-btn.danger {
-    border-color: #F09595;
-    color: #F09595;
-    background: rgba(216,90,48,0.05);
+    border-color: #F09595; color: #F09595; background: rgba(216,90,48,0.05);
   }
-  .ctrl-btn.danger:hover:not(:disabled) {
-    background: rgba(216,90,48,0.15);
-  }
+  .ctrl-btn.danger:hover:not(:disabled) { background: rgba(216,90,48,0.15); }
 
   .duration-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    display: flex; align-items: center; gap: 8px;
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 8px;
-    padding: 4px;
+    border-radius: 8px; padding: 4px;
   }
-
   .duration-label {
-    font-size: 11px;
-    letter-spacing: 1px;
+    font-size: 11px; letter-spacing: 1px;
     color: rgba(255,255,255,0.5);
-    text-transform: uppercase;
-    padding: 0 8px;
+    text-transform: uppercase; padding: 0 8px;
   }
-
   .duration-btn {
-    background: transparent;
-    border: none;
+    background: transparent; border: none;
     color: rgba(255,255,255,0.6);
-    padding: 8px 14px;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    border-radius: 6px;
-    cursor: pointer;
+    padding: 8px 14px; font-family: inherit;
+    font-size: 13px; font-weight: 500;
+    border-radius: 6px; cursor: pointer; transition: all 0.15s ease;
+  }
+  .duration-btn.active { background: rgba(250,199,117,0.15); color: #FAC775; }
+  .duration-btn:hover:not(.active) { color: #fff; }
+
+  /* Звук */
+  .sound-toggle {
+    background: transparent;
+    border: 1px solid rgba(151,196,89,0.4);
+    border-radius: 8px; padding: 10px 14px;
+    cursor: pointer; color: #97C459;
+    font-family: inherit; font-size: 13px;
     transition: all 0.15s ease;
   }
-  .duration-btn.active {
-    background: rgba(250,199,117,0.15);
-    color: #FAC775;
-  }
-  .duration-btn:hover:not(.active) { color: #fff; }
+  .sound-toggle:hover { background: rgba(151,196,89,0.05); }
+  .sound-toggle.off { color: rgba(255,255,255,0.5); border-color: rgba(255,255,255,0.15); }
 
   /* ===== Режим выбывания индикатор ===== */
   .elimination-status {
     background: rgba(127,119,221,0.1);
     border: 1px solid rgba(127,119,221,0.3);
-    border-radius: 8px;
-    padding: 10px 20px;
-    color: #AFA9EC;
-    font-size: 13px;
-    letter-spacing: 1px;
-    text-align: center;
-    margin-bottom: 16px;
+    border-radius: 8px; padding: 10px 20px;
+    color: #AFA9EC; font-size: 13px; letter-spacing: 1px;
+    text-align: center; margin-bottom: 16px;
     display: none;
   }
   .elimination-status.active { display: block; }
 
-  /* ===== Лог выбываний ===== */
+  /* ===== Лог ===== */
   .log {
-    width: 100%;
-    max-width: 700px;
+    width: 100%; max-width: 700px;
     background: rgba(0,0,0,0.3);
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 8px;
-    padding: 14px;
-    margin-top: 12px;
-    max-height: 200px;
-    overflow-y: auto;
-    display: none;
+    border-radius: 8px; padding: 14px;
+    margin-top: 12px; max-height: 200px;
+    overflow-y: auto; display: none;
   }
   .log.has-entries { display: block; }
   .log-title {
-    font-size: 11px;
-    letter-spacing: 2px;
-    color: rgba(255,255,255,0.5);
-    text-transform: uppercase;
+    font-size: 11px; letter-spacing: 2px;
+    color: rgba(255,255,255,0.5); text-transform: uppercase;
     margin-bottom: 8px;
   }
   .log-entry {
-    font-size: 13px;
-    padding: 4px 0;
+    font-size: 13px; padding: 4px 0;
     color: rgba(255,255,255,0.7);
     border-bottom: 1px solid rgba(255,255,255,0.05);
   }
   .log-entry:last-child { border-bottom: none; }
-  .log-entry.winner {
-    color: #FAC775;
-    font-weight: 600;
-    font-size: 15px;
-  }
+  .log-entry.winner { color: #FAC775; font-weight: 600; font-size: 15px; }
   .log-entry .num {
-    color: rgba(255,255,255,0.3);
-    margin-right: 8px;
+    color: rgba(255,255,255,0.3); margin-right: 8px;
     font-variant-numeric: tabular-nums;
   }
 
-  /* ===== Победитель overlay ===== */
+  /* ===== Победитель overlay (КРУПНЫЙ) ===== */
   .winner-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.85);
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.88);
     display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-    flex-direction: column;
-    backdrop-filter: blur(8px);
+    align-items: center; justify-content: center;
+    z-index: 100; flex-direction: column;
+    backdrop-filter: blur(10px);
   }
-  .winner-overlay.show { display: flex; animation: fadeIn 0.4s ease; }
+  .winner-overlay.show { display: flex; animation: fadeIn 0.5s ease; }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
   .winner-card {
     text-align: center;
-    padding: 40px 60px;
-    border-radius: 16px;
+    padding: 70px 100px;
+    border-radius: 24px;
     background: linear-gradient(180deg, #2a1d0a 0%, #11172a 100%);
-    border: 2px solid #FAC775;
-    box-shadow: 0 0 60px rgba(250,199,117,0.4);
+    border: 4px solid #FAC775;
     position: relative;
     overflow: hidden;
+    animation: winnerCardIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow:
+      0 0 80px rgba(250,199,117,0.4),
+      0 0 160px rgba(250,199,117,0.2),
+      inset 0 0 60px rgba(250,199,117,0.1);
   }
+  @keyframes winnerCardIn {
+    from { transform: scale(0.5) rotateY(180deg); opacity: 0; }
+    to { transform: scale(1) rotateY(0); opacity: 1; }
+  }
+
+  /* "Дышащее" золотое свечение */
+  .winner-card::after {
+    content: '';
+    position: absolute; inset: -4px;
+    border-radius: 24px;
+    border: 4px solid #FAC775;
+    animation: winnerGlow 1.8s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes winnerGlow {
+    0%, 100% {
+      box-shadow: 0 0 30px rgba(250,199,117,0.6), 0 0 80px rgba(250,199,117,0.3);
+      opacity: 0.7;
+    }
+    50% {
+      box-shadow: 0 0 60px rgba(250,199,117,1), 0 0 140px rgba(250,199,117,0.5);
+      opacity: 1;
+    }
+  }
+
+  /* Мерцающий sweep внутри */
   .winner-card::before {
     content: '';
     position: absolute;
     top: -50%; left: -50%;
     width: 200%; height: 200%;
-    background: linear-gradient(45deg, transparent 30%, rgba(250,199,117,0.15) 50%, transparent 70%);
+    background: linear-gradient(45deg, transparent 30%, rgba(250,199,117,0.18) 50%, transparent 70%);
     animation: shimmer 3s infinite linear;
+    pointer-events: none;
   }
   @keyframes shimmer {
     0%   { transform: translate(-50%, -50%) rotate(0deg); }
     100% { transform: translate(-50%, -50%) rotate(360deg); }
   }
+
   .winner-label {
-    font-size: 14px;
-    letter-spacing: 4px;
-    color: #FAC775;
-    text-transform: uppercase;
-    margin-bottom: 16px;
+    font-size: 20px; letter-spacing: 6px;
+    color: #FAC775; text-transform: uppercase;
+    margin-bottom: 30px;
     position: relative;
+    text-shadow: 0 0 20px rgba(250,199,117,0.6);
   }
+
   .winner-avatar {
-    width: 120px;
-    height: 120px;
+    width: 200px; height: 200px;
     border-radius: 50%;
-    border: 4px solid #FAC775;
-    background-size: cover;
-    background-position: center;
+    border: 6px solid #FAC775;
+    background-size: cover; background-position: center;
     background-color: #412402;
-    margin: 0 auto 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 40px;
-    font-weight: 500;
-    color: #FAC775;
+    margin: 0 auto 28px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 64px; font-weight: 500; color: #FAC775;
     position: relative;
+    box-shadow:
+      0 0 40px rgba(250,199,117,0.5),
+      inset 0 0 20px rgba(0,0,0,0.4);
   }
+
   .winner-nick {
-    font-size: 36px;
-    color: #fff;
-    font-weight: 500;
-    margin-bottom: 14px;
-    text-shadow: 0 0 20px rgba(250,199,117,0.5);
+    font-size: 64px; color: #fff; font-weight: 600;
+    margin-bottom: 20px;
+    text-shadow: 0 0 25px rgba(250,199,117,0.7);
     position: relative;
+    letter-spacing: 1px;
+    word-break: break-word;
+    max-width: 600px;
   }
   .winner-tickets {
-    font-size: 14px;
-    color: rgba(255,255,255,0.7);
-    letter-spacing: 1px;
+    font-size: 20px; color: rgba(255,255,255,0.8);
+    letter-spacing: 2px;
     position: relative;
   }
   .winner-close {
-    margin-top: 24px;
+    margin-top: 40px;
     position: relative;
+    padding: 14px 32px !important;
+    font-size: 14px !important;
+  }
+
+  /* ===== Конфетти ===== */
+  .confetti-container {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 99;
+    display: none;
+  }
+  .confetti-container.active { display: block; }
+
+  .confetti-piece {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    top: -20px;
+    opacity: 0;
+    animation: confettiFall linear forwards;
+  }
+  @keyframes confettiFall {
+    0% {
+      opacity: 1;
+      transform: translateY(0) rotate(0deg) translateX(0);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(110vh) rotate(720deg) translateX(var(--drift, 0px));
+    }
   }
 
   .status-msg {
-    text-align: center;
-    padding: 40px 20px;
+    text-align: center; padding: 40px 20px;
     color: rgba(255,255,255,0.5);
   }
   .status-msg.error { color: #F09595; }
 
   @media (max-width: 700px) {
     .wheel-area { max-width: 95vw; }
-    .winner-card { padding: 30px 30px; }
-    .winner-nick { font-size: 26px; }
+    .winner-card { padding: 40px 30px; }
+    .winner-nick { font-size: 36px; }
+    .winner-avatar { width: 140px; height: 140px; font-size: 48px; }
+    .winner-label { font-size: 14px; letter-spacing: 4px; margin-bottom: 18px; }
   }
 </style>
 </head>
@@ -397,14 +393,15 @@
     </div>
 
     <div id="elimination-status" class="elimination-status">
-      Режим выбывания активен. Осталось участников: <span id="elim-remaining">0</span>
+      Режим выбывания. Осталось участников: <span id="elim-remaining">0</span>
     </div>
 
     <div class="wheel-area">
       <svg class="wheel-svg" id="wheel" viewBox="0 0 100 100"></svg>
-      <div class="wheel-pointer">
-        <svg viewBox="0 0 40 40">
-          <polygon points="40,20 8,4 8,36" fill="#FAC775" stroke="#fff" stroke-width="1.5"/>
+      <div class="wheel-pointer" id="wheel-pointer">
+        <svg viewBox="0 0 52 60">
+          <polygon points="26,58 4,8 48,8" fill="#FAC775" stroke="#0a0e1a" stroke-width="2" stroke-linejoin="round"/>
+          <circle cx="26" cy="10" r="5" fill="#FAC775" stroke="#0a0e1a" stroke-width="2"/>
         </svg>
       </div>
     </div>
@@ -416,6 +413,7 @@
         <button class="duration-btn active" data-dur="5">5с</button>
         <button class="duration-btn" data-dur="10">10с</button>
       </div>
+      <button class="sound-toggle" id="sound-toggle">🔊 Звук вкл.</button>
     </div>
 
     <div class="controls">
@@ -430,6 +428,9 @@
       <div id="log-entries"></div>
     </div>
   </div>
+
+  <!-- Конфетти -->
+  <div class="confetti-container" id="confetti"></div>
 
   <!-- Победитель -->
   <div class="winner-overlay" id="winner-overlay">
@@ -459,7 +460,7 @@ function parseCSV(text) {
       if (c === '"') { inQuotes = true; }
       else if (c === ',') { row.push(cell); cell = ''; }
       else if (c === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
-      else if (c === '\r') { /* skip */ }
+      else if (c === '\r') {}
       else { cell += c; }
     }
   }
@@ -467,12 +468,11 @@ function parseCSV(text) {
   return rows;
 }
 
-function rowsToTickets(rows) {
+function rowsToTickets(rows, viewersMap) {
   if (rows.length < 2) return [];
   const headers = rows[0].map(h => h.trim().toLowerCase());
   const idx = {
     nick:   headers.indexOf('nick'),
-    avatar: headers.indexOf('avatar_url'),
     silver: headers.indexOf('silver'),
     gold:   headers.indexOf('gold'),
   };
@@ -481,11 +481,14 @@ function rowsToTickets(rows) {
   return rows.slice(1)
     .filter(r => r.length > 0 && r[idx.nick] && r[idx.nick].trim())
     .map(r => {
+      const nick = (r[idx.nick] || '').trim();
       const silver = parseInt((r[idx.silver] || '0').trim(), 10) || 0;
       const gold   = parseInt((r[idx.gold]   || '0').trim(), 10) || 0;
+      const viewerKey = nick.toLowerCase();
+      const viewer = viewersMap[viewerKey] || {};
       return {
-        nick:   (r[idx.nick] || '').trim(),
-        avatar: (idx.avatar >= 0 ? (r[idx.avatar] || '').trim() : ''),
+        nick:   nick,
+        avatar: viewer.avatar || '',
         silver: silver,
         gold:   gold,
         score:  gold * 5 + silver,
@@ -509,12 +512,32 @@ function rowsToConfig(rows) {
   return config;
 }
 
+function rowsToViewers(rows) {
+  if (rows.length < 2) return {};
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  const nickIdx = headers.indexOf('nick');
+  const avatarIdx = headers.indexOf('avatar_url');
+  const steamIdx = headers.indexOf('steam_nick');
+  if (nickIdx < 0) return {};
+  const map = {};
+  rows.slice(1).forEach(r => {
+    if (r.length > 0 && r[nickIdx] && r[nickIdx].trim()) {
+      const nick = r[nickIdx].trim();
+      map[nick.toLowerCase()] = {
+        nick: nick,
+        avatar: avatarIdx >= 0 ? (r[avatarIdx] || '').trim() : '',
+        steam:  steamIdx  >= 0 ? (r[steamIdx]  || '').trim() : '',
+      };
+    }
+  });
+  return map;
+}
+
 function esc(s) {
   return String(s).replace(/[&<>"']/g, c => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   }[c]));
 }
-
 function initials(nick) {
   const clean = nick.replace(/[^A-Za-zА-Яа-я0-9]/g, '');
   if (clean.length >= 2) return (clean[0] + clean[1]).toUpperCase();
@@ -524,16 +547,17 @@ function initials(nick) {
 // ============================================================
 // Состояние
 // ============================================================
-let allTickets = [];          // загруженные участники
-let activeTickets = [];       // те кто ещё в игре (для режима выбывания)
-let validCode = null;         // верный код из Sheets
-let currentRotation = 0;      // текущий угол поворота (deg)
+let allTickets = [];
+let activeTickets = [];
+let viewersMap = {};
+let validCode = null;
+let currentRotation = 0;
 let isSpinning = false;
-let duration = 5;             // длительность вращения (сек)
-let eliminationMode = false;  // активен ли режим выбывания
-let log = [];                 // история выбываний
+let duration = 5;
+let eliminationMode = false;
+let log = [];
+let soundOn = true;
 
-// Цвета для секторов (циклически)
 const SECTOR_COLORS = [
   '#7F77DD', '#FAC775', '#D85A30', '#97C459',
   '#5BA9E5', '#E599C2', '#B58FF5', '#F0B370',
@@ -541,24 +565,133 @@ const SECTOR_COLORS = [
 ];
 
 // ============================================================
+// Web Audio: клики, фанфары
+// ============================================================
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+}
+
+// Короткий механический клик (стрелка прошла грань сектора)
+function playClick() {
+  if (!soundOn) return;
+  ensureAudio();
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  // Короткий шумовой "tick" + высокий пик
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(2400, now);
+  osc.frequency.exponentialRampToValueAtTime(800, now + 0.04);
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.05, now + 0.005);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(now); osc.stop(now + 0.08);
+}
+
+// Развёрнутая мини-мелодия победителя (~3 секунды)
+function playFanfare() {
+  if (!soundOn) return;
+  ensureAudio();
+  if (!audioCtx) return;
+  const t0 = audioCtx.currentTime;
+
+  // C-мажор: C, E, G, C, E, G, C (верхний)
+  // Триумфальный мотив: восходящий аккорд → задержка → высокий триумф
+  const notes = [
+    { f: 261.63, t: 0.00, dur: 0.18 }, // C4
+    { f: 329.63, t: 0.18, dur: 0.18 }, // E4
+    { f: 392.00, t: 0.36, dur: 0.18 }, // G4
+    { f: 523.25, t: 0.54, dur: 0.40 }, // C5 — длинная
+    { f: 659.25, t: 1.00, dur: 0.20 }, // E5
+    { f: 783.99, t: 1.20, dur: 0.20 }, // G5
+    { f: 1046.5, t: 1.45, dur: 0.80 }, // C6 — финальная триумфальная
+  ];
+
+  notes.forEach(n => {
+    // Основной тон
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(n.f, t0 + n.t);
+    gain.gain.setValueAtTime(0, t0 + n.t);
+    gain.gain.linearRampToValueAtTime(0.12, t0 + n.t + 0.02);
+    gain.gain.linearRampToValueAtTime(0.10, t0 + n.t + n.dur * 0.3);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + n.t + n.dur);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(t0 + n.t); osc.stop(t0 + n.t + n.dur + 0.05);
+
+    // Октава ниже для "богатства" звука
+    const osc2 = audioCtx.createOscillator();
+    const gain2 = audioCtx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(n.f / 2, t0 + n.t);
+    gain2.gain.setValueAtTime(0, t0 + n.t);
+    gain2.gain.linearRampToValueAtTime(0.06, t0 + n.t + 0.02);
+    gain2.gain.exponentialRampToValueAtTime(0.001, t0 + n.t + n.dur);
+    osc2.connect(gain2); gain2.connect(audioCtx.destination);
+    osc2.start(t0 + n.t); osc2.stop(t0 + n.t + n.dur + 0.05);
+  });
+
+  // Финальный "сияющий" аккорд из C-мажора + блёстки
+  const chordStart = t0 + 1.45;
+  [523.25, 659.25, 783.99, 1046.5].forEach(f => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(f, chordStart);
+    gain.gain.setValueAtTime(0, chordStart);
+    gain.gain.linearRampToValueAtTime(0.05, chordStart + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, chordStart + 1.0);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(chordStart); osc.stop(chordStart + 1.05);
+  });
+}
+
+const soundBtn = document.getElementById('sound-toggle');
+function updateSoundButton() {
+  if (soundOn) {
+    soundBtn.classList.remove('off');
+    soundBtn.textContent = '🔊 Звук вкл.';
+  } else {
+    soundBtn.classList.add('off');
+    soundBtn.textContent = '🔇 Звук выкл.';
+  }
+}
+soundBtn.addEventListener('click', () => {
+  soundOn = !soundOn;
+  if (soundOn) ensureAudio();
+  updateSoundButton();
+});
+updateSoundButton();
+document.addEventListener('click', () => { if (soundOn) ensureAudio(); }, { once: true });
+
+// ============================================================
 // Загрузка
 // ============================================================
 async function loadData() {
   try {
-    const [ticketsRes, configRes] = await Promise.all([
+    const [ticketsRes, configRes, viewersRes] = await Promise.all([
       fetch(TICKETS_CSV_URL),
       fetch(CONFIG_CSV_URL),
+      fetch(VIEWERS_CSV_URL),
     ]);
     if (!ticketsRes.ok) throw new Error('Tickets HTTP ' + ticketsRes.status);
-    if (!configRes.ok) throw new Error('Config HTTP ' + configRes.status);
+    if (!configRes.ok)  throw new Error('Config HTTP '  + configRes.status);
+    // viewers — опционально, ошибку игнорируем
+    let viewersRows = [];
+    if (viewersRes.ok) viewersRows = parseCSV(await viewersRes.text());
 
     const ticketsRows = parseCSV(await ticketsRes.text());
-    const configRows = parseCSV(await configRes.text());
+    const configRows  = parseCSV(await configRes.text());
 
-    allTickets = rowsToTickets(ticketsRows);
+    viewersMap = rowsToViewers(viewersRows);
+    allTickets = rowsToTickets(ticketsRows, viewersMap);
     const config = rowsToConfig(configRows);
     validCode = config.wheel_access_code || '';
-
     return true;
   } catch (err) {
     document.getElementById('gate-error').textContent = 'Ошибка загрузки: ' + err.message;
@@ -567,7 +700,7 @@ async function loadData() {
 }
 
 // ============================================================
-// Gate (вход по коду)
+// Gate
 // ============================================================
 async function tryEnter() {
   const error = document.getElementById('gate-error');
@@ -577,13 +710,9 @@ async function tryEnter() {
   submit.disabled = true;
   error.textContent = '';
 
-  // Если ещё не загружали — загружаем
   if (validCode === null) {
     const ok = await loadData();
-    if (!ok) {
-      submit.disabled = false;
-      return;
-    }
+    if (!ok) { submit.disabled = false; return; }
   }
 
   const entered = input.value.trim();
@@ -606,14 +735,48 @@ async function tryEnter() {
     input.focus();
   }
 }
-
 document.getElementById('gate-submit').addEventListener('click', tryEnter);
 document.getElementById('gate-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') tryEnter();
 });
 
 // ============================================================
-// Рендер колеса (SVG)
+// Расчёт углов секторов
+// Возвращает массив { ticket, startAngle, endAngle, midAngle, angle }
+// ============================================================
+function computeSegments() {
+  const totalScore = activeTickets.reduce((s, t) => s + t.score, 0);
+  if (totalScore === 0) return [];
+  const MIN_ANGLE = 1.5;
+  let segments = activeTickets.map(t => ({
+    ticket: t,
+    angle: (t.score / totalScore) * 360,
+  }));
+  const tooThin = segments.filter(s => s.angle < MIN_ANGLE);
+  if (tooThin.length > 0 && tooThin.length < segments.length) {
+    const deficit = tooThin.reduce((sum, s) => sum + (MIN_ANGLE - s.angle), 0);
+    const big = segments.filter(s => s.angle >= MIN_ANGLE);
+    const bigTotal = big.reduce((sum, s) => sum + s.angle, 0);
+    big.forEach(s => { s.angle -= (s.angle / bigTotal) * deficit; });
+    tooThin.forEach(s => { s.angle = MIN_ANGLE; });
+  }
+  let cumulative = 0;
+  return segments.map(s => {
+    const startAngle = cumulative;
+    cumulative += s.angle;
+    const endAngle = cumulative;
+    return {
+      ticket: s.ticket,
+      angle: s.angle,
+      startAngle: startAngle,
+      endAngle: endAngle,
+      midAngle: (startAngle + endAngle) / 2,
+    };
+  });
+}
+
+// ============================================================
+// Рендер колеса
 // ============================================================
 function renderWheel() {
   const svg = document.getElementById('wheel');
@@ -623,66 +786,31 @@ function renderWheel() {
     return;
   }
 
-  const totalScore = activeTickets.reduce((s, t) => s + t.score, 0);
-  if (totalScore === 0) return;
+  const segments = computeSegments();
+  if (segments.length === 0) return;
 
-  // Минимальный угол сектора — чтобы тонкие были видны
-  const MIN_ANGLE = 1.5; // градусы
-
-  // Рассчитаем углы пропорционально score, с минимальным размером
-  let segments = activeTickets.map(t => ({
-    ticket: t,
-    angle: (t.score / totalScore) * 360,
-  }));
-
-  // Если есть слишком тонкие — добавим им минимум, отняв у остальных
-  const tooThin = segments.filter(s => s.angle < MIN_ANGLE);
-  if (tooThin.length > 0 && tooThin.length < segments.length) {
-    const deficit = tooThin.reduce((sum, s) => sum + (MIN_ANGLE - s.angle), 0);
-    const big = segments.filter(s => s.angle >= MIN_ANGLE);
-    const bigTotal = big.reduce((sum, s) => sum + s.angle, 0);
-    big.forEach(s => { s.angle -= (s.angle / bigTotal) * deficit; });
-    tooThin.forEach(s => { s.angle = MIN_ANGLE; });
-  }
-
-  // Группа с поворотом — будем крутить именно её
   let groupContent = '';
-  let cumulative = 0;
   const cx = 50, cy = 50, r = 48;
 
   segments.forEach((seg, i) => {
-    const startAngle = cumulative;
-    const endAngle = cumulative + seg.angle;
-    cumulative = endAngle;
-
     const color = SECTOR_COLORS[i % SECTOR_COLORS.length];
-    const path = sectorPath(cx, cy, r, startAngle, endAngle);
+    const path = sectorPath(cx, cy, r, seg.startAngle, seg.endAngle);
 
-    // Текст по центру сектора, читается изнутри наружу
-    const midAngle = (startAngle + endAngle) / 2;
     const textRadius = r * 0.65;
-    const textRad = (midAngle - 90) * Math.PI / 180;
+    const textRad = (seg.midAngle - 90) * Math.PI / 180;
     const tx = cx + Math.cos(textRad) * textRadius;
     const ty = cy + Math.sin(textRad) * textRadius;
-
-    // Размер шрифта зависит от величины сектора
     const fontSize = Math.min(3.5, Math.max(1.4, seg.angle / 8));
-    // Сокращение длинного ника если сектор мелкий
     let displayNick = seg.ticket.nick;
     const maxChars = Math.max(4, Math.floor(seg.angle / 1.5));
-    if (displayNick.length > maxChars) {
-      displayNick = displayNick.substring(0, maxChars - 1) + '…';
-    }
-
-    // Поворот текста — пишем по направлению от центра наружу
-    const textRotation = midAngle;
-    const showText = seg.angle >= 2; // совсем тонкие без текста
+    if (displayNick.length > maxChars) displayNick = displayNick.substring(0, maxChars - 1) + '…';
+    const showText = seg.angle >= 2;
 
     groupContent += `<path d="${path}" fill="${color}" stroke="#0a0e1a" stroke-width="0.2"/>`;
     if (showText) {
       groupContent += `<text x="${tx}" y="${ty}" fill="#fff" font-size="${fontSize}"
                        text-anchor="middle" dominant-baseline="middle"
-                       transform="rotate(${textRotation} ${tx} ${ty})"
+                       transform="rotate(${seg.midAngle} ${tx} ${ty})"
                        style="text-shadow: 0 1px 2px rgba(0,0,0,0.8); pointer-events: none;">${esc(displayNick)}</text>`;
     }
   });
@@ -696,7 +824,6 @@ function renderWheel() {
 }
 
 function sectorPath(cx, cy, r, startAngle, endAngle) {
-  // Угол отсчитываем от верхней точки, по часовой стрелке
   const startRad = (startAngle - 90) * Math.PI / 180;
   const endRad = (endAngle - 90) * Math.PI / 180;
   const x1 = cx + Math.cos(startRad) * r;
@@ -711,7 +838,6 @@ function sectorPath(cx, cy, r, startAngle, endAngle) {
 // Логика розыгрыша
 // ============================================================
 function pickWinnerIndex() {
-  // Взвешенный случайный выбор. Возвращает индекс в activeTickets.
   const total = activeTickets.reduce((s, t) => s + t.score, 0);
   if (total === 0) return -1;
   const rand = Math.random() * total;
@@ -723,28 +849,12 @@ function pickWinnerIndex() {
   return activeTickets.length - 1;
 }
 
-function angleOfSector(index) {
-  // Возвращает центральный угол сектора, по той же логике что в renderWheel
-  const totalScore = activeTickets.reduce((s, t) => s + t.score, 0);
-  const MIN_ANGLE = 1.5;
-  let segments = activeTickets.map(t => ({ angle: (t.score / totalScore) * 360 }));
-  const tooThin = segments.filter(s => s.angle < MIN_ANGLE);
-  if (tooThin.length > 0 && tooThin.length < segments.length) {
-    const deficit = tooThin.reduce((sum, s) => sum + (MIN_ANGLE - s.angle), 0);
-    const big = segments.filter(s => s.angle >= MIN_ANGLE);
-    const bigTotal = big.reduce((sum, s) => sum + s.angle, 0);
-    big.forEach(s => { s.angle -= (s.angle / bigTotal) * deficit; });
-    tooThin.forEach(s => { s.angle = MIN_ANGLE; });
-  }
-  let cumulative = 0;
-  for (let i = 0; i < index; i++) cumulative += segments[i].angle;
-  return cumulative + segments[index].angle / 2;
-}
+// Стрелка указывает ВНИЗ из верхней позиции = угол 0° (12 часов в нашей системе координат)
+const POINTER_ANGLE = 0;
 
 async function spin(callback) {
   if (isSpinning) return;
   if (activeTickets.length === 0) return;
-  // Если один участник — он автоматически победитель
   if (activeTickets.length === 1) {
     if (callback) callback(0);
     return;
@@ -753,38 +863,129 @@ async function spin(callback) {
   isSpinning = true;
   setControlsDisabled(true);
 
+  const segments = computeSegments();
   const winnerIdx = pickWinnerIndex();
-  const targetCenterAngle = angleOfSector(winnerIdx);
+  const targetCenterAngle = segments[winnerIdx].midAngle;
 
-  // Указатель находится справа = 90° по нашей системе (12 часов = 0°, 3 часа = 90°)
-  // Нужно, чтобы центр сектора оказался под указателем (т.е. на 90° позиции)
-  // Текущий поворот: currentRotation. Сектор изначально на targetCenterAngle. После поворота R он на (targetCenterAngle + R) % 360.
-  // Хотим: (targetCenterAngle + R) % 360 === 90
-  // R = 90 - targetCenterAngle (mod 360)
-
-  const POINTER_ANGLE = 90;
+  // Хотим: (targetCenterAngle + R) % 360 === POINTER_ANGLE (== 0)
   let baseTarget = POINTER_ANGLE - targetCenterAngle;
-  // Нормализуем относительно текущего поворота, добавляем минимум 4 полных оборота
   const minRotations = 4;
   let currentNormalized = ((currentRotation % 360) + 360) % 360;
   let targetNormalized = ((baseTarget % 360) + 360) % 360;
   let delta = targetNormalized - currentNormalized;
   if (delta < 0) delta += 360;
   const finalRotation = currentRotation + minRotations * 360 + delta;
+  const startRotation = currentRotation;
+  currentRotation = finalRotation;
 
-  // Анимация
+  // Запускаем CSS-анимацию
   const group = document.getElementById('wheel').querySelector('#wheel-group');
   group.style.transition = `transform ${duration}s cubic-bezier(0.17, 0.67, 0.2, 1)`;
   group.style.transform = `rotate(${finalRotation}deg)`;
-  currentRotation = finalRotation;
 
-  // Ждём окончания анимации
-  await new Promise(resolve => setTimeout(resolve, duration * 1000 + 100));
+  // Параллельно отслеживаем пересечения границ секторов через requestAnimationFrame.
+  // Используем ту же ease-out функцию для расчёта текущего угла.
+  await trackPointerTicks(startRotation, finalRotation, duration, segments);
 
+  await new Promise(resolve => setTimeout(resolve, 100)); // небольшая пауза
   isSpinning = false;
   setControlsDisabled(false);
-
   if (callback) callback(winnerIdx);
+}
+
+// Точное вычисление cubic-bezier(0.17, 0.67, 0.2, 1)
+function cubicBezier(x1, y1, x2, y2, t) {
+  const inv = 1 - t;
+  const t2 = t * t;
+  const t3 = t2 * t;
+  return 3 * inv * inv * t * y1 + 3 * inv * t2 * y2 + t3;
+}
+
+function cubicBezierX(x1, x2, t) {
+  const inv = 1 - t;
+  const t2 = t * t;
+  const t3 = t2 * t;
+  return 3 * inv * inv * t * x1 + 3 * inv * t2 * x2 + t3;
+}
+
+function easeOutBezier(t) {
+  const x1 = 0.17;
+  const y1 = 0.67;
+  const x2 = 0.2;
+  const y2 = 1;
+  let low = 0;
+  let high = 1;
+  let mid = t;
+
+  for (let i = 0; i < 20; i++) {
+    const x = cubicBezierX(x1, x2, mid);
+    if (Math.abs(x - t) < 1e-6) break;
+    if (x < t) low = mid;
+    else high = mid;
+    mid = (low + high) / 2;
+  }
+
+  return cubicBezier(x1, y1, x2, y2, mid);
+}
+
+function normalizeAngle(angle) {
+  const normalized = angle % 360;
+  return normalized < 0 ? normalized + 360 : normalized;
+}
+
+function boundaryCrossed(prev, next, boundary, decreasing) {
+  if (decreasing) {
+    if (prev >= next) {
+      return next < boundary && boundary <= prev;
+    }
+    return boundary > next || boundary <= prev;
+  }
+  if (next >= prev) {
+    return prev < boundary && boundary <= next;
+  }
+  return boundary > prev || boundary <= next;
+}
+
+async function trackPointerTicks(startRot, endRot, dur, segments) {
+  const startTime = performance.now();
+  const totalDelta = endRot - startRot;
+  const pointer = document.getElementById('wheel-pointer');
+  const boundaries = segments.map(s => normalizeAngle(s.startAngle));
+  let lastPointerOnWheel = normalizeAngle(POINTER_ANGLE - startRot);
+  const decreasing = totalDelta > 0;
+
+  return new Promise(resolve => {
+    function frame(now) {
+      const elapsed = (now - startTime) / 1000;
+      const t = Math.min(elapsed / dur, 1);
+      const eased = easeOutBezier(t);
+      const currentRot = startRot + totalDelta * eased;
+      const pointerOnWheel = normalizeAngle(POINTER_ANGLE - currentRot);
+
+      for (const boundary of boundaries) {
+        if (boundaryCrossed(lastPointerOnWheel, pointerOnWheel, boundary, decreasing)) {
+          triggerTick();
+        }
+      }
+
+      lastPointerOnWheel = pointerOnWheel;
+      if (t < 1) {
+        requestAnimationFrame(frame);
+      } else {
+        resolve();
+      }
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+function triggerTick() {
+  const pointer = document.getElementById('wheel-pointer');
+  // Перезапускаем анимацию
+  pointer.classList.remove('ticking');
+  void pointer.offsetWidth; // принудительный reflow
+  pointer.classList.add('ticking');
+  playClick();
 }
 
 function setControlsDisabled(disabled) {
@@ -795,6 +996,9 @@ function setControlsDisabled(disabled) {
   document.querySelectorAll('.duration-btn').forEach(b => b.disabled = disabled);
 }
 
+// ============================================================
+// Победитель (с конфетти и фанфарами)
+// ============================================================
 function showWinner(ticket) {
   const overlay = document.getElementById('winner-overlay');
   const avatar = document.getElementById('winner-avatar');
@@ -809,14 +1013,71 @@ function showWinner(ticket) {
   const parts = [];
   if (ticket.silver > 0) parts.push(`🥈 ${ticket.silver}`);
   if (ticket.gold > 0) parts.push(`🥇 ${ticket.gold}`);
-  document.getElementById('winner-tickets').textContent = parts.join('   ');
+  document.getElementById('winner-tickets').textContent = parts.join('     ');
   overlay.classList.add('show');
+
+  // Конфетти + фанфары
+  launchConfetti();
+  playFanfare();
 }
 
 function hideWinner() {
   document.getElementById('winner-overlay').classList.remove('show');
+  stopConfetti();
 }
 document.getElementById('winner-close-btn').addEventListener('click', hideWinner);
+
+// Конфетти — золотые блёстки
+function launchConfetti() {
+  const container = document.getElementById('confetti');
+  container.classList.add('active');
+  container.innerHTML = '';
+
+  // Палитра золотых оттенков
+  const goldColors = ['#FAC775', '#FFD700', '#FFE194', '#F0B370', '#FFCC33', '#FFFFFF'];
+  const shapes = ['rect', 'circle', 'star'];
+  const numPieces = 120;
+
+  for (let i = 0; i < numPieces; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    const color = goldColors[Math.floor(Math.random() * goldColors.length)];
+    const shape = shapes[Math.floor(Math.random() * shapes.length)];
+    const size = 8 + Math.random() * 10;
+    const drift = (Math.random() - 0.5) * 400; // px горизонтального дрифта
+    const duration = 3 + Math.random() * 2.5; // секунды
+    const delay = Math.random() * 0.6;
+
+    piece.style.left = (Math.random() * 100) + 'vw';
+    piece.style.width = size + 'px';
+    piece.style.height = size + 'px';
+    piece.style.backgroundColor = color;
+    piece.style.boxShadow = `0 0 ${size}px ${color}`;
+    piece.style.setProperty('--drift', drift + 'px');
+    piece.style.animationDuration = duration + 's';
+    piece.style.animationDelay = delay + 's';
+
+    if (shape === 'circle') piece.style.borderRadius = '50%';
+    else if (shape === 'star') {
+      piece.style.clipPath = 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)';
+    }
+
+    container.appendChild(piece);
+  }
+
+  // Авто-остановка через 6 секунд (всё к этому моменту упадёт за экран)
+  setTimeout(() => {
+    if (container.classList.contains('active')) {
+      container.innerHTML = '';
+    }
+  }, 6000);
+}
+
+function stopConfetti() {
+  const container = document.getElementById('confetti');
+  container.classList.remove('active');
+  container.innerHTML = '';
+}
 
 function addLogEntry(text, isWinner) {
   log.push({ text, isWinner });
@@ -855,6 +1116,7 @@ document.getElementById('btn-single').addEventListener('click', () => {
     if (!confirm('Активен режим выбывания. Прервать его и крутить одиночный розыгрыш?')) return;
     eliminationMode = false;
     document.getElementById('elimination-status').classList.remove('active');
+    document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
   }
   spin((winnerIdx) => {
     const winner = activeTickets[winnerIdx];
@@ -865,15 +1127,12 @@ document.getElementById('btn-single').addEventListener('click', () => {
 
 document.getElementById('btn-elim').addEventListener('click', () => {
   if (!eliminationMode) {
-    // Запускаем режим выбывания
     eliminationMode = true;
     document.getElementById('elimination-status').classList.add('active');
     document.getElementById('btn-elim').textContent = '⚔ Крутить (выбывание)';
   }
-
   spin((eliminatedIdx) => {
     const eliminated = activeTickets[eliminatedIdx];
-    // Если остался один — он победитель, режим завершён
     if (activeTickets.length === 1) {
       const winner = activeTickets[0];
       addLogEntry('ПОБЕДИТЕЛЬ: ' + winner.nick + ' (' + winner.score + ' билетов)', true);
@@ -883,12 +1142,10 @@ document.getElementById('btn-elim').addEventListener('click', () => {
       document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
       return;
     }
-    // Иначе выбываем выбранного
     addLogEntry('Выбыл: ' + eliminated.nick + ' (' + eliminated.score + ' билетов)', false);
     activeTickets.splice(eliminatedIdx, 1);
     updateStats();
     renderWheel();
-    // Если остался ОДИН — автоматически объявляем победителем
     if (activeTickets.length === 1) {
       setTimeout(() => {
         const winner = activeTickets[0];
@@ -897,7 +1154,7 @@ document.getElementById('btn-elim').addEventListener('click', () => {
         eliminationMode = false;
         document.getElementById('elimination-status').classList.remove('active');
         document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
-      }, 600);
+      }, 700);
     }
   });
 });
@@ -912,7 +1169,6 @@ document.getElementById('btn-reset').addEventListener('click', () => {
   document.getElementById('elimination-status').classList.remove('active');
   document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
   currentRotation = 0;
-  // Сброс анимации
   const group = document.getElementById('wheel').querySelector('#wheel-group');
   if (group) {
     group.style.transition = 'none';
@@ -949,9 +1205,6 @@ document.getElementById('btn-reload').addEventListener('click', async () => {
   btn.textContent = '🔄 Перезагрузить билеты';
 });
 
-// ============================================================
-// Старт
-// ============================================================
 document.getElementById('gate-input').focus();
 </script>
 </body>
