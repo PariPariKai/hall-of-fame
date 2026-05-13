@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Билеты — Hall of Fame</title>
+
+<!-- ============================================================
+     ⚙ НАСТРОЙКА ⚙
+     TICKETS_CSV_URL — лист Tickets
+     CONFIG_CSV_URL — лист Config (дата розыгрыша, баннер таймера)
+     VIEWERS_CSV_URL — лист Viewers (аватарки зрителей)
+     HOME_URL — ссылка на главную
+     ============================================================ -->
+<script>
+  const TICKETS_CSV_URL = "https://docs.google.com/spreadsheets/d/1voGKd0Zx09_Io-Wb0F5uag9nKi5pME8LGbsyWwTVWOM/export?format=csv&gid=427100001";
+  const CONFIG_CSV_URL  = "https://docs.google.com/spreadsheets/d/1voGKd0Zx09_Io-Wb0F5uag9nKi5pME8LGbsyWwTVWOM/export?format=csv&gid=427100002";
+  const VIEWERS_CSV_URL = "https://docs.google.com/spreadsheets/d/1voGKd0Zx09_Io-Wb0F5uag9nKi5pME8LGbsyWwTVWOM/export?format=csv&gid=527100001";
+  const HOME_URL = "./";
+</script>
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0e1a;
+    background-image:
+      radial-gradient(ellipse at top left, rgba(250, 199, 117, 0.08), transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(127, 119, 221, 0.06), transparent 50%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #fff;
+    padding: 30px 20px;
+  }
+
+  .wrap { max-width: 1200px; margin: 0 auto; }
+
+  .nav { margin-bottom: 18px; }
+  .nav a {
+    color: rgba(255,255,255,0.5);
+    text-decoration: none;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: color 0.15s ease;
+  }
+  .nav a:hover { color: #FAC775; }
+
+  .header { text-align: center; margin-bottom: 30px; }
+  .title {
+    font-size: 42px;
+    font-weight: 500;
+    letter-spacing: 4px;
+    color: #FAC775;
+    text-shadow: 0 0 20px rgba(250, 199, 117, 0.4);
+    margin-bottom: 6px;
+  }
+  .subtitle {
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: rgba(255,255,255,0.45);
+    text-transform: uppercase;
+  }
+
+  /* ===== Таймер с баннером-фоном ===== */
+  .timer-box {
+    position: relative;
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 32px 24px;
+    border: 1px solid rgba(250,199,117,0.25);
+    border-radius: 12px;
+    overflow: hidden;
+    background: #11172a; /* фолбэк */
+    display: none;
+  }
+
+  /* Фон-баннер */
+  .timer-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    z-index: 0;
+    transition: background-image 0.3s ease;
+  }
+  /* Тёмная плашка поверх баннера для читаемости текста */
+  .timer-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, rgba(10,14,26,0.55) 0%, rgba(10,14,26,0.85) 100%),
+      radial-gradient(ellipse at center, rgba(10,14,26,0.4) 0%, rgba(10,14,26,0.7) 100%);
+  }
+
+  /* Если фон-баннера нет — простой градиент */
+  .timer-box.no-bg .timer-bg {
+    background-image: linear-gradient(180deg, rgba(127,119,221,0.12) 0%, rgba(250,199,117,0.06) 100%);
+  }
+  .timer-box.no-bg .timer-bg::after { content: none; }
+
+  .timer-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  .timer-event {
+    font-size: 18px;
+    letter-spacing: 3px;
+    color: #FAC775;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    font-weight: 500;
+  }
+
+  .timer-countdown {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+  }
+
+  .timer-unit {
+    background: rgba(0,0,0,0.55);
+    border: 1px solid rgba(250,199,117,0.25);
+    border-radius: 10px;
+    padding: 12px 16px;
+    min-width: 80px;
+    backdrop-filter: blur(6px);
+  }
+
+  .timer-num {
+    font-size: 32px;
+    font-weight: 600;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.8);
+  }
+
+  .timer-label {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.7);
+    margin-top: 6px;
+  }
+
+  .timer-finished {
+    font-size: 20px;
+    color: #97C459;
+    margin-top: 14px;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.8);
+  }
+
+  /* ===== Контролы ===== */
+  .controls {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 28px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .search-input {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 14px;
+    width: 280px;
+    outline: none;
+    transition: all 0.15s ease;
+  }
+  .search-input:focus { border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.05); }
+  .search-input::placeholder { color: rgba(255,255,255,0.4); }
+
+  /* ===== Подиум ===== */
+  .podium-title {
+    text-align: center;
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+
+  .podium {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr 1fr;
+    gap: 16px;
+    align-items: end;
+    margin-bottom: 36px;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .podium-card {
+    background: #11172a;
+    border: 1px solid;
+    border-radius: 12px;
+    padding: 20px 14px 18px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease;
+  }
+  .podium-card:hover { transform: translateY(-4px); }
+
+  .podium-card.p-1 {
+    border-color: #FAC775;
+    background: linear-gradient(180deg, #2a1d0a 0%, #11172a 70%);
+    box-shadow: 0 0 0 1px rgba(250,199,117,0.3), 0 12px 40px rgba(250,199,117,0.15);
+    padding-top: 28px;
+    padding-bottom: 24px;
+  }
+  .podium-card.p-1 .podium-avatar { width: 88px; height: 88px; font-size: 30px; }
+  .podium-card.p-1 .podium-nick { font-size: 18px; }
+  .podium-card.p-1::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: linear-gradient(45deg, transparent 30%, rgba(250,199,117,0.08) 50%, transparent 70%);
+    animation: shimmer 4s infinite linear;
+    pointer-events: none;
+    z-index: 0;
+  }
+  @keyframes shimmer {
+    0%   { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+  }
+
+  .podium-card.p-2 {
+    border-color: #C0C0D0;
+    background: linear-gradient(180deg, #1f2030 0%, #11172a 70%);
+  }
+  .podium-card.p-3 {
+    border-color: #CD7F32;
+    background: linear-gradient(180deg, #2a1a0a 0%, #11172a 70%);
+  }
+
+  .podium-medal {
+    font-size: 28px;
+    margin-bottom: 6px;
+    position: relative; z-index: 1;
+  }
+  .podium-avatar {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    border: 3px solid;
+    background-size: cover; background-position: center;
+    margin: 0 auto 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; font-weight: 500;
+    position: relative; z-index: 1;
+  }
+  .p-1 .podium-avatar { border-color: #FAC775; background-color: #412402; color: #FAC775; }
+  .p-2 .podium-avatar { border-color: #C0C0D0; background-color: #2a2d3a; color: #C0C0D0; }
+  .p-3 .podium-avatar { border-color: #CD7F32; background-color: #3a2510; color: #E89E5E; }
+
+  .podium-nick {
+    font-size: 15px; font-weight: 500;
+    margin-bottom: 10px;
+    position: relative; z-index: 1;
+    word-break: break-word;
+  }
+  .podium-tickets {
+    display: flex; justify-content: center; gap: 10px;
+    position: relative; z-index: 1;
+  }
+
+  /* ===== Сетка остальных ===== */
+  .grid-title {
+    text-align: center;
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+  }
+  .ticket-card {
+    background: #11172a;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 14px 12px;
+    text-align: center;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+    position: relative;
+  }
+  .ticket-card:hover { transform: translateY(-2px); border-color: rgba(250,199,117,0.3); }
+  .ticket-rank {
+    position: absolute; top: 8px; left: 10px;
+    font-size: 11px; color: rgba(255,255,255,0.4); letter-spacing: 1px;
+  }
+  .ticket-avatar {
+    width: 54px; height: 54px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.2);
+    background-size: cover; background-position: center;
+    background-color: #1a1f30;
+    margin: 4px auto 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: rgba(255,255,255,0.7);
+  }
+  .ticket-nick {
+    font-size: 14px; font-weight: 500;
+    margin-bottom: 8px;
+    word-break: break-word;
+  }
+  .ticket-counts {
+    display: flex; justify-content: center; gap: 8px;
+  }
+  .ticket-pill {
+    font-size: 11px; padding: 2px 8px;
+    border-radius: 10px; font-weight: 500;
+    letter-spacing: 0.3px;
+    display: flex; align-items: center; gap: 3px;
+  }
+  .ticket-silver { background: rgba(192,192,208,0.15); color: #D8D8E0; }
+  .ticket-gold   { background: rgba(250,199,117,0.15); color: #FAC775; }
+
+  .status {
+    text-align: center;
+    color: rgba(255,255,255,0.5);
+    padding: 60px 20px;
+    font-size: 15px;
+  }
+  .status.error { color: #F09595; }
+  .status code { background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 4px; font-family: monospace; }
+
+  .no-results {
+    text-align: center;
+    color: rgba(255,255,255,0.4);
+    padding: 30px;
+    font-style: italic;
+    grid-column: 1 / -1;
+  }
+
+  @media (max-width: 700px) {
+    .title { font-size: 28px; letter-spacing: 2px; }
+    .podium { grid-template-columns: 1fr; gap: 12px; max-width: 280px; }
+    .podium-card.p-1 { order: 1; }
+    .podium-card.p-2 { order: 2; }
+    .podium-card.p-3 { order: 3; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+    .search-input { width: 100%; }
+    .timer-unit { min-width: 64px; padding: 10px 12px; }
+    .timer-num { font-size: 24px; }
+    .timer-event { font-size: 14px; letter-spacing: 2px; }
+  }
+</style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="nav"><a href="" id="home-link">← Hall of Fame</a></div>
+
+    <div class="header">
+      <h1 class="title">🎟️ БИЛЕТЫ 🎟️</h1>
+      <p class="subtitle">Чем больше билетов — тем выше шанс</p>
+    </div>
+
+    <div id="timer-box" class="timer-box">
+      <div class="timer-bg" id="timer-bg"></div>
+      <div class="timer-content">
+        <div class="timer-event" id="timer-event">До розыгрыша</div>
+        <div class="timer-countdown" id="timer-countdown">
+          <div class="timer-unit"><div class="timer-num" id="t-days">0</div><div class="timer-label">дней</div></div>
+          <div class="timer-unit"><div class="timer-num" id="t-hours">0</div><div class="timer-label">часов</div></div>
+          <div class="timer-unit"><div class="timer-num" id="t-mins">0</div><div class="timer-label">минут</div></div>
+          <div class="timer-unit"><div class="timer-num" id="t-secs">0</div><div class="timer-label">секунд</div></div>
+        </div>
+        <div id="timer-finished" class="timer-finished" style="display:none;">⚡ Розыгрыш уже идёт или завершён</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <input type="text" class="search-input" id="search-input" placeholder="🔍 Найти себя по нику...">
+    </div>
+
+    <div id="status" class="status">Загружаю билеты...</div>
+
+    <div id="content" style="display:none;">
+      <div id="podium-wrap" style="display:none;">
+        <p class="podium-title">⚜ Топ 3 ⚜</p>
+        <div class="podium" id="podium"></div>
+      </div>
+      <div id="rest-wrap" style="display:none;">
+        <p class="grid-title">Остальные участники</p>
+        <div class="grid" id="grid"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+function parseCSV(text) {
+  const rows = [];
+  let row = [], cell = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i], next = text[i + 1];
+    if (inQuotes) {
+      if (c === '"' && next === '"') { cell += '"'; i++; }
+      else if (c === '"') { inQuotes = false; }
+      else { cell += c; }
+    } else {
+      if (c === '"') { inQuotes = true; }
+      else if (c === ',') { row.push(cell); cell = ''; }
+      else if (c === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
+      else if (c === '\r') {}
+      else { cell += c; }
+    }
+  }
+  if (cell.length > 0 || row.length > 0) { row.push(cell); rows.push(row); }
+  return rows;
+}
+
+function rowsToViewers(rows) {
+  if (rows.length < 2) return {};
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  const nickIdx = headers.indexOf('nick');
+  const avatarIdx = headers.indexOf('avatar_url');
+  if (nickIdx < 0) return {};
+  const map = {};
+  rows.slice(1).forEach(r => {
+    if (r.length > 0 && r[nickIdx] && r[nickIdx].trim()) {
+      const nick = r[nickIdx].trim();
+      map[nick.toLowerCase()] = {
+        nick: nick,
+        avatar: avatarIdx >= 0 ? (r[avatarIdx] || '').trim() : '',
+      };
+    }
+  });
+  return map;
+}
+
+function rowsToTickets(rows, viewersMap) {
+  if (rows.length < 2) return [];
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  const idx = {
+    nick:   headers.indexOf('nick'),
+    silver: headers.indexOf('silver'),
+    gold:   headers.indexOf('gold'),
+  };
+  if (idx.nick < 0) return [];
+  return rows.slice(1)
+    .filter(r => r.length > 0 && r[idx.nick] && r[idx.nick].trim())
+    .map(r => {
+      const nick = (r[idx.nick] || '').trim();
+      const silver = parseInt((r[idx.silver] || '0').trim(), 10) || 0;
+      const gold   = parseInt((r[idx.gold]   || '0').trim(), 10) || 0;
+      const viewer = viewersMap[nick.toLowerCase()] || {};
+      return {
+        nick:   nick,
+        avatar: viewer.avatar || '',
+        silver: silver,
+        gold:   gold,
+        score:  gold * 5 + silver,
+      };
+    })
+    .filter(t => t.score > 0)
+    .sort((a, b) => b.score - a.score);
+}
+
+function rowsToConfig(rows) {
+  if (rows.length < 2) return {};
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  const keyIdx = headers.indexOf('key');
+  const valIdx = headers.indexOf('value');
+  if (keyIdx < 0 || valIdx < 0) return {};
+  const config = {};
+  rows.slice(1).forEach(r => {
+    if (r.length > 0 && r[keyIdx]) {
+      config[r[keyIdx].trim().toLowerCase()] = (r[valIdx] || '').trim();
+    }
+  });
+  return config;
+}
+
+function initials(nick) {
+  const clean = nick.replace(/[^A-Za-zА-Яа-я0-9]/g, '');
+  if (clean.length >= 2) return (clean[0] + clean[1]).toUpperCase();
+  return (clean[0] || '?').toUpperCase();
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+// ===== Таймер =====
+let raffleDate = null;
+let timerInterval = null;
+
+function setupTimer(config) {
+  const box = document.getElementById('timer-box');
+  const bg = document.getElementById('timer-bg');
+
+  const isActive = (config.raffle_active || '').toLowerCase();
+  const showTimer = isActive === 'true' || isActive === 'yes' || isActive === '1' || isActive === 'да';
+
+  if (!showTimer || !config.raffle_date) {
+    box.style.display = 'none';
+    if (timerInterval) clearInterval(timerInterval);
+    return;
+  }
+
+  const dateStr = config.raffle_date.replace(' ', 'T');
+  raffleDate = new Date(dateStr);
+  if (isNaN(raffleDate.getTime())) {
+    box.style.display = 'none';
+    return;
+  }
+
+  if (config.raffle_title) {
+    document.getElementById('timer-event').textContent = config.raffle_title;
+  }
+
+  // Фон-баннер
+  if (config.tickets_banner_url) {
+    bg.style.backgroundImage = `url('${config.tickets_banner_url}')`;
+    box.classList.remove('no-bg');
+  } else {
+    bg.style.backgroundImage = '';
+    box.classList.add('no-bg');
+  }
+
+  box.style.display = 'block';
+  if (timerInterval) clearInterval(timerInterval);
+  updateTimer();
+  timerInterval = setInterval(updateTimer, 1000);
+}
+
+function updateTimer() {
+  if (!raffleDate) return;
+  const now = new Date();
+  const diff = raffleDate - now;
+
+  if (diff <= 0) {
+    document.getElementById('timer-countdown').style.display = 'none';
+    document.getElementById('timer-finished').style.display = 'block';
+    if (timerInterval) clearInterval(timerInterval);
+    return;
+  }
+
+  const days  = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+  const mins  = Math.floor((diff / (1000 * 60)) % 60);
+  const secs  = Math.floor((diff / 1000) % 60);
+
+  document.getElementById('t-days').textContent  = days;
+  document.getElementById('t-hours').textContent = String(hours).padStart(2, '0');
+  document.getElementById('t-mins').textContent  = String(mins).padStart(2, '0');
+  document.getElementById('t-secs').textContent  = String(secs).padStart(2, '0');
+}
+
+// ===== Рендер =====
+function buildAvatar(t, sizeClass) {
+  if (t.avatar) {
+    return `<div class="${sizeClass}" style="background-image:url('${esc(t.avatar)}');"></div>`;
+  }
+  return `<div class="${sizeClass}">${esc(initials(t.nick))}</div>`;
+}
+
+function ticketsPills(t) {
+  const parts = [];
+  if (t.silver > 0) parts.push(`<span class="ticket-pill ticket-silver">🥈 ${t.silver}</span>`);
+  if (t.gold > 0)   parts.push(`<span class="ticket-pill ticket-gold">🥇 ${t.gold}</span>`);
+  return parts.join('');
+}
+
+function renderPodium(top3) {
+  const podium = document.getElementById('podium');
+  const order = [top3[1], top3[0], top3[2]];
+  const positions = [2, 1, 3];
+  podium.innerHTML = order.map((t, i) => {
+    if (!t) return '<div></div>';
+    const pos = positions[i];
+    const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+    return `
+      <div class="podium-card p-${pos}">
+        <div class="podium-medal">${medals[pos]}</div>
+        ${buildAvatar(t, 'podium-avatar')}
+        <div class="podium-nick">${esc(t.nick)}</div>
+        <div class="podium-tickets">${ticketsPills(t)}</div>
+      </div>
+    `;
+  }).join('');
+  document.getElementById('podium-wrap').style.display = 'block';
+}
+
+function renderGrid(rest) {
+  const grid = document.getElementById('grid');
+  if (rest.length === 0) {
+    grid.innerHTML = '';
+    document.getElementById('rest-wrap').style.display = 'none';
+    return;
+  }
+  grid.innerHTML = rest.map((t, i) => `
+    <div class="ticket-card" data-nick="${esc(t.nick.toLowerCase())}">
+      <div class="ticket-rank">#${i + 4}</div>
+      ${buildAvatar(t, 'ticket-avatar')}
+      <div class="ticket-nick">${esc(t.nick)}</div>
+      <div class="ticket-counts">${ticketsPills(t)}</div>
+    </div>
+  `).join('');
+  document.getElementById('rest-wrap').style.display = 'block';
+}
+
+let allTickets = [];
+
+function applyFilters() {
+  const search = (document.getElementById('search-input').value || '').trim().toLowerCase();
+  let filtered = allTickets;
+  if (search) filtered = allTickets.filter(t => t.nick.toLowerCase().includes(search));
+
+  if (search) {
+    document.getElementById('podium-wrap').style.display = 'none';
+    const grid = document.getElementById('grid');
+    if (filtered.length === 0) {
+      document.getElementById('rest-wrap').style.display = 'block';
+      grid.innerHTML = '<div class="no-results">Никого не нашли по этому нику</div>';
+    } else {
+      grid.innerHTML = filtered.map(t => {
+        const rank = allTickets.indexOf(t) + 1;
+        return `
+          <div class="ticket-card" data-nick="${esc(t.nick.toLowerCase())}">
+            <div class="ticket-rank">#${rank}</div>
+            ${buildAvatar(t, 'ticket-avatar')}
+            <div class="ticket-nick">${esc(t.nick)}</div>
+            <div class="ticket-counts">${ticketsPills(t)}</div>
+          </div>
+        `;
+      }).join('');
+      document.getElementById('rest-wrap').style.display = 'block';
+    }
+    return;
+  }
+
+  const top3 = filtered.slice(0, 3);
+  const rest = filtered.slice(3, 20);
+  if (top3.length > 0) renderPodium(top3);
+  else document.getElementById('podium-wrap').style.display = 'none';
+  renderGrid(rest);
+}
+
+document.getElementById('search-input').addEventListener('input', applyFilters);
+
+// ===== Загрузка =====
+let viewersMap = {};
+
+async function loadAll() {
+  const status = document.getElementById('status');
+  const content = document.getElementById('content');
+
+  if (!TICKETS_CSV_URL || TICKETS_CSV_URL === 'PASTE_YOUR_TICKETS_CSV_URL_HERE') {
+    status.classList.add('error');
+    status.innerHTML = '⚠ Не настроена ссылка <code>TICKETS_CSV_URL</code>';
+    return;
+  }
+
+  // Загружаем всё параллельно
+  try {
+    const [ticketsRes, configRes, viewersRes] = await Promise.allSettled([
+      fetch(TICKETS_CSV_URL),
+      CONFIG_CSV_URL && CONFIG_CSV_URL !== 'PASTE_YOUR_CONFIG_CSV_URL_HERE'
+        ? fetch(CONFIG_CSV_URL) : Promise.resolve(null),
+      VIEWERS_CSV_URL && VIEWERS_CSV_URL !== 'PASTE_YOUR_VIEWERS_CSV_URL_HERE'
+        ? fetch(VIEWERS_CSV_URL) : Promise.resolve(null),
+    ]);
+
+    // Viewers (опционально)
+    if (viewersRes.status === 'fulfilled' && viewersRes.value && viewersRes.value.ok) {
+      const csv = await viewersRes.value.text();
+      viewersMap = rowsToViewers(parseCSV(csv));
+    }
+
+    // Config (опционально для таймера)
+    if (configRes.status === 'fulfilled' && configRes.value && configRes.value.ok) {
+      const csv = await configRes.value.text();
+      setupTimer(rowsToConfig(parseCSV(csv)));
+    }
+
+    // Tickets (обязательно)
+    if (ticketsRes.status === 'rejected' || !ticketsRes.value.ok) {
+      throw new Error('Не удалось загрузить лист Tickets');
+    }
+    const ticketsCsv = await ticketsRes.value.text();
+    allTickets = rowsToTickets(parseCSV(ticketsCsv), viewersMap);
+
+    if (allTickets.length === 0) {
+      status.innerHTML = '🎟️ Пока ни у кого нет билетов. Заходи на стрим — копи билеты!';
+      return;
+    }
+
+    applyFilters();
+    status.style.display = 'none';
+    content.style.display = 'block';
+  } catch (err) {
+    status.classList.add('error');
+    status.innerHTML = '⚠ Ошибка: ' + esc(err.message);
+  }
+}
+
+document.getElementById('home-link').setAttribute('href', HOME_URL);
+loadAll();
+setInterval(loadAll, 60000);
+</script>
+</body>
+</html>
