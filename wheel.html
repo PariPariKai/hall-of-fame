@@ -9,13 +9,18 @@
 <!-- ============================================================
      ⚙ НАСТРОЙКА ⚙
      TICKETS_CSV_URL — лист Tickets
-     CONFIG_CSV_URL — лист Config (содержит wheel_access_code)
      VIEWERS_CSV_URL — лист Viewers (база зрителей с аватарками)
+     WHEEL_ACCESS_HASH — SHA-256 хэш пароля доступа к рулетке.
+       Сам пароль НЕ хранится в коде. Чтобы поменять пароль —
+       вычисли SHA-256 нового пароля (онлайн или через консоль браузера:
+         crypto.subtle.digest('SHA-256', new TextEncoder().encode('твой_пароль'))
+           .then(b => console.log(Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('')))
+       ) и вставь сюда.
      ============================================================ -->
 <script>
   const TICKETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=427100001&single=true&output=csv";
-  const CONFIG_CSV_URL  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=427100002&single=true&output=csv";
   const VIEWERS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=527100001&single=true&output=csv";
+  const WHEEL_ACCESS_HASH = "fc8ee83f14149d6acca42377fc006a9ed55198c380953f09067532fd5ee7fe09";
 </script>
 
 <style>
@@ -464,7 +469,11 @@ function parseCSV(text) {
       else { cell += c; }
     }
   }
-  if (cell.length > 0 || row.length > 0) { row.push(cell); rows.push(row); }
+  if (cell.length > 0 || row.length > 0) {
+    row.push(cell);
+    // Не добавляем строку, если она состоит только из пустых ячеек
+    if (row.some(c => c.length > 0)) rows.push(row);
+  }
   return rows;
 }
 
@@ -495,21 +504,6 @@ function rowsToTickets(rows, viewersMap) {
       };
     })
     .filter(t => t.score > 0);
-}
-
-function rowsToConfig(rows) {
-  if (rows.length < 2) return {};
-  const headers = rows[0].map(h => h.trim().toLowerCase());
-  const keyIdx = headers.indexOf('key');
-  const valIdx = headers.indexOf('value');
-  if (keyIdx < 0 || valIdx < 0) return {};
-  const config = {};
-  rows.slice(1).forEach(r => {
-    if (r.length > 0 && r[keyIdx]) {
-      config[r[keyIdx].trim().toLowerCase()] = (r[valIdx] || '').trim();
-    }
-  });
-  return config;
 }
 
 function rowsToViewers(rows) {
@@ -550,7 +544,6 @@ function initials(nick) {
 let allTickets = [];
 let activeTickets = [];
 let viewersMap = {};
-let validCode = null;
 let currentRotation = 0;
 let isSpinning = false;
 let duration = 5;
@@ -674,24 +667,19 @@ document.addEventListener('click', () => { if (soundOn) ensureAudio(); }, { once
 // ============================================================
 async function loadData() {
   try {
-    const [ticketsRes, configRes, viewersRes] = await Promise.all([
+    const [ticketsRes, viewersRes] = await Promise.all([
       fetch(TICKETS_CSV_URL),
-      fetch(CONFIG_CSV_URL),
       fetch(VIEWERS_CSV_URL),
     ]);
     if (!ticketsRes.ok) throw new Error('Tickets HTTP ' + ticketsRes.status);
-    if (!configRes.ok)  throw new Error('Config HTTP '  + configRes.status);
     // viewers — опционально, ошибку игнорируем
     let viewersRows = [];
     if (viewersRes.ok) viewersRows = parseCSV(await viewersRes.text());
 
     const ticketsRows = parseCSV(await ticketsRes.text());
-    const configRows  = parseCSV(await configRes.text());
 
     viewersMap = rowsToViewers(viewersRows);
     allTickets = rowsToTickets(ticketsRows, viewersMap);
-    const config = rowsToConfig(configRows);
-    validCode = config.wheel_access_code || '';
     return true;
   } catch (err) {
     document.getElementById('gate-error').textContent = 'Ошибка загрузки: ' + err.message;
@@ -700,8 +688,18 @@ async function loadData() {
 }
 
 // ============================================================
-// Gate
+// Gate (проверка по SHA-256 хэшу, сам пароль в коде НЕ хранится)
 // ============================================================
+async function sha256Hex(str) {
+  const buf = new TextEncoder().encode(str);
+  const hashBuf = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hashBuf))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+let dataLoaded = false;
+
 async function tryEnter() {
   const error = document.getElementById('gate-error');
   const input = document.getElementById('gate-input');
@@ -710,19 +708,22 @@ async function tryEnter() {
   submit.disabled = true;
   error.textContent = '';
 
-  if (validCode === null) {
+  if (!dataLoaded) {
     const ok = await loadData();
     if (!ok) { submit.disabled = false; return; }
+    dataLoaded = true;
   }
 
   const entered = input.value.trim();
-  if (!validCode) {
-    error.textContent = 'В Google Sheets не задан wheel_access_code';
+  if (!entered) {
+    error.textContent = 'Введите код';
     submit.disabled = false;
     return;
   }
 
-  if (entered === validCode) {
+  const enteredHash = await sha256Hex(entered);
+
+  if (enteredHash === WHEEL_ACCESS_HASH) {
     document.getElementById('gate').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
     activeTickets = [...allTickets];
@@ -840,7 +841,10 @@ function sectorPath(cx, cy, r, startAngle, endAngle) {
 function pickWinnerIndex() {
   const total = activeTickets.reduce((s, t) => s + t.score, 0);
   if (total === 0) return -1;
-  const rand = Math.random() * total;
+  // Криптографически стойкий рандом вместо Math.random()
+  const buf = new Uint32Array(1);
+  crypto.getRandomValues(buf);
+  const rand = (buf[0] / 0x100000000) * total;
   let acc = 0;
   for (let i = 0; i < activeTickets.length; i++) {
     acc += activeTickets[i].score;

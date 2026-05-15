@@ -521,7 +521,11 @@ function parseCSV(text) {
       else { cell += c; }
     }
   }
-  if (cell.length > 0 || row.length > 0) { row.push(cell); rows.push(row); }
+  if (cell.length > 0 || row.length > 0) {
+    row.push(cell);
+    // Не добавляем строку, если она состоит только из пустых ячеек
+    if (row.some(c => c.length > 0)) rows.push(row);
+  }
   return rows;
 }
 
