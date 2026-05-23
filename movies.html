@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Заказы фильмов — Hall of Fame</title>
+
+<!-- ============================================================
+     ⚙ НАСТРОЙКА ⚙
+     MOVIES_CSV_URL  — лист Movies
+     VIEWERS_CSV_URL — лист Viewers (база зрителей с аватарками)
+     ============================================================ -->
+<script>
+  const MOVIES_CSV_URL  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=627100002&single=true&output=csv";
+  const VIEWERS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=527100001&single=true&output=csv";
+</script>
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0e1a;
+    background-image:
+      radial-gradient(ellipse at top left, rgba(255, 199, 117, 0.08), transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(127, 119, 221, 0.06), transparent 50%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #fff;
+    padding: 0 20px 40px;
+  }
+
+  /* ========== ОБЩЕЕ ВЕРХНЕЕ МЕНЮ ========== */
+  .site-nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    margin: 0 -20px 28px;
+    background: rgba(20, 25, 40, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .site-nav__inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .site-nav__brand {
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: #FAC775;
+    text-decoration: none;
+    text-transform: uppercase;
+    text-shadow: 0 0 8px rgba(250,199,117,0.25);
+    flex: 0 0 auto;
+  }
+  .site-nav__links {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .site-nav__links a {
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 4px 0;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s ease, border-color 0.2s ease, text-shadow 0.2s ease;
+  }
+  .site-nav__links a:hover { color: #FAC775; }
+  .site-nav__links a.is-active {
+    color: #FAC775;
+    border-bottom-color: #FAC775;
+    text-shadow: 0 0 8px rgba(250,199,117,0.5);
+  }
+  @media (max-width: 640px) {
+    .site-nav__inner { padding: 10px 16px; gap: 12px; justify-content: center; }
+    .site-nav__brand { display: none; }
+    .site-nav__links { gap: 14px; justify-content: center; }
+    .site-nav__links a { font-size: 12px; letter-spacing: 1px; }
+  }
+
+  /* ========== СТРАНИЦА ========== */
+  .wrap { max-width: 1100px; margin: 0 auto; padding-top: 8px; }
+
+  .header { text-align: center; margin-bottom: 28px; }
+  .title {
+    font-size: 36px;
+    font-weight: 500;
+    letter-spacing: 4px;
+    color: #FAC775;
+    text-shadow: 0 0 20px rgba(250, 199, 117, 0.4);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  .subtitle {
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+  }
+  .subtitle .accent { color: #FAC775; font-weight: 600; }
+
+  /* ========== КОНТРОЛЫ ========== */
+  .controls-panel {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+  .controls-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 18px;
+  }
+  .controls-row__label {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    align-self: center;
+    margin-right: 4px;
+  }
+  .search-input {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    width: 280px;
+    outline: none;
+    transition: all 0.15s ease;
+  }
+  .search-input:focus { border-color: rgba(250,199,117,0.5); background: rgba(255,255,255,0.04); }
+  .search-input::placeholder { color: rgba(255,255,255,0.4); }
+
+  .filter-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .f-btn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    padding: 9px 14px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.7);
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s ease;
+  }
+  .f-btn:hover { background: rgba(255,255,255,0.05); color: #fff; transform: translateY(-1px); }
+  .f-btn .count {
+    background: rgba(255,255,255,0.1);
+    padding: 2px 7px;
+    border-radius: 8px;
+    font-size: 11px;
+    letter-spacing: 0;
+  }
+  .f-btn.is-active {
+    border-color: #FAC775;
+    color: #FAC775;
+    background: rgba(250,199,117,0.1);
+    box-shadow: 0 0 12px rgba(250,199,117,0.18);
+  }
+  .f-btn.is-active .count { background: rgba(250,199,117,0.25); color: #FAC775; }
+
+  .shown-count {
+    text-align: center;
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 18px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ========== СПИСОК КАРТОЧЕК ========== */
+  .list { display: flex; flex-direction: column; gap: 12px; }
+
+  .mcard {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 14px;
+    align-items: start;
+    transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  .mcard:hover {
+    transform: translateY(-2px);
+    border-color: rgba(250,199,117,0.3);
+    background: rgba(255,255,255,0.05);
+  }
+  .mcard.is-watched { opacity: 0.6; }
+  .mcard.is-watched:hover { opacity: 0.85; }
+  .mcard.is-watched .mcard__title,
+  .mcard.is-watched .mcard__title a { text-decoration: line-through; text-decoration-thickness: 1px; }
+
+  .mcard__avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    border: 2px solid rgba(255,255,255,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 600;
+    flex: 0 0 44px;
+    overflow: hidden;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  }
+
+  .mcard__body { min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+
+  .mcard__nick {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    word-break: break-word;
+  }
+
+  .mcard__title {
+    font-size: 17px;
+    font-weight: 500;
+    color: #fff;
+    word-break: break-word;
+    line-height: 1.3;
+  }
+  .mcard__title a {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px dashed rgba(250,199,117,0.35);
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .mcard__title a:hover { color: #FAC775; border-bottom-color: #FAC775; }
+
+  .mcard__badges {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .badge {
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 6px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    font-weight: 500;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .badge--movie { background: rgba(80,140,250,0.18); color: #88B4F5; border-color: rgba(80,140,250,0.35); }
+  .badge--youtube { background: rgba(240,80,80,0.18); color: #F38787; border-color: rgba(240,80,80,0.4); }
+  .badge--other { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.18); }
+  .badge--pending { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.65); border-color: rgba(255,255,255,0.18); }
+  .badge--watching { background: rgba(250,199,117,0.15); color: #FAC775; border-color: rgba(250,199,117,0.4); }
+  .badge--watched { background: rgba(151,196,89,0.15); color: #97C459; border-color: rgba(151,196,89,0.4); }
+
+  .mcard__date {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.5px;
+  }
+
+  .mcard__action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid rgba(250,199,117,0.4);
+    color: #FAC775;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    margin-top: 4px;
+    align-self: flex-start;
+  }
+  .mcard__action:hover { background: rgba(250,199,117,0.1); transform: translateY(-1px); }
+  .mcard__action--yt { border-color: rgba(240,80,80,0.5); color: #F38787; }
+  .mcard__action--yt:hover { background: rgba(240,80,80,0.1); }
+
+  .mcard__thumb {
+    width: 144px;
+    height: 81px;
+    border-radius: 8px;
+    background-size: cover;
+    background-position: center;
+    background-color: #11172a;
+    border: 1px solid rgba(255,255,255,0.1);
+    flex: 0 0 144px;
+    align-self: center;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+    text-decoration: none;
+    display: block;
+    position: relative;
+  }
+  .mcard__thumb:hover { transform: scale(1.03); border-color: rgba(250,199,117,0.4); }
+  .mcard__thumb::after {
+    content: '▶';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 22px;
+    color: #fff;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    opacity: 0.85;
+    transition: opacity 0.15s ease;
+  }
+  .mcard__thumb:hover::after { opacity: 1; }
+
+  .mcard__notes {
+    font-size: 12px;
+    font-style: italic;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.4;
+  }
+
+  /* ========== СОСТОЯНИЯ ========== */
+  .empty-state, .error-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: rgba(255,255,255,0.5);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .error-state { color: #F09595; }
+  .reload-btn {
+    display: inline-block;
+    margin-top: 14px;
+    background: transparent;
+    border: 1px solid rgba(250,199,117,0.4);
+    color: #FAC775;
+    padding: 8px 18px;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .reload-btn:hover { background: rgba(250,199,117,0.1); }
+
+  @media (max-width: 700px) {
+    .mcard { grid-template-columns: auto 1fr; }
+    .mcard__thumb { grid-column: 1 / -1; width: 100%; height: auto; aspect-ratio: 16 / 9; flex: 1; }
+  }
+  @media (max-width: 600px) {
+    .title { font-size: 26px; letter-spacing: 2px; }
+    .search-input { width: 100%; }
+    .filter-group { width: 100%; justify-content: center; }
+    .mcard { padding: 12px 14px; }
+    .mcard__title { font-size: 15px; }
+  }
+</style>
+</head>
+
+<body>
+
+<nav class="site-nav">
+  <div class="site-nav__inner">
+    <a class="site-nav__brand" href="index.html">ParipariKai</a>
+    <ul class="site-nav__links">
+      <li><a href="index.html" data-page="hall">Hall of Fame</a></li>
+      <li><a href="tickets.html" data-page="tickets">Билеты</a></li>
+      <li><a href="anime.html" data-page="anime">Аниме</a></li>
+      <li><a href="movies.html" class="is-active" data-page="movies">Фильмы</a></li>
+      <li><a href="series.html" data-page="series">Сериалы</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="header">
+    <h1 class="title">🎬 Заказы фильмов 🎬</h1>
+    <p class="subtitle"><span class="accent" id="counter-watched">—</span> из <span class="accent" id="counter-total">—</span> просмотрено</p>
+  </div>
+
+  <div class="controls-panel">
+    <input type="text" class="search-input" id="search" placeholder="🔍 Поиск по названию...">
+    <div class="filter-group" id="status-filters">
+      <button class="f-btn is-active" data-status="all">Все <span class="count" id="cnt-all">0</span></button>
+      <button class="f-btn" data-status="pending">В очереди <span class="count" id="cnt-pending">0</span></button>
+      <button class="f-btn" data-status="watching">Смотрим <span class="count" id="cnt-watching">0</span></button>
+      <button class="f-btn" data-status="watched">Просмотрено <span class="count" id="cnt-watched">0</span></button>
+    </div>
+  </div>
+
+  <div class="controls-row">
+    <span class="controls-row__label">Тип:</span>
+    <div class="filter-group" id="type-filters">
+      <button class="f-btn is-active" data-type="all">Все типы <span class="count" id="tcnt-all">0</span></button>
+      <button class="f-btn" data-type="movie">Фильмы <span class="count" id="tcnt-movie">0</span></button>
+      <button class="f-btn" data-type="youtube">YouTube <span class="count" id="tcnt-youtube">0</span></button>
+      <button class="f-btn" data-type="other">Другое <span class="count" id="tcnt-other">0</span></button>
+    </div>
+  </div>
+
+  <p class="shown-count" id="shown-count" style="display:none;"></p>
+
+  <div id="status" class="empty-state">Загружаю заказы...</div>
+  <div id="list" class="list" style="display:none;"></div>
+  <p id="no-results" class="empty-state" style="display:none;"></p>
+</div>
+
+<script>
+function parseCSV(text) {
+  const rows = [];
+  let row = [], cell = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i], next = text[i + 1];
+    if (inQuotes) {
+      if (c === '"' && next === '"') { cell += '"'; i++; }
+      else if (c === '"') { inQuotes = false; }
+      else { cell += c; }
+    } else {
+      if (c === '"') { inQuotes = true; }
+      else if (c === ',') { row.push(cell); cell = ''; }
+      else if (c === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
+      else if (c === '\r') {}
+      else { cell += c; }
+    }
+  }
+  if (cell.length > 0 || row.length > 0) {
+    row.push(cell);
+    if (row.some(c => c.length > 0)) rows.push(row);
+  }
+  return rows;
+}
+
+function rowsToViewers(rows) {
+  if (rows.length < 2) return {};
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  const nickIdx = headers.indexOf('nick');
+  const avatarIdx = headers.indexOf('avatar_url');
+  if (nickIdx < 0) return {};
+  const map = {};
+  rows.slice(1).forEach(r => {
+    if (r.length > 0 && r[nickIdx] && r[nickIdx].trim()) {
+      const nick = r[nickIdx].trim();
+      map[nick.toLowerCase()] = {
+        nick: nick,
+        avatar: avatarIdx >= 0 ? (r[avatarIdx] || '').trim() : '',
+      };
+    }
+  });
+  return map;
+}
+
+function rowsToMovies(rows, viewersMap) {
+  if (rows.length < 2) return [];
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  const idx = {
+    nick:           headers.indexOf('nick'),
+    title:          headers.indexOf('title'),
+    type:           headers.indexOf('type'),
+    url:            headers.indexOf('url'),
+    status:         headers.indexOf('status'),
+    date_added:     headers.indexOf('date_added'),
+    date_completed: headers.indexOf('date_completed'),
+    notes:          headers.indexOf('notes'),
+  };
+  if (idx.nick < 0 || idx.title < 0) return [];
+  return rows.slice(1)
+    .filter(r => r.length > 0 && r[idx.nick] && r[idx.nick].trim() && r[idx.title] && r[idx.title].trim())
+    .map((r, i) => {
+      const get = (col) => col >= 0 ? (r[col] || '').trim() : '';
+      const nick = get(idx.nick);
+      const viewer = viewersMap[nick.toLowerCase()] || {};
+      const rawStatus = get(idx.status).toLowerCase();
+      const status = ['pending', 'watching', 'watched'].includes(rawStatus) ? rawStatus : 'pending';
+      const rawType = get(idx.type).toLowerCase();
+      const type = ['movie', 'youtube', 'other'].includes(rawType) ? rawType : 'other';
+      return {
+        _order: i,
+        nick: nick,
+        avatar: viewer.avatar || '',
+        title: get(idx.title),
+        type: type,
+        url: get(idx.url),
+        status: status,
+        date_added: get(idx.date_added),
+        date_completed: get(idx.date_completed),
+        notes: get(idx.notes),
+      };
+    });
+}
+
+const STATUS_WEIGHT = { watching: 0, pending: 1, watched: 2 };
+function sortItems(items) {
+  return items.slice().sort((a, b) => {
+    const sw = STATUS_WEIGHT[a.status] - STATUS_WEIGHT[b.status];
+    if (sw !== 0) return sw;
+    const ad = a.date_added || '';
+    const bd = b.date_added || '';
+    if (ad && bd && ad !== bd) return bd.localeCompare(ad);
+    if (ad && !bd) return -1;
+    if (!ad && bd) return 1;
+    return a._order - b._order;
+  });
+}
+
+function initials(nick) {
+  const clean = nick.replace(/[^A-Za-zА-Яа-я0-9]/g, '');
+  if (clean.length >= 2) return (clean[0] + clean[1]).toUpperCase();
+  return (clean[0] || '?').toUpperCase();
+}
+
+function hashColor(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+  const palette = [
+    '#7F77DD', '#FAC775', '#97C459', '#F0997B', '#88B4F5',
+    '#C5A9F8', '#F38787', '#F0BC58', '#6FA13C', '#D85A30',
+  ];
+  return palette[Math.abs(h) % palette.length];
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+const MONTHS_RU = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+function formatShortDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return `${d.getDate()} ${MONTHS_RU[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+const STATUS_LABEL = {
+  pending:  'В очереди',
+  watching: 'Смотрим',
+  watched:  'Просмотрено',
+};
+const TYPE_LABEL = {
+  movie:   'Фильм',
+  youtube: 'YouTube',
+  other:   'Другое',
+};
+
+function extractYouTubeId(url) {
+  if (!url) return '';
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, '');
+    if (host === 'youtu.be') {
+      return (u.pathname.replace(/^\//, '').split('/')[0] || '').trim();
+    }
+    if (host === 'youtube.com' || host === 'm.youtube.com' || host === 'music.youtube.com') {
+      if (u.pathname === '/watch') return (u.searchParams.get('v') || '').trim();
+      const m = u.pathname.match(/^\/(embed|shorts|live|v)\/([^\/?#]+)/);
+      if (m) return m[2];
+    }
+  } catch (e) {
+    /* invalid URL — fall through */
+  }
+  return '';
+}
+
+function buildAvatarHtml(item) {
+  if (item.avatar) {
+    return `<div class="mcard__avatar" style="background-image:url('${esc(item.avatar)}');"></div>`;
+  }
+  const color = hashColor(item.nick.toLowerCase());
+  return `<div class="mcard__avatar" style="background:${color};">${esc(initials(item.nick))}</div>`;
+}
+
+function buildBadgesHtml(item) {
+  const badges = [];
+  badges.push(`<span class="badge badge--${item.type}">${esc(TYPE_LABEL[item.type])}</span>`);
+  badges.push(`<span class="badge badge--${item.status}">${esc(STATUS_LABEL[item.status])}</span>`);
+  if (item.date_completed) {
+    badges.push(`<span class="mcard__date">досмотрено ${esc(formatShortDate(item.date_completed))}</span>`);
+  } else if (item.date_added && item.status !== 'watched') {
+    badges.push(`<span class="mcard__date">добавлено ${esc(formatShortDate(item.date_added))}</span>`);
+  }
+  return `<div class="mcard__badges">${badges.join('')}</div>`;
+}
+
+function buildActionHtml(item) {
+  if (!item.url) return '';
+  if (item.type === 'youtube') {
+    return `<a class="mcard__action mcard__action--yt" href="${esc(item.url)}" target="_blank" rel="noopener">▶ Смотреть на YouTube</a>`;
+  }
+  if (item.type === 'movie') {
+    return `<a class="mcard__action" href="${esc(item.url)}" target="_blank" rel="noopener">↗ Открыть</a>`;
+  }
+  return `<a class="mcard__action" href="${esc(item.url)}" target="_blank" rel="noopener">↗ Открыть ссылку</a>`;
+}
+
+function buildThumbHtml(item) {
+  if (item.type !== 'youtube' || !item.url) return '';
+  const id = extractYouTubeId(item.url);
+  if (!id) return '';
+  const thumb = `https://img.youtube.com/vi/${encodeURIComponent(id)}/mqdefault.jpg`;
+  return `<a class="mcard__thumb" href="${esc(item.url)}" target="_blank" rel="noopener" style="background-image:url('${esc(thumb)}');" aria-label="Открыть на YouTube"></a>`;
+}
+
+function buildCard(item) {
+  const titleInner = item.url
+    ? `<a href="${esc(item.url)}" target="_blank" rel="noopener">${esc(item.title)}</a>`
+    : esc(item.title);
+  const watchedClass = item.status === 'watched' ? ' is-watched' : '';
+  const thumb = buildThumbHtml(item);
+  return `
+    <article class="mcard${watchedClass}" data-status="${esc(item.status)}" data-type="${esc(item.type)}" data-title="${esc(item.title.toLowerCase())}">
+      ${buildAvatarHtml(item)}
+      <div class="mcard__body">
+        <span class="mcard__nick">${esc(item.nick)}</span>
+        <h2 class="mcard__title">${titleInner}</h2>
+        ${buildBadgesHtml(item)}
+        ${buildActionHtml(item)}
+        ${item.notes ? `<p class="mcard__notes">${esc(item.notes)}</p>` : ''}
+      </div>
+      ${thumb}
+    </article>
+  `;
+}
+
+let allItems = [];
+let currentStatus = 'all';
+let currentType = 'all';
+let currentSearch = '';
+
+function applyFilters() {
+  const list = document.getElementById('list');
+  const noResults = document.getElementById('no-results');
+  const shown = document.getElementById('shown-count');
+
+  let visible = 0;
+  list.querySelectorAll('.mcard').forEach(card => {
+    const matchesStatus = currentStatus === 'all' || card.dataset.status === currentStatus;
+    const matchesType   = currentType === 'all' || card.dataset.type === currentType;
+    const matchesSearch = !currentSearch || card.dataset.title.includes(currentSearch);
+    const show = matchesStatus && matchesType && matchesSearch;
+    card.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+
+  if (visible === 0 && allItems.length > 0) {
+    list.style.display = 'none';
+    const hint = currentSearch
+      ? `Ничего не найдено по запросу «${esc(currentSearch)}»`
+      : 'В этой категории пока пусто';
+    noResults.innerHTML = hint;
+    noResults.style.display = 'block';
+    shown.style.display = 'none';
+  } else {
+    list.style.display = '';
+    noResults.style.display = 'none';
+    if (currentStatus !== 'all' || currentType !== 'all' || currentSearch) {
+      shown.textContent = `Показано: ${visible}`;
+      shown.style.display = 'block';
+    } else {
+      shown.style.display = 'none';
+    }
+  }
+}
+
+function updateCounters(items) {
+  const sCounts = { all: items.length, pending: 0, watching: 0, watched: 0 };
+  const tCounts = { all: items.length, movie: 0, youtube: 0, other: 0 };
+  items.forEach(it => {
+    sCounts[it.status] = (sCounts[it.status] || 0) + 1;
+    tCounts[it.type]   = (tCounts[it.type]   || 0) + 1;
+  });
+  document.getElementById('cnt-all').textContent       = sCounts.all;
+  document.getElementById('cnt-pending').textContent   = sCounts.pending;
+  document.getElementById('cnt-watching').textContent  = sCounts.watching;
+  document.getElementById('cnt-watched').textContent   = sCounts.watched;
+  document.getElementById('tcnt-all').textContent      = tCounts.all;
+  document.getElementById('tcnt-movie').textContent    = tCounts.movie;
+  document.getElementById('tcnt-youtube').textContent  = tCounts.youtube;
+  document.getElementById('tcnt-other').textContent    = tCounts.other;
+  document.getElementById('counter-watched').textContent = sCounts.watched;
+  document.getElementById('counter-total').textContent   = sCounts.all;
+}
+
+function render(items) {
+  const list = document.getElementById('list');
+  const sorted = sortItems(items);
+  list.innerHTML = sorted.map(buildCard).join('');
+  list.style.display = '';
+}
+
+document.querySelectorAll('#status-filters .f-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#status-filters .f-btn').forEach(b => b.classList.remove('is-active'));
+    btn.classList.add('is-active');
+    currentStatus = btn.dataset.status;
+    applyFilters();
+  });
+});
+document.querySelectorAll('#type-filters .f-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#type-filters .f-btn').forEach(b => b.classList.remove('is-active'));
+    btn.classList.add('is-active');
+    currentType = btn.dataset.type;
+    applyFilters();
+  });
+});
+document.getElementById('search').addEventListener('input', e => {
+  currentSearch = (e.target.value || '').trim().toLowerCase();
+  applyFilters();
+});
+
+async function loadAll() {
+  const status = document.getElementById('status');
+  const list = document.getElementById('list');
+  status.classList.remove('error-state');
+  status.classList.add('empty-state');
+  status.style.display = 'block';
+  status.textContent = 'Загружаю заказы...';
+  list.style.display = 'none';
+
+  try {
+    const [moviesRes, viewersRes] = await Promise.all([
+      fetch(MOVIES_CSV_URL),
+      VIEWERS_CSV_URL ? fetch(VIEWERS_CSV_URL) : Promise.resolve(null),
+    ]);
+
+    if (!moviesRes.ok) throw new Error('HTTP ' + moviesRes.status + ' при загрузке листа Movies');
+
+    let viewersMap = {};
+    if (viewersRes && viewersRes.ok) {
+      const csv = await viewersRes.text();
+      viewersMap = rowsToViewers(parseCSV(csv));
+    }
+
+    const csv = await moviesRes.text();
+    allItems = rowsToMovies(parseCSV(csv), viewersMap);
+
+    if (allItems.length === 0) {
+      status.style.display = 'block';
+      status.innerHTML = 'Пока ни одного заказа фильмов.<br>Добавь первую строку в Google-таблицу — и она появится здесь.';
+      updateCounters(allItems);
+      return;
+    }
+
+    updateCounters(allItems);
+    render(allItems);
+    status.style.display = 'none';
+    applyFilters();
+  } catch (err) {
+    console.error(err);
+    status.className = 'error-state';
+    status.innerHTML = '⚠ Не удалось загрузить данные.<br>' + esc(err.message) +
+      '<br><button class="reload-btn" onclick="loadAll()">Обновить</button>';
+  }
+}
+
+loadAll();
+setInterval(loadAll, 60000);
+</script>
+
+</body>
+</html>

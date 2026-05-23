@@ -34,6 +34,68 @@
     padding: 30px 20px;
   }
 
+  /* ========== ОБЩЕЕ ВЕРХНЕЕ МЕНЮ ========== */
+  .site-nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    margin: -30px -20px 28px;
+    background: rgba(20, 25, 40, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .site-nav__inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .site-nav__brand {
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: #FAC775;
+    text-decoration: none;
+    text-transform: uppercase;
+    text-shadow: 0 0 8px rgba(250,199,117,0.25);
+    flex: 0 0 auto;
+  }
+  .site-nav__links {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .site-nav__links a {
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 4px 0;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s ease, border-color 0.2s ease, text-shadow 0.2s ease;
+  }
+  .site-nav__links a:hover { color: #FAC775; }
+  .site-nav__links a.is-active {
+    color: #FAC775;
+    border-bottom-color: #FAC775;
+    text-shadow: 0 0 8px rgba(250,199,117,0.5);
+  }
+  @media (max-width: 640px) {
+    .site-nav { margin: -30px -20px 20px; }
+    .site-nav__inner { padding: 10px 16px; gap: 12px; justify-content: center; }
+    .site-nav__brand { display: none; }
+    .site-nav__links { gap: 14px; justify-content: center; }
+    .site-nav__links a { font-size: 12px; letter-spacing: 1px; }
+  }
+
   .wrap { max-width: 1400px; margin: 0 auto; }
   .header { text-align: center; margin-bottom: 30px; }
 
@@ -476,6 +538,20 @@
 </head>
 
 <body>
+
+  <nav class="site-nav">
+    <div class="site-nav__inner">
+      <a class="site-nav__brand" href="index.html">ParipariKai</a>
+      <ul class="site-nav__links">
+        <li><a href="index.html" class="is-active" data-page="hall">Hall of Fame</a></li>
+        <li><a href="tickets.html" data-page="tickets">Билеты</a></li>
+        <li><a href="anime.html" data-page="anime">Аниме</a></li>
+        <li><a href="movies.html" data-page="movies">Фильмы</a></li>
+        <li><a href="series.html" data-page="series">Сериалы</a></li>
+      </ul>
+    </div>
+  </nav>
+
   <div class="wrap">
     <div class="header">
       <h1 class="title">⚜ HALL OF FAME ⚜</h1>
