@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ParipariKai</title>
+
+<!-- ============================================================
+     ⚙ НАСТРОЙКА ⚙
+     CONFIG_CSV_URL  — лист Config (имя стримера, интро, аватар, Twitch URL)
+     WINNERS_CSV_URL — лист Winners (для счётчика Hall of Fame)
+     TICKETS_CSV_URL — лист Tickets (для счётчика билетов)
+     ANIME_CSV_URL   — лист Anime
+     MOVIES_CSV_URL  — лист Movies
+     SERIES_CSV_URL  — лист Series
+     GAMES_CSV_URL   — лист Games (новый в v8)
+     ============================================================ -->
+<script>
+  const CONFIG_CSV_URL  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=427100002&single=true&output=csv";
+  const WINNERS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=287600011&single=true&output=csv";
+  const TICKETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=427100001&single=true&output=csv";
+  const ANIME_CSV_URL   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=627100001&single=true&output=csv";
+  const MOVIES_CSV_URL  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=627100002&single=true&output=csv";
+  const SERIES_CSV_URL  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=627100003&single=true&output=csv";
+  const GAMES_CSV_URL   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=727100001&single=true&output=csv";
+</script>
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0e1a;
+    background-image:
+      radial-gradient(ellipse at top center, rgba(250, 199, 117, 0.10), transparent 55%),
+      radial-gradient(ellipse at bottom right, rgba(127, 119, 221, 0.08), transparent 55%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #fff;
+    padding: 0 20px 60px;
+  }
+
+  /* ========== ОБЩЕЕ ВЕРХНЕЕ МЕНЮ ========== */
+  .site-nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    margin: 0 -20px 0;
+    background: rgba(20, 25, 40, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .site-nav__inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .site-nav__brand {
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: #FAC775;
+    text-decoration: none;
+    text-transform: uppercase;
+    text-shadow: 0 0 8px rgba(250,199,117,0.25);
+    flex: 0 0 auto;
+  }
+  .site-nav__links {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 22px;
+    flex-wrap: wrap;
+  }
+  .site-nav__links a {
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 4px 0;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s ease, border-color 0.2s ease, text-shadow 0.2s ease;
+  }
+  .site-nav__links a:hover { color: #FAC775; }
+  .site-nav__links a.is-active {
+    color: #FAC775;
+    border-bottom-color: #FAC775;
+    text-shadow: 0 0 8px rgba(250,199,117,0.5);
+  }
+  @media (max-width: 720px) {
+    .site-nav__inner { padding: 10px 16px; gap: 12px; justify-content: center; }
+    .site-nav__brand { display: none; }
+    .site-nav__links { gap: 14px; justify-content: center; }
+    .site-nav__links a { font-size: 12px; letter-spacing: 1px; }
+  }
+  @media (max-width: 480px) {
+    .site-nav__links { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; padding-bottom: 4px; }
+    .site-nav__links::-webkit-scrollbar { height: 0; display: none; }
+    .site-nav__links li { flex: 0 0 auto; }
+  }
+
+  /* ========== HERO ========== */
+  .hero {
+    text-align: center;
+    padding: 50px 16px 56px;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .hero__avatar-wrap {
+    width: 140px;
+    height: 140px;
+    margin: 0 auto 24px;
+    border-radius: 50%;
+    background: #1a2238;
+    border: 3px solid rgba(250,199,117,0.4);
+    box-shadow: 0 0 0 6px rgba(250,199,117,0.06), 0 8px 30px rgba(0,0,0,0.5);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #FAC775;
+    font-size: 48px;
+    font-weight: 600;
+    letter-spacing: 2px;
+  }
+  .hero__avatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .hero__name {
+    font-size: 48px;
+    font-weight: 500;
+    letter-spacing: 4px;
+    color: #FAC775;
+    text-shadow: 0 0 28px rgba(250, 199, 117, 0.45);
+    margin-bottom: 14px;
+    text-transform: uppercase;
+    word-break: break-word;
+  }
+  .hero__intro {
+    font-size: 15px;
+    line-height: 1.65;
+    color: rgba(255,255,255,0.75);
+    max-width: 600px;
+    margin: 0 auto 28px;
+  }
+  .hero__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, rgba(250,199,117,0.15), rgba(250,199,117,0.05));
+    border: 1px solid rgba(250,199,117,0.5);
+    color: #FAC775;
+    padding: 12px 26px;
+    font-size: 13px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    text-decoration: none;
+    border-radius: 10px;
+    font-weight: 500;
+    box-shadow: 0 0 18px rgba(250,199,117,0.18);
+    transition: all 0.2s ease;
+  }
+  .hero__cta:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(135deg, rgba(250,199,117,0.22), rgba(250,199,117,0.08));
+    box-shadow: 0 0 30px rgba(250,199,117,0.35);
+    color: #fff;
+  }
+  .hero__cta--hidden { display: none; }
+
+  /* ========== СЕТКА КАРТОЧЕК ========== */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  .page-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 24px 18px 22px;
+    text-align: center;
+    text-decoration: none;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    min-height: 160px;
+    transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .page-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center top, rgba(250,199,117,0.08), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.18s ease;
+    pointer-events: none;
+  }
+  .page-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(250,199,117,0.45);
+    background: rgba(255,255,255,0.06);
+    box-shadow: 0 14px 32px rgba(0,0,0,0.4), 0 0 24px rgba(250,199,117,0.1);
+  }
+  .page-card:hover::before { opacity: 1; }
+  .page-card__icon {
+    font-size: 36px;
+    line-height: 1;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
+  }
+  .page-card__title {
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    color: #FAC775;
+    text-transform: uppercase;
+    margin: 4px 0 0;
+  }
+  .page-card__count {
+    font-size: 12px;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.5px;
+    margin-top: auto;
+    min-height: 16px;
+  }
+  .page-card__count .accent { color: #fff; font-weight: 600; }
+
+  @media (max-width: 720px) {
+    .hero { padding: 32px 16px 40px; }
+    .hero__name { font-size: 32px; letter-spacing: 3px; }
+    .hero__avatar-wrap { width: 110px; height: 110px; font-size: 38px; }
+    .cards { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  }
+  @media (max-width: 420px) {
+    .cards { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+
+<body>
+
+<nav class="site-nav">
+  <div class="site-nav__inner">
+    <a class="site-nav__brand" href="index.html">ParipariKai</a>
+    <ul class="site-nav__links">
+      <li><a href="hall.html" data-page="hall">Hall of Fame</a></li>
+      <li><a href="tickets.html" data-page="tickets">Билеты</a></li>
+      <li><a href="anime.html" data-page="anime">Аниме</a></li>
+      <li><a href="movies.html" data-page="movies">Фильмы</a></li>
+      <li><a href="series.html" data-page="series">Сериалы</a></li>
+      <li><a href="games.html" data-page="games">Игры</a></li>
+    </ul>
+  </div>
+</nav>
+
+<main class="hero">
+  <div class="hero__avatar-wrap">
+    <img id="hero-avatar" class="hero__avatar" alt="" style="display:none;">
+    <span id="hero-avatar-fallback">PK</span>
+  </div>
+  <h1 class="hero__name" id="hero-name">Stream</h1>
+  <p class="hero__intro" id="hero-intro">Добро пожаловать</p>
+  <a class="hero__cta hero__cta--hidden" id="hero-cta" href="#" target="_blank" rel="noopener">▶ Смотреть на Twitch</a>
+</main>
+
+<section class="cards" aria-label="Разделы сайта">
+  <a class="page-card" href="hall.html">
+    <span class="page-card__icon">🏆</span>
+    <h2 class="page-card__title">Hall of Fame</h2>
+    <p class="page-card__count" data-counter="hall">…</p>
+  </a>
+  <a class="page-card" href="tickets.html">
+    <span class="page-card__icon">🎟️</span>
+    <h2 class="page-card__title">Билеты</h2>
+    <p class="page-card__count" data-counter="tickets">…</p>
+  </a>
+  <a class="page-card" href="anime.html">
+    <span class="page-card__icon">⛩️</span>
+    <h2 class="page-card__title">Аниме</h2>
+    <p class="page-card__count" data-counter="anime">…</p>
+  </a>
+  <a class="page-card" href="movies.html">
+    <span class="page-card__icon">🎬</span>
+    <h2 class="page-card__title">Фильмы</h2>
+    <p class="page-card__count" data-counter="movies">…</p>
+  </a>
+  <a class="page-card" href="series.html">
+    <span class="page-card__icon">📺</span>
+    <h2 class="page-card__title">Сериалы</h2>
+    <p class="page-card__count" data-counter="series">…</p>
+  </a>
+  <a class="page-card" href="games.html">
+    <span class="page-card__icon">🎮</span>
+    <h2 class="page-card__title">Игры</h2>
+    <p class="page-card__count" data-counter="games">…</p>
+  </a>
+</section>
+
+<script>
+function parseCSV(text) {
+  const rows = [];
+  let row = [], cell = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i], next = text[i + 1];
+    if (inQuotes) {
+      if (c === '"' && next === '"') { cell += '"'; i++; }
+      else if (c === '"') { inQuotes = false; }
+      else { cell += c; }
+    } else {
+      if (c === '"') { inQuotes = true; }
+      else if (c === ',') { row.push(cell); cell = ''; }
+      else if (c === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
+      else if (c === '\r') {}
+      else { cell += c; }
+    }
+  }
+  if (cell.length > 0 || row.length > 0) {
+    row.push(cell);
+    if (row.some(c => c.length > 0)) rows.push(row);
+  }
+  return rows;
+}
+
+function rowsToConfig(rows) {
+  if (rows.length < 2) return {};
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  const keyIdx = headers.indexOf('key');
+  const valIdx = headers.indexOf('value');
+  if (keyIdx < 0 || valIdx < 0) return {};
+  const config = {};
+  rows.slice(1).forEach(r => {
+    if (r.length > 0 && r[keyIdx]) {
+      config[r[keyIdx].trim().toLowerCase()] = (r[valIdx] || '').trim();
+    }
+  });
+  return config;
+}
+
+function isValidUrl(s) {
+  if (!s) return false;
+  try {
+    const u = new URL(s);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch (e) {
+    return false;
+  }
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+function rowsToCount(rows) {
+  if (rows.length < 2) return 0;
+  return rows.slice(1).filter(r => r.some(c => (c || '').trim().length > 0)).length;
+}
+
+function getColIdx(rows, name) {
+  if (rows.length < 1) return -1;
+  return rows[0].map(h => h.trim().toLowerCase()).indexOf(name.toLowerCase());
+}
+
+function summarizeStatusList(rows, statusGroups) {
+  // statusGroups example: { active: ['pending','watching'], done: ['watched'] }
+  const idx = getColIdx(rows, 'status');
+  if (idx < 0 || rows.length < 2) {
+    const out = {};
+    Object.keys(statusGroups).forEach(k => out[k] = 0);
+    out.total = 0;
+    return out;
+  }
+  const out = {};
+  Object.keys(statusGroups).forEach(k => out[k] = 0);
+  out.total = 0;
+  rows.slice(1).forEach(r => {
+    if (!r.some(c => (c || '').trim().length > 0)) return;
+    const status = (r[idx] || '').trim().toLowerCase();
+    out.total++;
+    Object.keys(statusGroups).forEach(group => {
+      if (statusGroups[group].includes(status)) out[group]++;
+    });
+  });
+  return out;
+}
+
+function summarizeTickets(rows) {
+  const silverIdx = getColIdx(rows, 'silver');
+  const goldIdx = getColIdx(rows, 'gold');
+  if (rows.length < 2) return { participants: 0, totalTickets: 0 };
+  let participants = 0;
+  let totalTickets = 0;
+  rows.slice(1).forEach(r => {
+    if (!r.some(c => (c || '').trim().length > 0)) return;
+    const silver = parseInt((silverIdx >= 0 ? (r[silverIdx] || '0') : '0').trim(), 10) || 0;
+    const gold = parseInt((goldIdx >= 0 ? (r[goldIdx] || '0') : '0').trim(), 10) || 0;
+    if (silver + gold > 0) {
+      participants++;
+      totalTickets += silver + gold;
+    }
+  });
+  return { participants, totalTickets };
+}
+
+function setCounter(key, html) {
+  const el = document.querySelector(`[data-counter="${key}"]`);
+  if (el) el.innerHTML = html;
+}
+
+function applyConfig(config) {
+  const name = (config.streamer_name || '').trim();
+  const intro = (config.streamer_intro || '').trim();
+  const avatar = (config.streamer_avatar_url || '').trim();
+  const twitch = (config.streamer_twitch_url || '').trim();
+
+  if (name) {
+    document.getElementById('hero-name').textContent = name;
+    document.title = name;
+    const initials = name.replace(/[^A-Za-zА-Яа-я0-9]/g, '').slice(0, 2).toUpperCase() || 'PK';
+    document.getElementById('hero-avatar-fallback').textContent = initials;
+  }
+  if (intro) {
+    document.getElementById('hero-intro').textContent = intro;
+  }
+
+  if (isValidUrl(avatar)) {
+    const img = document.getElementById('hero-avatar');
+    const fb = document.getElementById('hero-avatar-fallback');
+    img.onload = () => { img.style.display = 'block'; fb.style.display = 'none'; };
+    img.onerror = () => { img.style.display = 'none'; fb.style.display = ''; };
+    img.src = avatar;
+    img.alt = name || 'Avatar';
+  }
+
+  if (isValidUrl(twitch)) {
+    const cta = document.getElementById('hero-cta');
+    cta.href = twitch;
+    cta.classList.remove('hero__cta--hidden');
+  }
+}
+
+async function loadAndCount(url, key, mapper, fallbackText) {
+  if (!url) {
+    setCounter(key, '—');
+    return;
+  }
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    const rows = parseCSV(text);
+    setCounter(key, mapper(rows));
+  } catch (err) {
+    console.warn(`Counter "${key}" failed:`, err.message);
+    setCounter(key, fallbackText || '—');
+  }
+}
+
+async function loadAll() {
+  // Config first (controls hero rendering)
+  fetch(CONFIG_CSV_URL)
+    .then(r => r.ok ? r.text() : Promise.reject(new Error('Config HTTP ' + r.status)))
+    .then(text => applyConfig(rowsToConfig(parseCSV(text))))
+    .catch(err => console.warn('Config load failed:', err.message));
+
+  // 6 counters in parallel — each independently survives errors
+  loadAndCount(WINNERS_CSV_URL, 'hall', (rows) => {
+    const n = rowsToCount(rows);
+    return `<span class="accent">${n}</span> ${n === 1 ? 'победа' : (n >= 2 && n <= 4 ? 'победы' : 'побед')}`;
+  });
+
+  loadAndCount(TICKETS_CSV_URL, 'tickets', (rows) => {
+    const t = summarizeTickets(rows);
+    if (t.participants === 0) return 'нет участников';
+    return `<span class="accent">${t.participants}</span> участников · <span class="accent">${t.totalTickets}</span> билетов`;
+  });
+
+  loadAndCount(ANIME_CSV_URL, 'anime', (rows) => {
+    const s = summarizeStatusList(rows, { active: ['pending','watching'], done: ['watched'] });
+    if (s.total === 0) return 'пока пусто';
+    return `<span class="accent">${s.active}</span> в очереди · <span class="accent">${s.done}</span> просмотрено`;
+  });
+
+  loadAndCount(MOVIES_CSV_URL, 'movies', (rows) => {
+    const s = summarizeStatusList(rows, { active: ['pending','watching'], done: ['watched'] });
+    if (s.total === 0) return 'пока пусто';
+    return `<span class="accent">${s.active}</span> в очереди · <span class="accent">${s.done}</span> просмотрено`;
+  });
+
+  loadAndCount(SERIES_CSV_URL, 'series', (rows) => {
+    const s = summarizeStatusList(rows, { active: ['pending','watching'], done: ['watched'] });
+    if (s.total === 0) return 'пока пусто';
+    return `<span class="accent">${s.active}</span> в очереди · <span class="accent">${s.done}</span> просмотрено`;
+  });
+
+  loadAndCount(GAMES_CSV_URL, 'games', (rows) => {
+    const s = summarizeStatusList(rows, { pending: ['pending'], playing: ['playing'] });
+    if (s.total === 0) return 'пока пусто';
+    return `<span class="accent">${s.pending}</span> в очереди · <span class="accent">${s.playing}</span> играем`;
+  });
+}
+
+loadAll();
+</script>
+
+</body>
+</html>

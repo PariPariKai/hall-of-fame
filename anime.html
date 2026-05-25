@@ -8,7 +8,7 @@
 <!-- ============================================================
      ⚙ НАСТРОЙКА ⚙
      ANIME_CSV_URL   — лист Anime
-     VIEWERS_CSV_URL — лист Viewers (база зрителей с аватарками)
+     VIEWERS_CSV_URL — лист Viewers (база зрителей с аватарками + twitch_url)
      ============================================================ -->
 <script>
   const ANIME_CSV_URL   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=627100001&single=true&output=csv";
@@ -65,7 +65,7 @@
     list-style: none;
     margin: 0;
     padding: 0;
-    gap: 24px;
+    gap: 22px;
     flex-wrap: wrap;
   }
   .site-nav__links a {
@@ -84,11 +84,16 @@
     border-bottom-color: #FAC775;
     text-shadow: 0 0 8px rgba(250,199,117,0.5);
   }
-  @media (max-width: 640px) {
+  @media (max-width: 720px) {
     .site-nav__inner { padding: 10px 16px; gap: 12px; justify-content: center; }
     .site-nav__brand { display: none; }
     .site-nav__links { gap: 14px; justify-content: center; }
     .site-nav__links a { font-size: 12px; letter-spacing: 1px; }
+  }
+  @media (max-width: 480px) {
+    .site-nav__links { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; padding-bottom: 4px; }
+    .site-nav__links::-webkit-scrollbar { height: 0; display: none; }
+    .site-nav__links li { flex: 0 0 auto; }
   }
 
   /* ========== СТРАНИЦА ========== */
@@ -116,7 +121,7 @@
   .controls-panel {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 10px;
     align-items: center;
     justify-content: center;
     margin-bottom: 18px;
@@ -129,7 +134,7 @@
     color: #fff;
     font-family: inherit;
     font-size: 13px;
-    width: 280px;
+    width: 240px;
     outline: none;
     transition: all 0.15s ease;
   }
@@ -187,11 +192,12 @@
     border-radius: 12px;
     padding: 14px 18px;
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 14px;
     align-items: start;
     transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
   }
+  .acard.no-cover { grid-template-columns: auto minmax(0, 1fr); }
   .acard:hover {
     transform: translateY(-2px);
     border-color: rgba(250,199,117,0.3);
@@ -222,13 +228,6 @@
 
   .acard__body { min-width: 0; display: flex; flex-direction: column; gap: 7px; }
 
-  .acard__top {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
   .acard__nick {
     font-size: 11px;
     letter-spacing: 1.5px;
@@ -236,6 +235,14 @@
     text-transform: uppercase;
     word-break: break-word;
   }
+  a.acard__nick {
+    color: #FAC775;
+    text-decoration: none;
+    border-bottom: 1px dashed transparent;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  a.acard__nick:hover { border-bottom-color: rgba(250,199,117,0.6); color: #fff; }
+  a.acard__nick::after { content: ' ↗'; opacity: 0.65; }
 
   .acard__title {
     font-size: 17px;
@@ -273,6 +280,7 @@
   .badge--pending { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.65); border-color: rgba(255,255,255,0.18); }
   .badge--watching { background: rgba(250,199,117,0.15); color: #FAC775; border-color: rgba(250,199,117,0.4); }
   .badge--watched { background: rgba(151,196,89,0.15); color: #97C459; border-color: rgba(151,196,89,0.4); }
+  .badge--rating { background: rgba(250,199,117,0.15); color: #FAC775; border-color: rgba(250,199,117,0.4); font-weight: 600; }
 
   .acard__date {
     font-size: 11px;
@@ -312,6 +320,28 @@
     line-height: 1.4;
   }
 
+  /* ========== ОБЛОЖКА ========== */
+  .acard__cover {
+    width: 80px;
+    aspect-ratio: 2 / 3;
+    border-radius: 8px;
+    overflow: hidden;
+    flex: 0 0 80px;
+    background: #11172a;
+    border: 1px solid rgba(255,255,255,0.08);
+    align-self: center;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+    text-decoration: none;
+    display: block;
+  }
+  .acard__cover:hover { transform: scale(1.05); border-color: rgba(250,199,117,0.4); }
+  .acard__cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
   /* ========== СОСТОЯНИЯ ========== */
   .empty-state, .error-state {
     text-align: center;
@@ -338,12 +368,17 @@
   }
   .reload-btn:hover { background: rgba(250,199,117,0.1); }
 
+  @media (max-width: 720px) {
+    .acard__cover { width: 64px; flex-basis: 64px; }
+  }
   @media (max-width: 600px) {
     .title { font-size: 26px; letter-spacing: 2px; }
     .search-input { width: 100%; }
     .filter-group { width: 100%; justify-content: center; }
-    .acard { padding: 12px 14px; }
+    .acard { padding: 12px 14px; gap: 10px; }
     .acard__title { font-size: 15px; }
+    .acard__cover { display: none; }
+    .acard, .acard.no-cover { grid-template-columns: auto minmax(0, 1fr); }
   }
 </style>
 </head>
@@ -354,11 +389,12 @@
   <div class="site-nav__inner">
     <a class="site-nav__brand" href="index.html">ParipariKai</a>
     <ul class="site-nav__links">
-      <li><a href="index.html" data-page="hall">Hall of Fame</a></li>
+      <li><a href="hall.html" data-page="hall">Hall of Fame</a></li>
       <li><a href="tickets.html" data-page="tickets">Билеты</a></li>
       <li><a href="anime.html" class="is-active" data-page="anime">Аниме</a></li>
       <li><a href="movies.html" data-page="movies">Фильмы</a></li>
       <li><a href="series.html" data-page="series">Сериалы</a></li>
+      <li><a href="games.html" data-page="games">Игры</a></li>
     </ul>
   </div>
 </nav>
@@ -370,7 +406,8 @@
   </div>
 
   <div class="controls-panel">
-    <input type="text" class="search-input" id="search" placeholder="🔍 Поиск по названию...">
+    <input type="text" class="search-input" id="search-title" placeholder="🔍 Поиск по названию...">
+    <input type="text" class="search-input" id="search-nick" placeholder="👤 Поиск по заказчику...">
     <div class="filter-group" id="status-filters">
       <button class="f-btn is-active" data-status="all">Все <span class="count" id="cnt-all">0</span></button>
       <button class="f-btn" data-status="pending">В очереди <span class="count" id="cnt-pending">0</span></button>
@@ -387,10 +424,6 @@
 </div>
 
 <script>
-/* ============================================================
-   parseCSV — точно такая же версия, что в index.html v6
-   (с фиксом проверки пустых финальных строк)
-   ============================================================ */
 function parseCSV(text) {
   const rows = [];
   let row = [], cell = '', inQuotes = false;
@@ -420,6 +453,7 @@ function rowsToViewers(rows) {
   const headers = rows[0].map(h => h.trim().toLowerCase());
   const nickIdx = headers.indexOf('nick');
   const avatarIdx = headers.indexOf('avatar_url');
+  const twitchIdx = headers.indexOf('twitch_url');
   if (nickIdx < 0) return {};
   const map = {};
   rows.slice(1).forEach(r => {
@@ -427,7 +461,8 @@ function rowsToViewers(rows) {
       const nick = r[nickIdx].trim();
       map[nick.toLowerCase()] = {
         nick: nick,
-        avatar: avatarIdx >= 0 ? (r[avatarIdx] || '').trim() : '',
+        avatar:    avatarIdx >= 0 ? (r[avatarIdx] || '').trim() : '',
+        twitchUrl: twitchIdx >= 0 ? (r[twitchIdx] || '').trim() : '',
       };
     }
   });
@@ -444,6 +479,8 @@ function rowsToAnime(rows, viewersMap) {
     episodes_total:   headers.indexOf('episodes_total'),
     episodes_watched: headers.indexOf('episodes_watched'),
     status:           headers.indexOf('status'),
+    rating:           headers.indexOf('rating'),
+    cover_url:        headers.indexOf('cover_url'),
     date_added:       headers.indexOf('date_added'),
     date_completed:   headers.indexOf('date_completed'),
     url:              headers.indexOf('url'),
@@ -461,15 +498,20 @@ function rowsToAnime(rows, viewersMap) {
       const total = parseInt(get(idx.episodes_total), 10) || 0;
       const watched = parseInt(get(idx.episodes_watched), 10) || 0;
       const format = get(idx.format).toLowerCase();
+      const ratingRaw = get(idx.rating).replace(',', '.');
+      const ratingNum = ratingRaw ? parseFloat(ratingRaw) : NaN;
       return {
         _order: i,
         nick: nick,
-        avatar: viewer.avatar || '',
+        avatar:    viewer.avatar || '',
+        twitchUrl: viewer.twitchUrl || '',
         title: get(idx.title),
         format: (format === 'dub' || format === 'sub') ? format : '',
         episodes_total: total,
         episodes_watched: watched,
         status: status,
+        rating: isFinite(ratingNum) ? ratingNum : null,
+        cover_url: get(idx.cover_url),
         date_added: get(idx.date_added),
         date_completed: get(idx.date_completed),
         url: get(idx.url),
@@ -479,15 +521,25 @@ function rowsToAnime(rows, viewersMap) {
 }
 
 const STATUS_WEIGHT = { watching: 0, pending: 1, watched: 2 };
-function sortAnime(items) {
+function parseDateTs(d) {
+  if (!d) return 0;
+  const t = Date.parse(d);
+  return isNaN(t) ? 0 : t;
+}
+
+function sortItems(items, currentStatus) {
   return items.slice().sort((a, b) => {
-    const sw = STATUS_WEIGHT[a.status] - STATUS_WEIGHT[b.status];
+    if (currentStatus === 'watched') {
+      const da = parseDateTs(a.date_completed);
+      const db = parseDateTs(b.date_completed);
+      if (da !== db) return db - da;
+      return a._order - b._order;
+    }
+    const sw = (STATUS_WEIGHT[a.status] ?? 9) - (STATUS_WEIGHT[b.status] ?? 9);
     if (sw !== 0) return sw;
-    const ad = a.date_added || '';
-    const bd = b.date_added || '';
-    if (ad && bd && ad !== bd) return bd.localeCompare(ad);
-    if (ad && !bd) return -1;
-    if (!ad && bd) return 1;
+    const da = parseDateTs(a.date_added);
+    const db = parseDateTs(b.date_added);
+    if (da !== db) return db - da;
     return a._order - b._order;
   });
 }
@@ -514,6 +566,20 @@ function esc(s) {
   }[c]));
 }
 
+function isHttpUrl(s) {
+  if (!s) return false;
+  try {
+    const u = new URL(s);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch (e) { return false; }
+}
+
+function formatRating(r) {
+  if (r === null || r === undefined || !isFinite(r)) return '';
+  if (Number.isInteger(r)) return String(r);
+  return (Math.round(r * 10) / 10).toFixed(1);
+}
+
 const MONTHS_RU = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
 function formatShortDate(iso) {
   if (!iso) return '';
@@ -534,6 +600,13 @@ function buildAvatarHtml(item) {
   }
   const color = hashColor(item.nick.toLowerCase());
   return `<div class="acard__avatar" style="background:${color};">${esc(initials(item.nick))}</div>`;
+}
+
+function buildNickHtml(item) {
+  if (item.twitchUrl && isHttpUrl(item.twitchUrl)) {
+    return `<a class="acard__nick" href="${esc(item.twitchUrl)}" target="_blank" rel="noopener">${esc(item.nick)}</a>`;
+  }
+  return `<span class="acard__nick">${esc(item.nick)}</span>`;
 }
 
 function buildProgressHtml(item) {
@@ -562,6 +635,8 @@ function buildBadgesHtml(item) {
   if (item.format === 'dub') badges.push('<span class="badge badge--dub">DUB</span>');
   else if (item.format === 'sub') badges.push('<span class="badge badge--sub">SUB</span>');
   badges.push(`<span class="badge badge--${item.status}">${esc(STATUS_LABEL[item.status])}</span>`);
+  const ratingTxt = formatRating(item.rating);
+  if (ratingTxt) badges.push(`<span class="badge badge--rating">★ ${esc(ratingTxt)}</span>`);
   if (item.date_completed) {
     badges.push(`<span class="acard__date">досмотрено ${esc(formatShortDate(item.date_completed))}</span>`);
   } else if (item.date_added && item.status !== 'watched') {
@@ -570,30 +645,41 @@ function buildBadgesHtml(item) {
   return `<div class="acard__badges">${badges.join('')}</div>`;
 }
 
+function buildCoverHtml(item) {
+  if (!item.cover_url || !isHttpUrl(item.cover_url)) return '';
+  const inner = `<img src="${esc(item.cover_url)}" alt="${esc(item.title)}" loading="lazy" onerror="this.parentNode.style.display='none';">`;
+  if (item.url && isHttpUrl(item.url)) {
+    return `<a class="acard__cover" href="${esc(item.url)}" target="_blank" rel="noopener" aria-label="Открыть страницу тайтла">${inner}</a>`;
+  }
+  return `<div class="acard__cover">${inner}</div>`;
+}
+
 function buildCard(item) {
   const titleInner = item.url
     ? `<a href="${esc(item.url)}" target="_blank" rel="noopener">${esc(item.title)}</a>`
     : esc(item.title);
+  const cover = buildCoverHtml(item);
   const watchedClass = item.status === 'watched' ? ' is-watched' : '';
+  const noCoverClass = cover ? '' : ' no-cover';
   return `
-    <article class="acard${watchedClass}" data-status="${esc(item.status)}" data-title="${esc(item.title.toLowerCase())}">
+    <article class="acard${watchedClass}${noCoverClass}" data-status="${esc(item.status)}" data-title="${esc(item.title.toLowerCase())}" data-nick="${esc(item.nick.toLowerCase())}">
       ${buildAvatarHtml(item)}
       <div class="acard__body">
-        <div class="acard__top">
-          <span class="acard__nick">${esc(item.nick)}</span>
-        </div>
+        ${buildNickHtml(item)}
         <h2 class="acard__title">${titleInner}</h2>
         ${buildBadgesHtml(item)}
         ${buildProgressHtml(item)}
         ${item.notes ? `<p class="acard__notes">${esc(item.notes)}</p>` : ''}
       </div>
+      ${cover}
     </article>
   `;
 }
 
 let allItems = [];
 let currentStatus = 'all';
-let currentSearch = '';
+let currentSearchTitle = '';
+let currentSearchNick = '';
 
 function applyFilters() {
   const list = document.getElementById('list');
@@ -602,25 +688,38 @@ function applyFilters() {
 
   let visible = 0;
   list.querySelectorAll('.acard').forEach(card => {
-    const matchesStatus = currentStatus === 'all' || card.dataset.status === currentStatus;
-    const matchesSearch = !currentSearch || card.dataset.title.includes(currentSearch);
-    const show = matchesStatus && matchesSearch;
+    const cardStatus = card.dataset.status;
+    let matchesStatus;
+    if (currentStatus === 'all') {
+      matchesStatus = cardStatus !== 'watched';
+    } else {
+      matchesStatus = cardStatus === currentStatus;
+    }
+    const matchesTitle = !currentSearchTitle || card.dataset.title.includes(currentSearchTitle);
+    const matchesNick  = !currentSearchNick  || card.dataset.nick.includes(currentSearchNick);
+    const show = matchesStatus && matchesTitle && matchesNick;
     card.style.display = show ? '' : 'none';
     if (show) visible++;
   });
 
   if (visible === 0 && allItems.length > 0) {
     list.style.display = 'none';
-    const hint = currentSearch
-      ? `Ничего не найдено по запросу «${esc(currentSearch)}»`
-      : 'В этой категории пока пусто';
+    let hint;
+    if (currentSearchTitle || currentSearchNick) {
+      const parts = [];
+      if (currentSearchTitle) parts.push(`«${esc(currentSearchTitle)}»`);
+      if (currentSearchNick)  parts.push(`заказчик «${esc(currentSearchNick)}»`);
+      hint = `Ничего не найдено по ${parts.join(', ')}`;
+    } else {
+      hint = 'В этой категории пока пусто';
+    }
     noResults.innerHTML = hint;
     noResults.style.display = 'block';
     shown.style.display = 'none';
   } else {
     list.style.display = '';
     noResults.style.display = 'none';
-    if (currentStatus !== 'all' || currentSearch) {
+    if (currentStatus !== 'all' || currentSearchTitle || currentSearchNick) {
       shown.textContent = `Показано: ${visible}`;
       shown.style.display = 'block';
     } else {
@@ -630,19 +729,22 @@ function applyFilters() {
 }
 
 function updateCounters(items) {
-  const counts = { all: items.length, pending: 0, watching: 0, watched: 0 };
+  const counts = { pending: 0, watching: 0, watched: 0 };
   items.forEach(it => { counts[it.status] = (counts[it.status] || 0) + 1; });
-  document.getElementById('cnt-all').textContent       = counts.all;
+  // "Все" в v8 показывает только активные → счётчик "Все" = pending + watching
+  const activeCount = counts.pending + counts.watching;
+  document.getElementById('cnt-all').textContent       = activeCount;
   document.getElementById('cnt-pending').textContent   = counts.pending;
   document.getElementById('cnt-watching').textContent  = counts.watching;
   document.getElementById('cnt-watched').textContent   = counts.watched;
+  // Глобальный счётчик в header — независим от фильтров
   document.getElementById('counter-watched').textContent = counts.watched;
-  document.getElementById('counter-total').textContent   = counts.all;
+  document.getElementById('counter-total').textContent   = items.length;
 }
 
-function render(items) {
+function render(items, filterForSort) {
   const list = document.getElementById('list');
-  const sorted = sortAnime(items);
+  const sorted = sortItems(items, filterForSort);
   list.innerHTML = sorted.map(buildCard).join('');
   list.style.display = '';
 }
@@ -652,11 +754,16 @@ document.querySelectorAll('#status-filters .f-btn').forEach(btn => {
     document.querySelectorAll('#status-filters .f-btn').forEach(b => b.classList.remove('is-active'));
     btn.classList.add('is-active');
     currentStatus = btn.dataset.status;
+    render(allItems, currentStatus);
     applyFilters();
   });
 });
-document.getElementById('search').addEventListener('input', e => {
-  currentSearch = (e.target.value || '').trim().toLowerCase();
+document.getElementById('search-title').addEventListener('input', e => {
+  currentSearchTitle = (e.target.value || '').trim().toLowerCase();
+  applyFilters();
+});
+document.getElementById('search-nick').addEventListener('input', e => {
+  currentSearchNick = (e.target.value || '').trim().toLowerCase();
   applyFilters();
 });
 
@@ -694,7 +801,7 @@ async function loadAll() {
     }
 
     updateCounters(allItems);
-    render(allItems);
+    render(allItems, currentStatus);
     status.style.display = 'none';
     applyFilters();
   } catch (err) {

@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Заказы сериалов и дорам — Hall of Fame</title>
+<title>Заказы игр — Hall of Fame</title>
 
 <!-- ============================================================
      ⚙ НАСТРОЙКА ⚙
-     SERIES_CSV_URL  — лист Series
+     GAMES_CSV_URL   — лист Games (новый в v8)
      VIEWERS_CSV_URL — лист Viewers (база зрителей с аватарками + twitch_url)
      ============================================================ -->
 <script>
-  const SERIES_CSV_URL  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=627100003&single=true&output=csv";
+  const GAMES_CSV_URL   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=727100001&single=true&output=csv";
   const VIEWERS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=527100001&single=true&output=csv";
 </script>
 
@@ -182,9 +182,10 @@
     text-transform: uppercase;
   }
 
+  /* ========== СПИСОК КАРТОЧЕК ========== */
   .list { display: flex; flex-direction: column; gap: 12px; }
 
-  .acard {
+  .gcard {
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 12px;
@@ -195,18 +196,20 @@
     align-items: start;
     transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
   }
-  .acard.no-cover { grid-template-columns: auto minmax(0, 1fr); }
-  .acard:hover {
+  .gcard.no-cover { grid-template-columns: auto minmax(0, 1fr); }
+  .gcard:hover {
     transform: translateY(-2px);
     border-color: rgba(250,199,117,0.3);
     background: rgba(255,255,255,0.05);
   }
-  .acard.is-watched { opacity: 0.6; }
-  .acard.is-watched:hover { opacity: 0.85; }
-  .acard.is-watched .acard__title,
-  .acard.is-watched .acard__title a { text-decoration: line-through; text-decoration-thickness: 1px; }
+  .gcard.is-done { opacity: 0.6; }
+  .gcard.is-done:hover { opacity: 0.85; }
+  .gcard.is-completed .gcard__title,
+  .gcard.is-completed .gcard__title a { text-decoration: line-through; text-decoration-thickness: 1px; }
+  .gcard.is-dropped .gcard__title,
+  .gcard.is-dropped .gcard__title a { text-decoration: line-through; text-decoration-color: rgba(240,80,80,0.7); text-decoration-thickness: 1px; }
 
-  .acard__avatar {
+  .gcard__avatar {
     width: 44px;
     height: 44px;
     border-radius: 50%;
@@ -224,40 +227,40 @@
     text-shadow: 0 1px 2px rgba(0,0,0,0.5);
   }
 
-  .acard__body { min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+  .gcard__body { min-width: 0; display: flex; flex-direction: column; gap: 7px; }
 
-  .acard__nick {
+  .gcard__nick {
     font-size: 11px;
     letter-spacing: 1.5px;
     color: rgba(255,255,255,0.5);
     text-transform: uppercase;
     word-break: break-word;
   }
-  a.acard__nick {
+  a.gcard__nick {
     color: #FAC775;
     text-decoration: none;
     border-bottom: 1px dashed transparent;
     transition: color 0.15s ease, border-color 0.15s ease;
   }
-  a.acard__nick:hover { border-bottom-color: rgba(250,199,117,0.6); color: #fff; }
-  a.acard__nick::after { content: ' ↗'; opacity: 0.65; }
+  a.gcard__nick:hover { border-bottom-color: rgba(250,199,117,0.6); color: #fff; }
+  a.gcard__nick::after { content: ' ↗'; opacity: 0.65; }
 
-  .acard__title {
+  .gcard__title {
     font-size: 17px;
     font-weight: 500;
     color: #fff;
     word-break: break-word;
     line-height: 1.3;
   }
-  .acard__title a {
+  .gcard__title a {
     color: inherit;
     text-decoration: none;
     border-bottom: 1px dashed rgba(250,199,117,0.35);
     transition: color 0.15s ease, border-color 0.15s ease;
   }
-  .acard__title a:hover { color: #FAC775; border-bottom-color: #FAC775; }
+  .gcard__title a:hover { color: #FAC775; border-bottom-color: #FAC775; }
 
-  .acard__badges {
+  .gcard__badges {
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
@@ -273,17 +276,19 @@
     border: 1px solid transparent;
     white-space: nowrap;
   }
-  .badge--pending { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.65); border-color: rgba(255,255,255,0.18); }
-  .badge--watching { background: rgba(250,199,117,0.15); color: #FAC775; border-color: rgba(250,199,117,0.4); }
-  .badge--watched { background: rgba(151,196,89,0.15); color: #97C459; border-color: rgba(151,196,89,0.4); }
-  .badge--rating { background: rgba(250,199,117,0.15); color: #FAC775; border-color: rgba(250,199,117,0.4); font-weight: 600; }
+  .badge--pending   { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.65); border-color: rgba(255,255,255,0.18); }
+  .badge--playing   { background: rgba(250,199,117,0.15); color: #FAC775; border-color: rgba(250,199,117,0.4); }
+  .badge--completed { background: rgba(151,196,89,0.15); color: #97C459; border-color: rgba(151,196,89,0.4); }
+  .badge--dropped   { background: rgba(240,80,80,0.15);  color: #F38787; border-color: rgba(240,80,80,0.4); }
+  .badge--rating    { background: rgba(250,199,117,0.15); color: #FAC775; border-color: rgba(250,199,117,0.4); font-weight: 600; }
 
-  .acard__date {
+  .gcard__date {
     font-size: 11px;
     color: rgba(255,255,255,0.4);
     letter-spacing: 0.5px;
   }
 
+  /* ========== ПРОГРЕСС ========== */
   .progress { display: flex; flex-direction: column; gap: 5px; margin-top: 2px; }
   .progress__label {
     font-size: 11px;
@@ -304,23 +309,32 @@
     transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     border-radius: 3px;
   }
-  .progress__fill--pending { background: rgba(255,255,255,0.15); }
-  .progress__fill--watching { background: linear-gradient(90deg, #FAC775, #F09F58); box-shadow: 0 0 8px rgba(250,199,117,0.3); }
-  .progress__fill--watched { background: linear-gradient(90deg, #97C459, #6FA13C); }
+  .progress__fill--pending   { background: rgba(255,255,255,0.15); }
+  .progress__fill--playing   { background: linear-gradient(90deg, #FAC775, #F09F58); box-shadow: 0 0 8px rgba(250,199,117,0.3); }
+  .progress__fill--completed { background: linear-gradient(90deg, #97C459, #6FA13C); }
+  .progress__fill--dropped   { background: linear-gradient(90deg, #F38787, #D85A30); }
 
-  .acard__notes {
+  .gcard__hours {
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+    letter-spacing: 0.5px;
+  }
+  .gcard__hours .accent { color: rgba(255,255,255,0.7); font-weight: 600; }
+
+  .gcard__notes {
     font-size: 12px;
     font-style: italic;
     color: rgba(255,255,255,0.5);
     line-height: 1.4;
   }
 
-  .acard__cover {
-    width: 80px;
-    aspect-ratio: 2 / 3;
+  /* ========== ОБЛОЖКА (16:9 для игр) ========== */
+  .gcard__cover {
+    width: 144px;
+    aspect-ratio: 16 / 9;
     border-radius: 8px;
     overflow: hidden;
-    flex: 0 0 80px;
+    flex: 0 0 144px;
     background: #11172a;
     border: 1px solid rgba(255,255,255,0.08);
     align-self: center;
@@ -328,8 +342,8 @@
     text-decoration: none;
     display: block;
   }
-  .acard__cover:hover { transform: scale(1.05); border-color: rgba(250,199,117,0.4); }
-  .acard__cover img {
+  .gcard__cover:hover { transform: scale(1.04); border-color: rgba(250,199,117,0.4); }
+  .gcard__cover img {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -362,16 +376,16 @@
   .reload-btn:hover { background: rgba(250,199,117,0.1); }
 
   @media (max-width: 720px) {
-    .acard__cover { width: 64px; flex-basis: 64px; }
+    .gcard__cover { width: 110px; flex-basis: 110px; }
   }
   @media (max-width: 600px) {
-    .title { font-size: 24px; letter-spacing: 2px; }
+    .title { font-size: 26px; letter-spacing: 2px; }
     .search-input { width: 100%; }
     .filter-group { width: 100%; justify-content: center; }
-    .acard { padding: 12px 14px; gap: 10px; }
-    .acard__title { font-size: 15px; }
-    .acard__cover { display: none; }
-    .acard, .acard.no-cover { grid-template-columns: auto minmax(0, 1fr); }
+    .gcard { padding: 12px 14px; gap: 10px; }
+    .gcard__title { font-size: 15px; }
+    .gcard__cover { display: none; }
+    .gcard, .gcard.no-cover { grid-template-columns: auto minmax(0, 1fr); }
   }
 </style>
 </head>
@@ -386,16 +400,16 @@
       <li><a href="tickets.html" data-page="tickets">Билеты</a></li>
       <li><a href="anime.html" data-page="anime">Аниме</a></li>
       <li><a href="movies.html" data-page="movies">Фильмы</a></li>
-      <li><a href="series.html" class="is-active" data-page="series">Сериалы</a></li>
-      <li><a href="games.html" data-page="games">Игры</a></li>
+      <li><a href="series.html" data-page="series">Сериалы</a></li>
+      <li><a href="games.html" class="is-active" data-page="games">Игры</a></li>
     </ul>
   </div>
 </nav>
 
 <div class="wrap">
   <div class="header">
-    <h1 class="title">📺 Заказы сериалов и дорам 📺</h1>
-    <p class="subtitle"><span class="accent" id="counter-watched">—</span> из <span class="accent" id="counter-total">—</span> просмотрено</p>
+    <h1 class="title">🎮 Заказы игр 🎮</h1>
+    <p class="subtitle"><span class="accent" id="counter-completed">—</span> пройдено · <span class="accent" id="counter-dropped">—</span> дропнуто · всего <span class="accent" id="counter-total">—</span></p>
   </div>
 
   <div class="controls-panel">
@@ -404,8 +418,9 @@
     <div class="filter-group" id="status-filters">
       <button class="f-btn is-active" data-status="all">Все <span class="count" id="cnt-all">0</span></button>
       <button class="f-btn" data-status="pending">В очереди <span class="count" id="cnt-pending">0</span></button>
-      <button class="f-btn" data-status="watching">Смотрим <span class="count" id="cnt-watching">0</span></button>
-      <button class="f-btn" data-status="watched">Просмотрено <span class="count" id="cnt-watched">0</span></button>
+      <button class="f-btn" data-status="playing">Играем <span class="count" id="cnt-playing">0</span></button>
+      <button class="f-btn" data-status="completed">Пройдено <span class="count" id="cnt-completed">0</span></button>
+      <button class="f-btn" data-status="dropped">Дропнуто <span class="count" id="cnt-dropped">0</span></button>
     </div>
   </div>
 
@@ -462,14 +477,14 @@ function rowsToViewers(rows) {
   return map;
 }
 
-function rowsToSeries(rows, viewersMap) {
+function rowsToGames(rows, viewersMap) {
   if (rows.length < 2) return [];
   const headers = rows[0].map(h => h.trim().toLowerCase());
   const idx = {
     nick:             headers.indexOf('nick'),
     title:            headers.indexOf('title'),
-    episodes_total:   headers.indexOf('episodes_total'),
-    episodes_watched: headers.indexOf('episodes_watched'),
+    progress_percent: headers.indexOf('progress_percent'),
+    hours_played:     headers.indexOf('hours_played'),
     status:           headers.indexOf('status'),
     rating:           headers.indexOf('rating'),
     cover_url:        headers.indexOf('cover_url'),
@@ -486,9 +501,11 @@ function rowsToSeries(rows, viewersMap) {
       const nick = get(idx.nick);
       const viewer = viewersMap[nick.toLowerCase()] || {};
       const rawStatus = get(idx.status).toLowerCase();
-      const status = ['pending', 'watching', 'watched'].includes(rawStatus) ? rawStatus : 'pending';
-      const total = parseInt(get(idx.episodes_total), 10) || 0;
-      const watched = parseInt(get(idx.episodes_watched), 10) || 0;
+      const status = ['pending', 'playing', 'completed', 'dropped'].includes(rawStatus) ? rawStatus : 'pending';
+      const progressRaw = get(idx.progress_percent).replace(',', '.');
+      const progressNum = progressRaw ? parseFloat(progressRaw) : 0;
+      const hoursRaw = get(idx.hours_played).replace(',', '.');
+      const hoursNum = hoursRaw ? parseFloat(hoursRaw) : 0;
       const ratingRaw = get(idx.rating).replace(',', '.');
       const ratingNum = ratingRaw ? parseFloat(ratingRaw) : NaN;
       return {
@@ -497,8 +514,8 @@ function rowsToSeries(rows, viewersMap) {
         avatar:    viewer.avatar || '',
         twitchUrl: viewer.twitchUrl || '',
         title: get(idx.title),
-        episodes_total: total,
-        episodes_watched: watched,
+        progress_percent: isFinite(progressNum) ? progressNum : 0,
+        hours_played: isFinite(hoursNum) ? hoursNum : 0,
         status: status,
         rating: isFinite(ratingNum) ? ratingNum : null,
         cover_url: get(idx.cover_url),
@@ -510,7 +527,7 @@ function rowsToSeries(rows, viewersMap) {
     });
 }
 
-const STATUS_WEIGHT = { watching: 0, pending: 1, watched: 2 };
+const STATUS_WEIGHT = { playing: 0, pending: 1, completed: 2, dropped: 3 };
 function parseDateTs(d) {
   if (!d) return 0;
   const t = Date.parse(d);
@@ -519,7 +536,7 @@ function parseDateTs(d) {
 
 function sortItems(items, currentStatus) {
   return items.slice().sort((a, b) => {
-    if (currentStatus === 'watched') {
+    if (currentStatus === 'completed' || currentStatus === 'dropped') {
       const da = parseDateTs(a.date_completed);
       const db = parseDateTs(b.date_completed);
       if (da !== db) return db - da;
@@ -570,6 +587,12 @@ function formatRating(r) {
   return (Math.round(r * 10) / 10).toFixed(1);
 }
 
+function formatHours(h) {
+  if (!h || !isFinite(h)) return '0';
+  if (Number.isInteger(h)) return String(h);
+  return (Math.round(h * 10) / 10).toFixed(1);
+}
+
 const MONTHS_RU = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
 function formatShortDate(iso) {
   if (!iso) return '';
@@ -579,38 +602,49 @@ function formatShortDate(iso) {
 }
 
 const STATUS_LABEL = {
-  pending:  'В очереди',
-  watching: 'Смотрим',
-  watched:  'Просмотрено',
+  pending:   'В очереди',
+  playing:   'Играем',
+  completed: 'Пройдено',
+  dropped:   'Дропнуто',
 };
 
 function buildAvatarHtml(item) {
   if (item.avatar) {
-    return `<div class="acard__avatar" style="background-image:url('${esc(item.avatar)}');"></div>`;
+    return `<div class="gcard__avatar" style="background-image:url('${esc(item.avatar)}');"></div>`;
   }
   const color = hashColor(item.nick.toLowerCase());
-  return `<div class="acard__avatar" style="background:${color};">${esc(initials(item.nick))}</div>`;
+  return `<div class="gcard__avatar" style="background:${color};">${esc(initials(item.nick))}</div>`;
 }
 
 function buildNickHtml(item) {
   if (item.twitchUrl && isHttpUrl(item.twitchUrl)) {
-    return `<a class="acard__nick" href="${esc(item.twitchUrl)}" target="_blank" rel="noopener">${esc(item.nick)}</a>`;
+    return `<a class="gcard__nick" href="${esc(item.twitchUrl)}" target="_blank" rel="noopener">${esc(item.nick)}</a>`;
   }
-  return `<span class="acard__nick">${esc(item.nick)}</span>`;
+  return `<span class="gcard__nick">${esc(item.nick)}</span>`;
+}
+
+function buildBadgesHtml(item) {
+  const badges = [];
+  badges.push(`<span class="badge badge--${item.status}">${esc(STATUS_LABEL[item.status])}</span>`);
+  const ratingTxt = formatRating(item.rating);
+  if (ratingTxt) badges.push(`<span class="badge badge--rating">★ ${esc(ratingTxt)}</span>`);
+  if (item.date_completed) {
+    const verb = item.status === 'dropped' ? 'дропнуто' : 'пройдено';
+    badges.push(`<span class="gcard__date">${verb} ${esc(formatShortDate(item.date_completed))}</span>`);
+  } else if (item.date_added && item.status !== 'completed' && item.status !== 'dropped') {
+    badges.push(`<span class="gcard__date">добавлено ${esc(formatShortDate(item.date_added))}</span>`);
+  }
+  return `<div class="gcard__badges">${badges.join('')}</div>`;
 }
 
 function buildProgressHtml(item) {
-  if (!item.episodes_total || item.episodes_total <= 0) return '';
-  const watched = Math.max(0, item.episodes_watched);
-  const clamped = Math.min(watched, item.episodes_total);
-  const pct = Math.round((clamped / item.episodes_total) * 100);
-  let fillClass = 'progress__fill--pending';
-  if (item.status === 'watched') fillClass = 'progress__fill--watched';
-  else if (clamped > 0) fillClass = 'progress__fill--watching';
+  let pct = Math.max(0, Math.min(100, Math.round(item.progress_percent || 0)));
+  if (item.status === 'completed') pct = 100;
+  const fillClass = `progress__fill--${item.status}`;
   return `
     <div class="progress">
       <div class="progress__label">
-        <span>${esc(watched)} / ${esc(item.episodes_total)} серий</span>
+        <span>Прогресс</span>
         <span class="pct">${pct}%</span>
       </div>
       <div class="progress__bar">
@@ -620,26 +654,19 @@ function buildProgressHtml(item) {
   `;
 }
 
-function buildBadgesHtml(item) {
-  const badges = [];
-  badges.push(`<span class="badge badge--${item.status}">${esc(STATUS_LABEL[item.status])}</span>`);
-  const ratingTxt = formatRating(item.rating);
-  if (ratingTxt) badges.push(`<span class="badge badge--rating">★ ${esc(ratingTxt)}</span>`);
-  if (item.date_completed) {
-    badges.push(`<span class="acard__date">досмотрено ${esc(formatShortDate(item.date_completed))}</span>`);
-  } else if (item.date_added && item.status !== 'watched') {
-    badges.push(`<span class="acard__date">добавлено ${esc(formatShortDate(item.date_added))}</span>`);
-  }
-  return `<div class="acard__badges">${badges.join('')}</div>`;
+function buildHoursHtml(item) {
+  if (!item.hours_played || item.hours_played <= 0) return '';
+  const txt = formatHours(item.hours_played);
+  return `<p class="gcard__hours"><span class="accent">${esc(txt)}</span> ч сыграно</p>`;
 }
 
 function buildCoverHtml(item) {
   if (!item.cover_url || !isHttpUrl(item.cover_url)) return '';
   const inner = `<img src="${esc(item.cover_url)}" alt="${esc(item.title)}" loading="lazy" onerror="this.parentNode.style.display='none';">`;
   if (item.url && isHttpUrl(item.url)) {
-    return `<a class="acard__cover" href="${esc(item.url)}" target="_blank" rel="noopener" aria-label="Открыть страницу тайтла">${inner}</a>`;
+    return `<a class="gcard__cover" href="${esc(item.url)}" target="_blank" rel="noopener" aria-label="Открыть страницу игры">${inner}</a>`;
   }
-  return `<div class="acard__cover">${inner}</div>`;
+  return `<div class="gcard__cover">${inner}</div>`;
 }
 
 function buildCard(item) {
@@ -647,17 +674,21 @@ function buildCard(item) {
     ? `<a href="${esc(item.url)}" target="_blank" rel="noopener">${esc(item.title)}</a>`
     : esc(item.title);
   const cover = buildCoverHtml(item);
-  const watchedClass = item.status === 'watched' ? ' is-watched' : '';
+  let stateClasses = '';
+  if (item.status === 'completed' || item.status === 'dropped') stateClasses += ' is-done';
+  if (item.status === 'completed') stateClasses += ' is-completed';
+  if (item.status === 'dropped')   stateClasses += ' is-dropped';
   const noCoverClass = cover ? '' : ' no-cover';
   return `
-    <article class="acard${watchedClass}${noCoverClass}" data-status="${esc(item.status)}" data-title="${esc(item.title.toLowerCase())}" data-nick="${esc(item.nick.toLowerCase())}">
+    <article class="gcard${stateClasses}${noCoverClass}" data-status="${esc(item.status)}" data-title="${esc(item.title.toLowerCase())}" data-nick="${esc(item.nick.toLowerCase())}">
       ${buildAvatarHtml(item)}
-      <div class="acard__body">
+      <div class="gcard__body">
         ${buildNickHtml(item)}
-        <h2 class="acard__title">${titleInner}</h2>
+        <h2 class="gcard__title">${titleInner}</h2>
         ${buildBadgesHtml(item)}
         ${buildProgressHtml(item)}
-        ${item.notes ? `<p class="acard__notes">${esc(item.notes)}</p>` : ''}
+        ${buildHoursHtml(item)}
+        ${item.notes ? `<p class="gcard__notes">${esc(item.notes)}</p>` : ''}
       </div>
       ${cover}
     </article>
@@ -675,11 +706,11 @@ function applyFilters() {
   const shown = document.getElementById('shown-count');
 
   let visible = 0;
-  list.querySelectorAll('.acard').forEach(card => {
+  list.querySelectorAll('.gcard').forEach(card => {
     const cardStatus = card.dataset.status;
     let matchesStatus;
     if (currentStatus === 'all') {
-      matchesStatus = cardStatus !== 'watched';
+      matchesStatus = cardStatus !== 'completed' && cardStatus !== 'dropped';
     } else {
       matchesStatus = cardStatus === currentStatus;
     }
@@ -717,15 +748,17 @@ function applyFilters() {
 }
 
 function updateCounters(items) {
-  const counts = { pending: 0, watching: 0, watched: 0 };
+  const counts = { pending: 0, playing: 0, completed: 0, dropped: 0 };
   items.forEach(it => { counts[it.status] = (counts[it.status] || 0) + 1; });
-  const activeCount = counts.pending + counts.watching;
+  const activeCount = counts.pending + counts.playing;
   document.getElementById('cnt-all').textContent       = activeCount;
   document.getElementById('cnt-pending').textContent   = counts.pending;
-  document.getElementById('cnt-watching').textContent  = counts.watching;
-  document.getElementById('cnt-watched').textContent   = counts.watched;
-  document.getElementById('counter-watched').textContent = counts.watched;
-  document.getElementById('counter-total').textContent   = items.length;
+  document.getElementById('cnt-playing').textContent   = counts.playing;
+  document.getElementById('cnt-completed').textContent = counts.completed;
+  document.getElementById('cnt-dropped').textContent   = counts.dropped;
+  document.getElementById('counter-completed').textContent = counts.completed;
+  document.getElementById('counter-dropped').textContent   = counts.dropped;
+  document.getElementById('counter-total').textContent     = items.length;
 }
 
 function render(items, filterForSort) {
@@ -763,12 +796,12 @@ async function loadAll() {
   list.style.display = 'none';
 
   try {
-    const [seriesRes, viewersRes] = await Promise.all([
-      fetch(SERIES_CSV_URL),
+    const [gamesRes, viewersRes] = await Promise.all([
+      fetch(GAMES_CSV_URL),
       VIEWERS_CSV_URL ? fetch(VIEWERS_CSV_URL) : Promise.resolve(null),
     ]);
 
-    if (!seriesRes.ok) throw new Error('HTTP ' + seriesRes.status + ' при загрузке листа Series');
+    if (!gamesRes.ok) throw new Error('HTTP ' + gamesRes.status + ' при загрузке листа Games');
 
     let viewersMap = {};
     if (viewersRes && viewersRes.ok) {
@@ -776,12 +809,12 @@ async function loadAll() {
       viewersMap = rowsToViewers(parseCSV(csv));
     }
 
-    const csv = await seriesRes.text();
-    allItems = rowsToSeries(parseCSV(csv), viewersMap);
+    const csv = await gamesRes.text();
+    allItems = rowsToGames(parseCSV(csv), viewersMap);
 
     if (allItems.length === 0) {
       status.style.display = 'block';
-      status.innerHTML = 'Пока ни одного заказа сериалов.<br>Добавь первую строку в Google-таблицу — и она появится здесь.';
+      status.innerHTML = 'Пока ни одного заказа игр.<br>Добавь первую строку в Google-таблицу — и она появится здесь.';
       updateCounters(allItems);
       return;
     }

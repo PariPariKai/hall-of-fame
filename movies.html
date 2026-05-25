@@ -8,7 +8,7 @@
 <!-- ============================================================
      ⚙ НАСТРОЙКА ⚙
      MOVIES_CSV_URL  — лист Movies
-     VIEWERS_CSV_URL — лист Viewers (база зрителей с аватарками)
+     VIEWERS_CSV_URL — лист Viewers (база зрителей с аватарками + twitch_url)
      ============================================================ -->
 <script>
   const MOVIES_CSV_URL  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=627100002&single=true&output=csv";
@@ -65,7 +65,7 @@
     list-style: none;
     margin: 0;
     padding: 0;
-    gap: 24px;
+    gap: 22px;
     flex-wrap: wrap;
   }
   .site-nav__links a {
@@ -84,11 +84,16 @@
     border-bottom-color: #FAC775;
     text-shadow: 0 0 8px rgba(250,199,117,0.5);
   }
-  @media (max-width: 640px) {
+  @media (max-width: 720px) {
     .site-nav__inner { padding: 10px 16px; gap: 12px; justify-content: center; }
     .site-nav__brand { display: none; }
     .site-nav__links { gap: 14px; justify-content: center; }
     .site-nav__links a { font-size: 12px; letter-spacing: 1px; }
+  }
+  @media (max-width: 480px) {
+    .site-nav__links { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; padding-bottom: 4px; }
+    .site-nav__links::-webkit-scrollbar { height: 0; display: none; }
+    .site-nav__links li { flex: 0 0 auto; }
   }
 
   /* ========== СТРАНИЦА ========== */
@@ -112,11 +117,10 @@
   }
   .subtitle .accent { color: #FAC775; font-weight: 600; }
 
-  /* ========== КОНТРОЛЫ ========== */
   .controls-panel {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 10px;
     align-items: center;
     justify-content: center;
     margin-bottom: 12px;
@@ -144,7 +148,7 @@
     color: #fff;
     font-family: inherit;
     font-size: 13px;
-    width: 280px;
+    width: 240px;
     outline: none;
     transition: all 0.15s ease;
   }
@@ -202,11 +206,12 @@
     border-radius: 12px;
     padding: 14px 18px;
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 14px;
     align-items: start;
     transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
   }
+  .mcard.no-cover { grid-template-columns: auto minmax(0, 1fr); }
   .mcard:hover {
     transform: translateY(-2px);
     border-color: rgba(250,199,117,0.3);
@@ -244,6 +249,14 @@
     text-transform: uppercase;
     word-break: break-word;
   }
+  a.mcard__nick {
+    color: #FAC775;
+    text-decoration: none;
+    border-bottom: 1px dashed transparent;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  a.mcard__nick:hover { border-bottom-color: rgba(250,199,117,0.6); color: #fff; }
+  a.mcard__nick::after { content: ' ↗'; opacity: 0.65; }
 
   .mcard__title {
     font-size: 17px;
@@ -282,6 +295,7 @@
   .badge--pending { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.65); border-color: rgba(255,255,255,0.18); }
   .badge--watching { background: rgba(250,199,117,0.15); color: #FAC775; border-color: rgba(250,199,117,0.4); }
   .badge--watched { background: rgba(151,196,89,0.15); color: #97C459; border-color: rgba(151,196,89,0.4); }
+  .badge--rating { background: rgba(250,199,117,0.15); color: #FAC775; border-color: rgba(250,199,117,0.4); font-weight: 600; }
 
   .mcard__date {
     font-size: 11px;
@@ -311,35 +325,6 @@
   .mcard__action--yt { border-color: rgba(240,80,80,0.5); color: #F38787; }
   .mcard__action--yt:hover { background: rgba(240,80,80,0.1); }
 
-  .mcard__thumb {
-    width: 144px;
-    height: 81px;
-    border-radius: 8px;
-    background-size: cover;
-    background-position: center;
-    background-color: #11172a;
-    border: 1px solid rgba(255,255,255,0.1);
-    flex: 0 0 144px;
-    align-self: center;
-    transition: transform 0.15s ease, border-color 0.15s ease;
-    text-decoration: none;
-    display: block;
-    position: relative;
-  }
-  .mcard__thumb:hover { transform: scale(1.03); border-color: rgba(250,199,117,0.4); }
-  .mcard__thumb::after {
-    content: '▶';
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 22px;
-    color: #fff;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
-    opacity: 0.85;
-    transition: opacity 0.15s ease;
-  }
-  .mcard__thumb:hover::after { opacity: 1; }
-
   .mcard__notes {
     font-size: 12px;
     font-style: italic;
@@ -347,7 +332,28 @@
     line-height: 1.4;
   }
 
-  /* ========== СОСТОЯНИЯ ========== */
+  /* ========== ОБЛОЖКА ========== */
+  .mcard__cover {
+    width: 80px;
+    aspect-ratio: 2 / 3;
+    border-radius: 8px;
+    overflow: hidden;
+    flex: 0 0 80px;
+    background: #11172a;
+    border: 1px solid rgba(255,255,255,0.08);
+    align-self: center;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+    text-decoration: none;
+    display: block;
+  }
+  .mcard__cover:hover { transform: scale(1.05); border-color: rgba(250,199,117,0.4); }
+  .mcard__cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
   .empty-state, .error-state {
     text-align: center;
     padding: 60px 20px;
@@ -373,16 +379,17 @@
   }
   .reload-btn:hover { background: rgba(250,199,117,0.1); }
 
-  @media (max-width: 700px) {
-    .mcard { grid-template-columns: auto 1fr; }
-    .mcard__thumb { grid-column: 1 / -1; width: 100%; height: auto; aspect-ratio: 16 / 9; flex: 1; }
+  @media (max-width: 720px) {
+    .mcard__cover { width: 64px; flex-basis: 64px; }
   }
   @media (max-width: 600px) {
     .title { font-size: 26px; letter-spacing: 2px; }
     .search-input { width: 100%; }
     .filter-group { width: 100%; justify-content: center; }
-    .mcard { padding: 12px 14px; }
+    .mcard { padding: 12px 14px; gap: 10px; }
     .mcard__title { font-size: 15px; }
+    .mcard__cover { display: none; }
+    .mcard, .mcard.no-cover { grid-template-columns: auto minmax(0, 1fr); }
   }
 </style>
 </head>
@@ -393,11 +400,12 @@
   <div class="site-nav__inner">
     <a class="site-nav__brand" href="index.html">ParipariKai</a>
     <ul class="site-nav__links">
-      <li><a href="index.html" data-page="hall">Hall of Fame</a></li>
+      <li><a href="hall.html" data-page="hall">Hall of Fame</a></li>
       <li><a href="tickets.html" data-page="tickets">Билеты</a></li>
       <li><a href="anime.html" data-page="anime">Аниме</a></li>
       <li><a href="movies.html" class="is-active" data-page="movies">Фильмы</a></li>
       <li><a href="series.html" data-page="series">Сериалы</a></li>
+      <li><a href="games.html" data-page="games">Игры</a></li>
     </ul>
   </div>
 </nav>
@@ -409,7 +417,8 @@
   </div>
 
   <div class="controls-panel">
-    <input type="text" class="search-input" id="search" placeholder="🔍 Поиск по названию...">
+    <input type="text" class="search-input" id="search-title" placeholder="🔍 Поиск по названию...">
+    <input type="text" class="search-input" id="search-nick" placeholder="👤 Поиск по заказчику...">
     <div class="filter-group" id="status-filters">
       <button class="f-btn is-active" data-status="all">Все <span class="count" id="cnt-all">0</span></button>
       <button class="f-btn" data-status="pending">В очереди <span class="count" id="cnt-pending">0</span></button>
@@ -465,6 +474,7 @@ function rowsToViewers(rows) {
   const headers = rows[0].map(h => h.trim().toLowerCase());
   const nickIdx = headers.indexOf('nick');
   const avatarIdx = headers.indexOf('avatar_url');
+  const twitchIdx = headers.indexOf('twitch_url');
   if (nickIdx < 0) return {};
   const map = {};
   rows.slice(1).forEach(r => {
@@ -472,7 +482,8 @@ function rowsToViewers(rows) {
       const nick = r[nickIdx].trim();
       map[nick.toLowerCase()] = {
         nick: nick,
-        avatar: avatarIdx >= 0 ? (r[avatarIdx] || '').trim() : '',
+        avatar:    avatarIdx >= 0 ? (r[avatarIdx] || '').trim() : '',
+        twitchUrl: twitchIdx >= 0 ? (r[twitchIdx] || '').trim() : '',
       };
     }
   });
@@ -488,6 +499,8 @@ function rowsToMovies(rows, viewersMap) {
     type:           headers.indexOf('type'),
     url:            headers.indexOf('url'),
     status:         headers.indexOf('status'),
+    rating:         headers.indexOf('rating'),
+    cover_url:      headers.indexOf('cover_url'),
     date_added:     headers.indexOf('date_added'),
     date_completed: headers.indexOf('date_completed'),
     notes:          headers.indexOf('notes'),
@@ -503,14 +516,19 @@ function rowsToMovies(rows, viewersMap) {
       const status = ['pending', 'watching', 'watched'].includes(rawStatus) ? rawStatus : 'pending';
       const rawType = get(idx.type).toLowerCase();
       const type = ['movie', 'youtube', 'other'].includes(rawType) ? rawType : 'other';
+      const ratingRaw = get(idx.rating).replace(',', '.');
+      const ratingNum = ratingRaw ? parseFloat(ratingRaw) : NaN;
       return {
         _order: i,
         nick: nick,
-        avatar: viewer.avatar || '',
+        avatar:    viewer.avatar || '',
+        twitchUrl: viewer.twitchUrl || '',
         title: get(idx.title),
         type: type,
         url: get(idx.url),
         status: status,
+        rating: isFinite(ratingNum) ? ratingNum : null,
+        cover_url: get(idx.cover_url),
         date_added: get(idx.date_added),
         date_completed: get(idx.date_completed),
         notes: get(idx.notes),
@@ -519,15 +537,25 @@ function rowsToMovies(rows, viewersMap) {
 }
 
 const STATUS_WEIGHT = { watching: 0, pending: 1, watched: 2 };
-function sortItems(items) {
+function parseDateTs(d) {
+  if (!d) return 0;
+  const t = Date.parse(d);
+  return isNaN(t) ? 0 : t;
+}
+
+function sortItems(items, currentStatus) {
   return items.slice().sort((a, b) => {
-    const sw = STATUS_WEIGHT[a.status] - STATUS_WEIGHT[b.status];
+    if (currentStatus === 'watched') {
+      const da = parseDateTs(a.date_completed);
+      const db = parseDateTs(b.date_completed);
+      if (da !== db) return db - da;
+      return a._order - b._order;
+    }
+    const sw = (STATUS_WEIGHT[a.status] ?? 9) - (STATUS_WEIGHT[b.status] ?? 9);
     if (sw !== 0) return sw;
-    const ad = a.date_added || '';
-    const bd = b.date_added || '';
-    if (ad && bd && ad !== bd) return bd.localeCompare(ad);
-    if (ad && !bd) return -1;
-    if (!ad && bd) return 1;
+    const da = parseDateTs(a.date_added);
+    const db = parseDateTs(b.date_added);
+    if (da !== db) return db - da;
     return a._order - b._order;
   });
 }
@@ -554,6 +582,20 @@ function esc(s) {
   }[c]));
 }
 
+function isHttpUrl(s) {
+  if (!s) return false;
+  try {
+    const u = new URL(s);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch (e) { return false; }
+}
+
+function formatRating(r) {
+  if (r === null || r === undefined || !isFinite(r)) return '';
+  if (Number.isInteger(r)) return String(r);
+  return (Math.round(r * 10) / 10).toFixed(1);
+}
+
 const MONTHS_RU = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
 function formatShortDate(iso) {
   if (!iso) return '';
@@ -573,25 +615,6 @@ const TYPE_LABEL = {
   other:   'Другое',
 };
 
-function extractYouTubeId(url) {
-  if (!url) return '';
-  try {
-    const u = new URL(url);
-    const host = u.hostname.replace(/^www\./, '');
-    if (host === 'youtu.be') {
-      return (u.pathname.replace(/^\//, '').split('/')[0] || '').trim();
-    }
-    if (host === 'youtube.com' || host === 'm.youtube.com' || host === 'music.youtube.com') {
-      if (u.pathname === '/watch') return (u.searchParams.get('v') || '').trim();
-      const m = u.pathname.match(/^\/(embed|shorts|live|v)\/([^\/?#]+)/);
-      if (m) return m[2];
-    }
-  } catch (e) {
-    /* invalid URL — fall through */
-  }
-  return '';
-}
-
 function buildAvatarHtml(item) {
   if (item.avatar) {
     return `<div class="mcard__avatar" style="background-image:url('${esc(item.avatar)}');"></div>`;
@@ -600,10 +623,19 @@ function buildAvatarHtml(item) {
   return `<div class="mcard__avatar" style="background:${color};">${esc(initials(item.nick))}</div>`;
 }
 
+function buildNickHtml(item) {
+  if (item.twitchUrl && isHttpUrl(item.twitchUrl)) {
+    return `<a class="mcard__nick" href="${esc(item.twitchUrl)}" target="_blank" rel="noopener">${esc(item.nick)}</a>`;
+  }
+  return `<span class="mcard__nick">${esc(item.nick)}</span>`;
+}
+
 function buildBadgesHtml(item) {
   const badges = [];
   badges.push(`<span class="badge badge--${item.type}">${esc(TYPE_LABEL[item.type])}</span>`);
   badges.push(`<span class="badge badge--${item.status}">${esc(STATUS_LABEL[item.status])}</span>`);
+  const ratingTxt = formatRating(item.rating);
+  if (ratingTxt) badges.push(`<span class="badge badge--rating">★ ${esc(ratingTxt)}</span>`);
   if (item.date_completed) {
     badges.push(`<span class="mcard__date">досмотрено ${esc(formatShortDate(item.date_completed))}</span>`);
   } else if (item.date_added && item.status !== 'watched') {
@@ -613,7 +645,7 @@ function buildBadgesHtml(item) {
 }
 
 function buildActionHtml(item) {
-  if (!item.url) return '';
+  if (!item.url || !isHttpUrl(item.url)) return '';
   if (item.type === 'youtube') {
     return `<a class="mcard__action mcard__action--yt" href="${esc(item.url)}" target="_blank" rel="noopener">▶ Смотреть на YouTube</a>`;
   }
@@ -623,31 +655,33 @@ function buildActionHtml(item) {
   return `<a class="mcard__action" href="${esc(item.url)}" target="_blank" rel="noopener">↗ Открыть ссылку</a>`;
 }
 
-function buildThumbHtml(item) {
-  if (item.type !== 'youtube' || !item.url) return '';
-  const id = extractYouTubeId(item.url);
-  if (!id) return '';
-  const thumb = `https://img.youtube.com/vi/${encodeURIComponent(id)}/mqdefault.jpg`;
-  return `<a class="mcard__thumb" href="${esc(item.url)}" target="_blank" rel="noopener" style="background-image:url('${esc(thumb)}');" aria-label="Открыть на YouTube"></a>`;
+function buildCoverHtml(item) {
+  if (!item.cover_url || !isHttpUrl(item.cover_url)) return '';
+  const inner = `<img src="${esc(item.cover_url)}" alt="${esc(item.title)}" loading="lazy" onerror="this.parentNode.style.display='none';">`;
+  if (item.url && isHttpUrl(item.url)) {
+    return `<a class="mcard__cover" href="${esc(item.url)}" target="_blank" rel="noopener" aria-label="Открыть страницу тайтла">${inner}</a>`;
+  }
+  return `<div class="mcard__cover">${inner}</div>`;
 }
 
 function buildCard(item) {
   const titleInner = item.url
     ? `<a href="${esc(item.url)}" target="_blank" rel="noopener">${esc(item.title)}</a>`
     : esc(item.title);
+  const cover = buildCoverHtml(item);
   const watchedClass = item.status === 'watched' ? ' is-watched' : '';
-  const thumb = buildThumbHtml(item);
+  const noCoverClass = cover ? '' : ' no-cover';
   return `
-    <article class="mcard${watchedClass}" data-status="${esc(item.status)}" data-type="${esc(item.type)}" data-title="${esc(item.title.toLowerCase())}">
+    <article class="mcard${watchedClass}${noCoverClass}" data-status="${esc(item.status)}" data-type="${esc(item.type)}" data-title="${esc(item.title.toLowerCase())}" data-nick="${esc(item.nick.toLowerCase())}">
       ${buildAvatarHtml(item)}
       <div class="mcard__body">
-        <span class="mcard__nick">${esc(item.nick)}</span>
+        ${buildNickHtml(item)}
         <h2 class="mcard__title">${titleInner}</h2>
         ${buildBadgesHtml(item)}
         ${buildActionHtml(item)}
         ${item.notes ? `<p class="mcard__notes">${esc(item.notes)}</p>` : ''}
       </div>
-      ${thumb}
+      ${cover}
     </article>
   `;
 }
@@ -655,7 +689,8 @@ function buildCard(item) {
 let allItems = [];
 let currentStatus = 'all';
 let currentType = 'all';
-let currentSearch = '';
+let currentSearchTitle = '';
+let currentSearchNick = '';
 
 function applyFilters() {
   const list = document.getElementById('list');
@@ -664,26 +699,39 @@ function applyFilters() {
 
   let visible = 0;
   list.querySelectorAll('.mcard').forEach(card => {
-    const matchesStatus = currentStatus === 'all' || card.dataset.status === currentStatus;
+    const cardStatus = card.dataset.status;
+    let matchesStatus;
+    if (currentStatus === 'all') {
+      matchesStatus = cardStatus !== 'watched';
+    } else {
+      matchesStatus = cardStatus === currentStatus;
+    }
     const matchesType   = currentType === 'all' || card.dataset.type === currentType;
-    const matchesSearch = !currentSearch || card.dataset.title.includes(currentSearch);
-    const show = matchesStatus && matchesType && matchesSearch;
+    const matchesTitle  = !currentSearchTitle || card.dataset.title.includes(currentSearchTitle);
+    const matchesNick   = !currentSearchNick  || card.dataset.nick.includes(currentSearchNick);
+    const show = matchesStatus && matchesType && matchesTitle && matchesNick;
     card.style.display = show ? '' : 'none';
     if (show) visible++;
   });
 
   if (visible === 0 && allItems.length > 0) {
     list.style.display = 'none';
-    const hint = currentSearch
-      ? `Ничего не найдено по запросу «${esc(currentSearch)}»`
-      : 'В этой категории пока пусто';
+    let hint;
+    if (currentSearchTitle || currentSearchNick) {
+      const parts = [];
+      if (currentSearchTitle) parts.push(`«${esc(currentSearchTitle)}»`);
+      if (currentSearchNick)  parts.push(`заказчик «${esc(currentSearchNick)}»`);
+      hint = `Ничего не найдено по ${parts.join(', ')}`;
+    } else {
+      hint = 'В этой категории пока пусто';
+    }
     noResults.innerHTML = hint;
     noResults.style.display = 'block';
     shown.style.display = 'none';
   } else {
     list.style.display = '';
     noResults.style.display = 'none';
-    if (currentStatus !== 'all' || currentType !== 'all' || currentSearch) {
+    if (currentStatus !== 'all' || currentType !== 'all' || currentSearchTitle || currentSearchNick) {
       shown.textContent = `Показано: ${visible}`;
       shown.style.display = 'block';
     } else {
@@ -693,13 +741,14 @@ function applyFilters() {
 }
 
 function updateCounters(items) {
-  const sCounts = { all: items.length, pending: 0, watching: 0, watched: 0 };
+  const sCounts = { pending: 0, watching: 0, watched: 0 };
   const tCounts = { all: items.length, movie: 0, youtube: 0, other: 0 };
   items.forEach(it => {
     sCounts[it.status] = (sCounts[it.status] || 0) + 1;
     tCounts[it.type]   = (tCounts[it.type]   || 0) + 1;
   });
-  document.getElementById('cnt-all').textContent       = sCounts.all;
+  const activeCount = sCounts.pending + sCounts.watching;
+  document.getElementById('cnt-all').textContent       = activeCount;
   document.getElementById('cnt-pending').textContent   = sCounts.pending;
   document.getElementById('cnt-watching').textContent  = sCounts.watching;
   document.getElementById('cnt-watched').textContent   = sCounts.watched;
@@ -708,12 +757,12 @@ function updateCounters(items) {
   document.getElementById('tcnt-youtube').textContent  = tCounts.youtube;
   document.getElementById('tcnt-other').textContent    = tCounts.other;
   document.getElementById('counter-watched').textContent = sCounts.watched;
-  document.getElementById('counter-total').textContent   = sCounts.all;
+  document.getElementById('counter-total').textContent   = items.length;
 }
 
-function render(items) {
+function render(items, filterForSort) {
   const list = document.getElementById('list');
-  const sorted = sortItems(items);
+  const sorted = sortItems(items, filterForSort);
   list.innerHTML = sorted.map(buildCard).join('');
   list.style.display = '';
 }
@@ -723,6 +772,7 @@ document.querySelectorAll('#status-filters .f-btn').forEach(btn => {
     document.querySelectorAll('#status-filters .f-btn').forEach(b => b.classList.remove('is-active'));
     btn.classList.add('is-active');
     currentStatus = btn.dataset.status;
+    render(allItems, currentStatus);
     applyFilters();
   });
 });
@@ -734,8 +784,12 @@ document.querySelectorAll('#type-filters .f-btn').forEach(btn => {
     applyFilters();
   });
 });
-document.getElementById('search').addEventListener('input', e => {
-  currentSearch = (e.target.value || '').trim().toLowerCase();
+document.getElementById('search-title').addEventListener('input', e => {
+  currentSearchTitle = (e.target.value || '').trim().toLowerCase();
+  applyFilters();
+});
+document.getElementById('search-nick').addEventListener('input', e => {
+  currentSearchNick = (e.target.value || '').trim().toLowerCase();
   applyFilters();
 });
 
@@ -773,7 +827,7 @@ async function loadAll() {
     }
 
     updateCounters(allItems);
-    render(allItems);
+    render(allItems, currentStatus);
     status.style.display = 'none';
     applyFilters();
   } catch (err) {
