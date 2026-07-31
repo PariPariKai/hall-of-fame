@@ -574,6 +574,24 @@ function esc(s) {
 let raffleDate = null;
 let timerInterval = null;
 
+// Google Sheets (EU locale) exports dates as DD.MM.YYYY.
+// native Date("12.04.2026") wrongly reads that as Dec 4 — parse day-first explicitly.
+function parseSheetDate(str) {
+  if (!str) return null;
+  const s = String(str).trim();
+  // ISO: YYYY-MM-DD[ T| ]HH:MM[:SS]
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if (m) {
+    return new Date(+m[1], +m[2] - 1, +m[3], m[4] != null ? +m[4] : 0, m[5] != null ? +m[5] : 0, m[6] != null ? +m[6] : 0);
+  }
+  // European: DD.MM.YYYY / DD/MM/YYYY / DD-MM-YYYY (+ optional time)
+  m = s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if (m) {
+    return new Date(+m[3], +m[2] - 1, +m[1], m[4] != null ? +m[4] : 0, m[5] != null ? +m[5] : 0, m[6] != null ? +m[6] : 0);
+  }
+  const t = Date.parse(s);
+  return isNaN(t) ? null : new Date(t);
+}
 function setupTimer(config) {
   const box = document.getElementById('timer-box');
   const bg = document.getElementById('timer-bg');
@@ -587,8 +605,7 @@ function setupTimer(config) {
     return;
   }
 
-  const dateStr = config.raffle_date.replace(' ', 'T');
-  raffleDate = new Date(dateStr);
+  raffleDate = parseSheetDate(config.raffle_date);
   if (isNaN(raffleDate.getTime())) {
     box.style.display = 'none';
     return;
