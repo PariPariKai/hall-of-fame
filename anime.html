@@ -128,6 +128,22 @@
     justify-content: center;
     margin-bottom: 18px;
   }
+
+  .controls-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 18px;
+  }
+  .controls-row__label {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    align-self: center;
+    margin-right: 4px;
+  }
   .search-input {
     background: transparent;
     border: 1px solid rgba(255,255,255,0.15);
@@ -418,6 +434,16 @@
     </div>
   </div>
 
+  
+  <div class="controls-row">
+    <span class="controls-row__label">Сортировка:</span>
+    <div class="filter-group" id="sort-filters">
+      <button class="f-btn is-active" data-sort="default">По статусу</button>
+      <button class="f-btn" data-sort="date-desc">Сначала новые</button>
+      <button class="f-btn" data-sort="date-asc">Сначала старые</button>
+    </div>
+  </div>
+
   <p class="shown-count" id="shown-count" style="display:none;"></p>
 
   <div id="status" class="empty-state">Загружаю заказы...</div>
@@ -546,9 +572,22 @@ function parseDateTs(d) {
   return dt ? dt.getTime() : 0;
 }
 
-function sortItems(items, currentStatus) {
+function itemDateTs(item, statusFilter) {
+  // In "watched/completed" views use completion date; otherwise date added.
+  if (statusFilter === 'watched' && item.date_completed) return parseDateTs(item.date_completed);
+  return parseDateTs(item.date_added) || parseDateTs(item.date_completed);
+}
+
+function sortItems(items, statusFilter, sortMode) {
   return items.slice().sort((a, b) => {
-    if (currentStatus === 'watched') {
+    if (sortMode === 'date-desc' || sortMode === 'date-asc') {
+      const da = itemDateTs(a, statusFilter);
+      const db = itemDateTs(b, statusFilter);
+      if (da !== db) return sortMode === 'date-desc' ? (db - da) : (da - db);
+      return a._order - b._order;
+    }
+    // default: by status weight, then date
+    if (statusFilter === 'watched') {
       const da = parseDateTs(a.date_completed);
       const db = parseDateTs(b.date_completed);
       if (da !== db) return db - da;
@@ -697,6 +736,7 @@ function buildCard(item) {
 
 let allItems = [];
 let currentStatus = 'all';
+let currentSort = 'default';
 let currentSearchTitle = '';
 let currentSearchNick = '';
 
@@ -763,7 +803,7 @@ function updateCounters(items) {
 
 function render(items, filterForSort) {
   const list = document.getElementById('list');
-  const sorted = sortItems(items, filterForSort);
+  const sorted = sortItems(items, filterForSort, currentSort);
   list.innerHTML = sorted.map(buildCard).join('');
   list.style.display = '';
 }
@@ -773,6 +813,16 @@ document.querySelectorAll('#status-filters .f-btn').forEach(btn => {
     document.querySelectorAll('#status-filters .f-btn').forEach(b => b.classList.remove('is-active'));
     btn.classList.add('is-active');
     currentStatus = btn.dataset.status;
+    render(allItems, currentStatus);
+    applyFilters();
+  });
+});
+
+document.querySelectorAll('#sort-filters .f-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#sort-filters .f-btn').forEach(b => b.classList.remove('is-active'));
+    btn.classList.add('is-active');
+    currentSort = btn.dataset.sort;
     render(allItems, currentStatus);
     applyFilters();
   });
