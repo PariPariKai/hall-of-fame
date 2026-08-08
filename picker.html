@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<title>Рулетка выбора — Hall of Fame</title>
+
+<!-- ============================================================
+     ⚙ НАСТРОЙКА ⚙
+     Четыре листа заказов + лист Viewers (аватарки зрителей).
+     Ссылки те же, что используют anime/movies/series/games.
+     ============================================================ -->
+<script>
+  const SHEET = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?single=true&output=csv&gid=";
+
+  const SOURCES = [
+    { id:'anime',  name:'Аниме',   icon:'🌸', color:'#E58CC0', csv: SHEET + '627100001' },
+    { id:'movies', name:'Фильмы',  icon:'🎬', color:'#FAC775', csv: SHEET + '627100002' },
+    { id:'series', name:'Сериалы', icon:'📺', color:'#6FB7E8', csv: SHEET + '627100003' },
+    { id:'games',  name:'Игры',    icon:'🎮', color:'#9B8CE8', csv: SHEET + '727100001' },
+  ];
+
+  const VIEWERS_CSV_URL = SHEET + '527100001';
+
+  // Статусы из колонки status. Всё непонятное считаем «ещё не смотрели».
+  // Просмотренное по умолчанию на колесо НЕ попадает.
+  const STATUSES = [
+    { id:'pending',  name:'Ещё не смотрели', icon:'○', on:true  },
+    { id:'watching', name:'Сейчас смотрим',  icon:'◐', on:true  },
+    { id:'watched',  name:'Уже посмотрели',  icon:'●', on:false },
+  ];
+</script>
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0e1a;
+    background-image:
+      radial-gradient(ellipse at top left, rgba(255, 199, 117, 0.08), transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(127, 119, 221, 0.06), transparent 50%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #fff;
+    padding: 0 20px 40px;
+  }
+
+  /* ========== ОБЩЕЕ ВЕРХНЕЕ МЕНЮ ========== */
+  .site-nav {
+    position: sticky; top: 0; z-index: 100;
+    margin: 0 -20px 24px;
+    background: rgba(20, 25, 40, 0.85);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .site-nav__inner {
+    max-width: 1400px; margin: 0 auto; padding: 12px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 20px; flex-wrap: wrap;
+  }
+  .site-nav__brand {
+    font-size: 13px; letter-spacing: 3px; color: #FAC775;
+    text-decoration: none; text-transform: uppercase;
+    text-shadow: 0 0 8px rgba(250,199,117,0.25); flex: 0 0 auto;
+  }
+  .site-nav__links { display: flex; list-style: none; margin: 0; padding: 0; gap: 22px; flex-wrap: wrap; }
+  .site-nav__links a {
+    color: rgba(255,255,255,0.7); text-decoration: none;
+    font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase;
+    padding: 4px 0; border-bottom: 2px solid transparent;
+    transition: color 0.2s ease, border-color 0.2s ease, text-shadow 0.2s ease;
+  }
+  .site-nav__links a:hover { color: #FAC775; }
+  .site-nav__links a.is-active {
+    color: #FAC775; border-bottom-color: #FAC775;
+    text-shadow: 0 0 8px rgba(250,199,117,0.5);
+  }
+  @media (max-width: 720px) {
+    .site-nav__inner { padding: 10px 16px; gap: 12px; justify-content: center; }
+    .site-nav__brand { display: none; }
+    .site-nav__links { gap: 14px; justify-content: center; }
+    .site-nav__links a { font-size: 12px; letter-spacing: 1px; }
+  }
+  @media (max-width: 480px) {
+    .site-nav__links { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; padding-bottom: 4px; }
+    .site-nav__links::-webkit-scrollbar { height: 0; display: none; }
+    .site-nav__links li { flex: 0 0 auto; }
+  }
+
+  /* ========== СТРАНИЦА ========== */
+  .wrap { max-width: 1400px; margin: 0 auto; }
+
+  .header { text-align: center; margin-bottom: 22px; }
+  .title {
+    font-size: 30px; font-weight: 500; letter-spacing: 4px;
+    color: #FAC775; text-shadow: 0 0 20px rgba(250,199,117,0.4);
+    margin-bottom: 6px; text-transform: uppercase;
+  }
+  .subtitle { font-size: 13px; color: rgba(255,255,255,0.5); letter-spacing: 1px; }
+  .subtitle b { color: #fff; font-weight: 600; }
+
+  .layout {
+    display: grid; grid-template-columns: 280px minmax(0, 1fr) 280px;
+    gap: 18px; align-items: start;
+  }
+
+  /* ========== ПАНЕЛИ ФИЛЬТРОВ ========== */
+  .panel {
+    background: rgba(20, 25, 40, 0.72);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px; padding: 13px; margin-bottom: 13px;
+    backdrop-filter: blur(10px);
+  }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
+  .panel-title {
+    font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    color: #FAC775; font-weight: 600;
+  }
+  .panel-actions { display: flex; gap: 5px; }
+  .mini-btn {
+    background: transparent; border: 1px solid rgba(255,255,255,0.14);
+    color: rgba(255,255,255,0.45); border-radius: 6px;
+    padding: 3px 8px; font-family: inherit; font-size: 10px;
+    cursor: pointer; transition: all 0.15s ease; white-space: nowrap;
+  }
+  .mini-btn:hover { color: #FAC775; border-color: #FAC775; }
+
+  .row {
+    display: flex; align-items: center; gap: 9px;
+    padding: 6px 7px; border-radius: 8px;
+    cursor: pointer; user-select: none; transition: background 0.13s ease;
+  }
+  .row:hover { background: rgba(255,255,255,0.05); }
+  .box {
+    width: 15px; height: 15px; border-radius: 4px; flex-shrink: 0;
+    border: 1.5px solid rgba(255,255,255,0.3); background: transparent;
+    position: relative; transition: all 0.15s ease;
+  }
+  .row.on .box { background: var(--sw, #FAC775); border-color: var(--sw, #FAC775); }
+  .row.on .box::after {
+    content: ''; position: absolute; left: 4px; top: 0.5px;
+    width: 4px; height: 8px;
+    border: solid #0a0e1a; border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  .row-label { flex: 1; min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row-count { font-size: 11px; color: rgba(255,255,255,0.35); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .row.off .row-label, .row.off .row-count { opacity: 0.42; }
+  .row-ava {
+    width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+    background-size: cover; background-position: center;
+    background-color: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+  .src-status { font-size: 10.5px; color: rgba(255,255,255,0.3); padding: 0 7px 4px 31px; }
+  .src-status.err { color: #f2a0a0; }
+
+  .people-list { max-height: 400px; overflow-y: auto; margin: 0 -3px; padding: 0 3px; }
+  .people-search {
+    width: 100%; padding: 8px 11px; font-size: 12.5px; margin-bottom: 8px;
+    background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 9px; color: #fff; font-family: inherit; outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .people-search:focus { border-color: #FAC775; }
+  .people-search::placeholder { color: rgba(255,255,255,0.3); }
+  .empty-note { font-size: 12px; color: rgba(255,255,255,0.35); padding: 9px 7px; line-height: 1.5; }
+
+  /* ========== КОЛЕСО ========== */
+  .wheel-col { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+  .wheel-area { position: relative; width: 100%; max-width: 620px; aspect-ratio: 1 / 1; margin-bottom: 16px; }
+  .wheel-svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 8px 24px rgba(0,0,0,0.55)); }
+
+  .wheel-pointer {
+    position: absolute; right: -10px; top: 50%;
+    transform: translateY(-50%);
+    width: 58px; height: 50px; z-index: 10;
+    filter: drop-shadow(-4px 4px 8px rgba(0,0,0,0.6));
+    transform-origin: 88% 50%; transition: transform 0.05s ease-out;
+  }
+  .wheel-pointer svg { width: 100%; height: 100%; }
+  @keyframes pointerTick {
+    0%   { transform: translateY(-50%) rotate(0deg); }
+    30%  { transform: translateY(-50%) rotate(16deg); }
+    100% { transform: translateY(-50%) rotate(0deg); }
+  }
+  .wheel-pointer.ticking { animation: pointerTick 0.18s ease-out; }
+
+  .wheel-empty {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    text-align: center; padding: 40px; color: rgba(255,255,255,0.35); font-size: 14px; line-height: 1.6;
+  }
+
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 12px; }
+  .ctrl-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.14);
+    color: rgba(255,255,255,0.85); padding: 10px 18px;
+    font-family: inherit; font-size: 12.5px; letter-spacing: 1px;
+    text-transform: uppercase; border-radius: 8px; cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .ctrl-btn:hover:not(:disabled) { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.3); transform: translateY(-1px); }
+  .ctrl-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .ctrl-btn.primary { border-color: rgba(250,199,117,0.45); color: #FAC775; }
+  .ctrl-btn.primary:hover:not(:disabled) { background: rgba(250,199,117,0.12); border-color: #FAC775; }
+  .ctrl-btn.danger { border-color: rgba(240,149,149,0.3); color: #f2c4c4; }
+
+  .duration-group {
+    display: flex; align-items: center; gap: 5px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px; padding: 4px;
+  }
+  .duration-label { font-size: 11px; color: rgba(255,255,255,0.35); padding: 0 6px; }
+  .duration-btn {
+    background: transparent; border: none; color: rgba(255,255,255,0.55);
+    padding: 6px 11px; font-family: inherit; font-size: 12.5px;
+    border-radius: 6px; cursor: pointer; transition: all 0.15s ease;
+  }
+  .duration-btn.active { background: rgba(250,199,117,0.18); color: #FAC775; }
+  .duration-btn:hover:not(.active) { color: #fff; }
+
+  .sound-toggle {
+    background: transparent; border: 1px solid rgba(151,196,89,0.35);
+    border-radius: 8px; padding: 9px 12px; cursor: pointer;
+    color: #97C459; font-family: inherit; font-size: 12.5px;
+  }
+  .sound-toggle.off { color: rgba(255,255,255,0.45); border-color: rgba(255,255,255,0.14); }
+
+  .elimination-status {
+    background: rgba(250,199,117,0.1); border: 1px solid rgba(250,199,117,0.28);
+    border-radius: 8px; padding: 9px 18px; color: #FAC775;
+    font-size: 12.5px; text-align: center; margin-bottom: 12px; display: none;
+  }
+  .elimination-status.active { display: block; }
+
+  /* ========== ФИНАЛИСТЫ / ИСТОРИЯ ========== */
+  .finalists { display: none; }
+  .finalists.active { display: block; animation: finIn 0.6s cubic-bezier(0.22,1.2,0.36,1) both; }
+  @keyframes finIn { 0%{transform:scale(0.6);opacity:0} 60%{transform:scale(1.05);opacity:1} 100%{transform:scale(1)} }
+  .finalist {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 9px; border-radius: 8px; margin-bottom: 6px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+    font-size: 12.5px; transition: all 0.4s ease; min-height: 40px;
+  }
+  .fin-place {
+    flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11.5px; font-weight: 700;
+    background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.5);
+  }
+  .fin-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .fin-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fin-empty { color: rgba(255,255,255,0.22); font-size: 11.5px; font-style: italic; }
+  .fin-who { color: rgba(255,255,255,0.4); font-size: 10.5px; }
+  .finalist.place-1 { background: rgba(250,199,117,0.08); border-color: rgba(250,199,117,0.25); }
+  .finalist.place-1 .fin-place { background: rgba(250,199,117,0.2); color: #FAC775; }
+  .finalist.place-2 { background: rgba(208,214,228,0.06); border-color: rgba(208,214,228,0.22); }
+  .finalist.place-2 .fin-place { background: rgba(208,214,228,0.16); color: #D0D6E4; }
+  .finalist.place-3 { background: rgba(205,127,50,0.08); border-color: rgba(205,127,50,0.25); }
+  .finalist.place-3 .fin-place { background: rgba(205,127,50,0.2); color: #D9924E; }
+  @keyframes goldGlow {
+    0%,100% { box-shadow: 0 0 12px rgba(250,199,117,0.3), 0 0 24px rgba(250,199,117,0.12); }
+    50%     { box-shadow: 0 0 20px rgba(250,199,117,0.55), 0 0 38px rgba(250,199,117,0.25); }
+  }
+  .finalist.place-1.filled {
+    background: rgba(250,199,117,0.16); border-color: rgba(250,199,117,0.6);
+    color: #FAC775; font-weight: 700; animation: goldGlow 2.2s ease-in-out infinite;
+  }
+  .finalist.place-2.filled { background: rgba(208,214,228,0.12); color: #D0D6E4; font-weight: 600; }
+  .finalist.place-3.filled { background: rgba(205,127,50,0.14); color: #D9924E; font-weight: 600; }
+  @keyframes slotFill { 0%{transform:scale(1.1)} 100%{transform:scale(1)} }
+  .finalist.just-filled { animation: slotFill 0.6s cubic-bezier(0.22,1.2,0.36,1) both; }
+
+  .log { display: none; max-height: 320px; overflow-y: auto; }
+  .log.has-entries { display: block; }
+  .log-entry {
+    font-size: 12.5px; padding: 6px 7px; color: rgba(255,255,255,0.68);
+    border-bottom: 1px solid rgba(255,255,255,0.05); border-radius: 6px;
+  }
+  .log-entry:last-child { border-bottom: none; }
+  .log-entry.winner { color: #FAC775; font-weight: 700; font-size: 13.5px; }
+  .log-entry .num { color: rgba(255,255,255,0.28); margin-right: 7px; font-variant-numeric: tabular-nums; }
+  .log-who { color: rgba(255,255,255,0.38); font-size: 10.5px; }
+  @keyframes logPop {
+    0%{transform:scale(1.5);opacity:0;background:rgba(250,199,117,0.3)}
+    100%{transform:scale(1);background:transparent}
+  }
+  .log-entry.fresh { animation: logPop 1s cubic-bezier(0.22,1.2,0.36,1) both; transform-origin: center left; }
+
+  /* ========== ПОБЕДИТЕЛЬ ========== */
+  .winner-overlay {
+    position: fixed; inset: 0; background: rgba(4,6,14,0.9);
+    display: none; align-items: center; justify-content: center;
+    z-index: 200; flex-direction: column; backdrop-filter: blur(10px);
+  }
+  .winner-overlay.show { display: flex; animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  .winner-card {
+    text-align: center; padding: 46px 62px; border-radius: 20px;
+    background: linear-gradient(180deg, #161c2e 0%, #0c1120 100%);
+    border: 3px solid #FAC775; position: relative;
+    max-width: min(92vw, 720px); max-height: 92vh; overflow-y: auto;
+    animation: winIn 0.55s cubic-bezier(0.34,1.56,0.64,1);
+    box-shadow: 0 0 60px rgba(250,199,117,0.35), 0 0 140px rgba(250,199,117,0.15);
+  }
+  @keyframes winIn { from{transform:scale(0.6) rotateY(150deg);opacity:0} to{transform:scale(1) rotateY(0);opacity:1} }
+  .winner-label {
+    font-size: 15px; letter-spacing: 6px; color: #FAC775;
+    text-transform: uppercase; margin-bottom: 18px;
+    text-shadow: 0 0 18px rgba(250,199,117,0.55);
+  }
+  .winner-cat {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 5px 15px; border-radius: 999px; margin-bottom: 16px;
+    font-size: 11.5px; letter-spacing: 1.5px; text-transform: uppercase;
+    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.16);
+  }
+  .winner-cover {
+    display: none; max-height: 250px; max-width: 180px;
+    border-radius: 12px; margin: 0 auto 18px;
+    border: 2px solid rgba(250,199,117,0.4);
+    box-shadow: 0 14px 36px rgba(0,0,0,0.6);
+  }
+  .winner-cover.show { display: block; }
+  .winner-title {
+    font-size: 38px; color: #fff; font-weight: 600; line-height: 1.2;
+    margin-bottom: 14px; text-shadow: 0 0 20px rgba(250,199,117,0.45);
+    word-break: break-word;
+  }
+  .winner-who {
+    font-size: 15px; color: rgba(255,255,255,0.7);
+    display: inline-flex; align-items: center; gap: 9px;
+  }
+  .winner-who-ava {
+    width: 30px; height: 30px; border-radius: 50%;
+    background-size: cover; background-position: center;
+    background-color: rgba(255,255,255,0.1);
+    border: 1px solid rgba(250,199,117,0.4); display: none;
+  }
+  .winner-who-ava.show { display: block; }
+  .winner-link {
+    display: none; margin-top: 14px; font-size: 13px; color: #FAC775;
+    text-decoration: none; border-bottom: 1px dashed rgba(250,199,117,0.5);
+  }
+  .winner-link.show { display: inline-block; }
+  .winner-link:hover { color: #fff; border-color: #fff; }
+  .winner-close { margin-top: 26px; padding: 12px 28px !important; }
+
+  .confetti-container { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 199; display: none; }
+  .confetti-container.active { display: block; }
+  .confetti-piece { position: absolute; width: 12px; height: 12px; top: -20px; opacity: 0; animation: confettiFall linear forwards; }
+  @keyframes confettiFall {
+    0%   { opacity: 1; transform: translateY(0) rotate(0deg) translateX(0); }
+    100% { opacity: 1; transform: translateY(110vh) rotate(720deg) translateX(var(--drift,0px)); }
+  }
+
+  @media (max-width: 1150px) {
+    .layout { grid-template-columns: 260px minmax(0, 1fr); }
+    .side-right { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 13px; align-items: start; }
+  }
+  @media (max-width: 780px) {
+    body { padding: 0 12px 40px; }
+    .layout { grid-template-columns: 1fr; }
+    .side-right { grid-template-columns: 1fr; }
+    .title { font-size: 22px; letter-spacing: 2px; }
+    .wheel-pointer { width: 40px; height: 34px; right: -4px; }
+    .winner-card { padding: 32px 22px; }
+    .winner-title { font-size: 26px; }
+    .people-list { max-height: 250px; }
+  }
+</style>
+</head>
+
+<body>
+
+<nav class="site-nav">
+  <div class="site-nav__inner">
+    <a class="site-nav__brand" href="index.html">ParipariKai</a>
+    <ul class="site-nav__links">
+      <li><a href="hall.html" data-page="hall">Hall of Fame</a></li>
+      <li><a href="tickets.html" data-page="tickets">Билеты</a></li>
+      <li><a href="anime.html" data-page="anime">Аниме</a></li>
+      <li><a href="movies.html" data-page="movies">Фильмы</a></li>
+      <li><a href="series.html" data-page="series">Сериалы</a></li>
+      <li><a href="games.html" data-page="games">Игры</a></li>
+      <li><a href="picker.html" data-page="picker" class="is-active">Рулетка</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="header">
+    <h1 class="title">🎲 Рулетка выбора</h1>
+    <p class="subtitle" id="top-stats">Загрузка…</p>
+  </div>
+
+  <div class="layout">
+
+    <!-- ===== Фильтры ===== -->
+    <div class="side-left">
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">Источники</div></div>
+        <div id="sources-list"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">Статус</div></div>
+        <div id="status-list"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Заказчики</div>
+          <div class="panel-actions">
+            <button class="mini-btn" id="who-all">все</button>
+            <button class="mini-btn" id="who-none">никого</button>
+          </div>
+        </div>
+        <input type="text" class="people-search" id="who-search" placeholder="Поиск по нику…">
+        <div class="people-list" id="people-list"></div>
+      </div>
+    </div>
+
+    <!-- ===== Колесо ===== -->
+    <div class="wheel-col">
+      <div id="elimination-status" class="elimination-status">
+        Режим выбывания. Осталось вариантов: <span id="elim-remaining">0</span>
+      </div>
+
+      <div class="wheel-area">
+        <svg class="wheel-svg" id="wheel" viewBox="0 0 100 100"></svg>
+        <div class="wheel-pointer" id="wheel-pointer">
+          <svg viewBox="0 0 60 52">
+            <polygon points="2,26 52,4 52,48" fill="#FAC775" stroke="#0a0e1a" stroke-width="2" stroke-linejoin="round"/>
+            <circle cx="50" cy="26" r="5" fill="#FAC775" stroke="#0a0e1a" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="wheel-empty" id="wheel-empty">Выбери источники слева —<br>варианты появятся на колесе</div>
+      </div>
+
+      <div class="controls">
+        <div class="duration-group">
+          <span class="duration-label">⏱</span>
+          <button class="duration-btn" data-dur="3">3с</button>
+          <button class="duration-btn active" data-dur="5">5с</button>
+          <button class="duration-btn" data-dur="10">10с</button>
+          <button class="duration-btn" data-dur="60">60с</button>
+        </div>
+        <button class="sound-toggle" id="sound-toggle">🔊 Звук вкл.</button>
+      </div>
+
+      <div class="controls">
+        <button class="ctrl-btn primary" id="btn-single">🎯 Один победитель</button>
+        <button class="ctrl-btn primary" id="btn-elim">⚔ Режим выбывания</button>
+        <button class="ctrl-btn danger" id="btn-reset">↺ Сброс</button>
+        <button class="ctrl-btn" id="btn-reload">🔄 Перезагрузить</button>
+      </div>
+    </div>
+
+    <!-- ===== Финалисты и история ===== -->
+    <div class="side-right">
+      <div class="panel finalists" id="finalists">
+        <div class="panel-head"><div class="panel-title">⚜ Финалисты ⚜</div></div>
+        <div id="finalists-list"></div>
+      </div>
+      <div class="panel log" id="log">
+        <div class="panel-head"><div class="panel-title">История</div></div>
+        <div id="log-entries"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="confetti-container" id="confetti"></div>
+
+<div class="winner-overlay" id="winner-overlay">
+  <div class="winner-card">
+    <div class="winner-label">✦ Выбрано ✦</div>
+    <div class="winner-cat" id="winner-cat"></div>
+    <img class="winner-cover" id="winner-cover" alt="" referrerpolicy="no-referrer">
+    <div class="winner-title" id="winner-title"></div>
+    <div class="winner-who">
+      <span class="winner-who-ava" id="winner-who-ava"></span>
+      <span id="winner-who-text"></span>
+    </div>
+    <a class="winner-link" id="winner-link" target="_blank" rel="noopener noreferrer">открыть страницу ↗</a>
+    <br>
+    <button class="ctrl-btn winner-close" id="winner-close-btn">Закрыть</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// Утилиты
+// ============================================================
+function parseCSV(text) {
+  const rows = [];
+  let row = [], cell = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i], next = text[i + 1];
+    if (inQuotes) {
+      if (c === '"' && next === '"') { cell += '"'; i++; }
+      else if (c === '"') { inQuotes = false; }
+      else { cell += c; }
+    } else {
+      if (c === '"') { inQuotes = true; }
+      else if (c === ',') { row.push(cell); cell = ''; }
+      else if (c === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
+      else if (c === '\r') {}
+      else { cell += c; }
+    }
+  }
+  if (cell.length > 0 || row.length > 0) {
+    row.push(cell);
+    if (row.some(c => c.length > 0)) rows.push(row);
+  }
+  return rows;
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+function pluralize(n, one, few, many) {
+  const m10 = n % 10, m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return one;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
+  return many;
+}
+
+// ============================================================
+// Разбор таблиц
+// ============================================================
+const TITLE_HINTS  = ['title','название','назва','тайтл','фильм','аниме','сериал','игра','name'];
+const WHO_HINTS    = ['nick','заказчик','заказ','ник','зритель','user','кто','автор'];
+const STATUS_HINTS = ['status','статус'];
+const COVER_HINTS  = ['cover','обложка','постер','poster'];
+const LINK_HINTS   = ['url','ссылка','link'];
+
+function findCol(headers, hints) {
+  for (let i = 0; i < headers.length; i++) {
+    for (const hint of hints) if (headers[i].indexOf(hint) >= 0) return i;
+  }
+  return -1;
+}
+
+// Приводим статус к одному из трёх. Пустое и незнакомое = «ещё не смотрели».
+function normStatus(raw) {
+  const s = (raw || '').trim().toLowerCase();
+  if (s.indexOf('watched') >= 0 || s.indexOf('смотрел') >= 0 || s.indexOf('готов') >= 0) return 'watched';
+  if (s.indexOf('watching') >= 0 || s.indexOf('смотрим') >= 0 || s.indexOf('процесс') >= 0) return 'watching';
+  return 'pending';
+}
+
+function rowsToItems(rows, source) {
+  if (rows.length < 1) return [];
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  let titleIdx  = findCol(headers, TITLE_HINTS);
+  let whoIdx    = findCol(headers, WHO_HINTS);
+  const statIdx = findCol(headers, STATUS_HINTS);
+  // cover_url тоже содержит 'url', поэтому обложку ищем раньше ссылки
+  const coverIdx = findCol(headers, COVER_HINTS);
+  let linkIdx = -1;
+  for (let i = 0; i < headers.length; i++) {
+    if (i === coverIdx) continue;
+    if (LINK_HINTS.some(h => headers[i].indexOf(h) >= 0)) { linkIdx = i; break; }
+  }
+  if (titleIdx < 0) titleIdx = 0;
+  if (whoIdx < 0)   whoIdx = headers.length > 1 ? 1 : -1;
+
+  const cell = (r, i) => (i >= 0 && r[i] ? r[i].trim() : '');
+
+  return rows.slice(1)
+    .filter(r => cell(r, titleIdx))
+    .map(r => ({
+      title:  cell(r, titleIdx),
+      who:    cell(r, whoIdx),
+      status: normStatus(cell(r, statIdx)),
+      cover:  cell(r, coverIdx),
+      link:   cell(r, linkIdx),
+      source: source.id,
+    }));
+}
+
+// ============================================================
+// Загрузка
+// ============================================================
+let allItems = [];
+let viewers = {};                 // ник (lowercase) → {nick, avatar}
+const srcState = {};
+
+async function loadSource(source) {
+  const st = srcState[source.id];
+  try {
+    const res = await fetch(source.csv);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const items = rowsToItems(parseCSV(await res.text()), source);
+    st.note = '';
+    return items;
+  } catch (e) {
+    st.note = 'ошибка загрузки';
+    st.error = true;
+    return [];
+  }
+}
+
+async function loadViewers() {
+  try {
+    const res = await fetch(VIEWERS_CSV_URL);
+    if (!res.ok) return;
+    const rows = parseCSV(await res.text());
+    if (rows.length < 2) return;
+    const h = rows[0].map(x => x.trim().toLowerCase());
+    const nickIdx = h.indexOf('nick') >= 0 ? h.indexOf('nick') : 0;
+    const avaIdx  = findCol(h, ['avatar','аватар']);
+    rows.slice(1).forEach(r => {
+      const n = (r[nickIdx] || '').trim();
+      if (!n) return;
+      viewers[n.toLowerCase()] = { nick: n, avatar: avaIdx >= 0 ? (r[avaIdx] || '').trim() : '' };
+    });
+  } catch (e) { /* аватарки не критичны */ }
+}
+
+function avatarOf(nick) {
+  const v = viewers[(nick || '').toLowerCase()];
+  return v && /^https?:\/\//i.test(v.avatar) ? v.avatar : '';
+}
+
+async function loadAll() {
+  SOURCES.forEach(s => { if (!srcState[s.id]) srcState[s.id] = { on: true }; srcState[s.id].error = false; });
+  STATUSES.forEach(s => { if (!(s.id in statState)) statState[s.id] = s.on; });
+
+  const [lists] = await Promise.all([
+    Promise.all(SOURCES.map(loadSource)),
+    loadViewers(),
+  ]);
+
+  allItems = [];
+  SOURCES.forEach((s, i) => {
+    srcState[s.id].count = lists[i].length;
+    allItems = allItems.concat(lists[i]);
+  });
+
+  const known = new Set(allItems.map(i => i.who).filter(Boolean));
+  Object.keys(whoState).forEach(k => { if (!known.has(k)) delete whoState[k]; });
+  known.forEach(w => { if (!(w in whoState)) whoState[w] = true; });
+
+  renderSources();
+  renderStatuses();
+  renderPeople();
+  rebuildWheel();
+}
+
+// ============================================================
+// Фильтры
+// ============================================================
+const whoState = {};
+const statState = {};
+let whoQuery = '';
+
+function visibleItems() {
+  return allItems.filter(it =>
+    srcState[it.source] && srcState[it.source].on &&
+    statState[it.status] !== false &&
+    (!it.who || whoState[it.who] !== false)
+  );
+}
+
+function srcById(id) { return SOURCES.find(s => s.id === id); }
+
+// Слегка меняем яркость цвета источника, чтобы соседние сектора отличались
+function shade(hex, amount) {
+  const n = parseInt(hex.slice(1), 16);
+  const clamp = v => Math.max(0, Math.min(255, v));
+  const r = clamp(((n >> 16) & 255) + amount);
+  const g = clamp(((n >> 8) & 255) + amount);
+  const b = clamp((n & 255) + amount);
+  return '#' + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
+}
+
+function renderSources() {
+  document.getElementById('sources-list').innerHTML = SOURCES.map(s => {
+    const st = srcState[s.id];
+    const note = st.note ? `<div class="src-status${st.error ? ' err' : ''}">${esc(st.note)}</div>` : '';
+    return `
+      <div class="row ${st.on ? 'on' : 'off'}" data-src="${s.id}" style="--sw:${s.color}">
+        <span class="box"></span>
+        <span class="row-label" style="color:${s.color}">${s.icon} ${esc(s.name)}</span>
+        <span class="row-count">${st.count != null ? st.count : '—'}</span>
+      </div>${note}`;
+  }).join('');
+
+  document.querySelectorAll('[data-src]').forEach(el => {
+    el.addEventListener('click', () => {
+      srcState[el.dataset.src].on = !srcState[el.dataset.src].on;
+      renderSources(); renderStatuses(); renderPeople(); rebuildWheel();
+    });
+  });
+}
+
+function renderStatuses() {
+  const counts = {};
+  allItems.forEach(it => {
+    if (!srcState[it.source] || !srcState[it.source].on) return;
+    counts[it.status] = (counts[it.status] || 0) + 1;
+  });
+  document.getElementById('status-list').innerHTML = STATUSES.map(s => `
+    <div class="row ${statState[s.id] !== false ? 'on' : 'off'}" data-stat="${s.id}">
+      <span class="box"></span>
+      <span class="row-label">${s.icon} ${esc(s.name)}</span>
+      <span class="row-count">${counts[s.id] || 0}</span>
+    </div>`).join('');
+
+  document.querySelectorAll('[data-stat]').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.stat;
+      statState[id] = statState[id] === false;
+      renderStatuses(); renderPeople(); rebuildWheel();
+    });
+  });
+}
+
+function renderPeople() {
+  const counts = {};
+  allItems.forEach(it => {
+    if (!it.who) return;
+    if (!srcState[it.source] || !srcState[it.source].on) return;
+    if (statState[it.status] === false) return;
+    counts[it.who] = (counts[it.who] || 0) + 1;
+  });
+  let names = Object.keys(counts).sort((a, b) => counts[b] - counts[a] || a.localeCompare(b, 'ru'));
+  if (whoQuery) names = names.filter(n => n.toLowerCase().indexOf(whoQuery) >= 0);
+
+  const list = document.getElementById('people-list');
+  if (names.length === 0) {
+    list.innerHTML = `<div class="empty-note">${whoQuery ? 'Никого не нашли' : 'Выбери источник — здесь появятся заказчики'}</div>`;
+    return;
+  }
+  list.innerHTML = names.map(n => {
+    const ava = avatarOf(n);
+    return `
+      <div class="row ${whoState[n] !== false ? 'on' : 'off'}" data-who="${esc(n)}">
+        <span class="box"></span>
+        <span class="row-ava" ${ava ? `style="background-image:url('${esc(ava)}')"` : ''}></span>
+        <span class="row-label">${esc(n)}</span>
+        <span class="row-count">${counts[n]}</span>
+      </div>`;
+  }).join('');
+
+  list.querySelectorAll('[data-who]').forEach(el => {
+    el.addEventListener('click', () => {
+      const n = el.dataset.who;
+      whoState[n] = whoState[n] === false;
+      renderPeople(); rebuildWheel();
+    });
+  });
+}
+
+document.getElementById('who-search').addEventListener('input', e => {
+  whoQuery = e.target.value.trim().toLowerCase();
+  renderPeople();
+});
+document.getElementById('who-all').addEventListener('click', () => {
+  Object.keys(whoState).forEach(k => whoState[k] = true);
+  renderPeople(); rebuildWheel();
+});
+document.getElementById('who-none').addEventListener('click', () => {
+  Object.keys(whoState).forEach(k => whoState[k] = false);
+  renderPeople(); rebuildWheel();
+});
+
+// ============================================================
+// Состояние колеса
+// ============================================================
+let activeItems = [];
+let currentSegments = [];
+let labelCache = [];
+let currentRotation = 0;
+let isSpinning = false;
+let duration = 5;
+let eliminationMode = false;
+let finalists = null;
+let log = [];
+let soundOn = true;
+
+// Когда вариантов мало, каждый получает несколько тонких кусочков
+// вперемешку: шансы те же, но по колесу не предугадать результат
+const SPLIT_BELOW = 10;
+const MIN_SLICE_ANGLE = 4;
+const MAX_PARTS = 10;
+
+function rebuildWheel() {
+  activeItems = visibleItems();
+  eliminationMode = false;
+  document.getElementById('elimination-status').classList.remove('active');
+  document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+  hideFinalists();
+  log = [];
+  document.getElementById('log-entries').innerHTML = '';
+  document.getElementById('log').classList.remove('has-entries');
+  currentRotation = 0;
+  renderWheel();
+  updateStats();
+}
+
+function updateStats() {
+  const total = activeItems.length;
+  const bySrc = SOURCES.filter(s => srcState[s.id] && srcState[s.id].on)
+    .map(s => `${s.icon} ${activeItems.filter(i => i.source === s.id).length}`).join(' · ');
+  document.getElementById('top-stats').innerHTML =
+    `<b>${total}</b> ${pluralize(total,'вариант','варианта','вариантов')}${bySrc ? ' &nbsp;•&nbsp; ' + bySrc : ''}`;
+  document.getElementById('elim-remaining').textContent = total;
+  document.getElementById('wheel-empty').style.display = total === 0 ? 'flex' : 'none';
+  ['btn-single','btn-elim'].forEach(id => { document.getElementById(id).disabled = total === 0; });
+}
+
+// ============================================================
+// Раскладка секторов
+// ============================================================
+function computeSegments() {
+  const n = activeItems.length;
+  if (n === 0) return [];
+  const share = 360 / n;                       // все варианты равны
+
+  const shares = activeItems.map((it, i) => ({ item: it, itemIndex: i, angle: share }));
+  const splitOn = n > 1 && n < SPLIT_BELOW;
+  shares.forEach(s => {
+    s.parts = splitOn ? Math.max(1, Math.min(MAX_PARTS, Math.floor(s.angle / MIN_SLICE_ANGLE))) : 1;
+  });
+
+  const ordered = [];
+  shares.forEach((s, i) => {
+    const offset = (i * 0.37) % 1;
+    for (let j = 0; j < s.parts; j++) {
+      ordered.push({ item: s.item, itemIndex: s.itemIndex, angle: s.angle / s.parts, key: (j + offset) / s.parts });
+    }
+  });
+  ordered.sort((a, b) => a.key - b.key);
+
+  let cumulative = 0;
+  return ordered.map(s => {
+    const startAngle = cumulative;
+    cumulative += s.angle;
+    return {
+      item: s.item, itemIndex: s.itemIndex, angle: s.angle,
+      startAngle: startAngle, endAngle: cumulative,
+      midAngle: startAngle + s.angle / 2,
+    };
+  });
+}
+
+function sectorPath(cx, cy, r, startAngle, endAngle) {
+  const s = (startAngle - 90) * Math.PI / 180, e = (endAngle - 90) * Math.PI / 180;
+  const x1 = cx + Math.cos(s) * r, y1 = cy + Math.sin(s) * r;
+  const x2 = cx + Math.cos(e) * r, y2 = cy + Math.sin(e) * r;
+  return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${(endAngle - startAngle) > 180 ? 1 : 0} 1 ${x2} ${y2} Z`;
+}
+
+function renderWheel() {
+  const svg = document.getElementById('wheel');
+  if (activeItems.length === 0) { currentSegments = []; labelCache = []; svg.innerHTML = ''; return; }
+
+  const segments = computeSegments();
+  currentSegments = segments;
+
+  let content = '';
+  const cx = 50, cy = 50, r = 48;
+  segments.forEach(seg => {
+    const base = srcById(seg.item.source);
+    const color = shade(base ? base.color : '#888', ((seg.itemIndex % 3) - 1) * 18);
+    content += `<path d="${sectorPath(cx, cy, r, seg.startAngle, seg.endAngle)}" fill="${color}" stroke="#0a0e1a" stroke-width="0.2"/>`;
+
+    if (seg.angle >= 2) {
+      const textRadius = r * 0.86;
+      const rad = (seg.midAngle - 90) * Math.PI / 180;
+      const tx = cx + Math.cos(rad) * textRadius, ty = cy + Math.sin(rad) * textRadius;
+      const baseRot = seg.midAngle - 90;
+      const fontSize = Math.min(3.2, Math.max(1.5, seg.angle * 0.4));
+      let label = seg.item.title;
+      if (label.length > 22) label = label.substring(0, 21) + '…';
+      content += `<text x="${tx}" y="${ty}" fill="#0a0e1a" font-size="${fontSize}"
+        data-base="${baseRot.toFixed(3)}" data-tx="${tx.toFixed(3)}" data-ty="${ty.toFixed(3)}"
+        text-anchor="end" dominant-baseline="middle"
+        transform="rotate(${baseRot} ${tx} ${ty})"
+        style="paint-order: stroke; stroke: rgba(255,255,255,0.55); stroke-width: 0.5;
+               font-weight: 700; pointer-events: none;">${esc(label)}</text>`;
+    }
+  });
+
+  svg.innerHTML = `
+    <g id="wheel-group" style="transform-origin: 50% 50%; transform: rotate(${currentRotation}deg); transition: none;">
+      ${content}
+    </g>
+    <circle cx="50" cy="50" r="6" fill="#0a0e1a" stroke="#FAC775" stroke-width="0.5"/>`;
+
+  labelCache = svg.querySelectorAll('#wheel-group text[data-base]');
+  updateLabelOrientation(currentRotation);
+}
+
+// Подписи крутятся вместе с колесом — переворачиваем их на лету,
+// чтобы к стрелке ни одна не подъехала вверх ногами
+function updateLabelOrientation(rotDeg) {
+  for (let i = 0; i < labelCache.length; i++) {
+    const el = labelCache[i];
+    const base = parseFloat(el.dataset.base);
+    const onScreen = (((base + rotDeg) % 360) + 360) % 360;
+    const flipped = (onScreen > 90 && onScreen < 270) ? '1' : '0';
+    if (el.dataset.flipped === flipped) continue;
+    el.dataset.flipped = flipped;
+    el.setAttribute('transform', `rotate(${flipped === '1' ? base + 180 : base} ${el.dataset.tx} ${el.dataset.ty})`);
+    el.setAttribute('text-anchor', flipped === '1' ? 'start' : 'end');
+  }
+}
+
+// ============================================================
+// Прокрутка
+// ============================================================
+const POINTER_ANGLE = 90;   // стрелка справа: ник победителя горизонтален
+
+function pickWinnerIndex() {
+  const n = activeItems.length;
+  if (n === 0) return -1;
+  const buf = new Uint32Array(1);
+  crypto.getRandomValues(buf);
+  return Math.floor((buf[0] / 0x100000000) * n);
+}
+
+function cubicBezier(y1, y2, t) { const inv = 1 - t, t2 = t * t; return 3*inv*inv*t*y1 + 3*inv*t2*y2 + t2*t; }
+function cubicBezierX(x1, x2, t) { const inv = 1 - t, t2 = t * t; return 3*inv*inv*t*x1 + 3*inv*t2*x2 + t2*t; }
+function easeOutBezier(t) {
+  let low = 0, high = 1, mid = t;
+  for (let i = 0; i < 20; i++) {
+    const x = cubicBezierX(0.17, 0.2, mid);
+    if (Math.abs(x - t) < 1e-6) break;
+    if (x < t) low = mid; else high = mid;
+    mid = (low + high) / 2;
+  }
+  return cubicBezier(0.67, 1, mid);
+}
+function normalizeAngle(a) { const n = a % 360; return n < 0 ? n + 360 : n; }
+function boundaryCrossed(prev, next, boundary, decreasing) {
+  if (decreasing) {
+    if (prev >= next) return next < boundary && boundary <= prev;
+    return boundary > next || boundary <= prev;
+  }
+  if (next >= prev) return prev < boundary && boundary <= next;
+  return boundary > prev || boundary <= next;
+}
+
+async function trackPointerTicks(startRot, endRot, dur, segments) {
+  const startTime = performance.now();
+  const totalDelta = endRot - startRot;
+  const boundaries = segments.map(s => normalizeAngle(s.startAngle));
+  let last = normalizeAngle(POINTER_ANGLE - startRot);
+  const decreasing = totalDelta > 0;
+  return new Promise(resolve => {
+    function frame(now) {
+      const t = Math.min((now - startTime) / 1000 / dur, 1);
+      const currentRot = startRot + totalDelta * easeOutBezier(t);
+      updateLabelOrientation(currentRot);
+      const onWheel = normalizeAngle(POINTER_ANGLE - currentRot);
+      for (const b of boundaries) if (boundaryCrossed(last, onWheel, b, decreasing)) triggerTick();
+      last = onWheel;
+      if (t < 1) requestAnimationFrame(frame); else resolve();
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+function triggerTick() {
+  const p = document.getElementById('wheel-pointer');
+  p.classList.remove('ticking');
+  void p.offsetWidth;
+  p.classList.add('ticking');
+  playClick();
+}
+
+function setControlsDisabled(d) {
+  ['btn-single','btn-elim','btn-reset','btn-reload'].forEach(id => document.getElementById(id).disabled = d);
+  document.querySelectorAll('.duration-btn').forEach(b => b.disabled = d);
+}
+
+async function spin(callback) {
+  if (isSpinning || activeItems.length === 0) return;
+  if (activeItems.length === 1) { if (callback) callback(0); return; }
+
+  isSpinning = true;
+  setControlsDisabled(true);
+
+  const segments = currentSegments.length ? currentSegments : computeSegments();
+  const winnerIdx = pickWinnerIndex();
+
+  // У победителя может быть несколько кусочков — останавливаемся на случайном
+  const slices = segments.filter(s => s.itemIndex === winnerIdx);
+  let chosen = slices[0];
+  if (slices.length > 1) {
+    const p = new Uint32Array(1); crypto.getRandomValues(p);
+    chosen = slices[p[0] % slices.length];
+  }
+  if (!chosen) { isSpinning = false; setControlsDisabled(false); return; }
+
+  const cur = ((currentRotation % 360) + 360) % 360;
+  const tgt = (((POINTER_ANGLE - chosen.midAngle) % 360) + 360) % 360;
+  let delta = tgt - cur; if (delta < 0) delta += 360;
+  const startRotation = currentRotation;
+  const finalRotation = currentRotation + 4 * 360 + delta;
+  currentRotation = finalRotation;
+
+  const group = document.querySelector('#wheel-group');
+  group.style.transition = `transform ${duration}s cubic-bezier(0.17, 0.67, 0.2, 1)`;
+  group.style.transform = `rotate(${finalRotation}deg)`;
+
+  await trackPointerTicks(startRotation, finalRotation, duration, segments);
+  updateLabelOrientation(finalRotation);
+  await new Promise(r => setTimeout(r, 100));
+
+  isSpinning = false;
+  setControlsDisabled(false);
+  if (callback) callback(winnerIdx);
+}
+
+// ============================================================
+// Звук
+// ============================================================
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+}
+function playClick() {
+  if (!soundOn) return; ensureAudio(); if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(2400, now);
+  osc.frequency.exponentialRampToValueAtTime(800, now + 0.04);
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.05, now + 0.005);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(now); osc.stop(now + 0.08);
+}
+function playFanfare() {
+  if (!soundOn) return; ensureAudio(); if (!audioCtx) return;
+  const t0 = audioCtx.currentTime;
+  [[261.63,0,0.18],[329.63,0.18,0.18],[392,0.36,0.18],[523.25,0.54,0.4],
+   [659.25,1.0,0.2],[783.99,1.2,0.2],[1046.5,1.45,0.8]].forEach(([f,t,d]) => {
+    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(f, t0 + t);
+    gain.gain.setValueAtTime(0, t0 + t);
+    gain.gain.linearRampToValueAtTime(0.12, t0 + t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + t + d);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(t0 + t); osc.stop(t0 + t + d + 0.05);
+  });
+}
+function playFinalistsSound() {
+  if (!soundOn) return; ensureAudio(); if (!audioCtx) return;
+  const t0 = audioCtx.currentTime;
+  const hit = audioCtx.createOscillator(), hg = audioCtx.createGain();
+  hit.type = 'sine';
+  hit.frequency.setValueAtTime(85, t0);
+  hit.frequency.exponentialRampToValueAtTime(40, t0 + 0.5);
+  hg.gain.setValueAtTime(0.3, t0);
+  hg.gain.exponentialRampToValueAtTime(0.001, t0 + 0.6);
+  hit.connect(hg); hg.connect(audioCtx.destination);
+  hit.start(t0); hit.stop(t0 + 0.65);
+  [[220,0.15],[261.63,0.38],[329.63,0.61],[440,0.84]].forEach(([f,t]) => {
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(f, t0 + t);
+    g.gain.setValueAtTime(0, t0 + t);
+    g.gain.linearRampToValueAtTime(0.14, t0 + t + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + t + 0.5);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(t0 + t); o.stop(t0 + t + 0.55);
+  });
+}
+
+const soundBtn = document.getElementById('sound-toggle');
+function updateSoundButton() {
+  soundBtn.classList.toggle('off', !soundOn);
+  soundBtn.textContent = soundOn ? '🔊 Звук вкл.' : '🔇 Звук выкл.';
+}
+soundBtn.addEventListener('click', () => { soundOn = !soundOn; if (soundOn) ensureAudio(); updateSoundButton(); });
+updateSoundButton();
+document.addEventListener('click', () => { if (soundOn) ensureAudio(); }, { once: true });
+
+// ============================================================
+// Победитель
+// ============================================================
+function showWinner(item) {
+  const s = srcById(item.source);
+  const cat = document.getElementById('winner-cat');
+  cat.textContent = s ? `${s.icon} ${s.name}` : '';
+  cat.style.color = s ? s.color : '#fff';
+
+  document.getElementById('winner-title').textContent = item.title;
+  document.getElementById('winner-who-text').textContent = item.who ? `заказ: ${item.who}` : '';
+
+  const ava = document.getElementById('winner-who-ava');
+  const url = avatarOf(item.who);
+  if (url) { ava.style.backgroundImage = `url('${url}')`; ava.classList.add('show'); }
+  else { ava.classList.remove('show'); ava.style.backgroundImage = ''; }
+
+  // Обложка: показываем только если картинка реально загрузилась
+  const cover = document.getElementById('winner-cover');
+  cover.classList.remove('show');
+  cover.removeAttribute('src');
+  if (item.cover && /^https?:\/\//i.test(item.cover)) {
+    cover.onload  = () => cover.classList.add('show');
+    cover.onerror = () => cover.classList.remove('show');
+    cover.src = item.cover;
+  }
+
+  const link = document.getElementById('winner-link');
+  if (item.link && /^https?:\/\//i.test(item.link)) {
+    link.href = item.link; link.classList.add('show');
+  } else {
+    link.classList.remove('show'); link.removeAttribute('href');
+  }
+
+  document.getElementById('winner-overlay').classList.add('show');
+  launchConfetti();
+  playFanfare();
+}
+function hideWinner() {
+  document.getElementById('winner-overlay').classList.remove('show');
+  const c = document.getElementById('confetti');
+  c.classList.remove('active'); c.innerHTML = '';
+}
+document.getElementById('winner-close-btn').addEventListener('click', hideWinner);
+
+function launchConfetti() {
+  const c = document.getElementById('confetti');
+  c.classList.add('active'); c.innerHTML = '';
+  const colors = ['#FAC775','#E58CC0','#6FB7E8','#9B8CE8','#FFE194','#ffffff'];
+  for (let i = 0; i < 120; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    const size = 8 + Math.random() * 10;
+    p.style.left = (Math.random() * 100) + 'vw';
+    p.style.width = size + 'px'; p.style.height = size + 'px';
+    const col = colors[Math.floor(Math.random() * colors.length)];
+    p.style.backgroundColor = col;
+    p.style.boxShadow = `0 0 ${size}px ${col}`;
+    p.style.setProperty('--drift', ((Math.random() - 0.5) * 400) + 'px');
+    p.style.animationDuration = (3 + Math.random() * 2.5) + 's';
+    p.style.animationDelay = (Math.random() * 0.6) + 's';
+    const shape = Math.floor(Math.random() * 3);
+    if (shape === 1) p.style.borderRadius = '50%';
+    else if (shape === 2) p.style.clipPath = 'polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)';
+    c.appendChild(p);
+  }
+  setTimeout(() => { if (c.classList.contains('active')) c.innerHTML = ''; }, 6000);
+}
+
+// ============================================================
+// История и финалисты
+// ============================================================
+function addLogEntry(item, isWinner) {
+  log.push({ item, isWinner });
+  document.getElementById('log-entries').innerHTML = log.map((e, i) => `
+    <div class="log-entry${e.isWinner ? ' winner' : ''}${i === log.length - 1 ? ' fresh' : ''}">
+      <span class="num">${e.isWinner ? '🏆' : '#' + (i + 1)}</span>${e.isWinner ? '' : 'Выбыл: '}${esc(e.item.title)}
+      ${e.item.who ? `<div class="log-who">заказ: ${esc(e.item.who)}</div>` : ''}
+    </div>`).reverse().join('');
+  const l = document.getElementById('log');
+  l.classList.add('has-entries');
+  l.scrollTop = 0;
+}
+
+function renderFinalists(justFilled) {
+  if (!finalists) return;
+  document.getElementById('finalists-list').innerHTML = finalists.map(f => {
+    const filled = f.item != null;
+    const body = filled
+      ? `<span class="fin-title">${f.place === 1 ? '👑 ' : ''}${esc(f.item.title)}</span>
+         ${f.item.who ? `<span class="fin-who">${esc(f.item.who)}</span>` : ''}`
+      : `<span class="fin-empty">— ожидание —</span>`;
+    return `<div class="finalist place-${f.place}${filled ? ' filled' : ''}${justFilled === f.place ? ' just-filled' : ''}">
+        <span class="fin-place">${f.place}</span><div class="fin-body">${body}</div></div>`;
+  }).join('');
+}
+function maybeShowFinalists() {
+  if (finalists || !eliminationMode) return;
+  if (activeItems.length < 2 || activeItems.length > 5) return;
+  finalists = [1,2,3,4,5].map(place => ({ place, item: null }));
+  renderFinalists();
+  document.getElementById('finalists').classList.add('active');
+  playFinalistsSound();
+}
+function fillFinalistPlace(place, item) {
+  if (!finalists) return;
+  const slot = finalists.find(f => f.place === place);
+  if (!slot || slot.item != null) return;
+  slot.item = item;
+  renderFinalists(place);
+}
+function hideFinalists() {
+  finalists = null;
+  document.getElementById('finalists').classList.remove('active');
+  document.getElementById('finalists-list').innerHTML = '';
+}
+
+// ============================================================
+// Кнопки
+// ============================================================
+document.querySelectorAll('.duration-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    duration = parseInt(btn.dataset.dur, 10);
+  });
+});
+
+document.getElementById('btn-single').addEventListener('click', () => {
+  if (eliminationMode) {
+    if (!confirm('Активен режим выбывания. Прервать и выбрать одного?')) return;
+    eliminationMode = false;
+    document.getElementById('elimination-status').classList.remove('active');
+    document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+  }
+  spin(idx => { const w = activeItems[idx]; addLogEntry(w, true); showWinner(w); });
+});
+
+document.getElementById('btn-elim').addEventListener('click', () => {
+  if (!eliminationMode) {
+    eliminationMode = true;
+    document.getElementById('elimination-status').classList.add('active');
+    document.getElementById('btn-elim').textContent = '⚔ Крутить (выбывание)';
+    maybeShowFinalists();
+  }
+  spin(idx => {
+    const out = activeItems[idx];
+    if (activeItems.length === 1) {
+      const w = activeItems[0];
+      addLogEntry(w, true); fillFinalistPlace(1, w); showWinner(w);
+      eliminationMode = false;
+      document.getElementById('elimination-status').classList.remove('active');
+      document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+      return;
+    }
+    const place = activeItems.length;      // из 5 → 5-е место, из 4 → 4-е…
+    addLogEntry(out, false);
+    activeItems.splice(idx, 1);
+    updateStats();
+    renderWheel();
+    maybeShowFinalists();
+    if (place <= 5) fillFinalistPlace(place, out);
+    if (activeItems.length === 1) {
+      setTimeout(() => {
+        const w = activeItems[0];
+        addLogEntry(w, true); fillFinalistPlace(1, w); showWinner(w);
+        eliminationMode = false;
+        document.getElementById('elimination-status').classList.remove('active');
+        document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+      }, 700);
+    }
+  });
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (!confirm('Сбросить? Все выбывшие вернутся, история очистится.')) return;
+  hideWinner();
+  rebuildWheel();
+});
+
+document.getElementById('btn-reload').addEventListener('click', async () => {
+  const b = document.getElementById('btn-reload');
+  b.disabled = true; b.textContent = '⏳ Загрузка…';
+  await loadAll();
+  b.disabled = false; b.textContent = '🔄 Перезагрузить';
+});
+
+loadAll();
+</script>
+</body>
+</html>
