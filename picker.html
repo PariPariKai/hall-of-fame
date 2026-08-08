@@ -31,6 +31,18 @@
     { id:'watching', name:'Сейчас смотрим',  icon:'◐', on:true  },
     { id:'watched',  name:'Уже посмотрели',  icon:'●', on:false },
   ];
+
+  // Тип берётся из колонки type (фильмы: movie/youtube/other)
+  // или format (аниме: sub/dub). Список строится по тому, что реально
+  // есть в таблицах, — незнакомое значение просто покажется как есть.
+  const TYPE_LABELS = {
+    movie:   { name:'Фильм',    icon:'🎬' },
+    youtube: { name:'YouTube',  icon:'▶️' },
+    other:   { name:'Другое',   icon:'▫️' },
+    sub:     { name:'Субтитры', icon:'💬' },
+    dub:     { name:'Озвучка',  icon:'🔊' },
+    '':      { name:'Без типа', icon:'—'  },
+  };
 </script>
 
 <style>
@@ -414,6 +426,11 @@
         <div id="status-list"></div>
       </div>
 
+      <div class="panel" id="types-panel" style="display:none">
+        <div class="panel-head"><div class="panel-title">Тип</div></div>
+        <div id="types-list"></div>
+      </div>
+
       <div class="panel">
         <div class="panel-head">
           <div class="panel-title">Заказчики</div>
@@ -543,6 +560,7 @@ function pluralize(n, one, few, many) {
 const TITLE_HINTS  = ['title','название','назва','тайтл','фильм','аниме','сериал','игра','name'];
 const WHO_HINTS    = ['nick','заказчик','заказ','ник','зритель','user','кто','автор'];
 const STATUS_HINTS = ['status','статус'];
+const TYPE_HINTS   = ['type','format','формат','тип'];
 const COVER_HINTS  = ['cover','обложка','постер','poster'];
 const LINK_HINTS   = ['url','ссылка','link'];
 
@@ -567,6 +585,7 @@ function rowsToItems(rows, source) {
   let titleIdx  = findCol(headers, TITLE_HINTS);
   let whoIdx    = findCol(headers, WHO_HINTS);
   const statIdx = findCol(headers, STATUS_HINTS);
+  const typeIdx = findCol(headers, TYPE_HINTS);
   // cover_url тоже содержит 'url', поэтому обложку ищем раньше ссылки
   const coverIdx = findCol(headers, COVER_HINTS);
   let linkIdx = -1;
@@ -585,6 +604,7 @@ function rowsToItems(rows, source) {
       title:  cell(r, titleIdx),
       who:    cell(r, whoIdx),
       status: normStatus(cell(r, statIdx)),
+      type:   cell(r, typeIdx).toLowerCase(),
       cover:  cell(r, coverIdx),
       link:   cell(r, linkIdx),
       source: source.id,
@@ -656,6 +676,7 @@ async function loadAll() {
 
   renderSources();
   renderStatuses();
+  renderTypes();
   renderPeople();
   rebuildWheel();
 }
@@ -665,14 +686,20 @@ async function loadAll() {
 // ============================================================
 const whoState = {};
 const statState = {};
+const typeState = {};
 let whoQuery = '';
 
 function visibleItems() {
   return allItems.filter(it =>
     srcState[it.source] && srcState[it.source].on &&
     statState[it.status] !== false &&
+    typeState[it.type] !== false &&
     (!it.who || whoState[it.who] !== false)
   );
+}
+
+function typeLabel(t) {
+  return TYPE_LABELS[t] || { name: t, icon: '▫️' };
 }
 
 function srcById(id) { return SOURCES.find(s => s.id === id); }
@@ -702,7 +729,7 @@ function renderSources() {
   document.querySelectorAll('[data-src]').forEach(el => {
     el.addEventListener('click', () => {
       srcState[el.dataset.src].on = !srcState[el.dataset.src].on;
-      renderSources(); renderStatuses(); renderPeople(); rebuildWheel();
+      renderSources(); renderStatuses(); renderTypes(); renderPeople(); rebuildWheel();
     });
   });
 }
@@ -724,7 +751,42 @@ function renderStatuses() {
     el.addEventListener('click', () => {
       const id = el.dataset.stat;
       statState[id] = statState[id] === false;
-      renderStatuses(); renderPeople(); rebuildWheel();
+      renderStatuses(); renderTypes(); renderPeople(); rebuildWheel();
+    });
+  });
+}
+
+// Типы строим по тому, что реально есть в включённых источниках.
+// Панель прячется, если типов нет вообще (например, остались только игры).
+function renderTypes() {
+  const counts = {};
+  allItems.forEach(it => {
+    if (!srcState[it.source] || !srcState[it.source].on) return;
+    if (statState[it.status] === false) return;
+    counts[it.type] = (counts[it.type] || 0) + 1;
+  });
+  const keys = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+  const panel = document.getElementById('types-panel');
+
+  // Один-единственный тип фильтровать не по чему — прячем панель
+  if (keys.length < 2) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+
+  document.getElementById('types-list').innerHTML = keys.map(t => {
+    const L = typeLabel(t);
+    return `
+      <div class="row ${typeState[t] !== false ? 'on' : 'off'}" data-type="${esc(t)}">
+        <span class="box"></span>
+        <span class="row-label">${L.icon} ${esc(L.name)}</span>
+        <span class="row-count">${counts[t]}</span>
+      </div>`;
+  }).join('');
+
+  document.querySelectorAll('[data-type]').forEach(el => {
+    el.addEventListener('click', () => {
+      const t = el.dataset.type;
+      typeState[t] = typeState[t] === false;
+      renderTypes(); renderPeople(); rebuildWheel();
     });
   });
 }
@@ -735,6 +797,7 @@ function renderPeople() {
     if (!it.who) return;
     if (!srcState[it.source] || !srcState[it.source].on) return;
     if (statState[it.status] === false) return;
+    if (typeState[it.type] === false) return;
     counts[it.who] = (counts[it.who] || 0) + 1;
   });
   let names = Object.keys(counts).sort((a, b) => counts[b] - counts[a] || a.localeCompare(b, 'ru'));
