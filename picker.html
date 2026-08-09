@@ -249,45 +249,7 @@
   }
   .elimination-status.active { display: block; }
 
-  /* ========== ФИНАЛИСТЫ / ИСТОРИЯ ========== */
-  .finalists { display: none; }
-  .finalists.active { display: block; animation: finIn 0.6s cubic-bezier(0.22,1.2,0.36,1) both; }
-  @keyframes finIn { 0%{transform:scale(0.6);opacity:0} 60%{transform:scale(1.05);opacity:1} 100%{transform:scale(1)} }
-  .finalist {
-    display: flex; align-items: center; gap: 9px;
-    padding: 8px 9px; border-radius: 8px; margin-bottom: 6px;
-    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
-    font-size: 12.5px; transition: all 0.4s ease; min-height: 40px;
-  }
-  .fin-place {
-    flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 11.5px; font-weight: 700;
-    background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.5);
-  }
-  .fin-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-  .fin-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .fin-empty { color: rgba(255,255,255,0.22); font-size: 11.5px; font-style: italic; }
-  .fin-who { color: rgba(255,255,255,0.4); font-size: 10.5px; }
-  .finalist.place-1 { background: rgba(250,199,117,0.08); border-color: rgba(250,199,117,0.25); }
-  .finalist.place-1 .fin-place { background: rgba(250,199,117,0.2); color: #FAC775; }
-  .finalist.place-2 { background: rgba(208,214,228,0.06); border-color: rgba(208,214,228,0.22); }
-  .finalist.place-2 .fin-place { background: rgba(208,214,228,0.16); color: #D0D6E4; }
-  .finalist.place-3 { background: rgba(205,127,50,0.08); border-color: rgba(205,127,50,0.25); }
-  .finalist.place-3 .fin-place { background: rgba(205,127,50,0.2); color: #D9924E; }
-  @keyframes goldGlow {
-    0%,100% { box-shadow: 0 0 12px rgba(250,199,117,0.3), 0 0 24px rgba(250,199,117,0.12); }
-    50%     { box-shadow: 0 0 20px rgba(250,199,117,0.55), 0 0 38px rgba(250,199,117,0.25); }
-  }
-  .finalist.place-1.filled {
-    background: rgba(250,199,117,0.16); border-color: rgba(250,199,117,0.6);
-    color: #FAC775; font-weight: 700; animation: goldGlow 2.2s ease-in-out infinite;
-  }
-  .finalist.place-2.filled { background: rgba(208,214,228,0.12); color: #D0D6E4; font-weight: 600; }
-  .finalist.place-3.filled { background: rgba(205,127,50,0.14); color: #D9924E; font-weight: 600; }
-  @keyframes slotFill { 0%{transform:scale(1.1)} 100%{transform:scale(1)} }
-  .finalist.just-filled { animation: slotFill 0.6s cubic-bezier(0.22,1.2,0.36,1) both; }
-
+  /* ========== ИСТОРИЯ ========== */
   .log { display: none; max-height: 320px; overflow-y: auto; }
   .log.has-entries { display: block; }
   .log-entry {
@@ -481,12 +443,8 @@
       </div>
     </div>
 
-    <!-- ===== Финалисты и история ===== -->
+    <!-- ===== История ===== -->
     <div class="side-right">
-      <div class="panel finalists" id="finalists">
-        <div class="panel-head"><div class="panel-title">⚜ Финалисты ⚜</div></div>
-        <div id="finalists-list"></div>
-      </div>
       <div class="panel log" id="log">
         <div class="panel-head"><div class="panel-title">История</div></div>
         <div id="log-entries"></div>
@@ -852,7 +810,6 @@ let currentRotation = 0;
 let isSpinning = false;
 let duration = 5;
 let eliminationMode = false;
-let finalists = null;
 let log = [];
 let soundOn = true;
 
@@ -867,7 +824,6 @@ function rebuildWheel() {
   eliminationMode = false;
   document.getElementById('elimination-status').classList.remove('active');
   document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
-  hideFinalists();
   log = [];
   document.getElementById('log-entries').innerHTML = '';
   document.getElementById('log').classList.remove('has-entries');
@@ -1174,29 +1130,6 @@ function playFanfare() {
     osc.start(t0 + t); osc.stop(t0 + t + d + 0.05);
   });
 }
-function playFinalistsSound() {
-  if (!soundOn) return; ensureAudio(); if (!audioCtx) return;
-  const t0 = audioCtx.currentTime;
-  const hit = audioCtx.createOscillator(), hg = audioCtx.createGain();
-  hit.type = 'sine';
-  hit.frequency.setValueAtTime(85, t0);
-  hit.frequency.exponentialRampToValueAtTime(40, t0 + 0.5);
-  hg.gain.setValueAtTime(0.3, t0);
-  hg.gain.exponentialRampToValueAtTime(0.001, t0 + 0.6);
-  hit.connect(hg); hg.connect(audioCtx.destination);
-  hit.start(t0); hit.stop(t0 + 0.65);
-  [[220,0.15],[261.63,0.38],[329.63,0.61],[440,0.84]].forEach(([f,t]) => {
-    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = 'triangle';
-    o.frequency.setValueAtTime(f, t0 + t);
-    g.gain.setValueAtTime(0, t0 + t);
-    g.gain.linearRampToValueAtTime(0.14, t0 + t + 0.03);
-    g.gain.exponentialRampToValueAtTime(0.001, t0 + t + 0.5);
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start(t0 + t); o.stop(t0 + t + 0.55);
-  });
-}
-
 const soundBtn = document.getElementById('sound-toggle');
 function updateSoundButton() {
   soundBtn.classList.toggle('off', !soundOn);
@@ -1276,7 +1209,7 @@ function launchConfetti() {
 }
 
 // ============================================================
-// История и финалисты
+// История
 // ============================================================
 function addLogEntry(item, isWinner) {
   log.push({ item, isWinner });
@@ -1288,39 +1221,6 @@ function addLogEntry(item, isWinner) {
   const l = document.getElementById('log');
   l.classList.add('has-entries');
   l.scrollTop = 0;
-}
-
-function renderFinalists(justFilled) {
-  if (!finalists) return;
-  document.getElementById('finalists-list').innerHTML = finalists.map(f => {
-    const filled = f.item != null;
-    const body = filled
-      ? `<span class="fin-title">${f.place === 1 ? '👑 ' : ''}${esc(f.item.title)}</span>
-         ${f.item.who ? `<span class="fin-who">${esc(f.item.who)}</span>` : ''}`
-      : `<span class="fin-empty">— ожидание —</span>`;
-    return `<div class="finalist place-${f.place}${filled ? ' filled' : ''}${justFilled === f.place ? ' just-filled' : ''}">
-        <span class="fin-place">${f.place}</span><div class="fin-body">${body}</div></div>`;
-  }).join('');
-}
-function maybeShowFinalists() {
-  if (finalists || !eliminationMode) return;
-  if (activeItems.length < 2 || activeItems.length > 5) return;
-  finalists = [1,2,3,4,5].map(place => ({ place, item: null }));
-  renderFinalists();
-  document.getElementById('finalists').classList.add('active');
-  playFinalistsSound();
-}
-function fillFinalistPlace(place, item) {
-  if (!finalists) return;
-  const slot = finalists.find(f => f.place === place);
-  if (!slot || slot.item != null) return;
-  slot.item = item;
-  renderFinalists(place);
-}
-function hideFinalists() {
-  finalists = null;
-  document.getElementById('finalists').classList.remove('active');
-  document.getElementById('finalists-list').innerHTML = '';
 }
 
 // ============================================================
@@ -1349,29 +1249,25 @@ document.getElementById('btn-elim').addEventListener('click', () => {
     eliminationMode = true;
     document.getElementById('elimination-status').classList.add('active');
     document.getElementById('btn-elim').textContent = '⚔ Крутить (выбывание)';
-    maybeShowFinalists();
   }
   spin(idx => {
     const out = activeItems[idx];
     if (activeItems.length === 1) {
       const w = activeItems[0];
-      addLogEntry(w, true); fillFinalistPlace(1, w); showWinner(w);
+      addLogEntry(w, true); showWinner(w);
       eliminationMode = false;
       document.getElementById('elimination-status').classList.remove('active');
       document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
       return;
     }
-    const place = activeItems.length;      // из 5 → 5-е место, из 4 → 4-е…
     addLogEntry(out, false);
     activeItems.splice(idx, 1);
     updateStats();
     renderWheel();
-    maybeShowFinalists();
-    if (place <= 5) fillFinalistPlace(place, out);
     if (activeItems.length === 1) {
       setTimeout(() => {
         const w = activeItems[0];
-        addLogEntry(w, true); fillFinalistPlace(1, w); showWinner(w);
+        addLogEntry(w, true); showWinner(w);
         eliminationMode = false;
         document.getElementById('elimination-status').classList.remove('active');
         document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
