@@ -19,6 +19,9 @@
      ============================================================ -->
 <script>
   const DEFAULT_CHANNEL = "pariparikai";
+  // SHA-256 хэш кода доступа — тот же, что у рулетки билетов (wheel.html).
+  // Как поменять — см. комментарий в wheel.html.
+  const WHEEL_ACCESS_HASH = "fc8ee83f14149d6acca42377fc006a9ed55198c380953f09067532fd5ee7fe09";
   // Известные боты — исключаются из розыгрыша, если включён фильтр
   const KNOWN_BOTS = [
     "nightbot","streamelements","moobot","fossabot","wizebot","botrix",
@@ -108,13 +111,41 @@
     .site-nav__links a { font-size: 12px; letter-spacing: 1px; }
   }
 
+  /* ===== Экран входа ===== */
+  .gate { margin-top: 12vh; text-align: center; }
+  .gate.hidden { display: none; }
+  .gate-title {
+    font-size: 14px; letter-spacing: 4px;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase; margin-bottom: 18px;
+  }
+  .gate-input {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px; padding: 12px 16px;
+    color: #fff; font-family: inherit; font-size: 18px;
+    width: 260px; outline: none; text-align: center; letter-spacing: 4px;
+  }
+  .gate-input:focus { border-color: rgba(250,199,117,0.5); }
+  .gate-error { color: #F09595; font-size: 13px; margin-top: 12px; min-height: 18px; }
+  .gate-button {
+    margin-top: 14px; background: transparent;
+    border: 1px solid rgba(250,199,117,0.4);
+    color: #FAC775; padding: 10px 24px;
+    font-family: inherit; font-size: 13px; letter-spacing: 2px;
+    text-transform: uppercase; border-radius: 8px; cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .gate-button:hover { background: rgba(250,199,117,0.1); }
+
   /* ===== Раскладка: колесо слева, панель справа ===== */
   .layout {
     width: 100%; max-width: 1400px;
-    display: flex; gap: 28px;
+    display: none; gap: 28px;
     align-items: flex-start;
     justify-content: center;
   }
+  .layout.unlocked { display: flex; }
   .wheel-col {
     flex: 1 1 640px; max-width: 760px;
     display: flex; flex-direction: column; align-items: center;
@@ -529,7 +560,18 @@
     </div>
   </nav>
 
-  <div class="layout">
+  <!-- Экран входа -->
+  <div class="gate" id="gate">
+    <div class="gate-title">Введите код</div>
+    <form id="gate-form" onsubmit="return false;">
+      <input type="password" class="gate-input" id="gate-input" autocomplete="off" autofocus>
+      <div class="gate-error" id="gate-error"></div>
+      <br>
+      <button type="submit" class="gate-button" id="gate-submit">Войти</button>
+    </form>
+  </div>
+
+  <div class="layout" id="layout">
 
     <!-- ===== Левая колонка: колесо ===== -->
     <div class="wheel-col">
@@ -1545,6 +1587,39 @@ function initFromSettings() {
 }
 
 initFromSettings();
+
+// ============================================================
+// Gate (проверка по SHA-256 хэшу, сам код в коде НЕ хранится)
+// ============================================================
+async function sha256Hex(str) {
+  const buf = new TextEncoder().encode(str);
+  const hashBuf = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hashBuf))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+async function tryEnter() {
+  const error = document.getElementById('gate-error');
+  const input = document.getElementById('gate-input');
+  const entered = input.value.trim();
+  if (!entered) { error.textContent = 'Введите код'; return; }
+
+  const enteredHash = await sha256Hex(entered);
+  if (enteredHash === WHEEL_ACCESS_HASH) {
+    document.getElementById('gate').classList.add('hidden');
+    document.getElementById('layout').classList.add('unlocked');
+  } else {
+    error.textContent = 'Неверный код';
+    input.value = '';
+    input.focus();
+  }
+}
+document.getElementById('gate-submit').addEventListener('click', tryEnter);
+document.getElementById('gate-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') tryEnter();
+});
+document.getElementById('gate-input').focus();
 </script>
 </body>
 </html>
