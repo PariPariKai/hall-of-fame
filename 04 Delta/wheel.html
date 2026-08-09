@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wheel</title>
+<meta name="robots" content="noindex,nofollow">
+
+<!-- ============================================================
+     ⚙ НАСТРОЙКА ⚙
+     TICKETS_CSV_URL — лист Tickets
+     CONFIG_CSV_URL — лист Config (содержит wheel_access_code)
+     ============================================================ -->
+<script>
+  const TICKETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=427100001&single=true&output=csv";
+  const CONFIG_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=427100002&single=true&output=csv";
+</script>
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0e1a;
+    background-image:
+      radial-gradient(ellipse at center, rgba(127,119,221,0.08), transparent 60%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #fff;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* ===== Экран входа ===== */
+  .gate {
+    margin-top: 20vh;
+    text-align: center;
+  }
+  .gate-title {
+    font-size: 14px;
+    letter-spacing: 4px;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  .gate-input {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 18px;
+    width: 260px;
+    outline: none;
+    text-align: center;
+    letter-spacing: 4px;
+  }
+  .gate-input:focus { border-color: rgba(250,199,117,0.5); }
+  .gate-error {
+    color: #F09595;
+    font-size: 13px;
+    margin-top: 12px;
+    min-height: 18px;
+  }
+  .gate-button {
+    margin-top: 14px;
+    background: transparent;
+    border: 1px solid rgba(250,199,117,0.4);
+    color: #FAC775;
+    padding: 10px 24px;
+    font-family: inherit;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .gate-button:hover { background: rgba(250,199,117,0.1); }
+
+  /* ===== Основной интерфейс ===== */
+  .app {
+    width: 100%;
+    max-width: 1100px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .app-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 0 4px;
+  }
+
+  .app-title {
+    font-size: 18px;
+    letter-spacing: 3px;
+    color: #FAC775;
+    text-transform: uppercase;
+  }
+
+  .app-stats {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 1px;
+  }
+
+  /* ===== Колесо ===== */
+  .wheel-area {
+    position: relative;
+    width: 100%;
+    max-width: 700px;
+    aspect-ratio: 1 / 1;
+    margin-bottom: 24px;
+  }
+
+  .wheel-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    filter: drop-shadow(0 8px 24px rgba(0,0,0,0.5));
+  }
+
+  .wheel-pointer {
+    position: absolute;
+    top: 50%;
+    right: -8px;
+    transform: translateY(-50%);
+    width: 50px;
+    height: 50px;
+    z-index: 10;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6));
+  }
+  .wheel-pointer svg { width: 100%; height: 100%; }
+
+  /* ===== Контролы ===== */
+  .controls {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .ctrl-btn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    padding: 12px 22px;
+    font-family: inherit;
+    font-size: 14px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .ctrl-btn:hover:not(:disabled) {
+    background: rgba(255,255,255,0.05);
+    transform: translateY(-1px);
+  }
+  .ctrl-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .ctrl-btn.primary {
+    border-color: #FAC775;
+    color: #FAC775;
+    background: rgba(250,199,117,0.08);
+  }
+  .ctrl-btn.primary:hover:not(:disabled) {
+    background: rgba(250,199,117,0.15);
+    box-shadow: 0 0 20px rgba(250,199,117,0.3);
+  }
+
+  .ctrl-btn.danger {
+    border-color: #F09595;
+    color: #F09595;
+    background: rgba(216,90,48,0.05);
+  }
+  .ctrl-btn.danger:hover:not(:disabled) {
+    background: rgba(216,90,48,0.15);
+  }
+
+  .duration-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 4px;
+  }
+
+  .duration-label {
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    padding: 0 8px;
+  }
+
+  .duration-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.6);
+    padding: 8px 14px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .duration-btn.active {
+    background: rgba(250,199,117,0.15);
+    color: #FAC775;
+  }
+  .duration-btn:hover:not(.active) { color: #fff; }
+
+  /* ===== Режим выбывания индикатор ===== */
+  .elimination-status {
+    background: rgba(127,119,221,0.1);
+    border: 1px solid rgba(127,119,221,0.3);
+    border-radius: 8px;
+    padding: 10px 20px;
+    color: #AFA9EC;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-align: center;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .elimination-status.active { display: block; }
+
+  /* ===== Лог выбываний ===== */
+  .log {
+    width: 100%;
+    max-width: 700px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 14px;
+    margin-top: 12px;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+  }
+  .log.has-entries { display: block; }
+  .log-title {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .log-entry {
+    font-size: 13px;
+    padding: 4px 0;
+    color: rgba(255,255,255,0.7);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .log-entry:last-child { border-bottom: none; }
+  .log-entry.winner {
+    color: #FAC775;
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .log-entry .num {
+    color: rgba(255,255,255,0.3);
+    margin-right: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ===== Победитель overlay ===== */
+  .winner-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    flex-direction: column;
+    backdrop-filter: blur(8px);
+  }
+  .winner-overlay.show { display: flex; animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .winner-card {
+    text-align: center;
+    padding: 40px 60px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #2a1d0a 0%, #11172a 100%);
+    border: 2px solid #FAC775;
+    box-shadow: 0 0 60px rgba(250,199,117,0.4);
+    position: relative;
+    overflow: hidden;
+  }
+  .winner-card::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: linear-gradient(45deg, transparent 30%, rgba(250,199,117,0.15) 50%, transparent 70%);
+    animation: shimmer 3s infinite linear;
+  }
+  @keyframes shimmer {
+    0%   { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+  }
+  .winner-label {
+    font-size: 14px;
+    letter-spacing: 4px;
+    color: #FAC775;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .winner-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 4px solid #FAC775;
+    background-size: cover;
+    background-position: center;
+    background-color: #412402;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    font-weight: 500;
+    color: #FAC775;
+    position: relative;
+  }
+  .winner-nick {
+    font-size: 36px;
+    color: #fff;
+    font-weight: 500;
+    margin-bottom: 14px;
+    text-shadow: 0 0 20px rgba(250,199,117,0.5);
+    position: relative;
+  }
+  .winner-tickets {
+    font-size: 14px;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 1px;
+    position: relative;
+  }
+  .winner-close {
+    margin-top: 24px;
+    position: relative;
+  }
+
+  .status-msg {
+    text-align: center;
+    padding: 40px 20px;
+    color: rgba(255,255,255,0.5);
+  }
+  .status-msg.error { color: #F09595; }
+
+  @media (max-width: 700px) {
+    .wheel-area { max-width: 95vw; }
+    .winner-card { padding: 30px 30px; }
+    .winner-nick { font-size: 26px; }
+  }
+</style>
+</head>
+
+<body>
+
+  <!-- Экран входа -->
+  <div class="gate" id="gate">
+    <div class="gate-title">Введите код</div>
+    <form id="gate-form" onsubmit="return false;">
+      <input type="password" class="gate-input" id="gate-input" autocomplete="off" autofocus>
+      <div class="gate-error" id="gate-error"></div>
+      <br>
+      <button type="submit" class="gate-button" id="gate-submit">Войти</button>
+    </form>
+  </div>
+
+  <!-- Основной интерфейс -->
+  <div class="app" id="app">
+    <div class="app-header">
+      <div class="app-title">🎰 Рулетка билетов</div>
+      <div class="app-stats" id="app-stats">Загрузка...</div>
+    </div>
+
+    <div id="elimination-status" class="elimination-status">
+      Режим выбывания активен. Осталось участников: <span id="elim-remaining">0</span>
+    </div>
+
+    <div class="wheel-area">
+      <svg class="wheel-svg" id="wheel" viewBox="0 0 100 100"></svg>
+      <div class="wheel-pointer">
+        <svg viewBox="0 0 40 40">
+          <polygon points="40,20 8,4 8,36" fill="#FAC775" stroke="#fff" stroke-width="1.5"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="duration-group">
+        <span class="duration-label">⏱ Длительность</span>
+        <button class="duration-btn" data-dur="3">3с</button>
+        <button class="duration-btn active" data-dur="5">5с</button>
+        <button class="duration-btn" data-dur="10">10с</button>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="ctrl-btn primary" id="btn-single">🎯 Один победитель</button>
+      <button class="ctrl-btn primary" id="btn-elim">⚔ Режим выбывания</button>
+      <button class="ctrl-btn danger" id="btn-reset">↺ Сброс</button>
+      <button class="ctrl-btn" id="btn-reload">🔄 Перезагрузить билеты</button>
+    </div>
+
+    <div class="log" id="log">
+      <div class="log-title">История розыгрыша</div>
+      <div id="log-entries"></div>
+    </div>
+  </div>
+
+  <!-- Победитель -->
+  <div class="winner-overlay" id="winner-overlay">
+    <div class="winner-card">
+      <div class="winner-label">✦ Победитель ✦</div>
+      <div class="winner-avatar" id="winner-avatar"></div>
+      <div class="winner-nick" id="winner-nick"></div>
+      <div class="winner-tickets" id="winner-tickets"></div>
+      <button class="ctrl-btn winner-close" id="winner-close-btn">Закрыть</button>
+    </div>
+  </div>
+
+<script>
+// ============================================================
+// CSV-парсер
+// ============================================================
+function parseCSV(text) {
+  const rows = [];
+  let row = [], cell = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i], next = text[i + 1];
+    if (inQuotes) {
+      if (c === '"' && next === '"') { cell += '"'; i++; }
+      else if (c === '"') { inQuotes = false; }
+      else { cell += c; }
+    } else {
+      if (c === '"') { inQuotes = true; }
+      else if (c === ',') { row.push(cell); cell = ''; }
+      else if (c === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
+      else if (c === '\r') { /* skip */ }
+      else { cell += c; }
+    }
+  }
+  if (cell.length > 0 || row.length > 0) { row.push(cell); rows.push(row); }
+  return rows;
+}
+
+function rowsToTickets(rows) {
+  if (rows.length < 2) return [];
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  const idx = {
+    nick:   headers.indexOf('nick'),
+    avatar: headers.indexOf('avatar_url'),
+    silver: headers.indexOf('silver'),
+    gold:   headers.indexOf('gold'),
+  };
+  if (idx.nick < 0) return [];
+
+  return rows.slice(1)
+    .filter(r => r.length > 0 && r[idx.nick] && r[idx.nick].trim())
+    .map(r => {
+      const silver = parseInt((r[idx.silver] || '0').trim(), 10) || 0;
+      const gold   = parseInt((r[idx.gold]   || '0').trim(), 10) || 0;
+      return {
+        nick:   (r[idx.nick] || '').trim(),
+        avatar: (idx.avatar >= 0 ? (r[idx.avatar] || '').trim() : ''),
+        silver: silver,
+        gold:   gold,
+        score:  gold * 5 + silver,
+      };
+    })
+    .filter(t => t.score > 0);
+}
+
+function rowsToConfig(rows) {
+  if (rows.length < 2) return {};
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  const keyIdx = headers.indexOf('key');
+  const valIdx = headers.indexOf('value');
+  if (keyIdx < 0 || valIdx < 0) return {};
+  const config = {};
+  rows.slice(1).forEach(r => {
+    if (r.length > 0 && r[keyIdx]) {
+      config[r[keyIdx].trim().toLowerCase()] = (r[valIdx] || '').trim();
+    }
+  });
+  return config;
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+function initials(nick) {
+  const clean = nick.replace(/[^A-Za-zА-Яа-я0-9]/g, '');
+  if (clean.length >= 2) return (clean[0] + clean[1]).toUpperCase();
+  return (clean[0] || '?').toUpperCase();
+}
+
+// ============================================================
+// Состояние
+// ============================================================
+let allTickets = [];          // загруженные участники
+let activeTickets = [];       // те кто ещё в игре (для режима выбывания)
+let validCode = null;         // верный код из Sheets
+let currentRotation = 0;      // текущий угол поворота (deg)
+let isSpinning = false;
+let duration = 5;             // длительность вращения (сек)
+let eliminationMode = false;  // активен ли режим выбывания
+let log = [];                 // история выбываний
+
+// Цвета для секторов (циклически)
+const SECTOR_COLORS = [
+  '#7F77DD', '#FAC775', '#D85A30', '#97C459',
+  '#5BA9E5', '#E599C2', '#B58FF5', '#F0B370',
+  '#86D7C9', '#E58686', '#9CB870', '#5B7FE5'
+];
+
+// ============================================================
+// Загрузка
+// ============================================================
+async function loadData() {
+  try {
+    const [ticketsRes, configRes] = await Promise.all([
+      fetch(TICKETS_CSV_URL),
+      fetch(CONFIG_CSV_URL),
+    ]);
+    if (!ticketsRes.ok) throw new Error('Tickets HTTP ' + ticketsRes.status);
+    if (!configRes.ok) throw new Error('Config HTTP ' + configRes.status);
+
+    const ticketsRows = parseCSV(await ticketsRes.text());
+    const configRows = parseCSV(await configRes.text());
+
+    allTickets = rowsToTickets(ticketsRows);
+    const config = rowsToConfig(configRows);
+    validCode = config.wheel_access_code || '';
+
+    return true;
+  } catch (err) {
+    document.getElementById('gate-error').textContent = 'Ошибка загрузки: ' + err.message;
+    return false;
+  }
+}
+
+// ============================================================
+// Gate (вход по коду)
+// ============================================================
+async function tryEnter() {
+  const error = document.getElementById('gate-error');
+  const input = document.getElementById('gate-input');
+  const submit = document.getElementById('gate-submit');
+
+  submit.disabled = true;
+  error.textContent = '';
+
+  // Если ещё не загружали — загружаем
+  if (validCode === null) {
+    const ok = await loadData();
+    if (!ok) {
+      submit.disabled = false;
+      return;
+    }
+  }
+
+  const entered = input.value.trim();
+  if (!validCode) {
+    error.textContent = 'В Google Sheets не задан wheel_access_code';
+    submit.disabled = false;
+    return;
+  }
+
+  if (entered === validCode) {
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    activeTickets = [...allTickets];
+    renderWheel();
+    updateStats();
+  } else {
+    error.textContent = 'Неверный код';
+    input.value = '';
+    submit.disabled = false;
+    input.focus();
+  }
+}
+
+document.getElementById('gate-submit').addEventListener('click', tryEnter);
+document.getElementById('gate-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') tryEnter();
+});
+
+// ============================================================
+// Рендер колеса (SVG)
+// ============================================================
+function renderWheel() {
+  const svg = document.getElementById('wheel');
+  if (activeTickets.length === 0) {
+    svg.innerHTML = `<text x="50" y="50" text-anchor="middle" dominant-baseline="middle"
+                      fill="rgba(255,255,255,0.4)" font-size="6">Нет участников</text>`;
+    return;
+  }
+
+  const totalScore = activeTickets.reduce((s, t) => s + t.score, 0);
+  if (totalScore === 0) return;
+
+  // Минимальный угол сектора — чтобы тонкие были видны
+  const MIN_ANGLE = 1.5; // градусы
+
+  // Рассчитаем углы пропорционально score, с минимальным размером
+  let segments = activeTickets.map(t => ({
+    ticket: t,
+    angle: (t.score / totalScore) * 360,
+  }));
+
+  // Если есть слишком тонкие — добавим им минимум, отняв у остальных
+  const tooThin = segments.filter(s => s.angle < MIN_ANGLE);
+  if (tooThin.length > 0 && tooThin.length < segments.length) {
+    const deficit = tooThin.reduce((sum, s) => sum + (MIN_ANGLE - s.angle), 0);
+    const big = segments.filter(s => s.angle >= MIN_ANGLE);
+    const bigTotal = big.reduce((sum, s) => sum + s.angle, 0);
+    big.forEach(s => { s.angle -= (s.angle / bigTotal) * deficit; });
+    tooThin.forEach(s => { s.angle = MIN_ANGLE; });
+  }
+
+  // Группа с поворотом — будем крутить именно её
+  let groupContent = '';
+  let cumulative = 0;
+  const cx = 50, cy = 50, r = 48;
+
+  segments.forEach((seg, i) => {
+    const startAngle = cumulative;
+    const endAngle = cumulative + seg.angle;
+    cumulative = endAngle;
+
+    const color = SECTOR_COLORS[i % SECTOR_COLORS.length];
+    const path = sectorPath(cx, cy, r, startAngle, endAngle);
+
+    // Текст по центру сектора, читается изнутри наружу
+    const midAngle = (startAngle + endAngle) / 2;
+    const textRadius = r * 0.65;
+    const textRad = (midAngle - 90) * Math.PI / 180;
+    const tx = cx + Math.cos(textRad) * textRadius;
+    const ty = cy + Math.sin(textRad) * textRadius;
+
+    // Размер шрифта зависит от величины сектора
+    const fontSize = Math.min(3.5, Math.max(1.4, seg.angle / 8));
+    // Сокращение длинного ника если сектор мелкий
+    let displayNick = seg.ticket.nick;
+    const maxChars = Math.max(4, Math.floor(seg.angle / 1.5));
+    if (displayNick.length > maxChars) {
+      displayNick = displayNick.substring(0, maxChars - 1) + '…';
+    }
+
+    // Поворот текста — пишем по направлению от центра наружу
+    const textRotation = midAngle;
+    const showText = seg.angle >= 2; // совсем тонкие без текста
+
+    groupContent += `<path d="${path}" fill="${color}" stroke="#0a0e1a" stroke-width="0.2"/>`;
+    if (showText) {
+      groupContent += `<text x="${tx}" y="${ty}" fill="#fff" font-size="${fontSize}"
+                       text-anchor="middle" dominant-baseline="middle"
+                       transform="rotate(${textRotation} ${tx} ${ty})"
+                       style="text-shadow: 0 1px 2px rgba(0,0,0,0.8); pointer-events: none;">${esc(displayNick)}</text>`;
+    }
+  });
+
+  svg.innerHTML = `
+    <g id="wheel-group" style="transform-origin: 50% 50%; transform: rotate(${currentRotation}deg); transition: none;">
+      ${groupContent}
+    </g>
+    <circle cx="50" cy="50" r="6" fill="#0a0e1a" stroke="#FAC775" stroke-width="0.5"/>
+  `;
+}
+
+function sectorPath(cx, cy, r, startAngle, endAngle) {
+  // Угол отсчитываем от верхней точки, по часовой стрелке
+  const startRad = (startAngle - 90) * Math.PI / 180;
+  const endRad = (endAngle - 90) * Math.PI / 180;
+  const x1 = cx + Math.cos(startRad) * r;
+  const y1 = cy + Math.sin(startRad) * r;
+  const x2 = cx + Math.cos(endRad) * r;
+  const y2 = cy + Math.sin(endRad) * r;
+  const largeArc = (endAngle - startAngle) > 180 ? 1 : 0;
+  return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+}
+
+// ============================================================
+// Логика розыгрыша
+// ============================================================
+function pickWinnerIndex() {
+  // Взвешенный случайный выбор. Возвращает индекс в activeTickets.
+  const total = activeTickets.reduce((s, t) => s + t.score, 0);
+  if (total === 0) return -1;
+  const rand = Math.random() * total;
+  let acc = 0;
+  for (let i = 0; i < activeTickets.length; i++) {
+    acc += activeTickets[i].score;
+    if (rand < acc) return i;
+  }
+  return activeTickets.length - 1;
+}
+
+function angleOfSector(index) {
+  // Возвращает центральный угол сектора, по той же логике что в renderWheel
+  const totalScore = activeTickets.reduce((s, t) => s + t.score, 0);
+  const MIN_ANGLE = 1.5;
+  let segments = activeTickets.map(t => ({ angle: (t.score / totalScore) * 360 }));
+  const tooThin = segments.filter(s => s.angle < MIN_ANGLE);
+  if (tooThin.length > 0 && tooThin.length < segments.length) {
+    const deficit = tooThin.reduce((sum, s) => sum + (MIN_ANGLE - s.angle), 0);
+    const big = segments.filter(s => s.angle >= MIN_ANGLE);
+    const bigTotal = big.reduce((sum, s) => sum + s.angle, 0);
+    big.forEach(s => { s.angle -= (s.angle / bigTotal) * deficit; });
+    tooThin.forEach(s => { s.angle = MIN_ANGLE; });
+  }
+  let cumulative = 0;
+  for (let i = 0; i < index; i++) cumulative += segments[i].angle;
+  return cumulative + segments[index].angle / 2;
+}
+
+async function spin(callback) {
+  if (isSpinning) return;
+  if (activeTickets.length === 0) return;
+  // Если один участник — он автоматически победитель
+  if (activeTickets.length === 1) {
+    if (callback) callback(0);
+    return;
+  }
+
+  isSpinning = true;
+  setControlsDisabled(true);
+
+  const winnerIdx = pickWinnerIndex();
+  const targetCenterAngle = angleOfSector(winnerIdx);
+
+  // Указатель находится справа = 90° по нашей системе (12 часов = 0°, 3 часа = 90°)
+  // Нужно, чтобы центр сектора оказался под указателем (т.е. на 90° позиции)
+  // Текущий поворот: currentRotation. Сектор изначально на targetCenterAngle. После поворота R он на (targetCenterAngle + R) % 360.
+  // Хотим: (targetCenterAngle + R) % 360 === 90
+  // R = 90 - targetCenterAngle (mod 360)
+
+  const POINTER_ANGLE = 90;
+  let baseTarget = POINTER_ANGLE - targetCenterAngle;
+  // Нормализуем относительно текущего поворота, добавляем минимум 4 полных оборота
+  const minRotations = 4;
+  let currentNormalized = ((currentRotation % 360) + 360) % 360;
+  let targetNormalized = ((baseTarget % 360) + 360) % 360;
+  let delta = targetNormalized - currentNormalized;
+  if (delta < 0) delta += 360;
+  const finalRotation = currentRotation + minRotations * 360 + delta;
+
+  // Анимация
+  const group = document.getElementById('wheel').querySelector('#wheel-group');
+  group.style.transition = `transform ${duration}s cubic-bezier(0.17, 0.67, 0.2, 1)`;
+  group.style.transform = `rotate(${finalRotation}deg)`;
+  currentRotation = finalRotation;
+
+  // Ждём окончания анимации
+  await new Promise(resolve => setTimeout(resolve, duration * 1000 + 100));
+
+  isSpinning = false;
+  setControlsDisabled(false);
+
+  if (callback) callback(winnerIdx);
+}
+
+function setControlsDisabled(disabled) {
+  document.getElementById('btn-single').disabled = disabled;
+  document.getElementById('btn-elim').disabled = disabled;
+  document.getElementById('btn-reset').disabled = disabled;
+  document.getElementById('btn-reload').disabled = disabled;
+  document.querySelectorAll('.duration-btn').forEach(b => b.disabled = disabled);
+}
+
+function showWinner(ticket) {
+  const overlay = document.getElementById('winner-overlay');
+  const avatar = document.getElementById('winner-avatar');
+  if (ticket.avatar) {
+    avatar.style.backgroundImage = `url('${ticket.avatar}')`;
+    avatar.textContent = '';
+  } else {
+    avatar.style.backgroundImage = '';
+    avatar.textContent = initials(ticket.nick);
+  }
+  document.getElementById('winner-nick').textContent = ticket.nick;
+  const parts = [];
+  if (ticket.silver > 0) parts.push(`🥈 ${ticket.silver}`);
+  if (ticket.gold > 0) parts.push(`🥇 ${ticket.gold}`);
+  document.getElementById('winner-tickets').textContent = parts.join('   ');
+  overlay.classList.add('show');
+}
+
+function hideWinner() {
+  document.getElementById('winner-overlay').classList.remove('show');
+}
+document.getElementById('winner-close-btn').addEventListener('click', hideWinner);
+
+function addLogEntry(text, isWinner) {
+  log.push({ text, isWinner });
+  const logEl = document.getElementById('log');
+  const entries = document.getElementById('log-entries');
+  entries.innerHTML = log.map((e, i) => `
+    <div class="log-entry${e.isWinner ? ' winner' : ''}">
+      <span class="num">${e.isWinner ? '🏆' : '#' + (i + 1)}</span>${esc(e.text)}
+    </div>
+  `).join('');
+  logEl.classList.add('has-entries');
+  entries.scrollTop = entries.scrollHeight;
+}
+
+function updateStats() {
+  const total = activeTickets.length;
+  const totalScore = activeTickets.reduce((s, t) => s + t.score, 0);
+  document.getElementById('app-stats').textContent =
+    `Участников: ${total}  •  Всего билетов: ${totalScore}`;
+  document.getElementById('elim-remaining').textContent = total;
+}
+
+// ============================================================
+// Кнопки
+// ============================================================
+document.querySelectorAll('.duration-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    duration = parseInt(btn.dataset.dur, 10);
+  });
+});
+
+document.getElementById('btn-single').addEventListener('click', () => {
+  if (eliminationMode) {
+    if (!confirm('Активен режим выбывания. Прервать его и крутить одиночный розыгрыш?')) return;
+    eliminationMode = false;
+    document.getElementById('elimination-status').classList.remove('active');
+  }
+  spin((winnerIdx) => {
+    const winner = activeTickets[winnerIdx];
+    addLogEntry(winner.nick + ' (' + winner.score + ' билетов)', true);
+    showWinner(winner);
+  });
+});
+
+document.getElementById('btn-elim').addEventListener('click', () => {
+  if (!eliminationMode) {
+    // Запускаем режим выбывания
+    eliminationMode = true;
+    document.getElementById('elimination-status').classList.add('active');
+    document.getElementById('btn-elim').textContent = '⚔ Крутить (выбывание)';
+  }
+
+  spin((eliminatedIdx) => {
+    const eliminated = activeTickets[eliminatedIdx];
+    // Если остался один — он победитель, режим завершён
+    if (activeTickets.length === 1) {
+      const winner = activeTickets[0];
+      addLogEntry('ПОБЕДИТЕЛЬ: ' + winner.nick + ' (' + winner.score + ' билетов)', true);
+      showWinner(winner);
+      eliminationMode = false;
+      document.getElementById('elimination-status').classList.remove('active');
+      document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+      return;
+    }
+    // Иначе выбываем выбранного
+    addLogEntry('Выбыл: ' + eliminated.nick + ' (' + eliminated.score + ' билетов)', false);
+    activeTickets.splice(eliminatedIdx, 1);
+    updateStats();
+    renderWheel();
+    // Если остался ОДИН — автоматически объявляем победителем
+    if (activeTickets.length === 1) {
+      setTimeout(() => {
+        const winner = activeTickets[0];
+        addLogEntry('ПОБЕДИТЕЛЬ: ' + winner.nick + ' (' + winner.score + ' билетов)', true);
+        showWinner(winner);
+        eliminationMode = false;
+        document.getElementById('elimination-status').classList.remove('active');
+        document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+      }, 600);
+    }
+  });
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (!confirm('Сбросить розыгрыш? Все выбывшие вернутся, лог очистится.')) return;
+  activeTickets = [...allTickets];
+  log = [];
+  document.getElementById('log-entries').innerHTML = '';
+  document.getElementById('log').classList.remove('has-entries');
+  eliminationMode = false;
+  document.getElementById('elimination-status').classList.remove('active');
+  document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+  currentRotation = 0;
+  // Сброс анимации
+  const group = document.getElementById('wheel').querySelector('#wheel-group');
+  if (group) {
+    group.style.transition = 'none';
+    group.style.transform = 'rotate(0deg)';
+  }
+  hideWinner();
+  renderWheel();
+  updateStats();
+});
+
+document.getElementById('btn-reload').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-reload');
+  btn.disabled = true;
+  btn.textContent = '⏳ Загрузка...';
+  const ok = await loadData();
+  if (ok) {
+    activeTickets = [...allTickets];
+    log = [];
+    document.getElementById('log-entries').innerHTML = '';
+    document.getElementById('log').classList.remove('has-entries');
+    eliminationMode = false;
+    document.getElementById('elimination-status').classList.remove('active');
+    document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+    currentRotation = 0;
+    const group = document.getElementById('wheel').querySelector('#wheel-group');
+    if (group) {
+      group.style.transition = 'none';
+      group.style.transform = 'rotate(0deg)';
+    }
+    renderWheel();
+    updateStats();
+  }
+  btn.disabled = false;
+  btn.textContent = '🔄 Перезагрузить билеты';
+});
+
+// ============================================================
+// Старт
+// ============================================================
+document.getElementById('gate-input').focus();
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"f:\\\\Streaming\\\\CLAUDE AI CODING ETC\\\\HALL OF FAME RULETKA\\\\files\")",
+      "Read(//f/Streaming/CLAUDE AI CODING ETC/HALL OF FAME RULETKA/files/**)"
+    ]
+  }
+}
