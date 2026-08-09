@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<title>Чат-рулетка</title>
+<meta name="robots" content="noindex,nofollow">
+
+<!-- ============================================================
+     ⚙ ЧАТ-РУЛЕТКА ⚙
+     Подключается к чату Twitch анонимно (без токенов и пароля).
+     Каждое сообщение в чате несёт значки автора (сапка, модерка,
+     VIP), поэтому фильтры работают без Twitch API.
+
+     Ограничение: видны только те, кто ПИСАЛ в чат при открытой
+     странице. Чистых лурков (ни одного сообщения) рулетка не видит.
+     ============================================================ -->
+<script>
+  const DEFAULT_CHANNEL = "pariparikai";
+  // Известные боты — исключаются из розыгрыша, если включён фильтр
+  const KNOWN_BOTS = [
+    "nightbot","streamelements","moobot","fossabot","wizebot","botrix",
+    "streamlabs","soundalerts","sery_bot","pokemoncommunitygame",
+    "kofistreambot","tangiabot","creatisbot","peepostreambot","dixperbro",
+    "anotherttvviewer","commanderroot","lurxx","streamfahrer"
+  ];
+</script>
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0e1a;
+    background-image: radial-gradient(ellipse at center, rgba(127,119,221,0.08), transparent 60%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #fff;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  /* ========== ОБЩЕЕ ВЕРХНЕЕ МЕНЮ ========== */
+  .site-nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    align-self: stretch;
+    margin: -20px -20px 24px;
+    background: rgba(20, 25, 40, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .site-nav__inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .site-nav__brand {
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: #FAC775;
+    text-decoration: none;
+    text-transform: uppercase;
+    text-shadow: 0 0 8px rgba(250,199,117,0.25);
+    flex: 0 0 auto;
+  }
+  .site-nav__links {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .site-nav__links a {
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 4px 0;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s ease, border-color 0.2s ease, text-shadow 0.2s ease;
+  }
+  .site-nav__links a:hover { color: #FAC775; }
+  .site-nav__links a.is-active {
+    color: #FAC775;
+    border-bottom-color: #FAC775;
+    text-shadow: 0 0 8px rgba(250,199,117,0.5);
+  }
+  @media (max-width: 640px) {
+    .site-nav { margin: -20px -20px 18px; }
+    .site-nav__inner { padding: 10px 16px; gap: 12px; justify-content: center; }
+    .site-nav__brand { display: none; }
+    .site-nav__links { gap: 14px; justify-content: center; }
+    .site-nav__links a { font-size: 12px; letter-spacing: 1px; }
+  }
+
+  /* ===== Раскладка: колесо слева, панель справа ===== */
+  .layout {
+    width: 100%; max-width: 1400px;
+    display: flex; gap: 28px;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .wheel-col {
+    flex: 1 1 640px; max-width: 760px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .side-col {
+    flex: 0 0 380px; max-width: 380px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  @media (max-width: 1080px) {
+    .layout { flex-direction: column; align-items: center; }
+    .side-col { flex: 1 1 auto; width: 100%; max-width: 700px; }
+    .wheel-col { order: -1; }
+  }
+
+  .app-header {
+    width: 100%; display: flex;
+    justify-content: space-between; align-items: center;
+    margin-bottom: 16px; padding: 0 4px;
+  }
+  .app-title { font-size: 18px; letter-spacing: 3px; color: #FAC775; text-transform: uppercase; }
+  .app-stats { font-size: 12px; color: rgba(255,255,255,0.5); letter-spacing: 1px; }
+
+  /* ===== Карточки панели ===== */
+  .card {
+    background: rgba(20, 25, 40, 0.6);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .card-title {
+    font-size: 11px; letter-spacing: 2px;
+    color: rgba(255,255,255,0.5); text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+
+  /* ===== Подключение ===== */
+  .conn-row { display: flex; gap: 8px; }
+  .conn-input {
+    flex: 1; min-width: 0;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px; padding: 10px 12px;
+    color: #fff; font-family: inherit; font-size: 14px;
+    outline: none;
+  }
+  .conn-input:focus { border-color: rgba(250,199,117,0.5); }
+  .conn-status {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 10px; font-size: 12px;
+    color: rgba(255,255,255,0.55); letter-spacing: 0.5px;
+  }
+  .conn-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: #F09595; flex: 0 0 auto;
+    box-shadow: 0 0 8px rgba(240,149,149,0.6);
+  }
+  .conn-dot.connecting { background: #FAC775; box-shadow: 0 0 8px rgba(250,199,117,0.6); }
+  .conn-dot.online { background: #97C459; box-shadow: 0 0 8px rgba(151,196,89,0.6); }
+
+  /* ===== Кнопки ===== */
+  .ctrl-btn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff; padding: 12px 22px;
+    font-family: inherit; font-size: 14px; letter-spacing: 1.5px;
+    text-transform: uppercase; border-radius: 8px; cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .ctrl-btn:hover:not(:disabled) {
+    background: rgba(255,255,255,0.05);
+    transform: translateY(-1px);
+  }
+  .ctrl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .ctrl-btn.primary {
+    border-color: #FAC775; color: #FAC775; background: rgba(250,199,117,0.08);
+  }
+  .ctrl-btn.primary:hover:not(:disabled) {
+    background: rgba(250,199,117,0.15);
+    box-shadow: 0 0 20px rgba(250,199,117,0.3);
+  }
+  .ctrl-btn.danger {
+    border-color: #F09595; color: #F09595; background: rgba(216,90,48,0.05);
+  }
+  .ctrl-btn.danger:hover:not(:disabled) { background: rgba(216,90,48,0.15); }
+  .ctrl-btn.small { padding: 9px 14px; font-size: 12px; letter-spacing: 1px; }
+
+  /* ===== Сегментированные переключатели ===== */
+  .seg-group {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px; padding: 4px;
+  }
+  .seg-btn {
+    flex: 1 1 auto;
+    background: transparent; border: none;
+    color: rgba(255,255,255,0.6);
+    padding: 8px 10px; font-family: inherit;
+    font-size: 12.5px; font-weight: 500;
+    border-radius: 6px; cursor: pointer; transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+  .seg-btn.active { background: rgba(250,199,117,0.15); color: #FAC775; }
+  .seg-btn:hover:not(.active) { color: #fff; }
+
+  .field-label {
+    font-size: 11px; letter-spacing: 1.5px;
+    color: rgba(255,255,255,0.45); text-transform: uppercase;
+    margin: 14px 0 6px;
+  }
+  .field-label:first-child { margin-top: 0; }
+
+  /* ===== Чекбоксы ===== */
+  .check-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 5px 0; cursor: pointer;
+    font-size: 13.5px; color: rgba(255,255,255,0.75);
+    user-select: none;
+  }
+  .check-row input { accent-color: #FAC775; width: 15px; height: 15px; cursor: pointer; }
+
+  /* ===== Кодовое слово ===== */
+  .keyword-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .keyword-row .conn-input { text-align: center; font-size: 16px; letter-spacing: 1px; }
+  .collect-banner {
+    margin-top: 10px; padding: 9px 12px;
+    border-radius: 8px; font-size: 12.5px; letter-spacing: 0.5px;
+    background: rgba(151,196,89,0.1); border: 1px solid rgba(151,196,89,0.35);
+    color: #b8dc8b; display: none; text-align: center;
+  }
+  .collect-banner.on { display: block; animation: collectPulse 1.6s ease-in-out infinite; }
+  @keyframes collectPulse { 0%,100% { border-color: rgba(151,196,89,0.35); } 50% { border-color: rgba(151,196,89,0.8); } }
+
+  /* ===== Список участников ===== */
+  .participants {
+    max-height: 300px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .p-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 8px; border-radius: 6px;
+    font-size: 13.5px;
+    background: rgba(255,255,255,0.02);
+  }
+  .p-row:hover { background: rgba(255,255,255,0.06); }
+  .p-color { width: 8px; height: 8px; border-radius: 2px; flex: 0 0 auto; }
+  .p-nick { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .p-badges { font-size: 11px; opacity: 0.9; flex: 0 0 auto; }
+  .p-ago { font-size: 11px; color: rgba(255,255,255,0.35); flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+  .p-remove {
+    background: none; border: none; color: rgba(255,255,255,0.3);
+    cursor: pointer; font-size: 14px; padding: 0 4px; line-height: 1;
+    flex: 0 0 auto;
+  }
+  .p-remove:hover { color: #F09595; }
+  .p-empty { color: rgba(255,255,255,0.35); font-size: 13px; text-align: center; padding: 14px 0; }
+
+  /* ===== Мини-лента чата ===== */
+  .chat-feed {
+    max-height: 180px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 3px;
+    font-size: 12.5px;
+  }
+  .chat-line { color: rgba(255,255,255,0.65); word-break: break-word; }
+  .chat-line .cn { color: #AFA9EC; font-weight: 600; }
+  .chat-line.eligible-msg .cn { color: #FAC775; }
+  .feed-toggle {
+    background: none; border: none; color: rgba(255,255,255,0.4);
+    font-size: 11px; cursor: pointer; letter-spacing: 1px;
+    text-transform: uppercase; font-family: inherit;
+  }
+  .feed-toggle:hover { color: #fff; }
+
+  /* ===== Колесо ===== */
+  .wheel-area {
+    position: relative;
+    width: 100%; max-width: 700px;
+    aspect-ratio: 1 / 1;
+    margin-bottom: 24px;
+    padding-top: 36px;
+  }
+  .wheel-svg {
+    width: 100%; height: 100%;
+    display: block;
+    filter: drop-shadow(0 8px 24px rgba(0,0,0,0.5));
+  }
+  .wheel-pointer {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 52px; height: 60px;
+    z-index: 10;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6));
+    transform-origin: 50% 25%;
+    transition: transform 0.05s ease-out;
+  }
+  .wheel-pointer svg { width: 100%; height: 100%; }
+  @keyframes pointerTick {
+    0%   { transform: translateX(-50%) rotate(0deg); }
+    30%  { transform: translateX(-50%) rotate(-18deg); }
+    100% { transform: translateX(-50%) rotate(0deg); }
+  }
+  .wheel-pointer.ticking { animation: pointerTick 0.18s ease-out; }
+
+  .controls {
+    display: flex; gap: 14px; flex-wrap: wrap;
+    justify-content: center; margin-bottom: 20px;
+  }
+  .duration-group {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px; padding: 4px;
+  }
+  .duration-label {
+    font-size: 11px; letter-spacing: 1px;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase; padding: 0 8px;
+  }
+  .duration-btn {
+    background: transparent; border: none;
+    color: rgba(255,255,255,0.6);
+    padding: 8px 14px; font-family: inherit;
+    font-size: 13px; font-weight: 500;
+    border-radius: 6px; cursor: pointer; transition: all 0.15s ease;
+  }
+  .duration-btn.active { background: rgba(250,199,117,0.15); color: #FAC775; }
+  .duration-btn:hover:not(.active) { color: #fff; }
+
+  .sound-toggle {
+    background: transparent;
+    border: 1px solid rgba(151,196,89,0.4);
+    border-radius: 8px; padding: 10px 14px;
+    cursor: pointer; color: #97C459;
+    font-family: inherit; font-size: 13px;
+    transition: all 0.15s ease;
+  }
+  .sound-toggle:hover { background: rgba(151,196,89,0.05); }
+  .sound-toggle.off { color: rgba(255,255,255,0.5); border-color: rgba(255,255,255,0.15); }
+
+  /* ===== Лог ===== */
+  .log {
+    width: 100%; max-width: 700px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px; padding: 14px;
+    margin-top: 12px; max-height: 200px;
+    overflow-y: auto; display: none;
+  }
+  .log.has-entries { display: block; }
+  .log-title {
+    font-size: 11px; letter-spacing: 2px;
+    color: rgba(255,255,255,0.5); text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .log-entry {
+    font-size: 13px; padding: 4px 0;
+    color: rgba(255,255,255,0.7);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .log-entry:last-child { border-bottom: none; }
+  .log-entry.winner { color: #FAC775; font-weight: 600; font-size: 15px; }
+  .log-entry .num {
+    color: rgba(255,255,255,0.3); margin-right: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ===== Победитель overlay ===== */
+  .winner-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.88);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 100; flex-direction: column;
+    backdrop-filter: blur(10px);
+  }
+  .winner-overlay.show { display: flex; animation: fadeIn 0.5s ease; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .winner-card {
+    text-align: center;
+    padding: 70px 100px;
+    border-radius: 24px;
+    background: linear-gradient(180deg, #2a1d0a 0%, #11172a 100%);
+    border: 4px solid #FAC775;
+    position: relative;
+    overflow: hidden;
+    animation: winnerCardIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow:
+      0 0 80px rgba(250,199,117,0.4),
+      0 0 160px rgba(250,199,117,0.2),
+      inset 0 0 60px rgba(250,199,117,0.1);
+  }
+  @keyframes winnerCardIn {
+    from { transform: scale(0.5) rotateY(180deg); opacity: 0; }
+    to { transform: scale(1) rotateY(0); opacity: 1; }
+  }
+  .winner-card::after {
+    content: '';
+    position: absolute; inset: -4px;
+    border-radius: 24px;
+    border: 4px solid #FAC775;
+    animation: winnerGlow 1.8s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes winnerGlow {
+    0%, 100% {
+      box-shadow: 0 0 30px rgba(250,199,117,0.6), 0 0 80px rgba(250,199,117,0.3);
+      opacity: 0.7;
+    }
+    50% {
+      box-shadow: 0 0 60px rgba(250,199,117,1), 0 0 140px rgba(250,199,117,0.5);
+      opacity: 1;
+    }
+  }
+  .winner-card::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: linear-gradient(45deg, transparent 30%, rgba(250,199,117,0.18) 50%, transparent 70%);
+    animation: shimmer 3s infinite linear;
+    pointer-events: none;
+  }
+  @keyframes shimmer {
+    0%   { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+  }
+  .winner-label {
+    font-size: 20px; letter-spacing: 6px;
+    color: #FAC775; text-transform: uppercase;
+    margin-bottom: 30px;
+    position: relative;
+    text-shadow: 0 0 20px rgba(250,199,117,0.6);
+  }
+  .winner-avatar {
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    border: 6px solid #FAC775;
+    background-color: #412402;
+    margin: 0 auto 28px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 64px; font-weight: 500; color: #FAC775;
+    position: relative;
+    box-shadow:
+      0 0 40px rgba(250,199,117,0.5),
+      inset 0 0 20px rgba(0,0,0,0.4);
+  }
+  .winner-nick {
+    font-size: 64px; color: #fff; font-weight: 600;
+    margin-bottom: 20px;
+    text-shadow: 0 0 25px rgba(250,199,117,0.7);
+    position: relative;
+    letter-spacing: 1px;
+    word-break: break-word;
+    max-width: 600px;
+  }
+  .winner-sub {
+    font-size: 18px; color: rgba(255,255,255,0.8);
+    letter-spacing: 2px;
+    position: relative;
+  }
+  .winner-buttons {
+    margin-top: 40px; position: relative;
+    display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
+  }
+
+  /* ===== Конфетти ===== */
+  .confetti-container {
+    position: fixed; inset: 0;
+    pointer-events: none; overflow: hidden;
+    z-index: 99; display: none;
+  }
+  .confetti-container.active { display: block; }
+  .confetti-piece {
+    position: absolute;
+    width: 12px; height: 12px;
+    top: -20px; opacity: 0;
+    animation: confettiFall linear forwards;
+  }
+  @keyframes confettiFall {
+    0% { opacity: 1; transform: translateY(0) rotate(0deg) translateX(0); }
+    100% { opacity: 1; transform: translateY(110vh) rotate(720deg) translateX(var(--drift, 0px)); }
+  }
+
+  @media (max-width: 700px) {
+    .wheel-area { max-width: 95vw; }
+    .winner-card { padding: 40px 30px; }
+    .winner-nick { font-size: 36px; }
+    .winner-avatar { width: 140px; height: 140px; font-size: 48px; }
+    .winner-label { font-size: 14px; letter-spacing: 4px; margin-bottom: 18px; }
+  }
+</style>
+</head>
+
+<body>
+
+  <nav class="site-nav">
+    <div class="site-nav__inner">
+      <a class="site-nav__brand" href="index.html">ParipariKai</a>
+      <ul class="site-nav__links">
+        <li><a href="hall.html" data-page="hall">Hall of Fame</a></li>
+        <li><a href="tickets.html" data-page="tickets">Билеты</a></li>
+        <li><a href="anime.html" data-page="anime">Аниме</a></li>
+        <li><a href="movies.html" data-page="movies">Фильмы</a></li>
+        <li><a href="series.html" data-page="series">Сериалы</a></li>
+        <li><a href="games.html" data-page="games">Игры</a></li>
+        <li><a href="picker.html" data-page="picker">Рулетка</a></li>
+        <li><a href="chat-wheel.html" data-page="chat-wheel" class="is-active">Чат-рулетка</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="layout">
+
+    <!-- ===== Левая колонка: колесо ===== -->
+    <div class="wheel-col">
+      <div class="app-header">
+        <div class="app-title">🎡 Чат-рулетка</div>
+        <div class="app-stats" id="app-stats">Не подключено</div>
+      </div>
+
+      <div class="wheel-area">
+        <svg class="wheel-svg" id="wheel" viewBox="0 0 100 100"></svg>
+        <div class="wheel-pointer" id="wheel-pointer">
+          <svg viewBox="0 0 52 60">
+            <polygon points="26,58 4,8 48,8" fill="#FAC775" stroke="#0a0e1a" stroke-width="2" stroke-linejoin="round"/>
+            <circle cx="26" cy="10" r="5" fill="#FAC775" stroke="#0a0e1a" stroke-width="2"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="duration-group">
+          <span class="duration-label">⏱ Длительность</span>
+          <button class="duration-btn" data-dur="3">3с</button>
+          <button class="duration-btn active" data-dur="5">5с</button>
+          <button class="duration-btn" data-dur="10">10с</button>
+        </div>
+        <button class="sound-toggle" id="sound-toggle">🔊 Звук вкл.</button>
+      </div>
+
+      <div class="controls">
+        <button class="ctrl-btn primary" id="btn-spin">🎯 Крутить</button>
+        <button class="ctrl-btn danger" id="btn-reset">↺ Сброс исключённых</button>
+      </div>
+
+      <div class="log" id="log">
+        <div class="log-title">История розыгрыша</div>
+        <div id="log-entries"></div>
+      </div>
+    </div>
+
+    <!-- ===== Правая колонка: подключение, фильтры, участники ===== -->
+    <div class="side-col">
+
+      <div class="card">
+        <div class="card-title">Подключение к чату</div>
+        <div class="conn-row">
+          <input type="text" class="conn-input" id="channel-input" placeholder="канал twitch" autocomplete="off" spellcheck="false">
+          <button class="ctrl-btn small primary" id="btn-connect">Подключить</button>
+        </div>
+        <div class="conn-status">
+          <span class="conn-dot" id="conn-dot"></span>
+          <span id="conn-text">Не подключено</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Кто участвует</div>
+
+        <div class="field-label">Режим набора</div>
+        <div class="seg-group" id="mode-group">
+          <button class="seg-btn active" data-mode="activity">По активности</button>
+          <button class="seg-btn" data-mode="keyword">По кодовому слову</button>
+        </div>
+
+        <div id="activity-block">
+          <div class="field-label">Писал за последние</div>
+          <div class="seg-group" id="window-group">
+            <button class="seg-btn" data-min="5">5 мин</button>
+            <button class="seg-btn active" data-min="10">10 мин</button>
+            <button class="seg-btn" data-min="20">20 мин</button>
+            <button class="seg-btn" data-min="60">час</button>
+            <button class="seg-btn" data-min="0">всё время</button>
+          </div>
+        </div>
+
+        <div id="keyword-block" style="display:none;">
+          <div class="field-label">Кодовое слово</div>
+          <div class="keyword-row">
+            <input type="text" class="conn-input" id="keyword-input" value="хочу" autocomplete="off" spellcheck="false">
+            <button class="ctrl-btn small primary" id="btn-collect">Начать сбор</button>
+          </div>
+          <div class="collect-banner" id="collect-banner">Идёт сбор — пишите слово в чат!</div>
+        </div>
+
+        <div class="field-label">Подписка (сапка)</div>
+        <div class="seg-group" id="sub-group">
+          <button class="seg-btn active" data-sub="all">Все</button>
+          <button class="seg-btn" data-sub="nosub">Без сапки</button>
+          <button class="seg-btn" data-sub="sub">Только с сапкой</button>
+        </div>
+
+        <div class="field-label">Исключить</div>
+        <label class="check-row"><input type="checkbox" id="ex-mods" checked> Модераторов</label>
+        <label class="check-row"><input type="checkbox" id="ex-vips"> VIP</label>
+        <label class="check-row"><input type="checkbox" id="ex-bots" checked> Известных ботов</label>
+        <label class="check-row"><input type="checkbox" id="ex-broadcaster" checked> Стримера</label>
+
+        <div class="field-label">Свой список исключений (через запятую)</div>
+        <input type="text" class="conn-input" id="ex-custom" placeholder="ник1, ник2" autocomplete="off" spellcheck="false" style="width:100%;">
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <span>Участники: <span id="p-count" style="color:#FAC775;">0</span></span>
+          <span id="seen-count" style="text-transform:none; letter-spacing:0;">видели в чате: 0</span>
+        </div>
+        <div class="participants" id="participants">
+          <div class="p-empty">Подключись к чату — участники появятся сами</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <span>Лента чата</span>
+          <button class="feed-toggle" id="feed-toggle">скрыть</button>
+        </div>
+        <div class="chat-feed" id="chat-feed"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Конфетти -->
+  <div class="confetti-container" id="confetti"></div>
+
+  <!-- Победитель -->
+  <div class="winner-overlay" id="winner-overlay">
+    <div class="winner-card">
+      <div class="winner-label">✦ Победитель ✦</div>
+      <div class="winner-avatar" id="winner-avatar"></div>
+      <div class="winner-nick" id="winner-nick"></div>
+      <div class="winner-sub" id="winner-sub"></div>
+      <div class="winner-buttons">
+        <button class="ctrl-btn" id="winner-remove-btn">Убрать из пула</button>
+        <button class="ctrl-btn primary" id="winner-close-btn">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ============================================================
+// Утилиты
+// ============================================================
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+function initials(nick) {
+  const clean = nick.replace(/[^A-Za-zА-Яа-я0-9]/g, '');
+  if (clean.length >= 2) return (clean[0] + clean[1]).toUpperCase();
+  return (clean[0] || '?').toUpperCase();
+}
+function agoText(ts) {
+  const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (s < 60) return s + 'с';
+  const m = Math.floor(s / 60);
+  if (m < 60) return m + 'м';
+  return Math.floor(m / 60) + 'ч ' + (m % 60) + 'м';
+}
+
+// ============================================================
+// Настройки (сохраняются в localStorage)
+// ============================================================
+const LS_KEY = 'chatwheel-settings-v1';
+const settings = Object.assign({
+  channel: DEFAULT_CHANNEL,
+  mode: 'activity',          // activity | keyword
+  windowMin: 10,             // 0 = всё время
+  keyword: 'хочу',
+  subFilter: 'all',          // all | nosub | sub
+  exMods: true,
+  exVips: false,
+  exBots: true,
+  exBroadcaster: true,
+  exCustom: '',
+}, JSON.parse(localStorage.getItem(LS_KEY) || '{}'));
+
+function saveSettings() {
+  localStorage.setItem(LS_KEY, JSON.stringify(settings));
+}
+
+// ============================================================
+// Состояние
+// ============================================================
+// login -> { login, name, lastMsg, isSub, isMod, isVip, isBroadcaster, keywordAt }
+const users = new Map();
+const manualExcluded = new Set();   // убранные вручную / победители
+let wheelList = [];                 // текущий список на колесе
+let pendingRefresh = false;
+let collecting = false;
+let collectStart = null;            // timestamp начала сбора по слову
+let currentRotation = 0;
+let isSpinning = false;
+let duration = 5;
+let logEntries = [];
+let soundOn = true;
+let feedVisible = true;
+
+const SECTOR_COLORS = [
+  '#7F77DD', '#FAC775', '#D85A30', '#97C459',
+  '#5BA9E5', '#E599C2', '#B58FF5', '#F0B370',
+  '#86D7C9', '#E58686', '#9CB870', '#5B7FE5'
+];
+
+// ============================================================
+// Twitch IRC (анонимно, только чтение)
+// ============================================================
+let ws = null;
+let wsWanted = false;      // хотим ли держать соединение
+let reconnectTimer = null;
+let reconnectDelay = 1000;
+let joinedChannel = '';
+
+function setConnStatus(state, text) {
+  const dot = document.getElementById('conn-dot');
+  dot.className = 'conn-dot' + (state === 'online' ? ' online' : state === 'connecting' ? ' connecting' : '');
+  document.getElementById('conn-text').textContent = text;
+}
+
+function connect() {
+  const chan = document.getElementById('channel-input').value.trim().toLowerCase().replace(/^#/, '');
+  if (!chan) return;
+  settings.channel = chan;
+  saveSettings();
+  wsWanted = true;
+  openSocket(chan);
+  updateConnectButton();
+}
+
+function killSocket() {
+  if (!ws) return;
+  ws.onopen = ws.onmessage = ws.onclose = ws.onerror = null;
+  try { ws.close(); } catch (e) {}
+  ws = null;
+}
+
+function disconnect() {
+  wsWanted = false;
+  if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+  killSocket();
+  setConnStatus('off', 'Отключено');
+  updateConnectButton();
+}
+
+function openSocket(chan) {
+  if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+  killSocket();
+  setConnStatus('connecting', 'Подключение к #' + chan + '…');
+  joinedChannel = chan;
+
+  ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
+
+  ws.onopen = () => {
+    ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands');
+    ws.send('NICK justinfan' + Math.floor(10000 + Math.random() * 80000));
+    ws.send('JOIN #' + chan);
+  };
+
+  ws.onmessage = (ev) => {
+    ev.data.split('\r\n').forEach(line => { if (line) handleIRC(line); });
+  };
+
+  ws.onclose = () => {
+    if (wsWanted) {
+      setConnStatus('connecting', 'Переподключение…');
+      reconnectTimer = setTimeout(() => openSocket(joinedChannel), reconnectDelay);
+      reconnectDelay = Math.min(reconnectDelay * 2, 15000);
+    }
+  };
+  ws.onerror = () => { try { ws.close(); } catch (e) {} };
+}
+
+function parseTags(raw) {
+  const tags = {};
+  raw.split(';').forEach(pair => {
+    const i = pair.indexOf('=');
+    const k = i < 0 ? pair : pair.slice(0, i);
+    let v = i < 0 ? '' : pair.slice(i + 1);
+    v = v.replace(/\\s/g, ' ').replace(/\\:/g, ';').replace(/\\\\/g, '\\');
+    tags[k] = v;
+  });
+  return tags;
+}
+
+function handleIRC(line) {
+  if (line.startsWith('PING')) {
+    ws.send('PONG :tmi.twitch.tv');
+    return;
+  }
+
+  let tags = {};
+  let rest = line;
+  if (rest.startsWith('@')) {
+    const sp = rest.indexOf(' ');
+    tags = parseTags(rest.slice(1, sp));
+    rest = rest.slice(sp + 1);
+  }
+
+  let prefix = '';
+  if (rest.startsWith(':')) {
+    const sp = rest.indexOf(' ');
+    prefix = rest.slice(1, sp);
+    rest = rest.slice(sp + 1);
+  }
+
+  const sp = rest.indexOf(' ');
+  const command = sp < 0 ? rest : rest.slice(0, sp);
+  const params = sp < 0 ? '' : rest.slice(sp + 1);
+
+  if (command === '001') {
+    setConnStatus('online', 'В чате #' + joinedChannel);
+    reconnectDelay = 1000;
+    updateStats();
+    return;
+  }
+
+  if (command === 'RECONNECT') {
+    try { ws.close(); } catch (e) {}
+    return;
+  }
+
+  if (command === 'NOTICE') {
+    const msg = params.split(' :')[1] || '';
+    if (/login|auth/i.test(msg)) setConnStatus('off', 'Ошибка: ' + msg);
+    return;
+  }
+
+  // Бан/таймаут — убираем из пула
+  if (command === 'CLEARCHAT') {
+    const target = (params.split(' :')[1] || '').trim().toLowerCase();
+    if (target && users.has(target)) {
+      users.delete(target);
+      refreshAll();
+    }
+    return;
+  }
+
+  if (command === 'PRIVMSG') {
+    const login = prefix.split('!')[0].toLowerCase();
+    const colonIdx = params.indexOf(' :');
+    const text = colonIdx < 0 ? '' : params.slice(colonIdx + 2);
+    onChatMessage(login, tags, text);
+  }
+}
+
+function onChatMessage(login, tags, text) {
+  const badges = tags['badges'] || '';
+  const now = Date.now();
+  const user = users.get(login) || { login, keywordAt: 0 };
+
+  user.name = tags['display-name'] || login;
+  user.lastMsg = now;
+  user.isSub = badges.includes('subscriber/') || badges.includes('founder/') || tags['subscriber'] === '1';
+  user.isMod = tags['mod'] === '1' || badges.includes('moderator/');
+  user.isVip = badges.includes('vip/') || tags['vip'] === '1';
+  user.isBroadcaster = badges.includes('broadcaster/');
+
+  // Кодовое слово: засчитываем только во время сбора
+  if (collecting && settings.keyword &&
+      text.toLowerCase().includes(settings.keyword.toLowerCase())) {
+    user.keywordAt = now;
+  }
+
+  users.set(login, user);
+  addFeedLine(user, text);
+  refreshAll();
+}
+
+// ============================================================
+// Отбор участников по фильтрам
+// ============================================================
+function customExcludeSet() {
+  return new Set(
+    settings.exCustom.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+  );
+}
+
+function isEligible(u, customEx) {
+  if (manualExcluded.has(u.login)) return false;
+  if (settings.exBroadcaster && (u.isBroadcaster || u.login === joinedChannel)) return false;
+  if (settings.exMods && u.isMod) return false;
+  if (settings.exVips && u.isVip) return false;
+  if (settings.exBots && KNOWN_BOTS.includes(u.login)) return false;
+  if (customEx.has(u.login)) return false;
+
+  if (settings.subFilter === 'nosub' && u.isSub) return false;
+  if (settings.subFilter === 'sub' && !u.isSub) return false;
+
+  if (settings.mode === 'keyword') {
+    if (!collectStart || u.keywordAt < collectStart) return false;
+  } else {
+    if (settings.windowMin > 0 &&
+        Date.now() - u.lastMsg > settings.windowMin * 60 * 1000) return false;
+  }
+  return true;
+}
+
+function computeEligible() {
+  const customEx = customExcludeSet();
+  const list = [];
+  users.forEach(u => { if (isEligible(u, customEx)) list.push(u); });
+  list.sort((a, b) => a.login.localeCompare(b.login));
+  return list;
+}
+
+function refreshAll() {
+  renderParticipants();
+  if (isSpinning) { pendingRefresh = true; return; }
+  wheelList = computeEligible();
+  renderWheel();
+  updateStats();
+}
+
+// Активность истекает сама по себе — обновляем раз в 5 секунд
+setInterval(() => { if (!isSpinning) refreshAll(); }, 5000);
+
+// ============================================================
+// Рендер списка участников и ленты чата
+// ============================================================
+function badgeStr(u) {
+  let s = '';
+  if (u.isBroadcaster) s += '🎥';
+  if (u.isMod) s += '🛡️';
+  if (u.isVip) s += '💎';
+  if (u.isSub) s += '⭐';
+  return s;
+}
+
+function renderParticipants() {
+  const box = document.getElementById('participants');
+  const eligible = computeEligible();
+  document.getElementById('p-count').textContent = eligible.length;
+  document.getElementById('seen-count').textContent = 'видели в чате: ' + users.size;
+
+  if (eligible.length === 0) {
+    box.innerHTML = '<div class="p-empty">' +
+      (users.size === 0 ? 'Подключись к чату — участники появятся сами'
+                        : 'Никто не проходит по фильтрам') + '</div>';
+    return;
+  }
+
+  box.innerHTML = eligible.map((u, i) => `
+    <div class="p-row">
+      <span class="p-color" style="background:${SECTOR_COLORS[i % SECTOR_COLORS.length]}"></span>
+      <span class="p-nick">${esc(u.name)}</span>
+      <span class="p-badges">${badgeStr(u)}</span>
+      <span class="p-ago">${agoText(u.lastMsg)}</span>
+      <button class="p-remove" data-login="${esc(u.login)}" title="Исключить">✕</button>
+    </div>
+  `).join('');
+
+  box.querySelectorAll('.p-remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      manualExcluded.add(btn.dataset.login);
+      refreshAll();
+    });
+  });
+}
+
+const FEED_MAX = 60;
+function addFeedLine(user, text) {
+  if (!feedVisible) return;
+  const feed = document.getElementById('chat-feed');
+  const div = document.createElement('div');
+  const customEx = customExcludeSet();
+  div.className = 'chat-line' + (isEligible(user, customEx) ? ' eligible-msg' : '');
+  div.innerHTML = `<span class="cn">${esc(user.name)}:</span> ${esc(text)}`;
+  feed.appendChild(div);
+  while (feed.children.length > FEED_MAX) feed.removeChild(feed.firstChild);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+// ============================================================
+// Звук (клики + фанфары) — как в рулетке билетов
+// ============================================================
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+}
+
+function playClick() {
+  if (!soundOn) return;
+  ensureAudio();
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(2400, now);
+  osc.frequency.exponentialRampToValueAtTime(800, now + 0.04);
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.05, now + 0.005);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(now); osc.stop(now + 0.08);
+}
+
+function playFanfare() {
+  if (!soundOn) return;
+  ensureAudio();
+  if (!audioCtx) return;
+  const t0 = audioCtx.currentTime;
+  const notes = [
+    { f: 261.63, t: 0.00, dur: 0.18 },
+    { f: 329.63, t: 0.18, dur: 0.18 },
+    { f: 392.00, t: 0.36, dur: 0.18 },
+    { f: 523.25, t: 0.54, dur: 0.40 },
+    { f: 659.25, t: 1.00, dur: 0.20 },
+    { f: 783.99, t: 1.20, dur: 0.20 },
+    { f: 1046.5, t: 1.45, dur: 0.80 },
+  ];
+  notes.forEach(n => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(n.f, t0 + n.t);
+    gain.gain.setValueAtTime(0, t0 + n.t);
+    gain.gain.linearRampToValueAtTime(0.12, t0 + n.t + 0.02);
+    gain.gain.linearRampToValueAtTime(0.10, t0 + n.t + n.dur * 0.3);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + n.t + n.dur);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(t0 + n.t); osc.stop(t0 + n.t + n.dur + 0.05);
+
+    const osc2 = audioCtx.createOscillator();
+    const gain2 = audioCtx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(n.f / 2, t0 + n.t);
+    gain2.gain.setValueAtTime(0, t0 + n.t);
+    gain2.gain.linearRampToValueAtTime(0.06, t0 + n.t + 0.02);
+    gain2.gain.exponentialRampToValueAtTime(0.001, t0 + n.t + n.dur);
+    osc2.connect(gain2); gain2.connect(audioCtx.destination);
+    osc2.start(t0 + n.t); osc2.stop(t0 + n.t + n.dur + 0.05);
+  });
+  const chordStart = t0 + 1.45;
+  [523.25, 659.25, 783.99, 1046.5].forEach(f => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(f, chordStart);
+    gain.gain.setValueAtTime(0, chordStart);
+    gain.gain.linearRampToValueAtTime(0.05, chordStart + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, chordStart + 1.0);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(chordStart); osc.stop(chordStart + 1.05);
+  });
+}
+
+// ============================================================
+// Колесо (равные сектора — один зритель, один шанс)
+// ============================================================
+function computeSegments() {
+  const n = wheelList.length;
+  if (n === 0) return [];
+  const angle = 360 / n;
+  return wheelList.map((u, i) => ({
+    user: u,
+    angle: angle,
+    startAngle: i * angle,
+    endAngle: (i + 1) * angle,
+    midAngle: (i + 0.5) * angle,
+  }));
+}
+
+function renderWheel() {
+  const svg = document.getElementById('wheel');
+  if (wheelList.length === 0) {
+    svg.innerHTML = `<text x="50" y="50" text-anchor="middle" dominant-baseline="middle"
+                      fill="rgba(255,255,255,0.4)" font-size="5">Нет участников</text>`;
+    return;
+  }
+
+  const segments = computeSegments();
+  let groupContent = '';
+  const cx = 50, cy = 50, r = 48;
+
+  if (segments.length === 1) {
+    const u = segments[0].user;
+    groupContent = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${SECTOR_COLORS[0]}" stroke="#0a0e1a" stroke-width="0.2"/>
+      <text x="${cx}" y="${cy - 10}" fill="#fff" font-size="5" text-anchor="middle">${esc(u.name)}</text>`;
+  } else {
+    segments.forEach((seg, i) => {
+      let color = SECTOR_COLORS[i % SECTOR_COLORS.length];
+      // Чтобы первый и последний сектор не слились цветом
+      if (i === segments.length - 1 && color === SECTOR_COLORS[0] && segments.length > 2) {
+        color = SECTOR_COLORS[1];
+      }
+      const path = sectorPath(cx, cy, r, seg.startAngle, seg.endAngle);
+
+      const textRadius = r * 0.65;
+      const textRad = (seg.midAngle - 90) * Math.PI / 180;
+      const tx = cx + Math.cos(textRad) * textRadius;
+      const ty = cy + Math.sin(textRad) * textRadius;
+      const fontSize = Math.min(3.5, Math.max(1.4, seg.angle / 8));
+      let displayNick = seg.user.name;
+      const maxChars = Math.max(4, Math.floor(seg.angle / 1.5));
+      if (displayNick.length > maxChars) displayNick = displayNick.substring(0, maxChars - 1) + '…';
+      const showText = seg.angle >= 2;
+
+      groupContent += `<path d="${path}" fill="${color}" stroke="#0a0e1a" stroke-width="0.2"/>`;
+      if (showText) {
+        groupContent += `<text x="${tx}" y="${ty}" fill="#fff" font-size="${fontSize}"
+                         text-anchor="middle" dominant-baseline="middle"
+                         transform="rotate(${seg.midAngle} ${tx} ${ty})"
+                         style="pointer-events: none;">${esc(displayNick)}</text>`;
+      }
+    });
+  }
+
+  svg.innerHTML = `
+    <g id="wheel-group" style="transform-origin: 50% 50%; transform: rotate(${currentRotation}deg); transition: none;">
+      ${groupContent}
+    </g>
+    <circle cx="50" cy="50" r="6" fill="#0a0e1a" stroke="#FAC775" stroke-width="0.5"/>
+  `;
+}
+
+function sectorPath(cx, cy, r, startAngle, endAngle) {
+  const startRad = (startAngle - 90) * Math.PI / 180;
+  const endRad = (endAngle - 90) * Math.PI / 180;
+  const x1 = cx + Math.cos(startRad) * r;
+  const y1 = cy + Math.sin(startRad) * r;
+  const x2 = cx + Math.cos(endRad) * r;
+  const y2 = cy + Math.sin(endRad) * r;
+  const largeArc = (endAngle - startAngle) > 180 ? 1 : 0;
+  return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+}
+
+// ============================================================
+// Розыгрыш
+// ============================================================
+function pickWinnerIndex() {
+  const buf = new Uint32Array(1);
+  crypto.getRandomValues(buf);
+  return buf[0] % wheelList.length;
+}
+
+const POINTER_ANGLE = 0;
+
+async function spin(callback) {
+  if (isSpinning) return;
+  if (wheelList.length === 0) return;
+  if (wheelList.length === 1) {
+    if (callback) callback(0);
+    return;
+  }
+
+  isSpinning = true;
+  setControlsDisabled(true);
+
+  const segments = computeSegments();
+  const winnerIdx = pickWinnerIndex();
+  const targetCenterAngle = segments[winnerIdx].midAngle;
+
+  let baseTarget = POINTER_ANGLE - targetCenterAngle;
+  const minRotations = 4;
+  let currentNormalized = ((currentRotation % 360) + 360) % 360;
+  let targetNormalized = ((baseTarget % 360) + 360) % 360;
+  let delta = targetNormalized - currentNormalized;
+  if (delta < 0) delta += 360;
+  const finalRotation = currentRotation + minRotations * 360 + delta;
+  const startRotation = currentRotation;
+  currentRotation = finalRotation;
+
+  const group = document.getElementById('wheel').querySelector('#wheel-group');
+  group.style.transition = `transform ${duration}s cubic-bezier(0.17, 0.67, 0.2, 1)`;
+  group.style.transform = `rotate(${finalRotation}deg)`;
+
+  await trackPointerTicks(startRotation, finalRotation, duration, segments);
+  await new Promise(resolve => setTimeout(resolve, 100));
+
+  isSpinning = false;
+  setControlsDisabled(false);
+  if (callback) callback(winnerIdx);
+  if (pendingRefresh) { pendingRefresh = false; }
+}
+
+function cubicBezier(x1, y1, x2, y2, t) {
+  const inv = 1 - t;
+  const t2 = t * t, t3 = t2 * t;
+  return 3 * inv * inv * t * y1 + 3 * inv * t2 * y2 + t3;
+}
+function cubicBezierX(x1, x2, t) {
+  const inv = 1 - t;
+  const t2 = t * t, t3 = t2 * t;
+  return 3 * inv * inv * t * x1 + 3 * inv * t2 * x2 + t3;
+}
+function easeOutBezier(t) {
+  const x1 = 0.17, x2 = 0.2;
+  let low = 0, high = 1, mid = t;
+  for (let i = 0; i < 20; i++) {
+    const x = cubicBezierX(x1, x2, mid);
+    if (Math.abs(x - t) < 1e-6) break;
+    if (x < t) low = mid; else high = mid;
+    mid = (low + high) / 2;
+  }
+  return cubicBezier(x1, 0.67, x2, 1, mid);
+}
+function normalizeAngle(angle) {
+  const normalized = angle % 360;
+  return normalized < 0 ? normalized + 360 : normalized;
+}
+function boundaryCrossed(prev, next, boundary, decreasing) {
+  if (decreasing) {
+    if (prev >= next) return next < boundary && boundary <= prev;
+    return boundary > next || boundary <= prev;
+  }
+  if (next >= prev) return prev < boundary && boundary <= next;
+  return boundary > prev || boundary <= next;
+}
+
+async function trackPointerTicks(startRot, endRot, dur, segments) {
+  const startTime = performance.now();
+  const totalDelta = endRot - startRot;
+  const boundaries = segments.map(s => normalizeAngle(s.startAngle));
+  let lastPointerOnWheel = normalizeAngle(POINTER_ANGLE - startRot);
+  const decreasing = totalDelta > 0;
+
+  return new Promise(resolve => {
+    function frame(now) {
+      const elapsed = (now - startTime) / 1000;
+      const t = Math.min(elapsed / dur, 1);
+      const eased = easeOutBezier(t);
+      const currentRot = startRot + totalDelta * eased;
+      const pointerOnWheel = normalizeAngle(POINTER_ANGLE - currentRot);
+      for (const boundary of boundaries) {
+        if (boundaryCrossed(lastPointerOnWheel, pointerOnWheel, boundary, decreasing)) {
+          triggerTick();
+        }
+      }
+      lastPointerOnWheel = pointerOnWheel;
+      if (t < 1) requestAnimationFrame(frame);
+      else resolve();
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+function triggerTick() {
+  const pointer = document.getElementById('wheel-pointer');
+  pointer.classList.remove('ticking');
+  void pointer.offsetWidth;
+  pointer.classList.add('ticking');
+  playClick();
+}
+
+function setControlsDisabled(disabled) {
+  document.getElementById('btn-spin').disabled = disabled;
+  document.getElementById('btn-reset').disabled = disabled;
+  document.querySelectorAll('.duration-btn').forEach(b => b.disabled = disabled);
+}
+
+// ============================================================
+// Победитель
+// ============================================================
+let lastWinner = null;
+
+function showWinner(user) {
+  lastWinner = user;
+  const avatar = document.getElementById('winner-avatar');
+  avatar.textContent = initials(user.name);
+  document.getElementById('winner-nick').textContent = user.name;
+  document.getElementById('winner-sub').textContent =
+    user.isSub ? '⭐ С подпиской' : 'Без подписки';
+  document.getElementById('winner-overlay').classList.add('show');
+  launchConfetti();
+  playFanfare();
+}
+
+function hideWinner() {
+  document.getElementById('winner-overlay').classList.remove('show');
+  stopConfetti();
+  refreshAll();
+}
+document.getElementById('winner-close-btn').addEventListener('click', hideWinner);
+document.getElementById('winner-remove-btn').addEventListener('click', () => {
+  if (lastWinner) manualExcluded.add(lastWinner.login);
+  hideWinner();
+});
+
+function launchConfetti() {
+  const container = document.getElementById('confetti');
+  container.classList.add('active');
+  container.innerHTML = '';
+  const goldColors = ['#FAC775', '#FFD700', '#FFE194', '#F0B370', '#FFCC33', '#FFFFFF'];
+  const shapes = ['rect', 'circle', 'star'];
+  for (let i = 0; i < 120; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    const color = goldColors[Math.floor(Math.random() * goldColors.length)];
+    const shape = shapes[Math.floor(Math.random() * shapes.length)];
+    const size = 8 + Math.random() * 10;
+    const drift = (Math.random() - 0.5) * 400;
+    const dur = 3 + Math.random() * 2.5;
+    const delay = Math.random() * 0.6;
+    piece.style.left = (Math.random() * 100) + 'vw';
+    piece.style.width = size + 'px';
+    piece.style.height = size + 'px';
+    piece.style.backgroundColor = color;
+    piece.style.boxShadow = `0 0 ${size}px ${color}`;
+    piece.style.setProperty('--drift', drift + 'px');
+    piece.style.animationDuration = dur + 's';
+    piece.style.animationDelay = delay + 's';
+    if (shape === 'circle') piece.style.borderRadius = '50%';
+    else if (shape === 'star') {
+      piece.style.clipPath = 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)';
+    }
+    container.appendChild(piece);
+  }
+  setTimeout(() => {
+    if (container.classList.contains('active')) container.innerHTML = '';
+  }, 6000);
+}
+function stopConfetti() {
+  const container = document.getElementById('confetti');
+  container.classList.remove('active');
+  container.innerHTML = '';
+}
+
+function addLogEntry(text, isWinner) {
+  logEntries.push({ text, isWinner });
+  const logEl = document.getElementById('log');
+  const entries = document.getElementById('log-entries');
+  entries.innerHTML = logEntries.map((e, i) => `
+    <div class="log-entry${e.isWinner ? ' winner' : ''}">
+      <span class="num">${e.isWinner ? '🏆' : '#' + (i + 1)}</span>${esc(e.text)}
+    </div>
+  `).join('');
+  logEl.classList.add('has-entries');
+  entries.scrollTop = entries.scrollHeight;
+}
+
+function updateStats() {
+  const el = document.getElementById('app-stats');
+  if (!wsWanted) { el.textContent = 'Не подключено'; return; }
+  el.textContent = `На колесе: ${wheelList.length}  •  Видели в чате: ${users.size}`;
+}
+
+// ============================================================
+// Привязка UI
+// ============================================================
+function updateConnectButton() {
+  document.getElementById('btn-connect').textContent = wsWanted ? 'Отключить' : 'Подключить';
+}
+
+document.getElementById('btn-connect').addEventListener('click', () => {
+  if (wsWanted) disconnect(); else connect();
+});
+document.getElementById('channel-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { if (wsWanted) disconnect(); connect(); }
+});
+
+// Режим набора
+document.querySelectorAll('#mode-group .seg-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#mode-group .seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    settings.mode = btn.dataset.mode;
+    saveSettings();
+    document.getElementById('activity-block').style.display = settings.mode === 'activity' ? '' : 'none';
+    document.getElementById('keyword-block').style.display = settings.mode === 'keyword' ? '' : 'none';
+    refreshAll();
+  });
+});
+
+// Окно активности
+document.querySelectorAll('#window-group .seg-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#window-group .seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    settings.windowMin = parseInt(btn.dataset.min, 10);
+    saveSettings();
+    refreshAll();
+  });
+});
+
+// Кодовое слово
+document.getElementById('keyword-input').addEventListener('input', e => {
+  settings.keyword = e.target.value.trim();
+  saveSettings();
+});
+document.getElementById('btn-collect').addEventListener('click', () => {
+  const btn = document.getElementById('btn-collect');
+  const banner = document.getElementById('collect-banner');
+  if (!collecting) {
+    collecting = true;
+    collectStart = Date.now();
+    // Новый сбор — старые отметки слова не считаются (keywordAt < collectStart)
+    btn.textContent = 'Стоп';
+    btn.classList.remove('primary');
+    btn.classList.add('danger');
+    banner.classList.add('on');
+    banner.textContent = 'Идёт сбор — пишите «' + settings.keyword + '» в чат!';
+  } else {
+    collecting = false;
+    btn.textContent = 'Начать сбор';
+    btn.classList.add('primary');
+    btn.classList.remove('danger');
+    banner.classList.remove('on');
+  }
+  refreshAll();
+});
+
+// Фильтр подписки
+document.querySelectorAll('#sub-group .seg-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#sub-group .seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    settings.subFilter = btn.dataset.sub;
+    saveSettings();
+    refreshAll();
+  });
+});
+
+// Чекбоксы
+[['ex-mods','exMods'],['ex-vips','exVips'],['ex-bots','exBots'],['ex-broadcaster','exBroadcaster']]
+.forEach(([id, key]) => {
+  document.getElementById(id).addEventListener('change', e => {
+    settings[key] = e.target.checked;
+    saveSettings();
+    refreshAll();
+  });
+});
+
+// Свой список исключений
+document.getElementById('ex-custom').addEventListener('input', e => {
+  settings.exCustom = e.target.value;
+  saveSettings();
+  refreshAll();
+});
+
+// Лента чата
+document.getElementById('feed-toggle').addEventListener('click', () => {
+  feedVisible = !feedVisible;
+  document.getElementById('chat-feed').style.display = feedVisible ? '' : 'none';
+  document.getElementById('feed-toggle').textContent = feedVisible ? 'скрыть' : 'показать';
+});
+
+// Длительность и звук
+document.querySelectorAll('.duration-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    duration = parseInt(btn.dataset.dur, 10);
+  });
+});
+
+const soundBtn = document.getElementById('sound-toggle');
+function updateSoundButton() {
+  if (soundOn) {
+    soundBtn.classList.remove('off');
+    soundBtn.textContent = '🔊 Звук вкл.';
+  } else {
+    soundBtn.classList.add('off');
+    soundBtn.textContent = '🔇 Звук выкл.';
+  }
+}
+soundBtn.addEventListener('click', () => {
+  soundOn = !soundOn;
+  if (soundOn) ensureAudio();
+  updateSoundButton();
+});
+updateSoundButton();
+document.addEventListener('click', () => { if (soundOn) ensureAudio(); }, { once: true });
+
+// Крутить
+document.getElementById('btn-spin').addEventListener('click', () => {
+  wheelList = computeEligible();
+  renderWheel();
+  if (wheelList.length === 0) return;
+  spin(winnerIdx => {
+    const winner = wheelList[winnerIdx];
+    addLogEntry(winner.name + (winner.isSub ? ' ⭐' : ''), true);
+    showWinner(winner);
+  });
+});
+
+// Сброс исключённых (вернуть убранных победителей)
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (manualExcluded.size === 0 && logEntries.length === 0) return;
+  if (!confirm('Вернуть всех исключённых и очистить историю?')) return;
+  manualExcluded.clear();
+  logEntries = [];
+  document.getElementById('log-entries').innerHTML = '';
+  document.getElementById('log').classList.remove('has-entries');
+  refreshAll();
+});
+
+// ============================================================
+// Инициализация из настроек
+// ============================================================
+function initFromSettings() {
+  document.getElementById('channel-input').value = settings.channel || DEFAULT_CHANNEL;
+  document.getElementById('keyword-input').value = settings.keyword || 'хочу';
+  document.getElementById('ex-custom').value = settings.exCustom || '';
+  document.getElementById('ex-mods').checked = settings.exMods;
+  document.getElementById('ex-vips').checked = settings.exVips;
+  document.getElementById('ex-bots').checked = settings.exBots;
+  document.getElementById('ex-broadcaster').checked = settings.exBroadcaster;
+
+  document.querySelectorAll('#mode-group .seg-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.mode === settings.mode));
+  document.getElementById('activity-block').style.display = settings.mode === 'activity' ? '' : 'none';
+  document.getElementById('keyword-block').style.display = settings.mode === 'keyword' ? '' : 'none';
+
+  document.querySelectorAll('#window-group .seg-btn').forEach(b =>
+    b.classList.toggle('active', parseInt(b.dataset.min, 10) === settings.windowMin));
+
+  document.querySelectorAll('#sub-group .seg-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.sub === settings.subFilter));
+
+  renderWheel();
+}
+
+initFromSettings();
+</script>
+</body>
+</html>
