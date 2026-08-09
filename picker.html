@@ -995,7 +995,16 @@ function fitLabels() {
     const maxLen = Math.max(3, textR - rMin);
 
     el.textContent = full;
-    if (el.getComputedTextLength() <= maxLen) continue;   // влезло целиком
+    const measured = el.getComputedTextLength();
+
+    // В скрытой вкладке браузер не размечает SVG и возвращает 0 — мерить
+    // нечего, оцениваем по числу символов (≈0.65 кегля на символ).
+    if (!measured) {
+      const maxChars = Math.max(3, Math.floor(maxLen / (fs * 0.65)));
+      if (full.length > maxChars) el.textContent = full.slice(0, maxChars - 1).trimEnd() + '…';
+      continue;
+    }
+    if (measured <= maxLen) continue;                     // влезло целиком
 
     let lo = 0, hi = full.length;
     while (lo < hi) {
