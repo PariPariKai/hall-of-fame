@@ -387,6 +387,17 @@
   .sound-toggle:hover { background: rgba(151,196,89,0.05); }
   .sound-toggle.off { color: rgba(255,255,255,0.5); border-color: rgba(255,255,255,0.15); }
 
+  /* ===== Режим выбывания индикатор ===== */
+  .elimination-status {
+    background: rgba(127,119,221,0.1);
+    border: 1px solid rgba(127,119,221,0.3);
+    border-radius: 8px; padding: 10px 20px;
+    color: #AFA9EC; font-size: 13px; letter-spacing: 1px;
+    text-align: center; margin-bottom: 16px;
+    display: none;
+  }
+  .elimination-status.active { display: block; }
+
   /* ===== Лог ===== */
   .log {
     width: 100%; max-width: 700px;
@@ -580,6 +591,10 @@
         <div class="app-stats" id="app-stats">Не подключено</div>
       </div>
 
+      <div id="elimination-status" class="elimination-status">
+        Режим выбывания. Осталось участников: <span id="elim-remaining">0</span>
+      </div>
+
       <div class="wheel-area">
         <svg class="wheel-svg" id="wheel" viewBox="0 0 100 100"></svg>
         <div class="wheel-pointer" id="wheel-pointer">
@@ -601,8 +616,9 @@
       </div>
 
       <div class="controls">
-        <button class="ctrl-btn primary" id="btn-spin">🎯 Крутить</button>
-        <button class="ctrl-btn danger" id="btn-reset">↺ Сброс исключённых</button>
+        <button class="ctrl-btn primary" id="btn-single">🎯 Один победитель</button>
+        <button class="ctrl-btn primary" id="btn-elim">⚔ Режим выбывания</button>
+        <button class="ctrl-btn danger" id="btn-reset">↺ Сброс</button>
       </div>
 
       <div class="log" id="log">
@@ -765,6 +781,7 @@ let collecting = false;
 let collectStart = null;            // timestamp начала сбора по слову
 let currentRotation = 0;
 let isSpinning = false;
+let eliminationMode = false;
 let duration = 5;
 let logEntries = [];
 let soundOn = true;
@@ -980,6 +997,8 @@ function computeEligible() {
 function refreshAll() {
   renderParticipants();
   if (isSpinning) { pendingRefresh = true; return; }
+  // В режиме выбывания состав колеса заморожен — чат его не меняет
+  if (eliminationMode) { updateStats(); return; }
   wheelList = computeEligible();
   renderWheel();
   updateStats();
@@ -1319,7 +1338,8 @@ function triggerTick() {
 }
 
 function setControlsDisabled(disabled) {
-  document.getElementById('btn-spin').disabled = disabled;
+  document.getElementById('btn-single').disabled = disabled;
+  document.getElementById('btn-elim').disabled = disabled;
   document.getElementById('btn-reset').disabled = disabled;
   document.querySelectorAll('.duration-btn').forEach(b => b.disabled = disabled);
 }
@@ -1406,6 +1426,7 @@ function addLogEntry(text, isWinner) {
 
 function updateStats() {
   const el = document.getElementById('app-stats');
+  document.getElementById('elim-remaining').textContent = wheelList.length;
   if (!wsWanted) { el.textContent = 'Не подключено'; return; }
   el.textContent = `На колесе: ${wheelList.length}  •  Видели в чате: ${users.size}`;
 }
@@ -1537,10 +1558,21 @@ soundBtn.addEventListener('click', () => {
 updateSoundButton();
 document.addEventListener('click', () => { if (soundOn) ensureAudio(); }, { once: true });
 
-// Крутить
-document.getElementById('btn-spin').addEventListener('click', () => {
+function exitElimination() {
+  eliminationMode = false;
+  document.getElementById('elimination-status').classList.remove('active');
+  document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+}
+
+// Один победитель
+document.getElementById('btn-single').addEventListener('click', () => {
+  if (eliminationMode) {
+    if (!confirm('Активен режим выбывания. Прервать его и крутить одиночный розыгрыш?')) return;
+    exitElimination();
+  }
   wheelList = computeEligible();
   renderWheel();
+  updateStats();
   if (wheelList.length === 0) return;
   spin(winnerIdx => {
     const winner = wheelList[winnerIdx];
@@ -1549,14 +1581,51 @@ document.getElementById('btn-spin').addEventListener('click', () => {
   });
 });
 
-// Сброс исключённых (вернуть убранных победителей)
+// Режим выбывания: состав фиксируется в момент старта,
+// новые сообщения из чата колесо уже не меняют
+document.getElementById('btn-elim').addEventListener('click', () => {
+  if (!eliminationMode) {
+    wheelList = computeEligible();
+    if (wheelList.length < 2) return;
+    eliminationMode = true;
+    renderWheel();
+    updateStats();
+    document.getElementById('elimination-status').classList.add('active');
+    document.getElementById('btn-elim').textContent = '⚔ Крутить (выбывание)';
+  }
+  spin(idx => {
+    if (wheelList.length === 1) {
+      const winner = wheelList[0];
+      addLogEntry('ПОБЕДИТЕЛЬ: ' + winner.name + (winner.isSub ? ' ⭐' : ''), true);
+      exitElimination();
+      showWinner(winner);
+      return;
+    }
+    const out = wheelList[idx];
+    addLogEntry('Выбыл: ' + out.name, false);
+    wheelList.splice(idx, 1);
+    renderWheel();
+    updateStats();
+    if (wheelList.length === 1) {
+      setTimeout(() => {
+        const winner = wheelList[0];
+        addLogEntry('ПОБЕДИТЕЛЬ: ' + winner.name + (winner.isSub ? ' ⭐' : ''), true);
+        exitElimination();
+        showWinner(winner);
+      }, 700);
+    }
+  });
+});
+
+// Сброс: вернуть исключённых, прервать выбывание, очистить историю
 document.getElementById('btn-reset').addEventListener('click', () => {
-  if (manualExcluded.size === 0 && logEntries.length === 0) return;
-  if (!confirm('Вернуть всех исключённых и очистить историю?')) return;
+  if (manualExcluded.size === 0 && logEntries.length === 0 && !eliminationMode) return;
+  if (!confirm('Сбросить розыгрыш? Вернутся исключённые, прервётся выбывание, очистится история.')) return;
   manualExcluded.clear();
   logEntries = [];
   document.getElementById('log-entries').innerHTML = '';
   document.getElementById('log').classList.remove('has-entries');
+  exitElimination();
   refreshAll();
 });
 
