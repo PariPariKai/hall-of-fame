@@ -419,7 +419,13 @@
     border-bottom: 1px solid rgba(255,255,255,0.05);
   }
   .log-entry:last-child { border-bottom: none; }
+  /* Новые записи сверху; верхняя — крупнее, чтобы зрители сразу видели, кто выбыл */
+  .log-entry:first-child {
+    font-size: 16px; padding: 7px 0;
+    color: rgba(255,255,255,0.95);
+  }
   .log-entry.winner { color: #FAC775; font-weight: 600; font-size: 15px; }
+  .log-entry.winner:first-child { font-size: 17.5px; }
   .log-entry .num {
     color: rgba(255,255,255,0.3); margin-right: 8px;
     font-variant-numeric: tabular-nums;
@@ -611,6 +617,7 @@
           <button class="duration-btn" data-dur="3">3с</button>
           <button class="duration-btn active" data-dur="5">5с</button>
           <button class="duration-btn" data-dur="10">10с</button>
+          <button class="duration-btn" data-dur="60">60с</button>
         </div>
         <button class="sound-toggle" id="sound-toggle">🔊 Звук вкл.</button>
       </div>
@@ -1415,13 +1422,14 @@ function addLogEntry(text, isWinner) {
   logEntries.push({ text, isWinner });
   const logEl = document.getElementById('log');
   const entries = document.getElementById('log-entries');
+  // Новые записи сверху
   entries.innerHTML = logEntries.map((e, i) => `
     <div class="log-entry${e.isWinner ? ' winner' : ''}">
       <span class="num">${e.isWinner ? '🏆' : '#' + (i + 1)}</span>${esc(e.text)}
     </div>
-  `).join('');
+  `).reverse().join('');
   logEl.classList.add('has-entries');
-  entries.scrollTop = entries.scrollHeight;
+  entries.scrollTop = 0;
 }
 
 function updateStats() {
