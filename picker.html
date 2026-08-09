@@ -860,7 +860,7 @@ let soundOn = true;
 // вперемешку: шансы те же, но по колесу не предугадать результат
 const SPLIT_BELOW = 10;
 const MIN_SLICE_ANGLE = 4;
-const MAX_PARTS = 10;
+const MAX_PARTS = 6;   // шире сектор — больше влезает в подпись
 
 function rebuildWheel() {
   activeItems = visibleItems();
@@ -948,15 +948,15 @@ function renderWheel() {
       const rad = (seg.midAngle - 90) * Math.PI / 180;
       const tx = cx + Math.cos(rad) * textRadius, ty = cy + Math.sin(rad) * textRadius;
       const baseRot = seg.midAngle - 90;
-      const fontSize = Math.min(3.2, Math.max(1.5, seg.angle * 0.4));
-      let label = seg.item.title;
-      if (label.length > 22) label = label.substring(0, 21) + '…';
+      const fontSize = Math.min(2.8, Math.max(1.5, seg.angle * 0.4));
+      // Полный текст пишем как есть — подрежет fitLabels() по факту замера
       content += `<text x="${tx}" y="${ty}" fill="#0a0e1a" font-size="${fontSize}"
         data-base="${baseRot.toFixed(3)}" data-tx="${tx.toFixed(3)}" data-ty="${ty.toFixed(3)}"
+        data-angle="${seg.angle.toFixed(4)}" data-full="${esc(seg.item.title)}"
         text-anchor="end" dominant-baseline="middle"
         transform="rotate(${baseRot} ${tx} ${ty})"
         style="paint-order: stroke; stroke: rgba(255,255,255,0.55); stroke-width: 0.5;
-               font-weight: 700; pointer-events: none;">${esc(label)}</text>`;
+               font-weight: 700; pointer-events: none;">${esc(seg.item.title)}</text>`;
     }
   });
 
@@ -967,7 +967,44 @@ function renderWheel() {
     <circle cx="50" cy="50" r="6" fill="#0a0e1a" stroke="#FAC775" stroke-width="0.5"/>`;
 
   labelCache = svg.querySelectorAll('#wheel-group text[data-base]');
+  fitLabels();
   updateLabelOrientation(currentRotation);
+}
+
+// ============================================================
+// Подгонка длины подписей
+//
+// Подписи идут по радиусу, а сектор к центру сужается: его ширина
+// на радиусе r равна r * угол(рад). Слишком длинная строка доезжает
+// туда, где ширины уже не хватает, и налезает на соседние сектора.
+//
+// Считать длину по числу символов нельзя — кириллица, латиница и
+// цифры имеют разную ширину. Поэтому меряем реальную длину строки
+// через getComputedTextLength() и подрезаем двоичным поиском.
+// ============================================================
+function fitLabels() {
+  const textR = 48 * 0.86;          // радиус, на котором заканчивается подпись
+  for (let i = 0; i < labelCache.length; i++) {
+    const el = labelCache[i];
+    const angle = parseFloat(el.dataset.angle);
+    const fs = parseFloat(el.getAttribute('font-size'));
+    const full = el.dataset.full || '';
+
+    // Глубже этого радиуса буквы уже не помещаются между соседями
+    const rMin = Math.max(10, (fs * 1.15) / (angle * 0.017453));
+    const maxLen = Math.max(3, textR - rMin);
+
+    el.textContent = full;
+    if (el.getComputedTextLength() <= maxLen) continue;   // влезло целиком
+
+    let lo = 0, hi = full.length;
+    while (lo < hi) {
+      const mid = Math.ceil((lo + hi) / 2);
+      el.textContent = full.slice(0, mid).trimEnd() + '…';
+      if (el.getComputedTextLength() <= maxLen) lo = mid; else hi = mid - 1;
+    }
+    el.textContent = lo > 0 ? full.slice(0, lo).trimEnd() + '…' : '';
+  }
 }
 
 // Подписи крутятся вместе с колесом — переворачиваем их на лету,
