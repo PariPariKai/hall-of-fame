@@ -326,7 +326,6 @@
     width: 100%; max-width: 700px;
     aspect-ratio: 1 / 1;
     margin-bottom: 24px;
-    padding-top: 36px;
   }
   .wheel-svg {
     width: 100%; height: 100%;
@@ -334,20 +333,18 @@
     filter: drop-shadow(0 8px 24px rgba(0,0,0,0.5));
   }
   .wheel-pointer {
-    position: absolute;
-    top: 0; left: 50%;
-    transform: translateX(-50%);
-    width: 52px; height: 60px;
-    z-index: 10;
-    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6));
-    transform-origin: 50% 25%;
+    position: absolute; right: -10px; top: 50%;
+    transform: translateY(-50%);
+    width: 58px; height: 50px; z-index: 10;
+    filter: drop-shadow(-4px 4px 8px rgba(0,0,0,0.6));
+    transform-origin: 88% 50%;
     transition: transform 0.05s ease-out;
   }
   .wheel-pointer svg { width: 100%; height: 100%; }
   @keyframes pointerTick {
-    0%   { transform: translateX(-50%) rotate(0deg); }
-    30%  { transform: translateX(-50%) rotate(-18deg); }
-    100% { transform: translateX(-50%) rotate(0deg); }
+    0%   { transform: translateY(-50%) rotate(0deg); }
+    30%  { transform: translateY(-50%) rotate(16deg); }
+    100% { transform: translateY(-50%) rotate(0deg); }
   }
   .wheel-pointer.ticking { animation: pointerTick 0.18s ease-out; }
 
@@ -551,6 +548,7 @@
 
   @media (max-width: 700px) {
     .wheel-area { max-width: 95vw; }
+    .wheel-pointer { width: 40px; height: 34px; right: -4px; }
     .winner-card { padding: 40px 30px; }
     .winner-nick { font-size: 36px; }
     .winner-avatar { width: 140px; height: 140px; font-size: 48px; }
@@ -604,9 +602,9 @@
       <div class="wheel-area">
         <svg class="wheel-svg" id="wheel" viewBox="0 0 100 100"></svg>
         <div class="wheel-pointer" id="wheel-pointer">
-          <svg viewBox="0 0 52 60">
-            <polygon points="26,58 4,8 48,8" fill="#FAC775" stroke="#0a0e1a" stroke-width="2" stroke-linejoin="round"/>
-            <circle cx="26" cy="10" r="5" fill="#FAC775" stroke="#0a0e1a" stroke-width="2"/>
+          <svg viewBox="0 0 60 52">
+            <polygon points="2,26 52,4 52,48" fill="#FAC775" stroke="#0a0e1a" stroke-width="2" stroke-linejoin="round"/>
+            <circle cx="50" cy="26" r="5" fill="#FAC775" stroke="#0a0e1a" stroke-width="2"/>
           </svg>
         </div>
       </div>
@@ -783,6 +781,7 @@ function saveSettings() {
 const users = new Map();
 const manualExcluded = new Set();   // убранные вручную / победители
 let wheelList = [];                 // текущий список на колесе
+let labelCache = [];                // подписи секторов (для подгонки и переворота)
 let pendingRefresh = false;
 let collecting = false;
 let collectStart = null;            // timestamp начала сбора по слову
@@ -1165,6 +1164,7 @@ function computeSegments() {
 function renderWheel() {
   const svg = document.getElementById('wheel');
   if (wheelList.length === 0) {
+    labelCache = [];
     svg.innerHTML = `<text x="50" y="50" text-anchor="middle" dominant-baseline="middle"
                       fill="rgba(255,255,255,0.4)" font-size="5">Нет участников</text>`;
     return;
@@ -1177,7 +1177,8 @@ function renderWheel() {
   if (segments.length === 1) {
     const u = segments[0].user;
     groupContent = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${SECTOR_COLORS[0]}" stroke="#0a0e1a" stroke-width="0.2"/>
-      <text x="${cx}" y="${cy - 10}" fill="#fff" font-size="5" text-anchor="middle">${esc(u.name)}</text>`;
+      <text x="${cx}" y="${cy - 10}" fill="#0a0e1a" font-size="5" text-anchor="middle"
+        style="font-weight: 700;">${esc(u.name)}</text>`;
   } else {
     segments.forEach((seg, i) => {
       let color = SECTOR_COLORS[i % SECTOR_COLORS.length];
@@ -1185,24 +1186,23 @@ function renderWheel() {
       if (i === segments.length - 1 && color === SECTOR_COLORS[0] && segments.length > 2) {
         color = SECTOR_COLORS[1];
       }
-      const path = sectorPath(cx, cy, r, seg.startAngle, seg.endAngle);
+      groupContent += `<path d="${sectorPath(cx, cy, r, seg.startAngle, seg.endAngle)}" fill="${color}" stroke="#0a0e1a" stroke-width="0.2"/>`;
 
-      const textRadius = r * 0.65;
-      const textRad = (seg.midAngle - 90) * Math.PI / 180;
-      const tx = cx + Math.cos(textRad) * textRadius;
-      const ty = cy + Math.sin(textRad) * textRadius;
-      const fontSize = Math.min(3.5, Math.max(1.4, seg.angle / 8));
-      let displayNick = seg.user.name;
-      const maxChars = Math.max(4, Math.floor(seg.angle / 1.5));
-      if (displayNick.length > maxChars) displayNick = displayNick.substring(0, maxChars - 1) + '…';
-      const showText = seg.angle >= 2;
-
-      groupContent += `<path d="${path}" fill="${color}" stroke="#0a0e1a" stroke-width="0.2"/>`;
-      if (showText) {
-        groupContent += `<text x="${tx}" y="${ty}" fill="#fff" font-size="${fontSize}"
-                         text-anchor="middle" dominant-baseline="middle"
-                         transform="rotate(${seg.midAngle} ${tx} ${ty})"
-                         style="pointer-events: none;">${esc(displayNick)}</text>`;
+      if (seg.angle >= 2) {
+        // Подпись по радиусу от края к центру, как в picker.html
+        const textRadius = r * 0.86;
+        const rad = (seg.midAngle - 90) * Math.PI / 180;
+        const tx = cx + Math.cos(rad) * textRadius;
+        const ty = cy + Math.sin(rad) * textRadius;
+        const baseRot = seg.midAngle - 90;
+        const fontSize = Math.min(2.8, Math.max(1.5, seg.angle * 0.4));
+        groupContent += `<text x="${tx}" y="${ty}" fill="#0a0e1a" font-size="${fontSize}"
+          data-base="${baseRot.toFixed(3)}" data-tx="${tx.toFixed(3)}" data-ty="${ty.toFixed(3)}"
+          data-angle="${seg.angle.toFixed(4)}" data-full="${esc(seg.user.name)}"
+          text-anchor="end" dominant-baseline="middle"
+          transform="rotate(${baseRot} ${tx} ${ty})"
+          style="paint-order: stroke; stroke: rgba(255,255,255,0.55); stroke-width: 0.5;
+                 font-weight: 700; pointer-events: none;">${esc(seg.user.name)}</text>`;
       }
     });
   }
@@ -1213,6 +1213,62 @@ function renderWheel() {
     </g>
     <circle cx="50" cy="50" r="6" fill="#0a0e1a" stroke="#FAC775" stroke-width="0.5"/>
   `;
+  labelCache = svg.querySelectorAll('#wheel-group text[data-base]');
+  fitLabels();
+  updateLabelOrientation(currentRotation);
+}
+
+// Подгонка длины подписей: сектор сужается к центру, поэтому меряем
+// реальную длину строки через getComputedTextLength() и подрезаем
+// двоичным поиском (по числу символов нельзя — кириллица и латиница
+// разной ширины). Логика из picker.html.
+function fitLabels() {
+  const textR = 48 * 0.86;
+  for (let i = 0; i < labelCache.length; i++) {
+    const el = labelCache[i];
+    const angle = parseFloat(el.dataset.angle);
+    const fs = parseFloat(el.getAttribute('font-size'));
+    const full = el.dataset.full || '';
+
+    // Глубже этого радиуса буквы уже не помещаются между соседями
+    const rMin = Math.max(10, (fs * 1.15) / (angle * 0.017453));
+    const maxLen = Math.max(3, textR - rMin);
+
+    el.textContent = full;
+    const measured = el.getComputedTextLength();
+
+    // В скрытой вкладке браузер не размечает SVG и возвращает 0 —
+    // оцениваем по числу символов (≈0.65 кегля на символ)
+    if (!measured) {
+      const maxChars = Math.max(3, Math.floor(maxLen / (fs * 0.65)));
+      if (full.length > maxChars) el.textContent = full.slice(0, maxChars - 1).trimEnd() + '…';
+      continue;
+    }
+    if (measured <= maxLen) continue;
+
+    let lo = 0, hi = full.length;
+    while (lo < hi) {
+      const mid = Math.ceil((lo + hi) / 2);
+      el.textContent = full.slice(0, mid).trimEnd() + '…';
+      if (el.getComputedTextLength() <= maxLen) lo = mid; else hi = mid - 1;
+    }
+    el.textContent = lo > 0 ? full.slice(0, lo).trimEnd() + '…' : '';
+  }
+}
+
+// Подписи крутятся вместе с колесом — переворачиваем их на лету,
+// чтобы к стрелке ни одна не подъехала вверх ногами
+function updateLabelOrientation(rotDeg) {
+  for (let i = 0; i < labelCache.length; i++) {
+    const el = labelCache[i];
+    const base = parseFloat(el.dataset.base);
+    const onScreen = (((base + rotDeg) % 360) + 360) % 360;
+    const flipped = (onScreen > 90 && onScreen < 270) ? '1' : '0';
+    if (el.dataset.flipped === flipped) continue;
+    el.dataset.flipped = flipped;
+    el.setAttribute('transform', `rotate(${flipped === '1' ? base + 180 : base} ${el.dataset.tx} ${el.dataset.ty})`);
+    el.setAttribute('text-anchor', flipped === '1' ? 'start' : 'end');
+  }
 }
 
 function sectorPath(cx, cy, r, startAngle, endAngle) {
@@ -1235,7 +1291,7 @@ function pickWinnerIndex() {
   return buf[0] % wheelList.length;
 }
 
-const POINTER_ANGLE = 0;
+const POINTER_ANGLE = 90;   // стрелка справа: ник победителя горизонтален
 
 async function spin(callback) {
   if (isSpinning) return;
@@ -1267,6 +1323,7 @@ async function spin(callback) {
   group.style.transform = `rotate(${finalRotation}deg)`;
 
   await trackPointerTicks(startRotation, finalRotation, duration, segments);
+  updateLabelOrientation(finalRotation);
   await new Promise(resolve => setTimeout(resolve, 100));
 
   isSpinning = false;
@@ -1322,6 +1379,7 @@ async function trackPointerTicks(startRot, endRot, dur, segments) {
       const t = Math.min(elapsed / dur, 1);
       const eased = easeOutBezier(t);
       const currentRot = startRot + totalDelta * eased;
+      updateLabelOrientation(currentRot);
       const pointerOnWheel = normalizeAngle(POINTER_ANGLE - currentRot);
       for (const boundary of boundaries) {
         if (boundaryCrossed(lastPointerOnWheel, pointerOnWheel, boundary, decreasing)) {
