@@ -781,6 +781,7 @@ function saveSettings() {
 const users = new Map();
 const manualExcluded = new Set();   // убранные вручную / победители
 let wheelList = [];                 // текущий список на колесе
+let currentSegments = [];           // кусочки, нарисованные на колесе
 let labelCache = [];                // подписи секторов (для подгонки и переворота)
 let pendingRefresh = false;
 let collecting = false;
@@ -1146,31 +1147,60 @@ function playFanfare() {
 }
 
 // ============================================================
-// Колесо (равные сектора — один зритель, один шанс)
+// Колесо (равные доли — один зритель, один шанс)
+//
+// Когда участников мало, каждый получает несколько тонких кусочков
+// вперемешку: шансы те же, но по замедлению колеса не предугадать,
+// кто выпадет. Логика из picker.html.
 // ============================================================
+const SPLIT_BELOW = 10;
+const MIN_SLICE_ANGLE = 4;
+const MAX_PARTS = 6;   // шире сектор — больше влезает в подпись
+
 function computeSegments() {
   const n = wheelList.length;
   if (n === 0) return [];
-  const angle = 360 / n;
-  return wheelList.map((u, i) => ({
-    user: u,
-    angle: angle,
-    startAngle: i * angle,
-    endAngle: (i + 1) * angle,
-    midAngle: (i + 0.5) * angle,
-  }));
+  const share = 360 / n;                       // все участники равны
+
+  const shares = wheelList.map((u, i) => ({ user: u, userIndex: i, angle: share }));
+  const splitOn = n > 1 && n < SPLIT_BELOW;
+  shares.forEach(s => {
+    s.parts = splitOn ? Math.max(1, Math.min(MAX_PARTS, Math.floor(s.angle / MIN_SLICE_ANGLE))) : 1;
+  });
+
+  const ordered = [];
+  shares.forEach((s, i) => {
+    const offset = (i * 0.37) % 1;
+    for (let j = 0; j < s.parts; j++) {
+      ordered.push({ user: s.user, userIndex: s.userIndex, angle: s.angle / s.parts, key: (j + offset) / s.parts });
+    }
+  });
+  ordered.sort((a, b) => a.key - b.key);
+
+  let cumulative = 0;
+  return ordered.map(s => {
+    const startAngle = cumulative;
+    cumulative += s.angle;
+    return {
+      user: s.user, userIndex: s.userIndex, angle: s.angle,
+      startAngle: startAngle, endAngle: cumulative,
+      midAngle: startAngle + s.angle / 2,
+    };
+  });
 }
 
 function renderWheel() {
   const svg = document.getElementById('wheel');
   if (wheelList.length === 0) {
     labelCache = [];
+    currentSegments = [];
     svg.innerHTML = `<text x="50" y="50" text-anchor="middle" dominant-baseline="middle"
                       fill="rgba(255,255,255,0.4)" font-size="5">Нет участников</text>`;
     return;
   }
 
   const segments = computeSegments();
+  currentSegments = segments;
   let groupContent = '';
   const cx = 50, cy = 50, r = 48;
 
@@ -1180,10 +1210,13 @@ function renderWheel() {
       <text x="${cx}" y="${cy - 10}" fill="#0a0e1a" font-size="5" text-anchor="middle"
         style="font-weight: 700;">${esc(u.name)}</text>`;
   } else {
-    segments.forEach((seg, i) => {
-      let color = SECTOR_COLORS[i % SECTOR_COLORS.length];
-      // Чтобы первый и последний сектор не слились цветом
-      if (i === segments.length - 1 && color === SECTOR_COLORS[0] && segments.length > 2) {
+    segments.forEach(seg => {
+      // Цвет закреплён за участником: его кусочки узнаваемы, а соседние
+      // всегда принадлежат разным людям
+      let color = SECTOR_COLORS[seg.userIndex % SECTOR_COLORS.length];
+      // Чтобы первый и последний участник не слились цветом
+      if (seg.userIndex === wheelList.length - 1 && wheelList.length > 2 &&
+          color === SECTOR_COLORS[0]) {
         color = SECTOR_COLORS[1];
       }
       groupContent += `<path d="${sectorPath(cx, cy, r, seg.startAngle, seg.endAngle)}" fill="${color}" stroke="#0a0e1a" stroke-width="0.2"/>`;
@@ -1304,11 +1337,19 @@ async function spin(callback) {
   isSpinning = true;
   setControlsDisabled(true);
 
-  const segments = computeSegments();
+  const segments = currentSegments.length ? currentSegments : computeSegments();
   const winnerIdx = pickWinnerIndex();
-  const targetCenterAngle = segments[winnerIdx].midAngle;
 
-  let baseTarget = POINTER_ANGLE - targetCenterAngle;
+  // У победителя может быть несколько кусочков — останавливаемся на случайном
+  const slices = segments.filter(s => s.userIndex === winnerIdx);
+  let chosen = slices[0];
+  if (slices.length > 1) {
+    const p = new Uint32Array(1); crypto.getRandomValues(p);
+    chosen = slices[p[0] % slices.length];
+  }
+  if (!chosen) { isSpinning = false; setControlsDisabled(false); return; }
+
+  let baseTarget = POINTER_ANGLE - chosen.midAngle;
   const minRotations = 4;
   let currentNormalized = ((currentRotation % 360) + 360) % 360;
   let targetNormalized = ((baseTarget % 360) + 360) % 360;
