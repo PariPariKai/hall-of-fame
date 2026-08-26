@@ -577,10 +577,22 @@ let allItems = [];
 let viewers = {};                 // ник (lowercase) → {nick, avatar}
 const srcState = {};
 
+// Google иногда отдаёт опубликованный лист по минуте и дольше.
+// Без таймаута зависший запрос держит страницу бесконечно.
+async function fetchWithTimeout(url, ms) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function loadSource(source) {
   const st = srcState[source.id];
   try {
-    const res = await fetch(source.csv);
+    const res = await fetchWithTimeout(source.csv, 20000);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const items = rowsToItems(parseCSV(await res.text()), source);
     st.note = '';
@@ -594,10 +606,10 @@ async function loadSource(source) {
 
 async function loadViewers() {
   try {
-    const res = await fetch(VIEWERS_CSV_URL);
-    if (!res.ok) return;
+    const res = await fetchWithTimeout(VIEWERS_CSV_URL, 12000);
+    if (!res.ok) return false;
     const rows = parseCSV(await res.text());
-    if (rows.length < 2) return;
+    if (rows.length < 2) return false;
     const h = rows[0].map(x => x.trim().toLowerCase());
     const nickIdx = h.indexOf('nick') >= 0 ? h.indexOf('nick') : 0;
     const avaIdx  = findCol(h, ['avatar','аватар']);
@@ -606,7 +618,9 @@ async function loadViewers() {
       if (!n) return;
       viewers[n.toLowerCase()] = { nick: n, avatar: avaIdx >= 0 ? (r[avaIdx] || '').trim() : '' };
     });
+    return true;
   } catch (e) { /* аватарки не критичны */ }
+  return false;
 }
 
 function avatarOf(nick) {
@@ -618,10 +632,12 @@ async function loadAll() {
   SOURCES.forEach(s => { if (!srcState[s.id]) srcState[s.id] = { on: true }; srcState[s.id].error = false; });
   STATUSES.forEach(s => { if (!(s.id in statState)) statState[s.id] = s.on; });
 
-  const [lists] = await Promise.all([
-    Promise.all(SOURCES.map(loadSource)),
-    loadViewers(),
-  ]);
+  // Аватарки — украшение, и лежат они в отдельном листе, который
+  // Google порой отдаёт по минуте. Не держим из-за них колесо:
+  // грузим параллельно и дорисовываем, когда придут.
+  loadViewers().then(ok => { if (ok) renderPeople(); });
+
+  const lists = await Promise.all(SOURCES.map(loadSource));
 
   allItems = [];
   SOURCES.forEach((s, i) => {
