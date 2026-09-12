@@ -1880,12 +1880,13 @@ function lottoResize() {
   c.width = Math.round(rect.width * dpr); c.height = Math.round(rect.height * dpr);
   lotto.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   // сфера + горлышко + лоток должны поместиться по высоте
-  lotto.R = Math.min(lotto.w * 0.34, lotto.h / 2.75);
+  lotto.R = Math.min(lotto.w * 0.34, lotto.h / 2.95);
   lotto.cx = lotto.w / 2;
-  lotto.cy = lotto.R + (lotto.h - lotto.R * 2.75) / 2 + lotto.R * 0.04;
+  lotto.cy = lotto.R + (lotto.h - lotto.R * 2.95) / 2 + lotto.R * 0.04;
   lotto.ballR = lotto.R * 0.088;
   lotto.neckW = lotto.ballR * 2.7;
-  lotto.trayY = lotto.cy + lotto.R + lotto.R * 0.52;
+  lotto.neckEndY = lotto.cy + lotto.R + lotto.R * 0.22;   // конец трубки
+  lotto.trayY = lotto.cy + lotto.R + lotto.R * 0.64;      // центр шара на блюдце
   lotto.balls.forEach(b => { b.r = lotto.ballR; });
 }
 
@@ -2006,11 +2007,11 @@ function lottoDraw() {
   ctx.strokeStyle = 'rgba(255,255,255,0.22)';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.rect(cx - neckW / 2, cy + R - ballR * 0.6, neckW, trayY - (cy + R) - ballR * 0.6);
+  ctx.rect(cx - neckW / 2, cy + R - ballR * 0.6, neckW, lotto.neckEndY - (cy + R) + ballR * 0.6);
   ctx.fill(); ctx.stroke();
   // кольцо на конце трубки
   ctx.beginPath();
-  ctx.ellipse(cx, trayY - ballR * 1.25, neckW * 0.75, ballR * 0.32, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, lotto.neckEndY, neckW * 0.75, ballR * 0.32, 0, 0, Math.PI * 2);
   ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fill();
   ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.stroke();
   // блюдце
