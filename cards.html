@@ -7,6 +7,9 @@
 <meta http-equiv="Pragma" content="no-cache">
 <title>Карточки рулетки</title>
 <meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&display=swap" rel="stylesheet">
 
 <!-- ============================================================
      ⚙ НАСТРОЙКА ⚙
@@ -341,53 +344,90 @@
   }
   .toast button { background: none; border: none; color: #FAC775; cursor: pointer; font-family: inherit; font-size: 13px; text-decoration: underline; }
 
-  /* ========== СТРИМ-РЕЖИМ ========== */
+  /* ========== СТРИМ-РЕЖИМ: ЛОТОТРОН ========== */
   body.is-stream { padding: 0; overflow: hidden; }
   body.is-stream.is-transparent { background: transparent; }
   body.is-stream .site-nav { display: none; }
   body.is-stream .gate { margin-top: 30vh; }
   .stream {
-    position: relative; min-height: 100vh; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; text-align: center;
-    padding: 40px 6vw 90px; gap: 34px; isolation: isolate;
+    position: relative; height: 100vh; display: flex; flex-direction: column;
+    align-items: center; padding: 18px 3vw 84px; gap: 14px;
   }
-  .stream__glow {
-    position: absolute; inset: 0; z-index: -1; pointer-events: none;
-    background: radial-gradient(ellipse at center, var(--rc, transparent) 0%, transparent 62%);
-    opacity: 0; transition: opacity .5s ease;
+  .lotto { position: relative; flex: 1 1 auto; width: 100%; min-height: 0; }
+  .lotto canvas { position: absolute; inset: 0; width: 100%; height: 100%; transition: opacity .6s; }
+  .lotto.is-dim canvas { opacity: .18; }
+
+  /* капсула, которая выкатилась из лотка и подъезжает к камере */
+  .capsule {
+    position: absolute; width: var(--sz, 40px); height: var(--sz, 40px);
+    left: var(--x, 50%); top: var(--y, 50%);
+    transform: translate(-50%, -50%);
+    transition: left .75s cubic-bezier(.3,.9,.3,1), top .75s cubic-bezier(.3,.9,.3,1),
+                width .75s cubic-bezier(.3,.9,.3,1), height .75s cubic-bezier(.3,.9,.3,1);
+    opacity: 0; pointer-events: none;
   }
-  .stream.is-done .stream__glow { opacity: .22; }
-  .stream__flash {
-    position: absolute; inset: 0; z-index: -1; pointer-events: none;
-    background: var(--rc, #fff); opacity: 0;
+  .capsule.is-visible { opacity: 1; }
+  .capsule__half {
+    position: absolute; inset: 0; border-radius: 50%;
+    background: radial-gradient(circle at 34% 28%, rgba(255,255,255,0.95) 0, var(--rc) 32%, rgba(0,0,0,0.45) 100%);
+    background-color: var(--rc);
+    box-shadow: 0 14px 44px rgba(0,0,0,0.55), inset 0 -8px 20px rgba(0,0,0,0.25);
+    transition: transform .55s cubic-bezier(.5,0,.5,1), opacity .55s;
   }
-  .stream.is-done .stream__flash { animation: sflash .7s ease-out; }
-  @keyframes sflash { 0% { opacity: .55; } 100% { opacity: 0; } }
-  .stream__rarity {
-    font-size: clamp(16px, 2.2vw, 28px); letter-spacing: .5em; text-transform: uppercase;
-    color: var(--rc, rgba(255,255,255,0.4)); text-shadow: 0 0 30px var(--rc, transparent);
-    min-height: 1.4em; transition: color .2s;
+  .capsule__half--l { clip-path: inset(0 50% 0 0); }
+  .capsule__half--r { clip-path: inset(0 0 0 50%); }
+  .capsule__seam {
+    position: absolute; left: 50%; top: 6%; bottom: 6%; width: 2px;
+    background: rgba(0,0,0,0.35); transform: translateX(-50%); transition: opacity .2s;
   }
-  .stream__text {
-    font-size: clamp(30px, 5vw, 66px); line-height: 1.22; font-weight: 500; color: #fff;
-    max-width: 1200px; min-height: 1.3em; word-break: break-word;
-    text-shadow: 0 4px 30px rgba(0,0,0,0.6);
+  .capsule.is-open .capsule__seam { opacity: 0; }
+  .capsule.is-open .capsule__half--l { transform: translate(-75%, 6%) rotate(-28deg); opacity: 0; }
+  .capsule.is-open .capsule__half--r { transform: translate(75%, 6%) rotate(28deg); opacity: 0; }
+
+  /* бумажка из капсулы */
+  .paper {
+    position: absolute; left: 50%; top: 50%;
+    width: min(780px, 84vw); padding: 30px 40px 26px;
+    background: #f4ecd8;
+    background-image:
+      linear-gradient(rgba(0,0,0,0.025) 1px, transparent 1px),
+      radial-gradient(ellipse at 80% 10%, rgba(120,90,40,0.12), transparent 50%);
+    background-size: 100% 34px, 100% 100%;
+    color: #2b2119; text-align: center;
+    box-shadow: 0 30px 70px rgba(0,0,0,0.6), 0 2px 0 rgba(255,255,255,0.4) inset;
+    clip-path: polygon(0 2%, 3% 0, 12% 1.5%, 24% 0, 37% 1.2%, 50% 0, 63% 1.4%, 76% 0, 88% 1.6%, 97% 0, 100% 3%,
+                       99.2% 20%, 100% 40%, 99% 60%, 100% 80%, 99.3% 97%, 97% 100%, 85% 98.6%, 72% 100%, 60% 98.8%,
+                       48% 100%, 36% 98.5%, 24% 100%, 12% 98.7%, 3% 100%, 0 97%, 0.8% 80%, 0 60%, 1% 40%, 0 20%);
+    transform: translate(-50%, -50%) rotate(-2deg) scale(.15);
+    opacity: 0; pointer-events: none;
+    transition: transform .65s cubic-bezier(.2,1.25,.35,1), opacity .25s;
   }
-  .stream__text.is-rolling { color: rgba(255,255,255,0.4); font-weight: 400; }
-  .stream.is-done .stream__text { animation: sreveal .6s cubic-bezier(.2,1.4,.4,1); }
-  @keyframes sreveal { 0% { transform: scale(.85); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-  .stream__meta { font-size: clamp(13px, 1.4vw, 18px); color: rgba(255,255,255,0.45); letter-spacing: 1px; min-height: 1.4em; }
+  .paper.is-shown { transform: translate(-50%, -50%) rotate(-2deg) scale(1); opacity: 1; }
+  .paper__rarity {
+    font-size: clamp(12px, 1.3vw, 17px); letter-spacing: .45em; text-transform: uppercase; font-weight: 700;
+    color: var(--rcd, #2b2119); padding-bottom: 12px; margin-bottom: 18px;
+    border-bottom: 2px solid var(--rcd, #2b2119);
+  }
+  .paper__text {
+    font-family: 'Caveat', 'Segoe Script', 'Comic Sans MS', cursive;
+    font-size: clamp(32px, 4.4vw, 60px); line-height: 1.12; font-weight: 700;
+    word-break: break-word; opacity: 0; transition: opacity .5s .25s;
+  }
+  .paper.is-shown .paper__text { opacity: 1; }
+  .paper__meta { margin-top: 16px; font-size: clamp(11px, 1.1vw, 14px); letter-spacing: 1.5px; color: #7a6a58; text-transform: uppercase; }
+
   .stream__btn {
+    flex: 0 0 auto;
     background: linear-gradient(135deg, rgba(250,199,117,0.22), rgba(250,199,117,0.06));
     border: 2px solid rgba(250,199,117,0.6); color: #FAC775;
-    padding: 20px 70px; font-size: clamp(16px, 1.8vw, 24px); letter-spacing: 5px; text-transform: uppercase;
+    padding: 16px 64px; font-size: clamp(15px, 1.6vw, 22px); letter-spacing: 5px; text-transform: uppercase;
     border-radius: 16px; cursor: pointer; font-family: inherit;
     box-shadow: 0 0 40px rgba(250,199,117,0.2); transition: all .2s;
   }
   .stream__btn:hover { transform: translateY(-2px); box-shadow: 0 0 60px rgba(250,199,117,0.4); color: #fff; }
   .stream__btn:disabled { opacity: .45; transform: none; cursor: wait; }
   .stream__hist {
-    position: absolute; left: 0; right: 0; bottom: 34px;
+    position: absolute; left: 0; right: 0; bottom: 30px;
     display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; padding: 0 20px;
   }
   .stream__hist span {
@@ -396,10 +436,10 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .stream__hint {
-    position: absolute; left: 0; right: 0; bottom: 10px; font-size: 11px;
+    position: absolute; left: 0; right: 0; bottom: 8px; font-size: 11px;
     color: rgba(255,255,255,0.22); letter-spacing: 1px;
   }
-  .stream__tools { position: absolute; top: 14px; right: 16px; display: flex; gap: 6px; opacity: .35; transition: opacity .2s; }
+  .stream__tools { position: absolute; top: 14px; right: 16px; z-index: 5; display: flex; gap: 6px; opacity: .35; transition: opacity .2s; }
   .stream__tools:hover { opacity: 1; }
   body.is-transparent .stream__hist span { background: rgba(0,0,0,0.45); }
 
@@ -442,17 +482,25 @@
   </form>
 </div>
 
-<!-- ===== СТРИМ-РЕЖИМ (cards.html?stream) ===== -->
+<!-- ===== СТРИМ-РЕЖИМ: ЛОТОТРОН (cards.html?stream) ===== -->
 <div class="stream" id="stream" style="display:none">
-  <div class="stream__glow"></div>
-  <div class="stream__flash"></div>
   <div class="stream__tools">
     <button class="btn btn--sm" id="s-full" title="На весь экран (F)">⛶</button>
     <a class="btn btn--sm" href="cards.html" title="Открыть менеджер">⚙</a>
   </div>
-  <div class="stream__rarity" id="s-rarity">Рулетка</div>
-  <div class="stream__text" id="s-text">Нажми «Крутить»</div>
-  <div class="stream__meta" id="s-meta"></div>
+  <div class="lotto" id="lotto">
+    <canvas id="s-canvas"></canvas>
+    <div class="capsule" id="capsule">
+      <div class="capsule__half capsule__half--l"></div>
+      <div class="capsule__half capsule__half--r"></div>
+      <div class="capsule__seam"></div>
+    </div>
+    <div class="paper" id="paper">
+      <div class="paper__rarity" id="p-rarity"></div>
+      <div class="paper__text" id="p-text"></div>
+      <div class="paper__meta" id="p-meta"></div>
+    </div>
+  </div>
   <button class="stream__btn" id="s-spin">Крутить</button>
   <div class="stream__hist" id="s-hist"></div>
   <div class="stream__hint">Пробел — крутить · F — на весь экран</div>
@@ -1751,15 +1799,285 @@ function doSpin() {
 }
 
 // ============================================================
-// СТРИМ-РЕЖИМ (cards.html?stream, для OBS — ?stream&bg=transparent)
+// СТРИМ-РЕЖИМ: ЛОТОТРОН (cards.html?stream, для OBS — ?stream&bg=transparent)
+// В стеклянной сфере перемешиваются шарики цветов редкости, один вылетает
+// в лоток, подъезжает к камере, раскрывается — внутри бумажка с текстом.
 // ============================================================
 const IS_STREAM = new URLSearchParams(location.search).has('stream');
 
+const lotto = {
+  canvas: null, ctx: null, balls: [], phase: 'idle', chosen: null,
+  w: 0, h: 0, cx: 0, cy: 0, R: 0, ballR: 0, trayY: 0, neckW: 0,
+  t0: 0, mixDur: 3000, dropT0: 0, dropDur: 1100, last: 0, raf: 0
+};
+
+function shade(hex, k) {
+  // k < 0 — темнее, k > 0 — светлее
+  const n = parseInt(hex.slice(1), 16);
+  let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const t = k < 0 ? 0 : 255, a = Math.abs(k);
+  r = Math.round(r + (t - r) * a); g = Math.round(g + (t - g) * a); b = Math.round(b + (t - b) * a);
+  return `rgb(${r},${g},${b})`;
+}
+
+function lottoInit() {
+  lotto.canvas = $('#s-canvas');
+  lotto.ctx = lotto.canvas.getContext('2d');
+  lottoResize();
+  window.addEventListener('resize', lottoResize);
+  lottoBuildBalls();
+  lotto.last = performance.now();
+  lotto.raf = requestAnimationFrame(lottoFrame);
+}
+
+function lottoResize() {
+  const c = lotto.canvas, dpr = window.devicePixelRatio || 1;
+  const rect = c.getBoundingClientRect();
+  lotto.w = rect.width; lotto.h = rect.height;
+  c.width = Math.round(rect.width * dpr); c.height = Math.round(rect.height * dpr);
+  lotto.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // сфера + горлышко + лоток должны поместиться по высоте
+  lotto.R = Math.min(lotto.w * 0.34, lotto.h / 2.75);
+  lotto.cx = lotto.w / 2;
+  lotto.cy = lotto.R + (lotto.h - lotto.R * 2.75) / 2 + lotto.R * 0.04;
+  lotto.ballR = lotto.R * 0.088;
+  lotto.neckW = lotto.ballR * 2.7;
+  lotto.trayY = lotto.cy + lotto.R + lotto.R * 0.5;
+  lotto.balls.forEach(b => { b.r = lotto.ballR; });
+}
+
+function lottoBuildBalls() {
+  const chances = rarityChances();
+  const TOTAL = 44;
+  const balls = [];
+  state.rarities.forEach(r => {
+    const n = chances[r.id] > 0 ? Math.max(1, Math.round(chances[r.id] / 100 * TOTAL)) : 0;
+    for (let i = 0; i < n; i++) balls.push(lottoNewBall(r));
+  });
+  lotto.balls = balls;
+}
+
+function lottoNewBall(r) {
+  const a = Math.random() * Math.PI * 2, d = Math.random() * (lotto.R - lotto.ballR * 1.2);
+  return {
+    rarity: r.id, color: r.color, r: lotto.ballR,
+    x: lotto.cx + Math.cos(a) * d, y: lotto.cy + Math.sin(a) * d,
+    vx: 0, vy: 0, free: false, hidden: false, from: null
+  };
+}
+
+function lottoStep(dt) {
+  const { balls, cx, cy, R } = lotto;
+  const g = R * 3.4;
+  const mixing = lotto.phase === 'mix';
+  const mixT = mixing ? (performance.now() - lotto.t0) / lotto.mixDur : 0;
+  const power = mixing ? (mixT < 0.82 ? 1 : Math.max(0, (1 - mixT) / 0.18)) : 0;
+
+  for (const b of balls) {
+    if (b.free || b.hidden) continue;
+    b.vy += g * dt;
+    if (power > 0) {
+      // вентилятор бьёт только у дна, наверху шары снова падают — так они
+      // и летают по всей сфере, а не липнут к потолку; плюс лёгкий вихрь
+      const depth = Math.max(0, Math.min(1, (b.y - (cy - R)) / (2 * R)));
+      const lift = depth > 0.45 ? (depth - 0.45) / 0.55 : 0;
+      b.vy -= g * dt * (0.55 + 4.5 * lift) * power;
+      const tx = -(b.y - cy), ty = b.x - cx, tl = Math.hypot(tx, ty) || 1;
+      b.vx += tx / tl * R * 2.5 * dt * power;
+      b.vy += ty / tl * R * 2.5 * dt * power;
+      b.vx += (Math.random() - 0.5) * R * 10 * dt * power;
+      b.vy += (Math.random() - 0.5) * R * 10 * dt * power;
+      const sp = Math.hypot(b.vx, b.vy), max = R * 6;
+      if (sp > max) { b.vx *= max / sp; b.vy *= max / sp; }
+    }
+    b.x += b.vx * dt; b.y += b.vy * dt;
+    const dx = b.x - cx, dy = b.y - cy, d = Math.hypot(dx, dy) || 0.001, lim = R - b.r;
+    if (d > lim) {
+      const nx = dx / d, ny = dy / d;
+      b.x = cx + nx * lim; b.y = cy + ny * lim;
+      const vn = b.vx * nx + b.vy * ny;
+      if (vn > 0) { b.vx -= 1.5 * vn * nx; b.vy -= 1.5 * vn * ny; }
+      b.vx *= 0.98;
+    }
+  }
+  for (let i = 0; i < balls.length; i++) {
+    const a = balls[i]; if (a.free || a.hidden) continue;
+    for (let j = i + 1; j < balls.length; j++) {
+      const c = balls[j]; if (c.free || c.hidden) continue;
+      const dx = c.x - a.x, dy = c.y - a.y, d = Math.hypot(dx, dy) || 0.001, min = a.r + c.r;
+      if (d < min) {
+        const nx = dx / d, ny = dy / d, ov = (min - d) / 2;
+        a.x -= nx * ov; a.y -= ny * ov; c.x += nx * ov; c.y += ny * ov;
+        const rv = (c.vx - a.vx) * nx + (c.vy - a.vy) * ny;
+        if (rv < 0) { const imp = -rv * 0.75; a.vx -= imp * nx; a.vy -= imp * ny; c.vx += imp * nx; c.vy += imp * ny; }
+      }
+    }
+  }
+
+  // выбранный шар едет по рельсам: к горлышку, потом вниз в лоток
+  const ch = lotto.chosen;
+  if (ch && ch.free && lotto.phase === 'drop') {
+    const t = Math.min(1, (performance.now() - lotto.dropT0) / lotto.dropDur);
+    const neckY = cy + R + lotto.ballR * 0.3;
+    if (t < 0.5) {
+      const k = t / 0.5, e = k * k;
+      ch.x = ch.from.x + (cx - ch.from.x) * e;
+      ch.y = ch.from.y + (neckY - ch.from.y) * e;
+    } else {
+      const k = (t - 0.5) / 0.5;
+      const e = k < 0.7 ? (k / 0.7) * (k / 0.7) : 1 - Math.sin((k - 0.7) / 0.3 * Math.PI) * 0.06;
+      ch.x = cx; ch.y = neckY + (lotto.trayY - neckY) * e;
+    }
+  }
+}
+
+function lottoDrawBall(ctx, b) {
+  const r = b.r;
+  const grad = ctx.createRadialGradient(b.x - r * 0.38, b.y - r * 0.42, r * 0.08, b.x, b.y, r);
+  grad.addColorStop(0, 'rgba(255,255,255,0.95)');
+  grad.addColorStop(0.22, shade(b.color, 0.15));
+  grad.addColorStop(0.7, b.color);
+  grad.addColorStop(1, shade(b.color, -0.5));
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.arc(b.x, b.y, r, 0, Math.PI * 2); ctx.fill();
+}
+
+function lottoDraw() {
+  const { ctx, w, h, cx, cy, R, balls, neckW, trayY, ballR } = lotto;
+  ctx.clearRect(0, 0, w, h);
+
+  // горлышко и лоток
+  ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.rect(cx - neckW / 2, cy + R - ballR * 0.6, neckW, trayY - (cy + R) + ballR * 0.6);
+  ctx.fill(); ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(cx, trayY + ballR * 0.9, neckW * 1.3, ballR * 0.55, 0, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.stroke();
+
+  // сфера: стекло
+  const glass = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.35, R * 0.1, cx, cy, R);
+  glass.addColorStop(0, 'rgba(255,255,255,0.10)');
+  glass.addColorStop(0.6, 'rgba(255,255,255,0.03)');
+  glass.addColorStop(1, 'rgba(255,255,255,0.07)');
+  ctx.fillStyle = glass;
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
+
+  // шары внутри сферы
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, R + 1, 0, Math.PI * 2); ctx.clip();
+  for (const b of balls) if (!b.hidden && !b.free) lottoDrawBall(ctx, b);
+  ctx.restore();
+
+  // обводка сферы с разрывом внизу под горлышко
+  const gap = Math.asin(neckW / 2 / R);
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(cx, cy, R, Math.PI / 2 + gap, Math.PI / 2 - gap + Math.PI * 2); ctx.stroke();
+  // блик
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = R * 0.05;
+  ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(cx, cy, R * 0.86, Math.PI * 1.15, Math.PI * 1.42); ctx.stroke();
+
+  // выбранный шар поверх всего
+  const ch = lotto.chosen;
+  if (ch && ch.free && !ch.hidden) lottoDrawBall(ctx, ch);
+}
+
+function lottoFrame(now) {
+  const dt = Math.min(1 / 30, (now - lotto.last) / 1000);
+  lotto.last = now;
+  lottoStep(dt);
+  lottoDraw();
+  lotto.raf = requestAnimationFrame(lottoFrame);
+}
+
+let streamTimers = [];
+function later(ms, fn) { streamTimers.push(setTimeout(fn, ms)); }
+
 function streamSpin() {
-  runSpin({
-    stage: $('#stream'), text: $('#s-text'), rarity: $('#s-rarity'),
-    meta: $('#s-meta'), button: $('#s-spin')
-  }, 3200, renderStreamHistory);
+  if (spinning) return;
+  const result = rollOnce();
+  if (!result) { toast('В рулетке нет ни одной активной карточки'); return; }
+  const r = rarity(result.rarityId);
+
+  let ball = lotto.balls.find(b => b.rarity === r.id && !b.hidden);
+  if (!ball) { ball = lottoNewBall(r); lotto.balls.push(ball); }
+  // прошлый выбранный шар возвращаем в сферу
+  lotto.balls.forEach(b => { if (b.hidden || b.free) { const nb = lottoNewBall(rarity(b.rarity)); Object.assign(b, nb, { rarity: b.rarity, color: b.color }); } });
+
+  spinning = true;
+  $('#s-spin').disabled = true;
+  streamTimers.forEach(clearTimeout); streamTimers = [];
+
+  const capsule = $('#capsule'), paper = $('#paper'), lottoEl = $('#lotto');
+  paper.classList.remove('is-shown');
+  capsule.classList.remove('is-open', 'is-visible');
+  lottoEl.classList.remove('is-dim');
+
+  lotto.chosen = ball;
+  lotto.phase = 'mix';
+  lotto.t0 = performance.now();
+
+  const T_MIX = lotto.mixDur, T_DROP = lotto.dropDur;
+
+  later(T_MIX, () => {
+    lotto.phase = 'drop';
+    lotto.dropT0 = performance.now();
+    ball.free = true; ball.from = { x: ball.x, y: ball.y };
+  });
+
+  later(T_MIX + T_DROP + 150, () => {
+    // шар в лотке → подменяем DOM-капсулой ровно на его месте
+    ball.hidden = true; ball.free = false;
+    lotto.phase = 'idle';
+    const rect = lottoEl.getBoundingClientRect();
+    capsule.style.setProperty('--rc', r.color);
+    capsule.style.transition = 'none';
+    capsule.style.setProperty('--x', lotto.cx + 'px');
+    capsule.style.setProperty('--y', lotto.trayY + 'px');
+    capsule.style.setProperty('--sz', lotto.ballR * 2 + 'px');
+    capsule.classList.add('is-visible');
+    void capsule.offsetWidth;
+    capsule.style.transition = '';
+    const sz = Math.min(300, rect.height * 0.5, rect.width * 0.5);
+    capsule.style.setProperty('--x', rect.width / 2 + 'px');
+    capsule.style.setProperty('--y', rect.height / 2 + 'px');
+    capsule.style.setProperty('--sz', sz + 'px');
+    lottoEl.classList.add('is-dim');
+  });
+
+  later(T_MIX + T_DROP + 150 + 850, () => {
+    capsule.classList.add('is-open');
+  });
+
+  later(T_MIX + T_DROP + 150 + 850 + 280, () => {
+    const g = group(result.item.group);
+    const parts = [];
+    if (g) parts.push(g.name);
+    if (!g || normText(g.name) !== normText(KIND_LABEL[result.item.kind])) parts.push(KIND_LABEL[result.item.kind]);
+    parts.push(TARGET_LABEL[result.item.target], 'шанс ' + fmtPct(itemChance(result.item)));
+    paper.style.setProperty('--rcd', shade(r.color, -0.35));
+    $('#p-rarity').textContent = r.name;
+    $('#p-text').textContent = result.item.text;
+    $('#p-meta').textContent = parts.join(' · ');
+    paper.classList.add('is-shown');
+  });
+
+  later(T_MIX + T_DROP + 150 + 850 + 280 + 700, () => {
+    result.item.rolls++;
+    result.item.lastRoll = Date.now();
+    state.history.unshift({ id: result.item.id, text: result.item.text, rarity: result.rarityId, at: Date.now() });
+    state.history = state.history.slice(0, 100);
+    save();
+    renderStreamHistory();
+    spinning = false;
+    $('#s-spin').disabled = false;
+  });
 }
 
 function renderStreamHistory() {
@@ -1776,6 +2094,7 @@ function startStream() {
   }
   $('#stream').style.display = 'flex';
   renderStreamHistory();
+  lottoInit();
 
   $('#s-spin').onclick = streamSpin;
   $('#s-full').onclick = () => {
@@ -1802,7 +2121,7 @@ function applyExternalState() {
   reloadPending = false;
   if (spinning) { setTimeout(applyExternalState, 500); return; }
   if (!load()) return;
-  if (IS_STREAM) renderStreamHistory(); else renderAll();
+  if (IS_STREAM) { renderStreamHistory(); if (lotto.phase === 'idle') lottoBuildBalls(); } else renderAll();
 }
 
 function renderHistory() {
