@@ -410,14 +410,12 @@
   .capsule[data-taps="4"] .c1, .capsule[data-taps="4"] .c2, .capsule[data-taps="4"] .c3, .capsule[data-taps="4"] .c4,
   .capsule[data-taps="5"] path { opacity: 1; }
   .capsule.is-open .capsule__cracks { opacity: 0; }
-  .tap-hint {
-    position: absolute; left: var(--x, 50%); top: var(--y, 50%);
-    transform: translate(0, -50%); white-space: nowrap; pointer-events: none;
-    font-size: clamp(12px, 1.3vw, 17px); letter-spacing: 3px; text-transform: uppercase;
-    color: rgba(255,255,255,0.6); opacity: 0; transition: opacity .3s;
+  .paper__close {
+    position: absolute; top: 8px; right: 12px; border: none; background: none;
+    font: 700 22px/1 system-ui, sans-serif; color: rgba(43,33,25,0.35); cursor: pointer; padding: 6px;
   }
-  .tap-hint.is-visible { opacity: 1; }
-  .tap-hint b { color: #FAC775; font-weight: 600; }
+  .paper__close:hover { color: rgba(43,33,25,0.8); }
+  .paper.is-shown { pointer-events: auto; cursor: pointer; }
 
   /* бумажка из капсулы */
   .paper {
@@ -537,8 +535,8 @@
         <path class="c5" d="M50 50 L62 55 L72 54 L80 60 M41 56 L38 66 M54 62 L45 68"/>
       </svg>
     </div>
-    <div class="tap-hint" id="tap-hint"></div>
-    <div class="paper" id="paper">
+    <div class="paper" id="paper" title="Закрыть">
+      <button class="paper__close" id="p-close" title="Закрыть (Esc)">×</button>
       <div class="paper__rarity" id="p-rarity"></div>
       <div class="paper__text" id="p-text"></div>
       <div class="paper__meta" id="p-meta"></div>
@@ -1886,7 +1884,8 @@ function lottoResize() {
   lotto.ballR = lotto.R * 0.088;
   lotto.neckW = lotto.ballR * 2.7;
   lotto.neckEndY = lotto.cy + lotto.R + lotto.R * 0.22;   // конец трубки
-  lotto.trayY = lotto.cy + lotto.R + lotto.R * 0.64;      // центр шара на блюдце
+  lotto.saucerY = lotto.cy + lotto.R + lotto.R * 0.72;    // центр эллипса блюдца
+  lotto.trayY = lotto.saucerY - lotto.ballR * 0.8;        // центр шара, лежащего на блюдце
   lotto.balls.forEach(b => { b.r = lotto.ballR; });
 }
 
@@ -1952,7 +1951,10 @@ function lottoStep(dt) {
       const nx = dx / d, ny = dy / d;
       b.x = cx + nx * lim; b.y = cy + ny * lim;
       const vn = b.vx * nx + b.vy * ny;
-      if (vn > 0) { b.vx -= 1.5 * vn * nx; b.vy -= 1.5 * vn * ny; }
+      if (vn > 0) {
+        b.vx -= 1.5 * vn * nx; b.vy -= 1.5 * vn * ny;
+        if (mixing && vn > R * 1.2) sfxTick(vn / (R * 6));
+      }
       b.vx *= 0.98;
     }
   }
@@ -1965,7 +1967,10 @@ function lottoStep(dt) {
         const nx = dx / d, ny = dy / d, ov = (min - d) / 2;
         a.x -= nx * ov; a.y -= ny * ov; c.x += nx * ov; c.y += ny * ov;
         const rv = (c.vx - a.vx) * nx + (c.vy - a.vy) * ny;
-        if (rv < 0) { const imp = -rv * 0.75; a.vx -= imp * nx; a.vy -= imp * ny; c.vx += imp * nx; c.vy += imp * ny; }
+        if (rv < 0) {
+          const imp = -rv * 0.75; a.vx -= imp * nx; a.vy -= imp * ny; c.vx += imp * nx; c.vy += imp * ny;
+          if (mixing && -rv > R * 1.5) sfxTick(-rv / (R * 6));
+        }
       }
     }
   }
@@ -2002,20 +2007,29 @@ function lottoDraw() {
   const { ctx, w, h, cx, cy, R, balls, neckW, trayY, ballR } = lotto;
   ctx.clearRect(0, 0, w, h);
 
-  // горлышко, трубка и блюдце
+  // горлышко: трубка вырастает из разрыва в стенке сферы, без верхней кромки
+  const gapA = Math.asin(neckW / 2 / R);
+  const topY = cy + R * Math.cos(gapA);
   ctx.fillStyle = 'rgba(255,255,255,0.05)';
-  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
-  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.rect(cx - neckW / 2, cy + R - ballR * 0.6, neckW, lotto.neckEndY - (cy + R) + ballR * 0.6);
-  ctx.fill(); ctx.stroke();
+  ctx.moveTo(cx - neckW / 2, topY);
+  ctx.lineTo(cx - neckW / 2, lotto.neckEndY);
+  ctx.lineTo(cx + neckW / 2, lotto.neckEndY);
+  ctx.lineTo(cx + neckW / 2, topY);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(cx - neckW / 2, topY); ctx.lineTo(cx - neckW / 2, lotto.neckEndY);
+  ctx.moveTo(cx + neckW / 2, topY); ctx.lineTo(cx + neckW / 2, lotto.neckEndY);
+  ctx.stroke();
   // кольцо на конце трубки
   ctx.beginPath();
-  ctx.ellipse(cx, lotto.neckEndY, neckW * 0.75, ballR * 0.32, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, lotto.neckEndY, neckW / 2 + 2, ballR * 0.3, 0, 0, Math.PI * 2);
   ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 2.5; ctx.stroke();
   // блюдце
-  const sy = trayY + ballR * 0.85, sw = neckW * 2.4, sh = ballR * 0.75;
+  const sy = lotto.saucerY, sw = neckW * 2.4, sh = ballR * 0.75;
   const saucer = ctx.createRadialGradient(cx, sy - sh * 0.4, sw * 0.1, cx, sy, sw);
   saucer.addColorStop(0, 'rgba(255,255,255,0.16)');
   saucer.addColorStop(1, 'rgba(255,255,255,0.04)');
@@ -2085,17 +2099,19 @@ function streamSpin() {
   paper.classList.remove('is-shown');
   capsule.classList.remove('is-open', 'is-visible', 'is-tappable', 'is-shake');
   capsule.dataset.taps = '0';
-  $('#tap-hint').classList.remove('is-visible');
   lottoEl.classList.remove('is-dim');
   pendingOpen = null;
 
   lotto.chosen = ball;
   lotto.phase = 'mix';
   lotto.t0 = performance.now();
+  sfxInit();
+  sfxMixStart();
 
   const T_MIX = lotto.mixDur, T_DROP = lotto.dropDur;
 
   later(T_MIX, () => {
+    sfxMixStop();
     lotto.phase = 'drop';
     lotto.dropT0 = performance.now();
     ball.free = true; ball.from = { x: ball.x, y: ball.y };
@@ -2116,12 +2132,9 @@ function streamSpin() {
     void capsule.offsetWidth;
     capsule.style.transition = '';
     capsule.style.setProperty('--sz', lotto.ballR * 3.6 + 'px');
+    capsule.style.setProperty('--y', (lotto.saucerY - lotto.ballR * 1.55) + 'px');
     capsule.classList.add('is-tappable');
-    const hint = $('#tap-hint');
-    hint.style.setProperty('--x', (lotto.cx + lotto.ballR * 2.8) + 'px');
-    hint.style.setProperty('--y', lotto.trayY + 'px');
-    updateTapHint();
-    hint.classList.add('is-visible');
+    sfxLand();
   });
 
   // дальше цепочку продолжает capsuleTap() после пятого клика
@@ -2129,7 +2142,6 @@ function streamSpin() {
     const rect = lottoEl.getBoundingClientRect();
     const sz = Math.min(300, rect.height * 0.5, rect.width * 0.5);
     capsule.classList.remove('is-tappable');
-    $('#tap-hint').classList.remove('is-visible');
     capsule.style.setProperty('--x', rect.width / 2 + 'px');
     capsule.style.setProperty('--y', rect.height / 2 + 'px');
     capsule.style.setProperty('--sz', sz + 'px');
@@ -2164,14 +2176,101 @@ function streamSpin() {
   }
 }
 
+// ---------- звук ----------
+// Клики по шарику — файлы sounds/click-1..5.wav, случайный на каждый удар.
+// Перемешивание — синтез через WebAudio: шум воздуха + постукивание шаров
+// о стенки и друг о друга. Положи свой файл в sounds/mix.wav — он заменит синтез.
+const CLICK_SOUNDS = [1, 2, 3, 4, 5].map(n => `sounds/click-${n}.wav`);
+const MIX_SOUND_URL = 'sounds/mix.wav';
+let audioCtx = null, mixNoise = null, mixGain = null, mixFile = null, mixFileOk = null;
+let lastTick = 0;
+
+function sfxInit() {
+  if (audioCtx) return;
+  try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+  CLICK_SOUNDS.forEach(src => { const a = new Audio(src); a.preload = 'auto'; });
+  mixFile = new Audio(MIX_SOUND_URL);
+  mixFile.loop = true; mixFile.volume = 0.7;
+  mixFile.addEventListener('canplaythrough', () => { mixFileOk = true; }, { once: true });
+  mixFile.addEventListener('error', () => { mixFileOk = false; }, { once: true });
+}
+
+function sfxClick() {
+  const a = new Audio(CLICK_SOUNDS[Math.floor(Math.random() * CLICK_SOUNDS.length)]);
+  a.volume = 0.9;
+  a.play().catch(() => {});
+}
+
+// короткий стеклянный «тик» — шар ударился
+function sfxTick(strength) {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  if (now - lastTick < 0.035) return;
+  lastTick = now;
+  const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.value = 1400 + Math.random() * 1800;
+  const v = Math.min(0.22, 0.04 + strength * 0.2);
+  g.gain.setValueAtTime(v, now);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + 0.05 + Math.random() * 0.04);
+  osc.connect(g).connect(audioCtx.destination);
+  osc.start(now); osc.stop(now + 0.12);
+}
+
+function sfxLand() {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+  osc.type = 'triangle'; osc.frequency.setValueAtTime(520, now);
+  osc.frequency.exponentialRampToValueAtTime(180, now + 0.12);
+  g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+  osc.connect(g).connect(audioCtx.destination);
+  osc.start(now); osc.stop(now + 0.3);
+}
+
+function sfxMixStart() {
+  if (!audioCtx) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (mixFileOk) { mixFile.currentTime = 0; mixFile.play().catch(() => {}); return; }
+  // шум воздуха: белый шум через полосовой фильтр, плавно нарастает и стихает
+  const len = audioCtx.sampleRate * 2;
+  const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  mixNoise = audioCtx.createBufferSource(); mixNoise.buffer = buf; mixNoise.loop = true;
+  const f = audioCtx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 900; f.Q.value = 0.6;
+  mixGain = audioCtx.createGain();
+  const now = audioCtx.currentTime;
+  mixGain.gain.setValueAtTime(0.0001, now);
+  mixGain.gain.exponentialRampToValueAtTime(0.16, now + 0.5);
+  mixGain.gain.setValueAtTime(0.16, now + lotto.mixDur / 1000 * 0.8);
+  mixGain.gain.exponentialRampToValueAtTime(0.0001, now + lotto.mixDur / 1000);
+  mixNoise.connect(f).connect(mixGain).connect(audioCtx.destination);
+  mixNoise.start(now); mixNoise.stop(now + lotto.mixDur / 1000 + 0.1);
+}
+
+function sfxMixStop() {
+  if (mixFileOk && mixFile) { mixFile.pause(); }
+}
+
 const TAPS_TO_OPEN = 5;
 let tapsLeft = 0;
 let pendingOpen = null;
 
-function updateTapHint() {
-  $('#tap-hint').innerHTML = tapsLeft > 0
-    ? `Нажми на шарик · <b>${tapsLeft}</b>`
-    : '';
+// Убрать бумажку и капсулу, вернуть шар в сферу — сцена снова чистая
+function dismissResult() {
+  if (spinning) return;
+  const capsule = $('#capsule'), paper = $('#paper'), lottoEl = $('#lotto');
+  if (!paper.classList.contains('is-shown') && !capsule.classList.contains('is-visible')) return;
+  paper.classList.remove('is-shown');
+  capsule.classList.remove('is-open', 'is-visible', 'is-tappable', 'is-shake');
+  capsule.dataset.taps = '0';
+  lottoEl.classList.remove('is-dim');
+  lotto.balls.forEach(b => {
+    if (b.hidden || b.free) { const nb = lottoNewBall(rarity(b.rarity)); Object.assign(b, nb, { rarity: b.rarity, color: b.color }); }
+  });
+  lotto.chosen = null;
+  lotto.phase = 'idle';
 }
 
 function capsuleTap() {
@@ -2182,7 +2281,7 @@ function capsuleTap() {
   capsule.classList.remove('is-shake');
   void capsule.offsetWidth;
   capsule.classList.add('is-shake');
-  updateTapHint();
+  sfxClick();
   if (tapsLeft === 0) {
     lotto.phase = 'open';
     const fn = pendingOpen; pendingOpen = null;
@@ -2208,6 +2307,7 @@ function startStream() {
 
   $('#s-spin').onclick = streamSpin;
   $('#capsule').onclick = capsuleTap;
+  $('#paper').onclick = dismissResult;
   $('#s-full').onclick = () => {
     if (document.fullscreenElement) document.exitFullscreen();
     else document.documentElement.requestFullscreen().catch(() => {});
@@ -2220,6 +2320,7 @@ function startStream() {
       if (lotto.phase === 'wait') capsuleTap(); else streamSpin();
     }
     if (e.code === 'KeyF') $('#s-full').click();
+    if (e.code === 'Escape' && !document.fullscreenElement) dismissResult();
   });
 }
 
@@ -2480,7 +2581,7 @@ async function tryEnter() {
   }
 
   if (await sha256Hex(entered) === CARDS_ACCESS_HASH) {
-    sessionStorage.setItem('ppk_cards_gate', '1');
+    try { sessionStorage.setItem('ppk_cards_gate', '1'); } catch (e) {}
     startApp();
   } else {
     error.textContent = 'Неверный код';
@@ -2504,7 +2605,9 @@ if (IS_STREAM) document.body.classList.add('is-stream');
 $('#gate-submit').addEventListener('click', tryEnter);
 $('#gate-input').addEventListener('keydown', e => { if (e.key === 'Enter') tryEnter(); });
 
-if (sessionStorage.getItem('ppk_cards_gate') === '1') startApp();
+let gateOk = false;
+try { gateOk = sessionStorage.getItem('ppk_cards_gate') === '1'; } catch (e) {}
+if (gateOk) startApp();
 else $('#gate-input').focus();
 </script>
 </body>
