@@ -202,7 +202,8 @@
   .toolbar__spacer { flex: 1 1 auto; }
 
   /* ========== ДОСКА ========== */
-  .board { display: flex; gap: 12px; align-items: flex-start; overflow-x: auto; padding-bottom: 14px; }
+  .board { display: flex; gap: 12px; align-items: stretch; overflow-x: auto; padding-bottom: 14px; }
+  .col.is-over { background: rgba(250,199,117,0.06); border-color: rgba(250,199,117,0.4); }
   .board::-webkit-scrollbar { height: 10px; }
   .board::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 6px; }
   .col {
@@ -217,6 +218,26 @@
   .col__sub { font-size: 11px; color: rgba(255,255,255,0.38); margin-bottom: 10px; line-height: 1.5; }
   .zone { min-height: 40px; border-radius: 10px; padding: 2px; transition: background .15s, box-shadow .15s; }
   .zone.is-over { background: rgba(250,199,117,0.09); box-shadow: inset 0 0 0 1px rgba(250,199,117,0.4); }
+
+  /* закреплённая панель мишеней — видна только пока тащишь карточку */
+  .drag-dock {
+    position: fixed; left: 50%; bottom: 18px; transform: translate(-50%, 20px);
+    display: flex; gap: 8px; padding: 10px; z-index: 150;
+    background: rgba(20,27,44,0.97); border: 1px solid rgba(255,255,255,0.12); border-radius: 14px;
+    box-shadow: 0 16px 50px rgba(0,0,0,0.6);
+    opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s;
+  }
+  body.is-dragging .drag-dock { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); }
+  .drag-dock__t {
+    min-width: 96px; padding: 12px 12px; border-radius: 10px; text-align: center;
+    border: 1px solid var(--rc, rgba(255,255,255,0.2)); border-top-width: 3px;
+    font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--rc, rgba(255,255,255,0.7));
+    background: rgba(255,255,255,0.03); transition: background .12s, transform .12s;
+  }
+  .drag-dock__t.is-over { background: rgba(255,255,255,0.12); transform: scale(1.06); }
+  .drag-dock__t--bench { border-style: dashed; }
+  .drag-dock__t small { display: block; margin-top: 4px; font-size: 10px; letter-spacing: .5px; text-transform: none; color: rgba(255,255,255,0.4); }
+  @media (max-width: 900px) { .drag-dock { flex-wrap: wrap; justify-content: center; max-width: 96vw; } .drag-dock__t { min-width: 80px; padding: 10px 8px; } }
   .zone-label {
     display: flex; align-items: center; gap: 8px; margin: 14px 0 8px;
     font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
@@ -694,6 +715,7 @@
     </div>
 
     <div class="board" id="board"></div>
+    <div class="drag-dock" id="drag-dock" aria-hidden="true"></div>
   </section>
 
   <!-- ================= БАЛАНС ================= -->
@@ -1309,43 +1331,85 @@ function setActive(it, on) {
 
 // ---------- drag & drop ----------
 let dragId = null;
+function moveItem(it, toRarity, toActive) {
+  if (it.rarity === toRarity && it.active === toActive) return;
+  snapshot('перенос карточки');
+  if (it.rarity !== toRarity) {
+    it.rarity = toRarity;
+    const g = group(it.group);
+    if (g && g.rarity !== toRarity) it.group = null;
+  }
+  setActive(it, toActive);
+  save(); renderAll();
+}
+
+function droppedItem(e) {
+  const id = dragId || e.dataTransfer.getData('text/plain');
+  return state.items.find(x => x.id === id) || null;
+}
+
+function renderDock() {
+  const dock = $('#drag-dock');
+  dock.innerHTML = state.rarities.map(r =>
+    `<div class="drag-dock__t" style="--rc:${r.color}" data-rarity="${r.id}" data-zone="active">${esc(r.name)}<small>в рулетку</small></div>`
+  ).join('') + `<div class="drag-dock__t drag-dock__t--bench" data-zone="bench">Скамейка<small>той же редкости</small></div>`;
+
+  dock.querySelectorAll('.drag-dock__t').forEach(t => {
+    t.addEventListener('dragover', e => { e.preventDefault(); t.classList.add('is-over'); });
+    t.addEventListener('dragleave', () => t.classList.remove('is-over'));
+    t.addEventListener('drop', e => {
+      e.preventDefault(); e.stopPropagation();
+      t.classList.remove('is-over');
+      const it = droppedItem(e);
+      if (!it) return;
+      const toActive = t.dataset.zone === 'active';
+      moveItem(it, t.dataset.rarity || it.rarity, toActive);
+    });
+  });
+}
+
 function wireDnd() {
   $$('.card').forEach(el => {
     el.addEventListener('dragstart', e => {
       dragId = el.dataset.id;
       el.classList.add('is-dragging');
+      document.body.classList.add('is-dragging');
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', dragId);
     });
     el.addEventListener('dragend', () => {
       dragId = null;
       el.classList.remove('is-dragging');
-      $$('.zone').forEach(z => z.classList.remove('is-over'));
+      document.body.classList.remove('is-dragging');
+      $$('.zone, .col, .drag-dock__t').forEach(z => z.classList.remove('is-over'));
     });
   });
 
+  // зоны «в рулетке» / «скамейка» внутри колонки
   $$('.zone').forEach(zone => {
-    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('is-over'); });
+    zone.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); zone.classList.add('is-over'); });
     zone.addEventListener('dragleave', () => zone.classList.remove('is-over'));
     zone.addEventListener('drop', e => {
-      e.preventDefault();
+      e.preventDefault(); e.stopPropagation();
       zone.classList.remove('is-over');
-      const id = dragId || e.dataTransfer.getData('text/plain');
-      const it = state.items.find(x => x.id === id);
-      if (!it) return;
-      const toRarity = zone.dataset.rarity;
-      const toActive = zone.dataset.zone === 'active';
-      if (it.rarity === toRarity && it.active === toActive) return;
-      snapshot('перенос карточки');
-      if (it.rarity !== toRarity) {
-        it.rarity = toRarity;
-        const g = group(it.group);
-        if (g && g.rarity !== toRarity) it.group = null;
-      }
-      setActive(it, toActive);
-      save(); renderAll();
+      const it = droppedItem(e);
+      if (it) moveItem(it, zone.dataset.rarity, zone.dataset.zone === 'active');
     });
   });
+
+  // вся колонка целиком: бросил куда угодно внутри — попадает в рулетку этой редкости
+  $$('.col').forEach(col => {
+    col.addEventListener('dragover', e => { e.preventDefault(); col.classList.add('is-over'); });
+    col.addEventListener('dragleave', e => { if (!col.contains(e.relatedTarget)) col.classList.remove('is-over'); });
+    col.addEventListener('drop', e => {
+      e.preventDefault();
+      col.classList.remove('is-over');
+      const it = droppedItem(e);
+      if (it) moveItem(it, col.dataset.rarity, true);
+    });
+  });
+
+  renderDock();
 }
 
 // ============================================================
