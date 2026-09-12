@@ -119,6 +119,11 @@
     transition: all .18s; font-family: inherit;
   }
   .tab:hover { color: #fff; border-color: rgba(255,255,255,0.2); }
+  .tab--big {
+    padding: 12px 30px; font-size: 15px; letter-spacing: 2.5px;
+    border-color: rgba(250,199,117,0.35); color: #FAC775;
+  }
+  .tab--big:hover { color: #fff; border-color: rgba(250,199,117,0.7); background: rgba(250,199,117,0.08); }
   .tab.is-active {
     color: #FAC775; border-color: rgba(250,199,117,0.5);
     background: linear-gradient(135deg, rgba(250,199,117,0.14), rgba(250,199,117,0.04));
@@ -389,9 +394,9 @@
   </div>
 
   <div class="tabs" id="tabs">
+    <button class="tab tab--big" data-tab="spin">🎲 Крутка</button>
     <button class="tab is-active" data-tab="board">Состав</button>
     <button class="tab" data-tab="balance">Баланс</button>
-    <button class="tab" data-tab="spin">Крутка</button>
     <button class="tab" data-tab="data">Данные</button>
   </div>
 
