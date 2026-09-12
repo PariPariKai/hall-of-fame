@@ -652,7 +652,7 @@
 
   <div class="wrap">
     <div class="header">
-      <h1 class="title">⚜ HALL OF FAME ⚜</h1>
+      <h1 class="title">⚜ ЗАЛ СЛАВЫ ⚜</h1>
       <p class="subtitle">Те, кому повезло сильнее всех</p>
     </div>
 
@@ -668,7 +668,6 @@
       <button class="f-btn f-unique" data-filter="unique">✨ Уникальный <span class="count-pill" id="count-unique">0</span></button>
       <button class="f-btn f-artifact" data-filter="artifact">✦ Артефакт <span class="count-pill" id="count-artifact">0</span></button>
       <button class="f-btn f-legendary" data-filter="legendary">★ Легендарка <span class="count-pill" id="count-legendary">0</span></button>
-      <button class="f-btn f-epic" data-filter="epic">◆ Эпическая <span class="count-pill" id="count-epic">0</span></button>
       <input type="text" class="search-input" id="search-input" placeholder="Поиск по нику...">
       <button class="sound-toggle" id="sound-toggle">🔊 Звук вкл.</button>
     </div>
@@ -751,7 +750,7 @@ function rowsToWinners(rows, viewersMap) {
         prizeImage: (idx.prizeImage >= 0 ? (r[idx.prizeImage] || '').trim() : ''),
       };
     })
-    .filter(w => ['epic', 'legendary', 'artifact'].includes(w.rank));
+    .filter(w => ['legendary', 'artifact'].includes(w.rank));
 }
 
 function rowsToCurrentPrizes(rows) {
@@ -950,7 +949,6 @@ function renderCards(winners) {
   }, { all: 0, epic: 0, legendary: 0, artifact: 0, unique: 0 });
   document.getElementById('count-all').textContent       = counts.all;
   document.getElementById('count-unique').textContent    = counts.unique;
-  document.getElementById('count-epic').textContent      = counts.epic;
   document.getElementById('count-legendary').textContent = counts.legendary;
   document.getElementById('count-artifact').textContent  = counts.artifact;
 }
