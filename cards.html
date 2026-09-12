@@ -341,6 +341,68 @@
   }
   .toast button { background: none; border: none; color: #FAC775; cursor: pointer; font-family: inherit; font-size: 13px; text-decoration: underline; }
 
+  /* ========== СТРИМ-РЕЖИМ ========== */
+  body.is-stream { padding: 0; overflow: hidden; }
+  body.is-stream.is-transparent { background: transparent; }
+  body.is-stream .site-nav { display: none; }
+  body.is-stream .gate { margin-top: 30vh; }
+  .stream {
+    position: relative; min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+    padding: 40px 6vw 90px; gap: 34px; isolation: isolate;
+  }
+  .stream__glow {
+    position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: radial-gradient(ellipse at center, var(--rc, transparent) 0%, transparent 62%);
+    opacity: 0; transition: opacity .5s ease;
+  }
+  .stream.is-done .stream__glow { opacity: .22; }
+  .stream__flash {
+    position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: var(--rc, #fff); opacity: 0;
+  }
+  .stream.is-done .stream__flash { animation: sflash .7s ease-out; }
+  @keyframes sflash { 0% { opacity: .55; } 100% { opacity: 0; } }
+  .stream__rarity {
+    font-size: clamp(16px, 2.2vw, 28px); letter-spacing: .5em; text-transform: uppercase;
+    color: var(--rc, rgba(255,255,255,0.4)); text-shadow: 0 0 30px var(--rc, transparent);
+    min-height: 1.4em; transition: color .2s;
+  }
+  .stream__text {
+    font-size: clamp(30px, 5vw, 66px); line-height: 1.22; font-weight: 500; color: #fff;
+    max-width: 1200px; min-height: 1.3em; word-break: break-word;
+    text-shadow: 0 4px 30px rgba(0,0,0,0.6);
+  }
+  .stream__text.is-rolling { color: rgba(255,255,255,0.4); font-weight: 400; }
+  .stream.is-done .stream__text { animation: sreveal .6s cubic-bezier(.2,1.4,.4,1); }
+  @keyframes sreveal { 0% { transform: scale(.85); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  .stream__meta { font-size: clamp(13px, 1.4vw, 18px); color: rgba(255,255,255,0.45); letter-spacing: 1px; min-height: 1.4em; }
+  .stream__btn {
+    background: linear-gradient(135deg, rgba(250,199,117,0.22), rgba(250,199,117,0.06));
+    border: 2px solid rgba(250,199,117,0.6); color: #FAC775;
+    padding: 20px 70px; font-size: clamp(16px, 1.8vw, 24px); letter-spacing: 5px; text-transform: uppercase;
+    border-radius: 16px; cursor: pointer; font-family: inherit;
+    box-shadow: 0 0 40px rgba(250,199,117,0.2); transition: all .2s;
+  }
+  .stream__btn:hover { transform: translateY(-2px); box-shadow: 0 0 60px rgba(250,199,117,0.4); color: #fff; }
+  .stream__btn:disabled { opacity: .45; transform: none; cursor: wait; }
+  .stream__hist {
+    position: absolute; left: 0; right: 0; bottom: 34px;
+    display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; padding: 0 20px;
+  }
+  .stream__hist span {
+    font-size: 12px; color: rgba(255,255,255,0.45); background: rgba(255,255,255,0.05);
+    border-left: 3px solid var(--rc); border-radius: 6px; padding: 5px 10px; max-width: 260px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .stream__hint {
+    position: absolute; left: 0; right: 0; bottom: 10px; font-size: 11px;
+    color: rgba(255,255,255,0.22); letter-spacing: 1px;
+  }
+  .stream__tools { position: absolute; top: 14px; right: 16px; display: flex; gap: 6px; opacity: .35; transition: opacity .2s; }
+  .stream__tools:hover { opacity: 1; }
+  body.is-transparent .stream__hist span { background: rgba(0,0,0,0.45); }
+
   .kbd {
     display: inline-block; padding: 1px 6px; border-radius: 5px; font-size: 11px;
     background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.14);
@@ -378,6 +440,22 @@
     <div class="gate-error" id="gate-error"></div>
     <button type="submit" class="gate-button" id="gate-submit">Войти</button>
   </form>
+</div>
+
+<!-- ===== СТРИМ-РЕЖИМ (cards.html?stream) ===== -->
+<div class="stream" id="stream" style="display:none">
+  <div class="stream__glow"></div>
+  <div class="stream__flash"></div>
+  <div class="stream__tools">
+    <button class="btn btn--sm" id="s-full" title="На весь экран (F)">⛶</button>
+    <a class="btn btn--sm" href="cards.html" title="Открыть менеджер">⚙</a>
+  </div>
+  <div class="stream__rarity" id="s-rarity">Рулетка</div>
+  <div class="stream__text" id="s-text">Нажми «Крутить»</div>
+  <div class="stream__meta" id="s-meta"></div>
+  <button class="stream__btn" id="s-spin">Крутить</button>
+  <div class="stream__hist" id="s-hist"></div>
+  <div class="stream__hint">Пробел — крутить · F — на весь экран</div>
 </div>
 
 <!-- ===== ПРИЛОЖЕНИЕ ===== -->
@@ -479,6 +557,10 @@
         <div class="spin-text" id="spin-text">—</div>
         <div class="spin-meta" id="spin-meta"></div>
         <button class="spin-big" id="btn-spin">Крутить</button>
+        <div class="row" style="margin-top:6px; justify-content:center; flex:0 0 auto">
+          <button class="btn" id="btn-stream" style="flex:0 0 auto">Открыть стрим-режим ↗</button>
+        </div>
+        <div class="spin-meta">Стрим-режим — отдельное окно без меню и служебных панелей, только карточка и кнопка. Под захват окна в OBS.</div>
       </div>
     </div>
 
@@ -1092,7 +1174,10 @@ function modal(html, wide) {
   back.className = 'modal-back';
   back.innerHTML = `<div class="modal${wide ? ' modal--wide' : ''}">${html}</div>`;
   back.addEventListener('mousedown', e => { if (e.target === back) close(); });
-  function close() { back.remove(); document.removeEventListener('keydown', onKey); }
+  function close() {
+    back.remove(); document.removeEventListener('keydown', onKey);
+    if (reloadPending) applyExternalState();
+  }
   function onKey(e) { if (e.key === 'Escape') close(); }
   document.addEventListener('keydown', onKey);
   document.body.appendChild(back);
@@ -1588,23 +1673,26 @@ function renderChanceTable() {
 // ============================================================
 let spinning = false;
 
-function doSpin() {
+// Общий движок крутки: перебор с замедлением, затем фиксация результата.
+// targets: { stage, text, rarity, meta, button }, duration в мс.
+function runSpin(targets, duration, onDone) {
   if (spinning) return;
   const result = rollOnce();
   if (!result) { toast('В рулетке нет ни одной активной карточки'); return; }
   spinning = true;
-  $('#btn-spin').disabled = true;
+  targets.button.disabled = true;
 
-  const stage = $('#spin-stage');
-  const textEl = $('#spin-text');
-  const rarEl = $('#spin-rarity');
-  const metaEl = $('#spin-meta');
+  const stage = targets.stage;
+  const textEl = targets.text;
+  const rarEl = targets.rarity;
+  const metaEl = targets.meta;
+  stage.classList.remove('is-done');
   textEl.classList.add('is-rolling');
   metaEl.textContent = '';
 
   const pool = state.items.filter(i => i.active);
   const start = performance.now();
-  const DURATION = 1800;
+  const DURATION = duration;
 
   function frame(now) {
     const t = Math.min(1, (now - start) / DURATION);
@@ -1634,21 +1722,87 @@ function doSpin() {
     textEl.classList.remove('is-rolling');
     const ch = itemChance(result.item);
     const g = group(result.item.group);
-    metaEl.textContent =
-      (g ? g.name + ' · ' : '') + KIND_LABEL[result.item.kind] + ' · ' + TARGET_LABEL[result.item.target] +
-      ' · шанс был ' + fmtPct(ch);
+    const parts = [];
+    if (g) parts.push(g.name);
+    if (!g || normText(g.name) !== normText(KIND_LABEL[result.item.kind])) parts.push(KIND_LABEL[result.item.kind]);
+    parts.push(TARGET_LABEL[result.item.target], 'шанс был ' + fmtPct(ch));
+    metaEl.textContent = parts.join(' · ');
+
+    stage.classList.add('is-done');
 
     result.item.rolls++;
     result.item.lastRoll = Date.now();
     state.history.unshift({ id: result.item.id, text: result.item.text, rarity: result.rarityId, at: Date.now() });
     state.history = state.history.slice(0, 100);
     save();
-    renderHistory();
     spinning = false;
-    $('#btn-spin').disabled = false;
+    targets.button.disabled = false;
+    if (onDone) onDone(result);
   }
 
   requestAnimationFrame(frame);
+}
+
+function doSpin() {
+  runSpin({
+    stage: $('#spin-stage'), text: $('#spin-text'), rarity: $('#spin-rarity'),
+    meta: $('#spin-meta'), button: $('#btn-spin')
+  }, 1800, renderHistory);
+}
+
+// ============================================================
+// СТРИМ-РЕЖИМ (cards.html?stream, для OBS — ?stream&bg=transparent)
+// ============================================================
+const IS_STREAM = new URLSearchParams(location.search).has('stream');
+
+function streamSpin() {
+  runSpin({
+    stage: $('#stream'), text: $('#s-text'), rarity: $('#s-rarity'),
+    meta: $('#s-meta'), button: $('#s-spin')
+  }, 3200, renderStreamHistory);
+}
+
+function renderStreamHistory() {
+  $('#s-hist').innerHTML = state.history.slice(1, 6).map(h => {
+    const r = rarity(h.rarity);
+    return `<span style="--rc:${r.color}" title="${esc(h.text)}">${esc(h.text)}</span>`;
+  }).join('');
+}
+
+function startStream() {
+  document.body.classList.add('is-stream');
+  if (new URLSearchParams(location.search).get('bg') === 'transparent') {
+    document.body.classList.add('is-transparent');
+  }
+  $('#stream').style.display = 'flex';
+  renderStreamHistory();
+
+  $('#s-spin').onclick = streamSpin;
+  $('#s-full').onclick = () => {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen().catch(() => {});
+  };
+  document.addEventListener('keydown', e => {
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea') return;
+    if (e.code === 'Space') { e.preventDefault(); streamSpin(); }
+    if (e.code === 'KeyF') $('#s-full').click();
+  });
+}
+
+// Если менеджер и стрим-режим открыты в разных вкладках одного браузера —
+// подхватываем правки друг друга без перезагрузки страницы.
+let reloadPending = false;
+window.addEventListener('storage', e => {
+  if (e.key !== STORAGE_KEY || !e.newValue) return;
+  if (document.querySelector('.modal-back')) { reloadPending = true; return; }
+  applyExternalState();
+});
+function applyExternalState() {
+  reloadPending = false;
+  if (spinning) { setTimeout(applyExternalState, 500); return; }
+  if (!load()) return;
+  if (IS_STREAM) renderStreamHistory(); else renderAll();
 }
 
 function renderHistory() {
@@ -1823,6 +1977,7 @@ function wireApp() {
   $('#btn-dupes').onclick = openDupes;
 
   $('#btn-spin').onclick = doSpin;
+  $('#btn-stream').onclick = () => window.open('cards.html?stream', 'ppk-cards-stream');
   $('#btn-clear-hist').onclick = () => {
     snapshot('очистка истории');
     state.history = []; save(); renderHistory();
@@ -1904,11 +2059,14 @@ async function tryEnter() {
 
 function startApp() {
   $('#gate').style.display = 'none';
-  $('#app').style.display = 'block';
   if (!load()) { state = seedState(); save(); }
+  if (IS_STREAM) { startStream(); return; }
+  $('#app').style.display = 'block';
   wireApp();
   switchTab('board');
 }
+
+if (IS_STREAM) document.body.classList.add('is-stream');
 
 $('#gate-submit').addEventListener('click', tryEnter);
 $('#gate-input').addEventListener('keydown', e => { if (e.key === 'Enter') tryEnter(); });
