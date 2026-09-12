@@ -559,21 +559,115 @@
 
 <body>
 
+  <!-- ===== ОБЩЕЕ МЕНЮ: выпадающие разделы (одинаково на всех страницах) ===== -->
+  <style>
+    .site-nav__dd { position: relative; }
+    .site-nav__dd-btn {
+      background: none; border: none; cursor: pointer; font-family: inherit;
+      color: rgba(255,255,255,0.7); font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase;
+      padding: 4px 0; border-bottom: 2px solid transparent;
+      display: inline-flex; align-items: center; gap: 6px;
+      transition: color .2s ease, border-color .2s ease, text-shadow .2s ease;
+    }
+    .site-nav__dd-btn:hover,
+    .site-nav__dd.is-open > .site-nav__dd-btn { color: #FAC775; }
+    .site-nav__dd.is-active > .site-nav__dd-btn {
+      color: #FAC775; border-bottom-color: #FAC775; text-shadow: 0 0 8px rgba(250,199,117,0.5);
+    }
+    .site-nav__caret { font-size: 10px; transition: transform .2s ease; }
+    .site-nav__dd.is-open .site-nav__caret { transform: rotate(180deg); }
+    .site-nav__menu {
+      position: absolute; top: calc(100% + 10px); left: 50%; transform: translate(-50%, -6px);
+      min-width: 210px; list-style: none; margin: 0; padding: 8px;
+      background: rgba(20, 25, 40, 0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+      opacity: 0; visibility: hidden; pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease, visibility .18s; z-index: 120;
+    }
+    .site-nav__menu::before { content: ''; position: absolute; top: -12px; left: 0; right: 0; height: 12px; }
+    .site-nav__dd:hover > .site-nav__menu,
+    .site-nav__dd.is-open > .site-nav__menu,
+    .site-nav__dd:focus-within > .site-nav__menu {
+      opacity: 1; visibility: visible; pointer-events: auto; transform: translate(-50%, 0);
+    }
+    .site-nav__menu li { display: block; flex: none; }
+    .site-nav__links .site-nav__menu a {
+      display: block; padding: 9px 14px; border-radius: 8px; border-bottom: none;
+      text-transform: none; letter-spacing: .3px; font-size: 14px;
+      color: rgba(255,255,255,0.8); white-space: nowrap; text-shadow: none;
+    }
+    .site-nav__links .site-nav__menu a:hover { background: rgba(255,255,255,0.06); color: #FAC775; }
+    .site-nav__links .site-nav__menu a.is-active { color: #FAC775; background: rgba(250,199,117,0.08); }
+    @media (max-width: 720px) {
+      .site-nav__dd-btn { font-size: 12px; letter-spacing: 1px; }
+      .site-nav__dd { position: static; }
+      .site-nav__menu { position: fixed; left: 16px; right: 16px; top: 60px; transform: none; min-width: 0; }
+      .site-nav__dd:hover > .site-nav__menu { opacity: 0; visibility: hidden; pointer-events: none; }
+      .site-nav__dd.is-open > .site-nav__menu,
+      .site-nav__dd:focus-within > .site-nav__menu { opacity: 1; visibility: visible; pointer-events: auto; transform: none; }
+    }
+  </style>
   <nav class="site-nav">
     <div class="site-nav__inner">
       <a class="site-nav__brand" href="index.html">ParipariKai</a>
       <ul class="site-nav__links">
-        <li><a href="hall.html" data-page="hall">Hall of Fame</a></li>
-        <li><a href="tickets.html" data-page="tickets">Билеты</a></li>
-        <li><a href="anime.html" data-page="anime">Аниме</a></li>
-        <li><a href="movies.html" data-page="movies">Фильмы</a></li>
-        <li><a href="series.html" data-page="series">Сериалы</a></li>
-        <li><a href="games.html" data-page="games">Игры</a></li>
-        <li><a href="picker.html" data-page="picker">Рулетка</a></li>
-        <li><a href="chat-wheel.html" data-page="chat-wheel" class="is-active">Чат-рулетка</a></li>
-      </ul>
+      <li><a href="hall.html">Зал Славы</a></li>
+      <li><a href="tickets.html">Билеты</a></li>
+      <li class="site-nav__dd">
+        <button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">Заказы зрителя <span class="site-nav__caret">▾</span></button>
+        <ul class="site-nav__menu">
+          <li><a href="anime.html">Аниме</a></li>
+          <li><a href="movies.html">Фильмы</a></li>
+          <li><a href="series.html">Сериалы</a></li>
+          <li><a href="games.html">Игры</a></li>
+          <li><a href="picker.html">Рулетка заказов</a></li>
+        </ul>
+      </li>
+      <li class="site-nav__dd">
+        <button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">Для стримера <span class="site-nav__caret">▾</span></button>
+        <ul class="site-nav__menu">
+          <li><a href="chat-wheel.html">Чат-рулетка</a></li>
+          <li><a href="cards.html">Админка-рулетка</a></li>
+          <li><a href="cards.html?stream">Хаос-рулетка</a></li>
+        </ul>
+      </li>
+    </ul>
     </div>
   </nav>
+  <script>
+    // Меню: подсветка текущей страницы и открытие разделов по клику (для тач-экранов)
+    (function () {
+      const nav = document.querySelector('.site-nav');
+      if (!nav) return;
+      const here = (location.pathname.split('/').pop() || 'index.html') + location.search;
+      nav.querySelectorAll('.site-nav__links a').forEach(a => {
+        if (a.getAttribute('href') === here) {
+          a.classList.add('is-active');
+          const dd = a.closest('.site-nav__dd');
+          if (dd) dd.classList.add('is-active');
+        }
+      });
+      const closeAll = () => nav.querySelectorAll('.site-nav__dd.is-open').forEach(dd => {
+        dd.classList.remove('is-open');
+        dd.querySelector('.site-nav__dd-btn').setAttribute('aria-expanded', 'false');
+      });
+      nav.querySelectorAll('.site-nav__dd-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          const dd = btn.parentElement;
+          const open = !dd.classList.contains('is-open');
+          closeAll();
+          if (open) {
+            dd.classList.add('is-open');
+            btn.setAttribute('aria-expanded', 'true');
+            dd.querySelector('.site-nav__menu').style.top = window.innerWidth <= 720 ? (nav.offsetHeight + 8) + 'px' : '';
+          }
+        });
+      });
+      document.addEventListener('click', closeAll);
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
+    })();
+  </script>
 
   <!-- Экран входа -->
   <div class="gate" id="gate">
