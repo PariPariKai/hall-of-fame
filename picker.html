@@ -394,7 +394,7 @@
   @media (max-width: 720px) {
     .site-nav__dd-btn { font-size: 12px; letter-spacing: 1px; }
     .site-nav__dd { position: static; }
-    .site-nav__menu { position: fixed; left: 16px; right: 16px; top: 60px; transform: none; min-width: 0; }
+    .site-nav__menu { position: absolute; left: 16px; right: 16px; top: calc(100% + 4px); transform: none; min-width: 0; }
     .site-nav__dd:hover > .site-nav__menu { opacity: 0; visibility: hidden; pointer-events: none; }
     .site-nav__dd.is-open > .site-nav__menu,
     .site-nav__dd:focus-within > .site-nav__menu { opacity: 1; visibility: visible; pointer-events: auto; transform: none; }
@@ -453,7 +453,6 @@
         if (open) {
           dd.classList.add('is-open');
           btn.setAttribute('aria-expanded', 'true');
-          dd.querySelector('.site-nav__menu').style.top = window.innerWidth <= 720 ? (nav.offsetHeight + 8) + 'px' : '';
         }
       });
     });
