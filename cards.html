@@ -384,6 +384,41 @@
   .capsule.is-open .capsule__half--l { transform: translate(-75%, 6%) rotate(-28deg); opacity: 0; }
   .capsule.is-open .capsule__half--r { transform: translate(75%, 6%) rotate(28deg); opacity: 0; }
 
+  /* шарик лежит на блюдце и ждёт, пока его разобьют кликами */
+  .capsule.is-tappable { pointer-events: auto; cursor: pointer; }
+  .capsule.is-tappable::after {
+    content: ''; position: absolute; inset: -18%; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.55); animation: cpulse 1.1s ease-out infinite;
+  }
+  @keyframes cpulse { 0% { transform: scale(.8); opacity: .9; } 100% { transform: scale(1.35); opacity: 0; } }
+  .capsule.is-shake { animation: cshake .32s ease; }
+  @keyframes cshake {
+    0%, 100% { transform: translate(-50%, -50%); }
+    20% { transform: translate(-57%, -53%) rotate(-7deg); }
+    40% { transform: translate(-43%, -48%) rotate(6deg); }
+    60% { transform: translate(-54%, -51%) rotate(-4deg); }
+    80% { transform: translate(-47%, -50%) rotate(2deg); }
+  }
+  .capsule__cracks { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; transition: opacity .2s; }
+  .capsule__cracks path {
+    fill: none; stroke: rgba(20,10,5,0.7); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
+    opacity: 0; transition: opacity .12s;
+  }
+  .capsule[data-taps="1"] .c1,
+  .capsule[data-taps="2"] .c1, .capsule[data-taps="2"] .c2,
+  .capsule[data-taps="3"] .c1, .capsule[data-taps="3"] .c2, .capsule[data-taps="3"] .c3,
+  .capsule[data-taps="4"] .c1, .capsule[data-taps="4"] .c2, .capsule[data-taps="4"] .c3, .capsule[data-taps="4"] .c4,
+  .capsule[data-taps="5"] path { opacity: 1; }
+  .capsule.is-open .capsule__cracks { opacity: 0; }
+  .tap-hint {
+    position: absolute; left: var(--x, 50%); top: var(--y, 50%);
+    transform: translate(0, -50%); white-space: nowrap; pointer-events: none;
+    font-size: clamp(12px, 1.3vw, 17px); letter-spacing: 3px; text-transform: uppercase;
+    color: rgba(255,255,255,0.6); opacity: 0; transition: opacity .3s;
+  }
+  .tap-hint.is-visible { opacity: 1; }
+  .tap-hint b { color: #FAC775; font-weight: 600; }
+
   /* бумажка из капсулы */
   .paper {
     position: absolute; left: 50%; top: 50%;
@@ -494,7 +529,15 @@
       <div class="capsule__half capsule__half--l"></div>
       <div class="capsule__half capsule__half--r"></div>
       <div class="capsule__seam"></div>
+      <svg class="capsule__cracks" viewBox="0 0 100 100" aria-hidden="true">
+        <path class="c1" d="M50 50 L58 41 L64 38 L69 30"/>
+        <path class="c2" d="M50 50 L41 56 L33 58 L27 66"/>
+        <path class="c3" d="M50 50 L54 62 L52 71 L57 80"/>
+        <path class="c4" d="M50 50 L40 43 L35 34 L28 30 M58 41 L63 47"/>
+        <path class="c5" d="M50 50 L62 55 L72 54 L80 60 M41 56 L38 66 M54 62 L45 68"/>
+      </svg>
     </div>
+    <div class="tap-hint" id="tap-hint"></div>
     <div class="paper" id="paper">
       <div class="paper__rarity" id="p-rarity"></div>
       <div class="paper__text" id="p-text"></div>
@@ -1842,7 +1885,7 @@ function lottoResize() {
   lotto.cy = lotto.R + (lotto.h - lotto.R * 2.75) / 2 + lotto.R * 0.04;
   lotto.ballR = lotto.R * 0.088;
   lotto.neckW = lotto.ballR * 2.7;
-  lotto.trayY = lotto.cy + lotto.R + lotto.R * 0.5;
+  lotto.trayY = lotto.cy + lotto.R + lotto.R * 0.52;
   lotto.balls.forEach(b => { b.r = lotto.ballR; });
 }
 
@@ -1877,16 +1920,28 @@ function lottoStep(dt) {
     if (b.free || b.hidden) continue;
     b.vy += g * dt;
     if (power > 0) {
-      // вентилятор бьёт только у дна, наверху шары снова падают — так они
-      // и летают по всей сфере, а не липнут к потолку; плюс лёгкий вихрь
+      // два потока воздуха из нижних углов сферы навстречу друг другу:
+      // каждый поднимается вдоль своей стенки и закручивается в вихрь,
+      // наверху они встречаются и валятся вниз по середине
       const depth = Math.max(0, Math.min(1, (b.y - (cy - R)) / (2 * R)));
-      const lift = depth > 0.45 ? (depth - 0.45) / 0.55 : 0;
-      b.vy -= g * dt * (0.55 + 4.5 * lift) * power;
-      const tx = -(b.y - cy), ty = b.x - cx, tl = Math.hypot(tx, ty) || 1;
-      b.vx += tx / tl * R * 2.5 * dt * power;
-      b.vy += ty / tl * R * 2.5 * dt * power;
-      b.vx += (Math.random() - 0.5) * R * 10 * dt * power;
-      b.vy += (Math.random() - 0.5) * R * 10 * dt * power;
+      const rel = (b.x - cx) / R;
+      let fx = 0, fy = 0;
+      for (const sgn of [-1, 1]) {
+        const vcx = cx + sgn * R * 0.45, vcy = cy - R * 0.05;
+        const dx = b.x - vcx, dy = b.y - vcy, d = Math.hypot(dx, dy) || 1;
+        const w = Math.exp(-((d / (R * 0.75)) ** 2));
+        fx += sgn * (dy / d) * w;  fy += -sgn * (dx / d) * w;       // закрутка
+        fx += -dx / d * w * 0.2;   fy += -dy / d * w * 0.2;         // подсос к центру вихря
+      }
+      if (depth > 0.55) {                                            // струи у дна
+        const jet = (depth - 0.55) / 0.45;
+        fx += -Math.sign(rel || 1) * 0.9 * jet; fy += -2.4 * jet;
+      }
+      const F = R * 9 * power;
+      b.vx += fx * F * dt; b.vy += fy * F * dt;
+      b.vy -= g * dt * 0.5 * power;                                  // общий подъём
+      b.vx += (Math.random() - 0.5) * R * 6 * dt * power;
+      b.vy += (Math.random() - 0.5) * R * 6 * dt * power;
       const sp = Math.hypot(b.vx, b.vy), max = R * 6;
       if (sp > max) { b.vx *= max / sp; b.vy *= max / sp; }
     }
@@ -1946,17 +2001,28 @@ function lottoDraw() {
   const { ctx, w, h, cx, cy, R, balls, neckW, trayY, ballR } = lotto;
   ctx.clearRect(0, 0, w, h);
 
-  // горлышко и лоток
+  // горлышко, трубка и блюдце
   ctx.fillStyle = 'rgba(255,255,255,0.05)';
   ctx.strokeStyle = 'rgba(255,255,255,0.22)';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.rect(cx - neckW / 2, cy + R - ballR * 0.6, neckW, trayY - (cy + R) + ballR * 0.6);
+  ctx.rect(cx - neckW / 2, cy + R - ballR * 0.6, neckW, trayY - (cy + R) - ballR * 0.6);
   ctx.fill(); ctx.stroke();
+  // кольцо на конце трубки
   ctx.beginPath();
-  ctx.ellipse(cx, trayY + ballR * 0.9, neckW * 1.3, ballR * 0.55, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, trayY - ballR * 1.25, neckW * 0.75, ballR * 0.32, 0, 0, Math.PI * 2);
   ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.stroke();
+  // блюдце
+  const sy = trayY + ballR * 0.85, sw = neckW * 2.4, sh = ballR * 0.75;
+  const saucer = ctx.createRadialGradient(cx, sy - sh * 0.4, sw * 0.1, cx, sy, sw);
+  saucer.addColorStop(0, 'rgba(255,255,255,0.16)');
+  saucer.addColorStop(1, 'rgba(255,255,255,0.04)');
+  ctx.beginPath(); ctx.ellipse(cx, sy, sw, sh, 0, 0, Math.PI * 2);
+  ctx.fillStyle = saucer; ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.32)'; ctx.lineWidth = 2.5; ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(cx, sy + sh * 0.15, sw * 0.62, sh * 0.5, 0, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.14)'; ctx.lineWidth = 1.5; ctx.stroke();
 
   // сфера: стекло
   const glass = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.35, R * 0.1, cx, cy, R);
@@ -2016,8 +2082,11 @@ function streamSpin() {
 
   const capsule = $('#capsule'), paper = $('#paper'), lottoEl = $('#lotto');
   paper.classList.remove('is-shown');
-  capsule.classList.remove('is-open', 'is-visible');
+  capsule.classList.remove('is-open', 'is-visible', 'is-tappable', 'is-shake');
+  capsule.dataset.taps = '0';
+  $('#tap-hint').classList.remove('is-visible');
   lottoEl.classList.remove('is-dim');
+  pendingOpen = null;
 
   lotto.chosen = ball;
   lotto.phase = 'mix';
@@ -2032,10 +2101,11 @@ function streamSpin() {
   });
 
   later(T_MIX + T_DROP + 150, () => {
-    // шар в лотке → подменяем DOM-капсулой ровно на его месте
+    // шар на блюдце → подменяем DOM-капсулой ровно на его месте и ждём кликов
     ball.hidden = true; ball.free = false;
-    lotto.phase = 'idle';
-    const rect = lottoEl.getBoundingClientRect();
+    lotto.phase = 'wait';
+    tapsLeft = TAPS_TO_OPEN;
+    capsule.dataset.taps = '0';
     capsule.style.setProperty('--rc', r.color);
     capsule.style.transition = 'none';
     capsule.style.setProperty('--x', lotto.cx + 'px');
@@ -2044,18 +2114,31 @@ function streamSpin() {
     capsule.classList.add('is-visible');
     void capsule.offsetWidth;
     capsule.style.transition = '';
+    capsule.style.setProperty('--sz', lotto.ballR * 3.6 + 'px');
+    capsule.classList.add('is-tappable');
+    const hint = $('#tap-hint');
+    hint.style.setProperty('--x', (lotto.cx + lotto.ballR * 2.8) + 'px');
+    hint.style.setProperty('--y', lotto.trayY + 'px');
+    updateTapHint();
+    hint.classList.add('is-visible');
+  });
+
+  // дальше цепочку продолжает capsuleTap() после пятого клика
+  pendingOpen = () => {
+    const rect = lottoEl.getBoundingClientRect();
     const sz = Math.min(300, rect.height * 0.5, rect.width * 0.5);
+    capsule.classList.remove('is-tappable');
+    $('#tap-hint').classList.remove('is-visible');
     capsule.style.setProperty('--x', rect.width / 2 + 'px');
     capsule.style.setProperty('--y', rect.height / 2 + 'px');
     capsule.style.setProperty('--sz', sz + 'px');
     lottoEl.classList.add('is-dim');
-  });
+    later(850, () => capsule.classList.add('is-open'));
+    later(850 + 280, showPaper);
+    later(850 + 280 + 700, finish);
+  };
 
-  later(T_MIX + T_DROP + 150 + 850, () => {
-    capsule.classList.add('is-open');
-  });
-
-  later(T_MIX + T_DROP + 150 + 850 + 280, () => {
+  function showPaper() {
     const g = group(result.item.group);
     const parts = [];
     if (g) parts.push(g.name);
@@ -2066,9 +2149,9 @@ function streamSpin() {
     $('#p-text').textContent = result.item.text;
     $('#p-meta').textContent = parts.join(' · ');
     paper.classList.add('is-shown');
-  });
+  }
 
-  later(T_MIX + T_DROP + 150 + 850 + 280 + 700, () => {
+  function finish() {
     result.item.rolls++;
     result.item.lastRoll = Date.now();
     state.history.unshift({ id: result.item.id, text: result.item.text, rarity: result.rarityId, at: Date.now() });
@@ -2077,7 +2160,33 @@ function streamSpin() {
     renderStreamHistory();
     spinning = false;
     $('#s-spin').disabled = false;
-  });
+  }
+}
+
+const TAPS_TO_OPEN = 5;
+let tapsLeft = 0;
+let pendingOpen = null;
+
+function updateTapHint() {
+  $('#tap-hint').innerHTML = tapsLeft > 0
+    ? `Нажми на шарик · <b>${tapsLeft}</b>`
+    : '';
+}
+
+function capsuleTap() {
+  if (lotto.phase !== 'wait' || tapsLeft <= 0) return;
+  tapsLeft--;
+  const capsule = $('#capsule');
+  capsule.dataset.taps = String(TAPS_TO_OPEN - tapsLeft);
+  capsule.classList.remove('is-shake');
+  void capsule.offsetWidth;
+  capsule.classList.add('is-shake');
+  updateTapHint();
+  if (tapsLeft === 0) {
+    lotto.phase = 'open';
+    const fn = pendingOpen; pendingOpen = null;
+    later(320, fn);
+  }
 }
 
 function renderStreamHistory() {
@@ -2097,6 +2206,7 @@ function startStream() {
   lottoInit();
 
   $('#s-spin').onclick = streamSpin;
+  $('#capsule').onclick = capsuleTap;
   $('#s-full').onclick = () => {
     if (document.fullscreenElement) document.exitFullscreen();
     else document.documentElement.requestFullscreen().catch(() => {});
@@ -2104,7 +2214,10 @@ function startStream() {
   document.addEventListener('keydown', e => {
     const tag = (e.target.tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'textarea') return;
-    if (e.code === 'Space') { e.preventDefault(); streamSpin(); }
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (lotto.phase === 'wait') capsuleTap(); else streamSpin();
+    }
     if (e.code === 'KeyF') $('#s-full').click();
   });
 }
@@ -2121,7 +2234,7 @@ function applyExternalState() {
   reloadPending = false;
   if (spinning) { setTimeout(applyExternalState, 500); return; }
   if (!load()) return;
-  if (IS_STREAM) { renderStreamHistory(); if (lotto.phase === 'idle') lottoBuildBalls(); } else renderAll();
+  if (IS_STREAM) { renderStreamHistory(); if (lotto.phase === 'idle' && !spinning) lottoBuildBalls(); } else renderAll();
 }
 
 function renderHistory() {
