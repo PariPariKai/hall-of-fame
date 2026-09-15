@@ -825,6 +825,18 @@
     </div>
 
     <div class="panel">
+      <div class="panel__title">Защита от повторов</div>
+      <div class="row" style="align-items:center">
+        <label class="field" style="flex:0 0 220px;margin:0"><span>Не повторять последние N круток</span>
+          <input type="number" id="cooldown" min="0" max="50" step="1"></label>
+        <div class="note" style="flex:1 1 300px;margin:0">
+          Карточка, выпавшая в последние N круток, временно не участвует в розыгрыше. Шансы редкостей
+          не меняются — исключение действует только внутри редкости. 0 — выключить.
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
       <div class="panel__title">Опасная зона</div>
       <div class="row">
         <button class="btn btn--danger" id="btn-reset-rolls">Обнулить счётчики выпадений</button>
@@ -949,6 +961,7 @@ function seedState() {
       createdAt: now, activatedAt: now, benchedAt: null, rolls: 0, lastRoll: null
     })),
     history: [],
+    settings: { cooldown: 5 },
     lastBackup: null
   };
 }
@@ -1004,8 +1017,10 @@ function normalize(obj) {
     groups: Array.isArray(obj.groups) ? obj.groups : [],
     items: [],
     history: Array.isArray(obj.history) ? obj.history.slice(0, 200) : [],
+    settings: { cooldown: Math.max(0, Math.min(50, Number(obj.settings && obj.settings.cooldown) || 0)) },
     lastBackup: obj.lastBackup || null
   };
+  if (!obj.settings) s.settings.cooldown = 5;
   s.rarities = s.rarities.map(r => ({
     id: String(r.id), name: String(r.name || r.id),
     chance: Number(r.chance) || 0, color: r.color || '#9FB3C8'
@@ -1135,12 +1150,18 @@ function pickWeighted(list, weightOf) {
   return list[list.length - 1];
 }
 
+// Карточки из последних N круток (settings.cooldown) временно не участвуют,
+// чтобы одно и то же не выпадало дважды за вечер. Редкость выбирается как обычно;
+// если в ней после исключения никого не остаётся — исключение снимается.
 function rollOnce() {
   const chances = rarityChances();
   const live = state.rarities.filter(r => chances[r.id] > 0);
   if (!live.length) return null;
   const r = pickWeighted(live, x => chances[x.id]);
-  const pool = itemsOf(r.id, true);
+  const recent = new Set(state.history.slice(0, state.settings.cooldown).map(h => h.id));
+  let pool = itemsOf(r.id, true);
+  const fresh = pool.filter(i => !recent.has(i.id));
+  if (fresh.length) pool = fresh;
   const item = pickWeighted(pool, x => x.weight);
   return item ? { item, rarityId: r.id } : null;
 }
@@ -1978,7 +1999,7 @@ function runSpin(targets, duration, onDone) {
 
     result.item.rolls++;
     result.item.lastRoll = Date.now();
-    state.history.unshift({ id: result.item.id, text: result.item.text, rarity: result.rarityId, at: Date.now() });
+    state.history.unshift({ id: result.item.id, text: result.item.text, rarity: result.rarityId, at: Date.now(), chance: itemChance(result.item) });
     state.history = state.history.slice(0, 100);
     save();
     spinning = false;
@@ -2324,7 +2345,7 @@ function streamSpin() {
   function finish() {
     result.item.rolls++;
     result.item.lastRoll = Date.now();
-    state.history.unshift({ id: result.item.id, text: result.item.text, rarity: result.rarityId, at: Date.now() });
+    state.history.unshift({ id: result.item.id, text: result.item.text, rarity: result.rarityId, at: Date.now(), chance: itemChance(result.item) });
     state.history = state.history.slice(0, 100);
     save();
     renderStreamHistory();
@@ -2506,6 +2527,7 @@ function renderHistory() {
       <span class="hist-time">${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}</span>
       <span class="hist-rar">${esc(r.name)}</span>
       <span style="flex:1 1 auto">${esc(h.text)}</span>
+      ${h.chance != null ? `<span class="hist-time" style="flex:0 0 auto;text-align:right">${fmtPct(h.chance)}</span>` : ''}
     </div>`;
   }).join('');
 }
@@ -2558,6 +2580,7 @@ function renderData() {
     <div class="stat"><div class="stat__v">${Object.entries(kinds).map(([k, v]) => KIND_LABEL[k] + ': ' + v).join('<br>') || '—'}</div><div class="stat__l">по типу</div></div>
     <div class="stat"><div class="stat__v">${Object.entries(targets).map(([k, v]) => TARGET_LABEL[k] + ': ' + v).join('<br>') || '—'}</div><div class="stat__l">на кого</div></div>`;
 
+  $('#cooldown').value = state.settings.cooldown;
   $('#last-backup').textContent = state.lastBackup
     ? new Date(state.lastBackup).toLocaleString('ru-RU')
     : 'никогда';
@@ -2688,6 +2711,13 @@ function wireApp() {
       () => toast('Скопировано'),
       () => { document.execCommand('copy'); toast('Скопировано'); }
     );
+  };
+
+  $('#cooldown').onchange = e => {
+    snapshot('защита от повторов');
+    state.settings.cooldown = Math.max(0, Math.min(50, Number(e.target.value) || 0));
+    e.target.value = state.settings.cooldown;
+    save();
   };
 
   $('#btn-reset-rolls').onclick = () => {
