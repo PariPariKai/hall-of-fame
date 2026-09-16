@@ -711,6 +711,7 @@
       <button class="btn btn--gold" id="btn-add">+ Карточка</button>
       <button class="btn" id="btn-bulk">Массовое добавление</button>
       <button class="btn" id="btn-rotate">⇅ Ротация</button>
+      <button class="btn" id="btn-pause">⏸ Категории</button>
       <button class="btn" id="btn-dupes">Найти дубли</button>
     </div>
 
@@ -1028,7 +1029,7 @@ function normalize(obj) {
   const rarityIds = new Set(s.rarities.map(r => r.id));
   s.groups = s.groups
     .filter(g => g && g.id && rarityIds.has(g.rarity))
-    .map(g => ({ id: String(g.id), rarity: g.rarity, name: String(g.name || 'Без названия'), target: g.target ?? null }));
+    .map(g => ({ id: String(g.id), rarity: g.rarity, name: String(g.name || 'Без названия'), target: g.target ?? null, paused: !!g.paused }));
   const groupIds = new Set(s.groups.map(g => g.id));
   s.items = (obj.items || []).filter(it => it && it.text).map(it => ({
     id: it.id || uid(),
@@ -1040,6 +1041,7 @@ function normalize(obj) {
     weight: Number(it.weight) > 0 ? Number(it.weight) : 1,
     active: it.active !== false,
     pinned: !!it.pinned,
+    pausedByGroup: !!it.pausedByGroup,
     tags: Array.isArray(it.tags) ? it.tags.map(String) : [],
     note: String(it.note || ''),
     createdAt: Number(it.createdAt) || now,
@@ -1672,7 +1674,7 @@ function openRotate() {
 
     rars.forEach(id => {
       let act = itemsOf(id, true).filter(i => !i.pinned);
-      let ben = itemsOf(id, false).filter(i => !i.pinned);
+      let ben = itemsOf(id, false).filter(i => !i.pinned && !(group(i.group) || {}).paused);
       // не осушаем редкость полностью: минимум 1 карточка должна остаться
       const keepMin = 1;
       const canRemove = Math.max(0, itemsOf(id, true).length - keepMin);
@@ -1720,6 +1722,73 @@ function shuffle(arr) {
 // ============================================================
 // ПОИСК ДУБЛЕЙ
 // ============================================================
+// ============================================================
+// ПАУЗА КАТЕГОРИИ — вся категория на скамейку одной кнопкой и обратно.
+// Категории с одинаковым названием в разных редкостях считаются одной.
+// ============================================================
+function pauseGroups(groups, on) {
+  snapshot(on ? 'пауза категории' : 'возврат категории');
+  groups.forEach(g => {
+    g.paused = on;
+    state.items.filter(i => i.group === g.id).forEach(i => {
+      if (on && i.active) { setActive(i, false); i.pausedByGroup = true; }
+      if (!on && i.pausedByGroup) { setActive(i, true); i.pausedByGroup = false; }
+    });
+  });
+  save(); renderAll(); updatePauseButton();
+}
+
+function updatePauseButton() {
+  const n = new Set(state.groups.filter(g => g.paused).map(g => normText(g.name))).size;
+  const btn = $('#btn-pause');
+  btn.textContent = n ? `⏸ Категории (${n} на паузе)` : '⏸ Категории';
+  btn.classList.toggle('btn--gold', n > 0);
+}
+
+function openPause() {
+  const byName = new Map();
+  state.groups.forEach(g => {
+    const k = normText(g.name);
+    if (!byName.has(k)) byName.set(k, { name: g.name, groups: [] });
+    byName.get(k).groups.push(g);
+  });
+  const rows = Array.from(byName.values()).map(({ name, groups }) => {
+    const ids = new Set(groups.map(g => g.id));
+    const items = state.items.filter(i => ids.has(i.group));
+    const act = items.filter(i => i.active).length;
+    const paused = groups.some(g => g.paused);
+    const rars = groups.map(g => `<span style="color:${rarity(g.rarity).color}">${esc(rarity(g.rarity).name)}</span>`).join(', ');
+    return `<div style="display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.07)">
+      <div style="flex:1 1 auto">
+        <div style="font-size:15px">${esc(name)} ${paused ? '<span class="chip" style="background:rgba(240,185,95,0.18);color:#F0B95F">на паузе</span>' : ''}</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.45);margin-top:3px">${rars} · ${act} в рулетке, ${items.length - act} на скамейке</div>
+      </div>
+      <button class="btn ${paused ? 'btn--gold' : ''}" data-pause="${esc(normText(name))}">${paused ? '▶ Вернуть' : '⏸ На скамейку'}</button>
+    </div>`;
+  }).join('');
+
+  const m = modal(`
+    <div class="modal__title">Пауза категорий</div>
+    <p style="font-size:13px;color:rgba(255,255,255,0.55);line-height:1.6;margin-bottom:12px">
+      «На скамейку» убирает из рулетки все карточки категории разом. «Вернуть» поднимает обратно только те,
+      что были убраны паузой — кто лежал на скамейке до неё, там и останется. Пока категория на паузе,
+      ротация её карточки не возвращает. Всё откатывается через <span class="kbd">Ctrl</span>+<span class="kbd">Z</span>.
+    </p>
+    ${rows || '<div class="empty">Категорий пока нет — назначь их карточкам в редакторе.</div>'}
+    <div class="modal__foot"><button class="btn" id="pz-close">Закрыть</button></div>
+  `);
+  m.el.querySelector('#pz-close').onclick = m.close;
+  m.el.querySelectorAll('[data-pause]').forEach(b => {
+    b.onclick = () => {
+      const groups = state.groups.filter(g => normText(g.name) === b.dataset.pause);
+      const on = !groups.some(g => g.paused);
+      pauseGroups(groups, on);
+      m.close(); openPause();
+      toast(on ? `«${groups[0].name}» — на скамейке` : `«${groups[0].name}» — снова в рулетке`);
+    };
+  });
+}
+
 function openDupes() {
   const map = new Map();
   state.items.forEach(it => {
@@ -2668,7 +2737,7 @@ function switchTab(name) {
 }
 
 function renderAll() {
-  if (ui.tab === 'board') { renderStrip(); renderBoard(); }
+  if (ui.tab === 'board') { renderStrip(); renderBoard(); updatePauseButton(); }
   else if (ui.tab === 'balance') renderBalance();
   else if (ui.tab === 'spin') renderHistory();
   else if (ui.tab === 'data') renderData();
@@ -2689,6 +2758,7 @@ function wireApp() {
   $('#btn-bulk').onclick = openBulk;
   $('#btn-rotate').onclick = openRotate;
   $('#btn-dupes').onclick = openDupes;
+  $('#btn-pause').onclick = openPause;
 
   $('#btn-spin').onclick = doSpin;
   $('#btn-stream').onclick = () => window.open('cards.html?stream', 'ppk-cards-stream');
