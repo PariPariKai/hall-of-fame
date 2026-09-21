@@ -395,21 +395,27 @@
   }
   .elimination-status.active { display: block; }
 
-  /* ===== Лог ===== */
-  .log {
-    width: 100%; max-width: 700px;
-    background: rgba(0,0,0,0.3);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 8px; padding: 14px;
-    margin-top: 12px; max-height: 200px;
-    overflow-y: auto; display: none;
+  /* ===== История розыгрыша (правая колонка) =====
+     Обычно — компактная карточка над настройками, видна только когда есть
+     записи или идёт раунд выбывания. На время прокрутки на выбывание
+     настройки не нужны: они прячутся, а история занимает всю правую колонку —
+     не надо скроллить страницу на стриме. Кнопка в заголовке карточки
+     переключает панели в любой момент (например, чтобы перезапустить раунд). */
+  .history-card { display: none; }
+  .history-card.has-entries,
+  .layout.elim-active .history-card { display: block; }
+  .log-entries { max-height: 180px; overflow-y: auto; }
+  .layout.history-view .side-col > .card:not(.history-card) { display: none; }
+  .layout.history-view .history-card {
+    display: block;
+    border-color: rgba(127,119,221,0.3);
   }
-  .log.has-entries { display: block; }
-  .log-title {
-    font-size: 11px; letter-spacing: 2px;
-    color: rgba(255,255,255,0.5); text-transform: uppercase;
-    margin-bottom: 8px;
-  }
+  .layout.history-view .log-entries { max-height: min(720px, calc(100vh - 220px)); }
+  /* Места много — записи крупнее, чтобы читались со стрима */
+  .layout.history-view .log-entry { font-size: 15px; padding: 6px 0; }
+  .layout.history-view .log-entry:first-child { font-size: 19px; padding: 9px 0; }
+  .layout.history-view .log-entry.winner { font-size: 17px; }
+  .layout.history-view .log-entry.winner:first-child { font-size: 21px; }
   .log-entry {
     font-size: 13px; padding: 4px 0;
     color: rgba(255,255,255,0.7);
@@ -719,14 +725,21 @@
         <button class="ctrl-btn danger" id="btn-reset">↺ Сброс</button>
       </div>
 
-      <div class="log" id="log">
-        <div class="log-title">История розыгрыша</div>
-        <div id="log-entries"></div>
-      </div>
     </div>
 
-    <!-- ===== Правая колонка: подключение, фильтры, участники ===== -->
+    <!-- ===== Правая колонка: история, подключение, фильтры, участники ===== -->
     <div class="side-col">
+
+      <!-- История розыгрыша: в режиме выбывания остаётся одна на всю колонку -->
+      <div class="card history-card" id="log">
+        <div class="card-title">
+          <span>История розыгрыша</span>
+          <button class="feed-toggle" id="history-toggle">⚙ показать настройки</button>
+        </div>
+        <div class="log-entries" id="log-entries">
+          <div class="p-empty">Крути колесо — выбывшие появятся здесь</div>
+        </div>
+      </div>
 
       <div class="card">
         <div class="card-title">Подключение к чату</div>
@@ -1610,19 +1623,42 @@ function stopConfetti() {
   container.innerHTML = '';
 }
 
-function addLogEntry(text, isWinner) {
-  logEntries.push({ text, isWinner });
+// place — занятое место: кто выбыл первым из 20, тот на 20-м месте
+function addLogEntry(text, isWinner, place) {
+  logEntries.push({ text, isWinner, place });
+  renderLog();
+}
+
+function renderLog() {
   const logEl = document.getElementById('log');
   const entries = document.getElementById('log-entries');
+  if (logEntries.length === 0) {
+    entries.innerHTML = '<div class="p-empty">Крути колесо — выбывшие появятся здесь</div>';
+    logEl.classList.remove('has-entries');
+    return;
+  }
   // Новые записи сверху
-  entries.innerHTML = logEntries.map((e, i) => `
+  entries.innerHTML = logEntries.map(e => `
     <div class="log-entry${e.isWinner ? ' winner' : ''}">
-      <span class="num">${e.isWinner ? '🏆' : '#' + (i + 1)}</span>${esc(e.text)}
+      <span class="num">${e.isWinner ? '🏆' : '#' + e.place}</span>${esc(e.text)}
     </div>
   `).reverse().join('');
   logEl.classList.add('has-entries');
   entries.scrollTop = 0;
 }
+
+// Правая колонка: настройки или история. Каждая прокрутка на выбывание
+// разворачивает историю, кнопка в её заголовке переключает панели вручную
+function setSidePanel(mode) {
+  const inHistory = mode === 'history';
+  document.getElementById('layout').classList.toggle('history-view', inHistory);
+  document.getElementById('history-toggle').textContent =
+    inHistory ? '⚙ показать настройки' : '⚔ скрыть настройки';
+}
+document.getElementById('history-toggle').addEventListener('click', () => {
+  const inHistory = document.getElementById('layout').classList.contains('history-view');
+  setSidePanel(inHistory ? 'settings' : 'history');
+});
 
 function updateStats() {
   const el = document.getElementById('app-stats');
@@ -1762,6 +1798,7 @@ function exitElimination() {
   eliminationMode = false;
   document.getElementById('elimination-status').classList.remove('active');
   document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+  document.getElementById('layout').classList.remove('elim-active');
 }
 
 // Один победитель
@@ -1791,8 +1828,11 @@ document.getElementById('btn-elim').addEventListener('click', () => {
     renderWheel();
     updateStats();
     document.getElementById('elimination-status').classList.add('active');
+    document.getElementById('layout').classList.add('elim-active');
     document.getElementById('btn-elim').textContent = '⚔ Крутить (выбывание)';
   }
+  // На время прокрутки настройки не нужны — справа история выбывших
+  setSidePanel('history');
   spin(idx => {
     if (wheelList.length === 1) {
       const winner = wheelList[0];
@@ -1802,12 +1842,16 @@ document.getElementById('btn-elim').addEventListener('click', () => {
       return;
     }
     const out = wheelList[idx];
-    addLogEntry('Выбыл: ' + out.name, false);
+    addLogEntry('Выбыл: ' + out.name, false, wheelList.length);
     wheelList.splice(idx, 1);
     renderWheel();
     updateStats();
     if (wheelList.length === 1) {
+      // Пауза перед объявлением: кнопки заперты, чтобы лишний клик
+      // не записал победителя дважды
+      setControlsDisabled(true);
       setTimeout(() => {
+        setControlsDisabled(false);
         const winner = wheelList[0];
         addLogEntry('ПОБЕДИТЕЛЬ: ' + winner.name + (winner.isSub ? ' ⭐' : ''), true);
         exitElimination();
@@ -1823,9 +1867,9 @@ document.getElementById('btn-reset').addEventListener('click', () => {
   if (!confirm('Сбросить розыгрыш? Вернутся исключённые, прервётся выбывание, очистится история.')) return;
   manualExcluded.clear();
   logEntries = [];
-  document.getElementById('log-entries').innerHTML = '';
-  document.getElementById('log').classList.remove('has-entries');
+  renderLog();
   exitElimination();
+  setSidePanel('settings');
   refreshAll();
 });
 
