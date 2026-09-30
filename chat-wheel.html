@@ -304,6 +304,78 @@
   .p-remove:hover { color: #F09595; }
   .p-empty { color: rgba(255,255,255,0.35); font-size: 13px; text-align: center; padding: 14px 0; }
 
+  /* ===== Ручной набор ===== */
+  .manual-hint {
+    font-size: 12.5px; color: rgba(255,255,255,0.45);
+    line-height: 1.5; margin-bottom: 10px;
+  }
+  .manual-summary { font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 10px; text-align: center; }
+  .manual-summary b { color: #FAC775; }
+
+  /* ===== Окно «кого берём» ===== */
+  .picker-overlay {
+    position: fixed; inset: 0;
+    background: rgba(5, 8, 16, 0.82);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    z-index: 120; display: none;
+    align-items: center; justify-content: center; padding: 24px;
+  }
+  .picker-overlay.show { display: flex; }
+  .picker-card {
+    width: 100%; max-width: 560px; max-height: 84vh;
+    display: flex; flex-direction: column;
+    background: #121728;
+    border: 1px solid rgba(250,199,117,0.25);
+    border-radius: 16px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    overflow: hidden;
+  }
+  .picker-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 16px 18px; border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .picker-title { font-size: 13px; letter-spacing: 2px; color: #FAC775; text-transform: uppercase; }
+  .picker-close {
+    background: none; border: none; color: rgba(255,255,255,0.45);
+    font-size: 20px; line-height: 1; cursor: pointer; padding: 0 4px; font-family: inherit;
+  }
+  .picker-close:hover { color: #F09595; }
+  /* Поиск и фильтры приколоты сверху, прокручивается только список */
+  .picker-body {
+    padding: 14px 18px; display: flex; flex-direction: column;
+    min-height: 0; overflow: hidden;
+  }
+  .picker-tools { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 4px; }
+  .picker-list {
+    display: flex; flex-direction: column; gap: 3px;
+    margin-top: 8px; flex: 1 1 auto; min-height: 120px; overflow-y: auto;
+  }
+  .pick-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 8px; width: 100%;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid transparent;
+    color: #fff; font-family: inherit; font-size: 14px;
+    text-align: left; cursor: pointer; transition: background 0.12s ease;
+  }
+  .pick-row:hover { background: rgba(255,255,255,0.08); }
+  .pick-row.picked { background: rgba(250,199,117,0.12); border-color: rgba(250,199,117,0.4); }
+  .pick-mark { width: 16px; flex: 0 0 auto; color: rgba(255,255,255,0.25); }
+  .pick-row.picked .pick-mark { color: #FAC775; }
+  .pick-nick { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pick-badges { font-size: 12px; flex: 0 0 auto; }
+  .pick-ago { font-size: 11.5px; color: rgba(255,255,255,0.35); flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+  .picker-empty {
+    color: rgba(255,255,255,0.4); font-size: 13.5px;
+    text-align: center; padding: 26px 10px; line-height: 1.6;
+  }
+  .picker-foot {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    padding: 14px 18px; border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .picker-count { font-size: 12.5px; color: rgba(255,255,255,0.55); letter-spacing: 0.5px; }
+  .picker-count b { color: #FAC775; font-weight: 600; }
+
   /* ===== Мини-лента чата ===== */
   .chat-feed {
     max-height: 180px; overflow-y: auto;
@@ -568,6 +640,8 @@
 
   <!-- ===== ОБЩЕЕ МЕНЮ: выпадающие разделы (одинаково на всех страницах) ===== -->
   <style>
+    /* Логотипа в шапке нет — рулеткой пользуются разные стримеры, ссылки идут по центру */
+    .site-nav__inner { justify-content: center; }
     .site-nav__dd { position: relative; }
     .site-nav__dd-btn {
       background: none; border: none; cursor: pointer; font-family: inherit;
@@ -616,7 +690,6 @@
   </style>
   <nav class="site-nav">
     <div class="site-nav__inner">
-      <a class="site-nav__brand" href="index.html">ParipariKai</a>
       <ul class="site-nav__links">
       <li><a href="hall.html">Зал Славы</a></li>
       <li><a href="tickets.html">Билеты</a></li>
@@ -762,6 +835,7 @@
         <div class="seg-group" id="mode-group">
           <button class="seg-btn active" data-mode="activity">По активности</button>
           <button class="seg-btn" data-mode="keyword">По кодовому слову</button>
+          <button class="seg-btn" data-mode="manual">Вручную</button>
         </div>
 
         <div id="activity-block">
@@ -782,6 +856,16 @@
             <button class="ctrl-btn small primary" id="btn-collect">Начать сбор</button>
           </div>
           <div class="collect-banner" id="collect-banner">Идёт сбор — пишите слово в чат!</div>
+        </div>
+
+        <div id="manual-block" style="display:none;">
+          <div class="field-label">Ручной набор</div>
+          <div class="manual-hint">
+            Колесо собираешь сам: в окне видно всех, кто хоть раз писал в чат при открытой
+            странице — даже если ушёл афк полчаса назад.
+          </div>
+          <button class="ctrl-btn small primary" id="btn-manual-open" style="width:100%;">👆 Выбрать участников</button>
+          <div class="manual-summary" id="manual-summary">Пока никого не выбрано</div>
         </div>
 
         <div class="field-label">Подписка (сапка)</div>
@@ -819,6 +903,41 @@
         <div class="chat-feed" id="chat-feed"></div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Ручной набор: все, кого видели в чате -->
+  <div class="picker-overlay" id="picker-overlay">
+    <div class="picker-card">
+      <div class="picker-head">
+        <span class="picker-title">Кого берём в рулетку</span>
+        <button class="picker-close" id="picker-close" title="Закрыть">✕</button>
+      </div>
+      <div class="picker-body">
+        <input type="text" class="conn-input" id="picker-search" placeholder="поиск по нику"
+               autocomplete="off" spellcheck="false" style="width:100%;">
+        <div class="field-label">Писал за последние</div>
+        <div class="seg-group" id="manual-window-group">
+          <button class="seg-btn" data-min="5">5 мин</button>
+          <button class="seg-btn" data-min="10">10 мин</button>
+          <button class="seg-btn" data-min="20">20 мин</button>
+          <button class="seg-btn" data-min="60">час</button>
+          <button class="seg-btn active" data-min="0">всё время</button>
+        </div>
+        <div class="manual-hint" style="margin: 10px 0 0;">
+          Фильтры «Подписка» и «Исключить» из настроек тут тоже действуют — если кого-то не видно,
+          загляни в них.
+        </div>
+        <div class="picker-tools">
+          <button class="ctrl-btn small" id="picker-all">Выбрать всех из списка</button>
+          <button class="ctrl-btn small" id="picker-none">Снять всё</button>
+        </div>
+        <div class="picker-list" id="picker-list"></div>
+      </div>
+      <div class="picker-foot">
+        <span class="picker-count" id="picker-count"></span>
+        <button class="ctrl-btn primary small" id="picker-done">Готово</button>
+      </div>
     </div>
   </div>
 
@@ -867,8 +986,9 @@ function agoText(ts) {
 const LS_KEY = 'chatwheel-settings-v1';
 const settings = Object.assign({
   channel: DEFAULT_CHANNEL,
-  mode: 'activity',          // activity | keyword
+  mode: 'activity',          // activity | keyword | manual
   windowMin: 10,             // 0 = всё время
+  manualWindowMin: 0,        // окно списка в ручном наборе (своё, чтобы афк не прятались)
   keyword: 'хочу',
   subFilter: 'all',          // all | nosub | sub
   exMods: true,
@@ -888,6 +1008,7 @@ function saveSettings() {
 // login -> { login, name, lastMsg, isSub, isMod, isVip, isBroadcaster, keywordAt }
 const users = new Map();
 const manualExcluded = new Set();   // убранные вручную / победители
+const manualPicked = new Set();     // режим «Вручную»: кого выбрали сами
 let wheelList = [];                 // текущий список на колесе
 let currentSegments = [];           // кусочки, нарисованные на колесе
 let labelCache = [];                // подписи секторов (для подгонки и переворота)
@@ -1081,8 +1202,11 @@ function customExcludeSet() {
   );
 }
 
-function isEligible(u, customEx) {
-  if (manualExcluded.has(u.login)) return false;
+// Исключения и сапка — общие для всех режимов набора.
+// ignoreManualExcluded нужен окну ручного набора: убранного крестиком
+// должно быть видно, иначе его уже не вернуть.
+function passesCommonFilters(u, customEx, ignoreManualExcluded) {
+  if (!ignoreManualExcluded && manualExcluded.has(u.login)) return false;
   if (settings.exBroadcaster && (u.isBroadcaster || u.login === joinedChannel)) return false;
   if (settings.exMods && u.isMod) return false;
   if (settings.exVips && u.isVip) return false;
@@ -1091,9 +1215,16 @@ function isEligible(u, customEx) {
 
   if (settings.subFilter === 'nosub' && u.isSub) return false;
   if (settings.subFilter === 'sub' && !u.isSub) return false;
+  return true;
+}
+
+function isEligible(u, customEx) {
+  if (!passesCommonFilters(u, customEx, false)) return false;
 
   if (settings.mode === 'keyword') {
     if (!collectStart || u.keywordAt < collectStart) return false;
+  } else if (settings.mode === 'manual') {
+    if (!manualPicked.has(u.login)) return false;
   } else {
     if (settings.windowMin > 0 &&
         Date.now() - u.lastMsg > settings.windowMin * 60 * 1000) return false;
@@ -1111,6 +1242,8 @@ function computeEligible() {
 
 function refreshAll() {
   renderParticipants();
+  updateManualSummary();
+  if (isPickerOpen()) renderPicker();
   if (isSpinning) { pendingRefresh = true; return; }
   // В режиме выбывания состав колеса заморожен — чат его не меняет
   if (eliminationMode) { updateStats(); return; }
@@ -1159,11 +1292,120 @@ function renderParticipants() {
 
   box.querySelectorAll('.p-remove').forEach(btn => {
     btn.addEventListener('click', () => {
-      manualExcluded.add(btn.dataset.login);
+      // В ручном наборе крестик просто снимает выбор, в остальных режимах — исключает из пула
+      if (settings.mode === 'manual') manualPicked.delete(btn.dataset.login);
+      else manualExcluded.add(btn.dataset.login);
       refreshAll();
     });
   });
 }
+
+// ============================================================
+// Ручной набор: окно со всеми, кого видели в чате
+// ============================================================
+function isPickerOpen() {
+  return document.getElementById('picker-overlay').classList.contains('show');
+}
+
+// Кого показываем в окне: общие фильтры + своё окно активности + поиск
+function pickerCandidates() {
+  const customEx = customExcludeSet();
+  const q = (document.getElementById('picker-search').value || '').trim().toLowerCase();
+  const win = settings.manualWindowMin;
+  const list = [];
+  users.forEach(u => {
+    if (!passesCommonFilters(u, customEx, true)) return;
+    if (win > 0 && Date.now() - u.lastMsg > win * 60 * 1000) return;
+    if (q && !u.name.toLowerCase().includes(q) && !u.login.includes(q)) return;
+    list.push(u);
+  });
+  list.sort((a, b) => a.login.localeCompare(b.login));
+  return list;
+}
+
+function renderPicker() {
+  const box = document.getElementById('picker-list');
+  const list = pickerCandidates();
+
+  document.getElementById('picker-count').innerHTML =
+    'Выбрано: <b>' + manualPicked.size + '</b> · в списке: ' + list.length + ' из ' + users.size;
+
+  if (list.length === 0) {
+    box.innerHTML = '<div class="picker-empty">' + (users.size === 0
+      ? 'Подключись к чату — сюда попадут все, кто напишет хоть раз'
+      : 'Под поиск и фильтры никто не подходит') + '</div>';
+    return;
+  }
+
+  // Чат идёт своим чередом и перерисовывает список — держим прокрутку на месте
+  const scroll = box.scrollTop;
+  box.innerHTML = list.map(u => `
+    <button class="pick-row${manualPicked.has(u.login) ? ' picked' : ''}" data-login="${esc(u.login)}">
+      <span class="pick-mark">${manualPicked.has(u.login) ? '✓' : '+'}</span>
+      <span class="pick-nick">${esc(u.name)}</span>
+      <span class="pick-badges">${badgeStr(u)}</span>
+      <span class="pick-ago">${agoText(u.lastMsg)}</span>
+    </button>
+  `).join('');
+  box.scrollTop = scroll;
+
+  box.querySelectorAll('.pick-row').forEach(btn => {
+    btn.addEventListener('click', () => toggleManual(btn.dataset.login));
+  });
+}
+
+function toggleManual(login) {
+  if (manualPicked.has(login)) {
+    manualPicked.delete(login);
+  } else {
+    manualPicked.add(login);
+    manualExcluded.delete(login);   // выбрали заново — снимаем прежний крестик
+  }
+  refreshAll();
+}
+
+function updateManualSummary() {
+  document.getElementById('manual-summary').innerHTML = manualPicked.size === 0
+    ? 'Пока никого не выбрано'
+    : 'Выбрано: <b>' + manualPicked.size + '</b>';
+}
+
+function openPicker() {
+  document.getElementById('picker-overlay').classList.add('show');
+  renderPicker();
+  document.getElementById('picker-search').focus();
+}
+function closePicker() {
+  document.getElementById('picker-overlay').classList.remove('show');
+}
+
+document.getElementById('btn-manual-open').addEventListener('click', openPicker);
+document.getElementById('picker-close').addEventListener('click', closePicker);
+document.getElementById('picker-done').addEventListener('click', closePicker);
+document.getElementById('picker-overlay').addEventListener('click', e => {
+  if (e.target.id === 'picker-overlay') closePicker();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && isPickerOpen()) closePicker(); });
+document.getElementById('picker-search').addEventListener('input', renderPicker);
+
+document.getElementById('picker-all').addEventListener('click', () => {
+  pickerCandidates().forEach(u => { manualPicked.add(u.login); manualExcluded.delete(u.login); });
+  refreshAll();
+});
+document.getElementById('picker-none').addEventListener('click', () => {
+  manualPicked.clear();
+  refreshAll();
+});
+
+document.querySelectorAll('#manual-window-group .seg-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#manual-window-group .seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    settings.manualWindowMin = parseInt(btn.dataset.min, 10);
+    saveSettings();
+    renderPicker();
+  });
+});
 
 const FEED_MAX = 60;
 function addFeedLine(user, text) {
@@ -1690,11 +1932,18 @@ document.querySelectorAll('#mode-group .seg-btn').forEach(btn => {
     btn.classList.add('active');
     settings.mode = btn.dataset.mode;
     saveSettings();
-    document.getElementById('activity-block').style.display = settings.mode === 'activity' ? '' : 'none';
-    document.getElementById('keyword-block').style.display = settings.mode === 'keyword' ? '' : 'none';
+    showModeBlocks();
     refreshAll();
+    // Переключились на ручной набор — сразу открываем окно выбора
+    if (settings.mode === 'manual') openPicker();
   });
 });
+
+function showModeBlocks() {
+  document.getElementById('activity-block').style.display = settings.mode === 'activity' ? '' : 'none';
+  document.getElementById('keyword-block').style.display = settings.mode === 'keyword' ? '' : 'none';
+  document.getElementById('manual-block').style.display = settings.mode === 'manual' ? '' : 'none';
+}
 
 // Окно активности
 document.querySelectorAll('#window-group .seg-btn').forEach(btn => {
@@ -1889,11 +2138,14 @@ function initFromSettings() {
 
   document.querySelectorAll('#mode-group .seg-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.mode === settings.mode));
-  document.getElementById('activity-block').style.display = settings.mode === 'activity' ? '' : 'none';
-  document.getElementById('keyword-block').style.display = settings.mode === 'keyword' ? '' : 'none';
+  showModeBlocks();
+  updateManualSummary();
 
   document.querySelectorAll('#window-group .seg-btn').forEach(b =>
     b.classList.toggle('active', parseInt(b.dataset.min, 10) === settings.windowMin));
+
+  document.querySelectorAll('#manual-window-group .seg-btn').forEach(b =>
+    b.classList.toggle('active', parseInt(b.dataset.min, 10) === settings.manualWindowMin));
 
   document.querySelectorAll('#sub-group .seg-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.sub === settings.subFilter));
