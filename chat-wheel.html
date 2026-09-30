@@ -341,9 +341,10 @@
     transition: transform 0.05s ease-out;
   }
   .wheel-pointer svg { width: 100%; height: 100%; }
+  /* Колесо идёт по часовой — справа край уезжает вниз и тянет кончик стрелки за собой */
   @keyframes pointerTick {
     0%   { transform: translateY(-50%) rotate(0deg); }
-    30%  { transform: translateY(-50%) rotate(16deg); }
+    30%  { transform: translateY(-50%) rotate(-16deg); }
     100% { transform: translateY(-50%) rotate(0deg); }
   }
   .wheel-pointer.ticking { animation: pointerTick 0.18s ease-out; }
