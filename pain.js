@@ -1,10 +1,11 @@
 'use strict';
-// Games and durations are independent lists in columns A and B of the same tab.
-const PAIN_CSV = 'https://docs.google.com/spreadsheets/d/1voGKd0Zx09_Io-Wb0F5uag9nKi5pME8LGbsyWwTVWOM/gviz/tq?tqx=out:csv&gid=827100001&headers=1';
+// Only games come from column A. Duration options are fixed on the site.
+const minutes = Object.freeze([60, 240, 480]);
+const PAIN_CSV = 'https://docs.google.com/spreadsheets/d/1voGKd0Zx09_Io-Wb0F5uag9nKi5pME8LGbsyWwTVWOM/gviz/tq?tqx=out:csv&gid=827100001&headers=1&tq=select%20A';
 const $ = id => document.getElementById(id);
 const TAU = Math.PI * 2;
 const palette = ['#8d4564','#555897','#ad704b','#487c87','#754d92','#9a5359','#687748','#455f95'];
-let games = [], minutes = [], busy = false, loading = false, sound = true, audio;
+let games = [], busy = false, loading = false, sound = true, audio;
 let gameAngle = 0, timeAngle = 0;
 
 function parseCSV(text) {
@@ -28,21 +29,16 @@ function parseCSV(text) {
 function readOptions(text) {
   if (/^\s*</.test(text)) throw new Error('Google вернул страницу вместо списка. Проверь публикацию вкладки.');
   const rows = parseCSV(text);
-  if (rows[0]?.[0]?.trim() !== 'Название игры' || rows[0]?.[1]?.trim() !== 'Время (минуты)') {
-    throw new Error('Не найдены столбцы «Название игры» и «Время (минуты)». Проверь первую строку вкладки.');
+  if (rows[0]?.[0]?.trim() !== 'Название игры') {
+    throw new Error('Не найден столбец «Название игры». Проверь первую строку вкладки.');
   }
-  const names = new Map(), times = new Set(); let invalid = 0;
+  const names = new Map();
   for (const row of rows.slice(1)) {
     const name = (row[0] || '').trim().replace(/\s+/g, ' ');
     if (name && !names.has(name.toLocaleLowerCase('ru'))) names.set(name.toLocaleLowerCase('ru'), name);
-    const value = (row[1] || '').trim();
-    if (value) {
-      const n = Number(value);
-      if (/^\d+$/.test(value) && Number.isSafeInteger(n) && n > 0) times.add(n);
-      else invalid++;
-    }
+
   }
-  return {games: [...names.values()], minutes: [...times], invalid};
+  return {games: [...names.values()]};
 }
 function randomIndex(count) {
   // Rejection sampling avoids modulo bias, even when the list length is not a power of two.
@@ -95,7 +91,7 @@ function redraw() {
 }
 function status(message, error = false) { $('status').textContent = message; $('status').classList.toggle('error', error); }
 function controls() {
-  $('spin').disabled = busy || loading || !games.length || !minutes.length;
+  $('spin').disabled = busy || loading || !games.length;
   $('refresh').disabled = busy || loading;
 }
 function beep(frequency = 500, duration = .025) {
@@ -113,19 +109,16 @@ async function load() {
     const res = await fetch(PAIN_CSV + '&cache=' + Date.now(), {signal: ctrl.signal, cache: 'no-store'});
     if (!res.ok) throw new Error(`Google Sheets недоступен (HTTP ${res.status}).`);
     const options = readOptions(await res.text());
-    games = options.games; minutes = options.minutes; redraw();
+    games = options.games; redraw();
     $('entries').replaceChildren(...games.map(name => { const li = document.createElement('li'); li.textContent = name; return li; }));
     $('listSummary').textContent = `Игры и правила · ${games.length} в списке`;
     $('gameHint').textContent = games.length ? `${games.length} игр · равные шансы` : 'Добавь названия игр в столбец A';
-    $('timeHint').textContent = minutes.length ? minutes.map(formatTime).join(' · ') : 'Добавь время в минутах в столбец B';
-    let message = !games.length ? 'Список игр пока пуст. Добавь игры в таблицу и нажми «Обновить список».' : !minutes.length ? 'В таблице нет корректных вариантов времени. Впиши положительные целые числа в столбец B.' : 'Всё готово. После доната запусти рулетки одной кнопкой.';
-    if (options.invalid) message += ` Некорректных вариантов времени пропущено: ${options.invalid}.`;
-    status(message, !minutes.length || options.invalid > 0);
+    status(!games.length ? 'Список игр пока пуст. Добавь игры в таблицу и нажми «Обновить список».' : 'Всё готово. После доната запусти рулетки одной кнопкой.');
   } catch (error) {
     // Never allow a paid round to silently use stale data after a refresh failed.
-    games = []; minutes = []; redraw(); $('entries').replaceChildren();
+    games = []; redraw(); $('entries').replaceChildren();
     $('listSummary').textContent = 'Игры и правила';
-    $('gameHint').textContent = 'Не удалось загрузить игры'; $('timeHint').textContent = 'Нет данных';
+    $('gameHint').textContent = 'Не удалось загрузить игры';
     status((error.name === 'AbortError' ? 'Google Sheets не ответил вовремя.' : error.message) + ' Нажми «Обновить список», чтобы повторить.', true);
   } finally { clearTimeout(timer); loading = false; controls(); }
 }
@@ -145,7 +138,7 @@ function animate(id, labels, start, index, duration) {
   });
 }
 async function spin() {
-  if (busy || loading || !games.length || !minutes.length) return;
+  if (busy || loading || !games.length) return;
   busy = true; controls(); $('verdict').hidden = true;
   $('gameResult').textContent = 'Выбираем твою боль…'; $('timeResult').textContent = 'Сначала выберем игру';
   $('spin').textContent = 'Выбираем игру…'; status('Крутится большая рулетка');
@@ -172,4 +165,5 @@ $('spin').addEventListener('click',spin);
 $('refresh').addEventListener('click',load);
 $('sound').addEventListener('click',() => { sound = !sound; $('sound').textContent = `Звук: ${sound ? 'вкл.' : 'выкл.'}`; $('sound').setAttribute('aria-pressed',String(sound)); });
 $('stream').addEventListener('click',() => { const on = document.body.classList.toggle('stream-mode'); $('stream').textContent = on ? 'Обычный режим' : 'Режим для стрима'; $('stream').setAttribute('aria-pressed',String(on)); });
+$('timeHint').textContent = minutes.map(formatTime).join(' · ');
 redraw(); load();
