@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Боль стримера за шекели — ParipariKai</title>
+<style>
+*{box-sizing:border-box}body{margin:0;padding:0 20px 40px;background:#0a0e1a;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background-image:radial-gradient(ellipse at 15% 20%,#56233640,transparent 55%),radial-gradient(ellipse at 85% 80%,#39306b35,transparent 50%);min-height:100vh}
+  .site-nav {
+    position: sticky; top: 0; z-index: 100;
+    margin: 0 -20px 24px;
+    background: rgba(20, 25, 40, 0.85);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .site-nav__inner {
+    max-width: 1400px; margin: 0 auto; padding: 12px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 20px; flex-wrap: wrap;
+  }
+  .site-nav__brand {
+    font-size: 13px; letter-spacing: 3px; color: #FAC775;
+    text-decoration: none; text-transform: uppercase;
+    text-shadow: 0 0 8px rgba(250,199,117,0.25); flex: 0 0 auto;
+  }
+  .site-nav__links { display: flex; list-style: none; margin: 0; padding: 0; gap: 22px; flex-wrap: wrap; }
+  .site-nav__links a {
+    color: rgba(255,255,255,0.7); text-decoration: none;
+    font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase;
+    padding: 4px 0; border-bottom: 2px solid transparent;
+    transition: color 0.2s ease, border-color 0.2s ease, text-shadow 0.2s ease;
+  }
+  .site-nav__links a:hover { color: #FAC775; }
+  .site-nav__links a.is-active {
+    color: #FAC775; border-bottom-color: #FAC775;
+    text-shadow: 0 0 8px rgba(250,199,117,0.5);
+  }
+  @media (max-width: 720px) {
+    .site-nav__inner { padding: 10px 16px; gap: 12px; justify-content: center; }
+    .site-nav__brand { display: none; }
+    .site-nav__links { gap: 14px; justify-content: center; }
+    .site-nav__links a { font-size: 12px; letter-spacing: 1px; }
+  }
+  @media (max-width: 480px) {
+    .site-nav__links { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; padding-bottom: 4px; }
+    .site-nav__links::-webkit-scrollbar { height: 0; display: none; }
+    .site-nav__links li { flex: 0 0 auto; }
+  }
+
+  .site-nav__dd { position: relative; }
+  .site-nav__dd-btn {
+    background: none; border: none; cursor: pointer; font-family: inherit;
+    color: rgba(255,255,255,0.7); font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase;
+    padding: 4px 0; border-bottom: 2px solid transparent;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: color .2s ease, border-color .2s ease, text-shadow .2s ease;
+  }
+  .site-nav__dd-btn:hover,
+  .site-nav__dd.is-open > .site-nav__dd-btn { color: #FAC775; }
+  .site-nav__dd.is-active > .site-nav__dd-btn {
+    color: #FAC775; border-bottom-color: #FAC775; text-shadow: 0 0 8px rgba(250,199,117,0.5);
+  }
+  .site-nav__caret { font-size: 10px; transition: transform .2s ease; }
+  .site-nav__dd.is-open .site-nav__caret { transform: rotate(180deg); }
+  .site-nav__menu {
+    position: absolute; top: calc(100% + 10px); left: 50%; transform: translate(-50%, -6px);
+    min-width: 210px; list-style: none; margin: 0; padding: 8px;
+    background: rgba(20, 25, 40, 0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+    opacity: 0; visibility: hidden; pointer-events: none;
+    transition: opacity .18s ease, transform .18s ease, visibility .18s; z-index: 120;
+  }
+  .site-nav__menu::before { content: ''; position: absolute; top: -12px; left: 0; right: 0; height: 12px; }
+  .site-nav__dd:hover > .site-nav__menu,
+  .site-nav__dd.is-open > .site-nav__menu,
+  .site-nav__dd:focus-within > .site-nav__menu {
+    opacity: 1; visibility: visible; pointer-events: auto; transform: translate(-50%, 0);
+  }
+  .site-nav__menu li { display: block; flex: none; }
+  .site-nav__links .site-nav__menu a {
+    display: block; padding: 9px 14px; border-radius: 8px; border-bottom: none;
+    text-transform: none; letter-spacing: .3px; font-size: 14px;
+    color: rgba(255,255,255,0.8); white-space: nowrap; text-shadow: none;
+  }
+  .site-nav__links .site-nav__menu a:hover { background: rgba(255,255,255,0.06); color: #FAC775; }
+  .site-nav__links .site-nav__menu a.is-active { color: #FAC775; background: rgba(250,199,117,0.08); }
+  @media (max-width: 720px) {
+    .site-nav__dd-btn { font-size: 12px; letter-spacing: 1px; }
+    .site-nav__dd { position: static; }
+    .site-nav__menu { position: absolute; left: 16px; right: 16px; top: calc(100% + 4px); transform: none; min-width: 0; }
+    .site-nav__dd:hover > .site-nav__menu { opacity: 0; visibility: hidden; pointer-events: none; }
+    .site-nav__dd.is-open > .site-nav__menu,
+    .site-nav__dd:focus-within > .site-nav__menu { opacity: 1; visibility: visible; pointer-events: auto; transform: none; }
+  }
+
+.site-nav__links{overflow:visible}.site-nav__dd:last-child>.site-nav__menu{left:auto;right:0;transform:translateY(-6px)}.site-nav__dd:last-child:hover>.site-nav__menu,.site-nav__dd:last-child.is-open>.site-nav__menu,.site-nav__dd:last-child:focus-within>.site-nav__menu{transform:none}.site-nav__menu{min-width:270px}.site-nav__links .site-nav__menu a{white-space:normal}
+main{max-width:1200px;margin:auto}header{text-align:center;padding:8px 0 24px}.eyebrow{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#ef9eae}h1{font-size:clamp(28px,4vw,46px);letter-spacing:-1px;margin:10px 0;font-weight:800}h1 span{color:#fac775}p{line-height:1.6;color:#aeb6cd}.price{display:inline-block;border:1px solid #fac77550;border-radius:30px;padding:6px 16px;color:#fac775;font-size:13px;margin-top:8px}.arena{display:grid;grid-template-columns:1.45fr 1fr;gap:24px;align-items:center}.panel{background:#141929b3;border:1px solid #ffffff12;border-radius:24px;padding:24px;text-align:center;min-width:0}.step{display:flex;align-items:center;justify-content:center;gap:10px;color:#d4d8e5;font-size:14px}.step b{display:grid;place-items:center;width:28px;height:28px;border:1px solid #ef9eae70;border-radius:50%;color:#ef9eae}.wheel-box{position:relative;margin:20px auto;width:min(100%,510px);aspect-ratio:1;filter:drop-shadow(0 10px 30px #0005)}.small .wheel-box{width:min(100%,300px)}canvas{display:block;width:100%;height:100%;border-radius:50%;border:7px solid #34354a;box-shadow:0 0 0 1px #ffffff25}.pointer{position:absolute;z-index:2;top:-8px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:30px solid #fac775;filter:drop-shadow(0 3px 3px #0008)}.hub{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:grid;place-items:center;width:17%;aspect-ratio:1;border-radius:50%;background:#171d30;border:3px solid #ffffff35;color:#fac775;font-size:clamp(18px,3vw,32px);font-weight:800;box-shadow:0 4px 15px #0008}.wheel-result{font-size:22px;font-weight:700;min-height:32px;margin:10px 0;overflow-wrap:anywhere}.hint{font-size:13px;color:#aeb6cd;min-height:20px}.controls{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin:24px 0 12px}button,.text-link{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.4}.primary{background:linear-gradient(120deg,#f3ad79,#fac775);color:#261b27;font-weight:800;border:0;border-radius:12px;padding:16px 28px;min-width:245px;font-size:16px}.secondary,.text-link{border:1px solid #ffffff24;border-radius:10px;background:#ffffff06;color:#d9dceb;padding:10px 16px;text-decoration:none;font-size:13px}button:not(:disabled):hover,.text-link:hover{filter:brightness(1.15)}:focus-visible{outline:3px solid #fac775;outline-offset:4px}.toolbar{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin:20px 0}.status{text-align:center;font-size:13px;color:#aeb6cd;min-height:22px;line-height:1.6}.status.error{color:#ffacba}.verdict{text-align:center;border:1px solid #fac77560;border-radius:18px;padding:24px;background:#fac77508;margin:22px 0}.verdict-label{font-size:11px;letter-spacing:3px;color:#fac775}.verdict h2{font-size:clamp(22px,3vw,34px);margin:10px 0;overflow-wrap:anywhere}.verdict p{margin:0}.details{margin-top:24px;border-top:1px solid #ffffff14;padding-top:20px}summary{cursor:pointer;color:#b9c0d3;font-size:14px}.entries{display:flex;flex-wrap:wrap;gap:8px;padding:0;list-style:none}.entries li{padding:6px 12px;background:#ffffff07;border:1px solid #ffffff12;border-radius:8px;font-size:13px;overflow-wrap:anywhere;max-width:100%}.history{padding-left:22px;color:#b9c0d3;font-size:14px;line-height:1.8;overflow-wrap:anywhere}[hidden]{display:none!important}.stream-mode .site-nav,.stream-mode header p,.stream-mode .toolbar,.stream-mode .details{display:none}.stream-mode main{max-width:1100px}.stream-mode header{padding:12px 0}.stream-mode h1{font-size:30px}.stream-mode .wheel-box{width:min(100%,36vh,420px)}.stream-mode .small .wheel-box{width:min(100%,26vh,270px)}
+@media(max-width:720px){.site-nav__dd:last-child>.site-nav__menu{left:16px;right:16px}body{padding:0 12px 24px}.site-nav{margin:0 -12px 20px}.arena{grid-template-columns:1fr;gap:16px}.panel{padding:18px}.small .wheel-box{width:230px}.wheel-box{max-width:390px}h1{letter-spacing:-.5px}.primary{width:100%}.controls{gap:8px}.site-nav__links{flex-wrap:wrap}.site-nav__menu{min-width:0}.stream-mode .arena{grid-template-columns:1fr}}
+</style>
+</head><body>
+<nav class="site-nav">
+  <div class="site-nav__inner">
+    <a class="site-nav__brand" href="index.html">ParipariKai</a>
+    <ul class="site-nav__links">
+      <li><a href="hall.html">Зал Славы</a></li>
+      <li><a href="tickets.html">Билеты</a></li>
+      <li class="site-nav__dd">
+        <button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">Заказы зрителя <span class="site-nav__caret">▾</span></button>
+        <ul class="site-nav__menu">
+          <li><a href="anime.html">Аниме</a></li>
+          <li><a href="movies.html">Фильмы</a></li>
+          <li><a href="series.html">Сериалы</a></li>
+          <li><a href="games.html">Игры</a></li>
+          <li><a href="picker.html">Рулетка заказов</a></li>
+        </ul>
+      </li>
+      <li class="site-nav__dd">
+        <button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">Для стримера <span class="site-nav__caret">▾</span></button>
+        <ul class="site-nav__menu">
+          <li><a href="chat-wheel.html">Чат-рулетка</a></li>
+          <li><a href="pain.html">Боль стримера за шекели</a></li>
+          <li><a href="cards.html">Админка-рулетка</a></li>
+          <li><a href="cards.html?stream">Хаос-рулетка</a></li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+</nav>
+<script>
+  // Меню: подсветка текущей страницы и открытие разделов по клику (для тач-экранов)
+  (function () {
+    const nav = document.querySelector('.site-nav');
+    if (!nav) return;
+    const here = (location.pathname.split('/').pop() || 'index.html') + location.search;
+    nav.querySelectorAll('.site-nav__links a').forEach(a => {
+      if (a.getAttribute('href') === here) {
+        a.classList.add('is-active');
+        const dd = a.closest('.site-nav__dd');
+        if (dd) dd.classList.add('is-active');
+      }
+    });
+    const closeAll = () => nav.querySelectorAll('.site-nav__dd.is-open').forEach(dd => {
+      dd.classList.remove('is-open');
+      dd.querySelector('.site-nav__dd-btn').setAttribute('aria-expanded', 'false');
+    });
+    nav.querySelectorAll('.site-nav__dd-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const dd = btn.parentElement;
+        const open = !dd.classList.contains('is-open');
+        closeAll();
+        if (open) {
+          dd.classList.add('is-open');
+          btn.setAttribute('aria-expanded', 'true');
+        }
+      });
+    });
+    document.addEventListener('click', closeAll);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
+  })();
+</script>
+<main>
+<header><div class="eyebrow">Зрители заказывают · стример страдает</div><h1>Боль стримера <span>за шекели</span></h1><p>Одна рулетка решает, во что играть. Вторая — сколько терпеть.</p><div class="price">1 000 ₽ · один запуск двух рулеток</div></header>
+<div class="arena">
+<section class="panel"><div class="step"><b>1</b> Во что играем</div><div class="wheel-box"><div class="pointer"></div><canvas id="gameWheel" width="1000" height="1000" role="img" aria-label="Рулетка игр"></canvas><div class="hub" aria-hidden="true">₪</div></div><div class="wheel-result" id="gameResult">Судьба ещё не решена</div><div class="hint" id="gameHint">Загружаем игры…</div></section>
+<section class="panel small"><div class="step"><b>2</b> Сколько терпим</div><div class="wheel-box"><div class="pointer"></div><canvas id="timeWheel" width="700" height="700" role="img" aria-label="Рулетка времени"></canvas><div class="hub" aria-hidden="true">◷</div></div><div class="wheel-result" id="timeResult">Сначала выберем игру</div><div class="hint" id="timeHint">Вторая рулетка запустится следом</div></section>
+</div>
+<div class="controls"><button class="primary" id="spin" disabled>Крутить за 1 000 ₽</button><button class="secondary" id="stream" aria-pressed="false">Режим для стрима</button><button class="secondary" id="sound" aria-pressed="true">Звук: вкл.</button></div>
+<div class="status" id="status" role="status" aria-live="polite">Загружаем таблицу…</div>
+<section class="verdict" id="verdict" hidden aria-live="polite"><div class="verdict-label">ШЕКЕЛИ ПРИНЯТЫ · СУДЬБА РЕШЕНА</div><h2 id="verdictText"></h2><p>Зрители довольны. Стример держится.</p></section>
+<div class="toolbar"><button class="secondary" id="refresh">Обновить список</button><a class="text-link" href="https://docs.google.com/spreadsheets/d/1voGKd0Zx09_Io-Wb0F5uag9nKi5pME8LGbsyWwTVWOM/edit?gid=827100001#gid=827100001" target="_blank" rel="noopener">Открыть таблицу ↗</a></div>
+<details class="details"><summary id="listSummary">Игры и правила</summary><p>Добавляй названия игр в столбец A, начиная со второй строки. В столбце B — варианты времени в минутах. Эти списки независимы. Пустые строки и повторы пропускаются. У каждого уникального варианта равный шанс; игры остаются в рулетке после выпадения.</p><ul class="entries" id="entries"></ul><p>После изменения таблицы нажми «Обновить список». Публикация Google может обновляться с задержкой. Донат проверяется стримером, запуск — вручную.</p></details>
+<details class="details" id="historySection" hidden><summary>История этой сессии</summary><ol class="history" id="history"></ol></details>
+</main>
+<script src="pain.js"></script>
+</body></html>
