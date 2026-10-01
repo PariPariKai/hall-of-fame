@@ -181,6 +181,44 @@ async function steamDetails(appid) {
   };
 }
 
+// ---------- описания «от себя» (Claude API, нужен секрет ANTHROPIC_API_KEY) ----------
+
+const QUIPS_ON = !!process.env.ANTHROPIC_API_KEY;
+const QUIP_SYSTEM = `Ты пишешь подписи к карточкам игр на сайте стримера. Это пул «Боль»: игры, которые зрители заказывают, чтобы стример страдал. Он годами отказывался от соулслайков, гринда ради гринда, бесконечных повторяющихся каток и детских песочниц.
+
+Напиши одну короткую подпись на русском (до 120 символов) — ироничную, в духе стрим-юмора: чем эта игра будет мучить стримера. Без спойлеров сюжета, без оскорблений, без кавычек вокруг ответа и без эмодзи. Ответь только текстом подписи.
+
+Примеры подписей для других игр:`;
+let anthropic = null;
+async function makeQuip(entry, examples) {
+  if (!anthropic) {
+    const {default: Anthropic} = await import('@anthropic-ai/sdk');
+    anthropic = new Anthropic();
+  }
+  const facts = [`Игра: ${entry.title || entry.name}`, entry.year && `Год: ${entry.year}`,
+    entry.genres?.length && `Жанры: ${entry.genres.join(', ')}`, entry.description && `Описание из магазина: ${entry.description}`]
+    .filter(Boolean).join('\n');
+  try {
+    const response = await anthropic.beta.messages.create({
+      model: 'claude-opus-5-5',
+      max_tokens: 2000,
+      output_config: {effort: 'low'},
+      // При отказе фильтров запрос сам перезапускается на рекомендованной модели.
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+      system: `${QUIP_SYSTEM}\n${examples.map(q => '— ' + q).join('\n')}`,
+      messages: [{role: 'user', content: facts}],
+    });
+    if (response.stop_reason === 'refusal') { console.warn(`  ! Claude отказался описывать «${entry.name}»`); return null; }
+    const text = response.content.filter(b => b.type === 'text').map(b => b.text).join('').trim()
+      .replace(/^["«„]|["»“]$/g, '').trim();
+    return text && text.length <= 200 ? text : null;
+  } catch (error) {
+    console.warn(`  ! Claude API: ${error.status || ''} ${error.message}`);
+    return null;
+  }
+}
+
 // ---------- главный проход ----------
 
 const res = await fetch(SHEET_CSV + '&cache=' + Date.now(), {headers: UA});
@@ -236,6 +274,16 @@ for (const [k, {name, override}] of games) {
   if (!entry.found) console.log('  не найдено');
   out[k] = entry;
   await sleep(1200);
+}
+
+// Описание «от себя» — только для найденных игр (иначе модели не на что опереться) и только один раз.
+if (QUIPS_ON) {
+  const examples = Object.values(out).map(e => e.quip).filter(Boolean).slice(0, 8);
+  for (const entry of Object.values(out)) {
+    if (entry.quip || !entry.found || !(entry.title || entry.description)) continue;
+    const quip = await makeQuip(entry, examples);
+    if (quip) { entry.quip = quip; console.log(`  ✎ ${entry.name}: ${quip}`); }
+  }
 }
 
 const next = {note: 'Генерируется автоматически .github/scripts/pain-meta.mjs — руками не править.', games: out};

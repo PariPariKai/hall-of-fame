@@ -17,7 +17,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/211420/library_600x900.jpg",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/211420/header.jpg?t=1721682669",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/211420/"
+      "steamUrl": "https://store.steampowered.com/app/211420/",
+      "quip": "YOU DIED как образ жизни: мазохизм, слабоумие и отвага в одном флаконе."
     },
     "dark souls 2": {
       "name": "Dark Souls 2",
@@ -35,7 +36,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/236430/library_600x900.jpg",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/236430/header.jpg?t=1726158600",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/236430/"
+      "steamUrl": "https://store.steampowered.com/app/236430/",
+      "quip": "Те же смерти, только теперь толпой. Ганк здесь не баг, а философия."
     },
     "dragon age origins": {
       "name": "Dragon age origins",
@@ -52,7 +54,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/47810/library_600x900.jpg",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/47810/header.jpg?t=1782471846",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/47810/"
+      "steamUrl": "https://store.steampowered.com/app/47810/",
+      "quip": "80 часов диалогов, тактическая пауза каждые три секунды и Глубинные тропы, которые никогда не кончатся."
     },
     "v rising": {
       "name": "V Rising",
@@ -70,7 +73,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/1604030/library_600x900.jpg",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1604030/be49834ab147ad22ba17005fb847c93917d18b97/header.jpg?t=1787038382",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/1604030/"
+      "steamUrl": "https://store.steampowered.com/app/1604030/",
+      "quip": "Вампир сосёт кровь, а ты просто будешь сосать."
     },
     "fallout 3": {
       "name": "Fallout 3",
@@ -87,7 +91,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/22300/library_600x900.jpg",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/22300/header.jpg?t=1732208474",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/22300/"
+      "steamUrl": "https://store.steampowered.com/app/22300/",
+      "quip": "Ядерная пустошь цвета болотной зелени, где вылеты — часть атмосферы."
     },
     "subnautica: below zero": {
       "name": "Subnautica: Below Zero",
@@ -105,7 +110,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/848450/library_600x900.jpg",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/848450/header.jpg?t=1777456254",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/848450/"
+      "steamUrl": "https://store.steampowered.com/app/848450/",
+      "quip": "Талассофобия за донат: красивый океан, где всё хочет тебя съесть, а кислород кончается на самом интересном."
     },
     "the game of sisyphus": {
       "name": "The game of Sisyphus",
@@ -124,7 +130,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/2904890/library_600x900.jpg",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2904890/header.jpg?t=1790675075",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/2904890/"
+      "steamUrl": "https://store.steampowered.com/app/2904890/",
+      "quip": "Катишь камень в гору. Камень катится вниз. Это вся игра. Камю гордился бы, стример — нет."
     },
     "phasmophobia": {
       "name": "Phasmophobia",
@@ -142,7 +149,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/739630/library_600x900.jpg",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/739630/c227a2855aba60f3657bc0c3a46515b8c41fb2b6/header.jpg?t=1789487643",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/739630/"
+      "steamUrl": "https://store.steampowered.com/app/739630/",
+      "quip": "Ходишь по тёмному дому и вежливо спрашиваешь призрака, сколько ему лет. Он отвечает. Охотой."
     },
     "getting over it": {
       "name": "Getting Over It",
@@ -159,7 +167,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/240720/library_600x900.jpg",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/240720/header.jpg?t=1666987027",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/240720/"
+      "steamUrl": "https://store.steampowered.com/app/240720/",
+      "quip": "Мужик в котле, кувалда и одна ошибка, которая вернёт тебя в самое начало. Под философские комментарии."
     },
     "geometry dash": {
       "name": "Geometry Dash",
@@ -177,7 +186,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/322170/library_600x900.jpg",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/322170/header.jpg?t=1775300400",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/322170/"
+      "steamUrl": "https://store.steampowered.com/app/322170/",
+      "quip": "Квадратик прыгает под музыку. Ты умираешь под музыку. 847-я попытка — тоже под музыку."
     },
     "divinity: original sin 2 - definitive edition": {
       "name": "Divinity: Original Sin 2 - Definitive Edition",
@@ -196,7 +206,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/435150/library_600x900.jpg",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/435150/3f6ee788cb01bd65097c52399d536eb424b4876f/header.jpg?t=1765811123",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/435150/"
+      "steamUrl": "https://store.steampowered.com/app/435150/",
+      "quip": "Сто часов тактики, где бочка с маслом — лучший друг, а сохранение — религия."
     },
     "once human": {
       "name": "Once Human",
@@ -216,7 +227,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/2139460/library_600x900.jpg",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2139460/c18b08a2f93dec32fcc5fa71bc2da44ee42de1f0/header.jpg?t=1786675226",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/2139460/"
+      "steamUrl": "https://store.steampowered.com/app/2139460/",
+      "quip": "Выживач с крафтом, монстрами и гриндом ради гринда — всё, от чего стример бегал целый год."
     },
     "the mortuary assistant": {
       "name": "The Mortuary Assistant",
@@ -235,13 +247,16 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/1295920/library_600x900.jpg",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1295920/header.jpg?t=1772040295",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/1295920/"
+      "steamUrl": "https://store.steampowered.com/app/1295920/",
+      "quip": "Бальзамируй трупы ночью в одиночку. Что может пойти не так? Всё. Сразу."
     },
     "спасти кошку": {
       "name": "Спасти Кошку",
-      "override": "",
-      "checked": "2026-10-01T21:33:36.445Z",
-      "found": false
+      "override": "https://i.ibb.co/5XyCsFxD/Screenshot-2026-10-02-004617.png",
+      "checked": "2026-10-01T21:52:37.837Z",
+      "found": true,
+      "cover": "https://i.ibb.co/5XyCsFxD/Screenshot-2026-10-02-004617.png",
+      "source": "таблица"
     }
   }
 }

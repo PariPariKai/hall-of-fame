@@ -17,14 +17,21 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
+    env:
+      HAS_ANTHROPIC: ${{ secrets.ANTHROPIC_API_KEY != '' }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: SDK Claude (нужен только для описаний «от себя»)
+        if: ${{ env.HAS_ANTHROPIC == 'true' }}
+        run: npm install --no-save --no-audit --no-fund @anthropic-ai/sdk
       - run: node .github/scripts/pain-meta.mjs
         env:
+          # Необязательно: ключ Claude API — робот придумывает короткое описание для новых игр.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           # Необязательно: ключи приложения Twitch для запасного поиска в IGDB.
           TWITCH_CLIENT_ID: ${{ secrets.TWITCH_CLIENT_ID }}
           TWITCH_CLIENT_SECRET: ${{ secrets.TWITCH_CLIENT_SECRET }}

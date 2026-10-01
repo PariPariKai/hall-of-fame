@@ -176,6 +176,11 @@
     font-size: 12px; line-height: 1.45; color: rgba(255,255,255,0.72);
     display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden;
   }
+  .pcard__quip {
+    font-size: 13.5px; line-height: 1.45; color: #ffe2c4; font-style: italic;
+    padding-left: 10px; border-left: 2px solid rgba(255,140,80,0.6);
+    display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden;
+  }
   .pcard__stats { margin-top: auto; display: grid; gap: 6px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); }
   .stat { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: rgba(255,255,255,0.55); }
   .stat b { color: #fff; font-weight: 600; text-align: right; }
@@ -433,7 +438,7 @@ function el(tag, cls, text) {
 function buildGames(rows, meta) {
   const header = rows[0].map(h => h.trim().toLowerCase());
   const col = re => header.findIndex((h, i) => i > 0 && re.test(h));
-  const playedCol = col(/наигр|сыгр|час/), lastCol = col(/послед|дата|когда/);
+  const playedCol = col(/наигр|сыгр|час/), lastCol = col(/послед|дата|когда/), quipCol = col(/описан|от себя/);
   const seen = new Set(), games = [];
   rows.slice(1).forEach(r => {
     const name = (r[0] || '').trim().replace(/\s+/g, ' ');
@@ -444,6 +449,8 @@ function buildGames(rows, meta) {
       name, order: games.length, meta: m,
       minutes: playedCol >= 0 ? parseHours(r[playedCol]) : null,
       last: lastCol >= 0 ? parseDate(r[lastCol]) : null,
+      // Своё описание из таблицы важнее придуманного роботом.
+      quip: (quipCol >= 0 && (r[quipCol] || '').trim()) || m.quip || '',
     });
   });
   return games;
@@ -489,7 +496,8 @@ function buildCard(g) {
     g.meta.genres.forEach(name => genres.append(el('span', 'pcard__genre', name)));
     body.append(genres);
   }
-  if (g.meta.description) body.append(el('p', 'pcard__desc', g.meta.description));
+  if (g.quip) body.append(el('p', 'pcard__quip', g.quip));
+  else if (g.meta.description) body.append(el('p', 'pcard__desc', g.meta.description));
   else if (!g.meta.found) body.append(el('p', 'pcard__desc', g.meta.checked
     ? 'Не нашли эту игру ни в Steam, ни в базах игр. Стример может добавить картинку вручную.'
     : 'Игра только что попала в пул — данные подтянутся в течение получаса.'));
