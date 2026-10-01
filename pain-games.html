@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<title>Боль — пул игр — Hall of Fame</title>
+<script>
+  // Тот же лист, из которого берёт игры рулетка «Боль стримера за шекели» (столбец A).
+  const PAIN_CSV_URL = "https://docs.google.com/spreadsheets/d/1voGKd0Zx09_Io-Wb0F5uag9nKi5pME8LGbsyWwTVWOM/gviz/tq?tqx=out:csv&gid=827100001&headers=1&tq=select%20A";
+</script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0e1a;
+    background-image:
+      radial-gradient(ellipse at top left, rgba(255, 199, 117, 0.08), transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(127, 119, 221, 0.06), transparent 50%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #fff;
+    padding: 0 20px 40px;
+  }
+
+  /* ========== ОБЩЕЕ ВЕРХНЕЕ МЕНЮ ========== */
+  .site-nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    margin: 0 -20px 28px;
+    background: rgba(20, 25, 40, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .site-nav__inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .site-nav__brand {
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: #FAC775;
+    text-decoration: none;
+    text-transform: uppercase;
+    text-shadow: 0 0 8px rgba(250,199,117,0.25);
+    flex: 0 0 auto;
+  }
+  .site-nav__links {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 22px;
+    flex-wrap: wrap;
+  }
+  .site-nav__links a {
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 4px 0;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s ease, border-color 0.2s ease, text-shadow 0.2s ease;
+  }
+  .site-nav__links a:hover { color: #FAC775; }
+  .site-nav__links a.is-active {
+    color: #FAC775;
+    border-bottom-color: #FAC775;
+    text-shadow: 0 0 8px rgba(250,199,117,0.5);
+  }
+  @media (max-width: 720px) {
+    .site-nav__inner { padding: 10px 16px; gap: 12px; justify-content: center; }
+    .site-nav__brand { display: none; }
+    .site-nav__links { gap: 14px; justify-content: center; }
+    .site-nav__links a { font-size: 12px; letter-spacing: 1px; }
+  }
+  @media (max-width: 480px) {
+    .site-nav__links { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; padding-bottom: 4px; }
+    .site-nav__links::-webkit-scrollbar { height: 0; display: none; }
+    .site-nav__links li { flex: 0 0 auto; }
+  }
+
+  /* ========== СТРАНИЦА ========== */
+  .wrap { max-width: 1100px; margin: 0 auto; padding-top: 8px; }
+  .header { text-align: center; margin-bottom: 24px; }
+  .title {
+    font-size: 36px; font-weight: 500; letter-spacing: 4px; color: #FAC775;
+    text-shadow: 0 0 20px rgba(250, 199, 117, 0.4); margin-bottom: 8px; text-transform: uppercase;
+  }
+  .subtitle { font-size: 13px; letter-spacing: 3px; color: rgba(255,255,255,0.5); text-transform: uppercase; }
+  .subtitle .accent { color: #FAC775; font-weight: 600; }
+
+  .rules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 26px; }
+  .rule {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px; padding: 16px 18px;
+  }
+  .rule__step { font-size: 11px; letter-spacing: 2px; color: rgba(255,255,255,0.45); text-transform: uppercase; margin-bottom: 8px; }
+  .rule__title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .rule__title .tag { color: #FAC775; }
+  .rule__text { font-size: 13px; line-height: 1.55; color: rgba(255,255,255,0.65); }
+
+  .controls-panel { display: flex; justify-content: center; margin-bottom: 18px; }
+  .search-input {
+    background: transparent; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+    padding: 10px 14px; color: #fff; font-family: inherit; font-size: 13px; width: 300px; max-width: 100%;
+    outline: none; transition: all 0.15s ease;
+  }
+  .search-input:focus { border-color: rgba(250,199,117,0.5); background: rgba(255,255,255,0.04); }
+  .search-input::placeholder { color: rgba(255,255,255,0.4); }
+
+  .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; list-style: none; }
+  .pcard {
+    display: flex; align-items: center; gap: 12px; min-width: 0;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; padding: 12px 14px; transition: all 0.15s ease;
+  }
+  .pcard:hover { border-color: rgba(250,199,117,0.35); background: rgba(250,199,117,0.04); }
+  .pcard__num {
+    flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 12px; font-weight: 600; color: #fff;
+  }
+  .pcard__title { font-size: 15px; line-height: 1.35; overflow-wrap: anywhere; min-width: 0; }
+
+  .shown-count { text-align: center; font-size: 12px; color: rgba(255,255,255,0.45); margin-bottom: 12px; letter-spacing: 1px; }
+  .empty-state { text-align: center; padding: 40px 20px; color: rgba(255,255,255,0.5); font-size: 14px; }
+  [hidden] { display: none !important; }
+
+  @media (max-width: 720px) {
+    body { padding: 0 12px 32px; }
+    .site-nav { margin: 0 -12px 20px; }
+    .title { font-size: 26px; letter-spacing: 2px; }
+    .rules { grid-template-columns: 1fr; }
+    .list { grid-template-columns: 1fr; }
+    .search-input { width: 100%; }
+  }
+</style>
+</head>
+
+<body>
+
+<!-- ===== ОБЩЕЕ МЕНЮ: выпадающие разделы (одинаково на всех страницах) ===== -->
+<style>
+  .site-nav__dd { position: relative; }
+  .site-nav__dd-btn {
+    background: none; border: none; cursor: pointer; font-family: inherit;
+    color: rgba(255,255,255,0.7); font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase;
+    padding: 4px 0; border-bottom: 2px solid transparent;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: color .2s ease, border-color .2s ease, text-shadow .2s ease;
+  }
+  .site-nav__dd-btn:hover,
+  .site-nav__dd.is-open > .site-nav__dd-btn { color: #FAC775; }
+  .site-nav__dd.is-active > .site-nav__dd-btn {
+    color: #FAC775; border-bottom-color: #FAC775; text-shadow: 0 0 8px rgba(250,199,117,0.5);
+  }
+  .site-nav__caret { font-size: 10px; transition: transform .2s ease; }
+  .site-nav__dd.is-open .site-nav__caret { transform: rotate(180deg); }
+  .site-nav__menu {
+    position: absolute; top: calc(100% + 10px); left: 50%; transform: translate(-50%, -6px);
+    min-width: 210px; list-style: none; margin: 0; padding: 8px;
+    background: rgba(20, 25, 40, 0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+    opacity: 0; visibility: hidden; pointer-events: none;
+    transition: opacity .18s ease, transform .18s ease, visibility .18s; z-index: 120;
+  }
+  .site-nav__menu::before { content: ''; position: absolute; top: -12px; left: 0; right: 0; height: 12px; }
+  .site-nav__dd:hover > .site-nav__menu,
+  .site-nav__dd.is-open > .site-nav__menu,
+  .site-nav__dd:focus-within > .site-nav__menu {
+    opacity: 1; visibility: visible; pointer-events: auto; transform: translate(-50%, 0);
+  }
+  .site-nav__menu li { display: block; flex: none; }
+  .site-nav__links .site-nav__menu a {
+    display: block; padding: 9px 14px; border-radius: 8px; border-bottom: none;
+    text-transform: none; letter-spacing: .3px; font-size: 14px;
+    color: rgba(255,255,255,0.8); white-space: nowrap; text-shadow: none;
+  }
+  .site-nav__links .site-nav__menu a:hover { background: rgba(255,255,255,0.06); color: #FAC775; }
+  .site-nav__links .site-nav__menu a.is-active { color: #FAC775; background: rgba(250,199,117,0.08); }
+  @media (max-width: 720px) {
+    .site-nav__dd-btn { font-size: 12px; letter-spacing: 1px; }
+    .site-nav__dd { position: static; }
+    .site-nav__menu { position: absolute; left: 16px; right: 16px; top: calc(100% + 4px); transform: none; min-width: 0; }
+    .site-nav__dd:hover > .site-nav__menu { opacity: 0; visibility: hidden; pointer-events: none; }
+    .site-nav__dd.is-open > .site-nav__menu,
+    .site-nav__dd:focus-within > .site-nav__menu { opacity: 1; visibility: visible; pointer-events: auto; transform: none; }
+  }
+</style>
+<nav class="site-nav">
+  <div class="site-nav__inner">
+    <a class="site-nav__brand" href="index.html">ParipariKai</a>
+    <ul class="site-nav__links">
+      <li><a href="hall.html">Зал Славы</a></li>
+      <li><a href="tickets.html">Билеты</a></li>
+      <li class="site-nav__dd">
+        <button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">Заказы зрителя <span class="site-nav__caret">▾</span></button>
+        <ul class="site-nav__menu">
+          <li><a href="anime.html">Аниме</a></li>
+          <li><a href="movies.html">Фильмы</a></li>
+          <li><a href="series.html">Сериалы</a></li>
+          <li><a href="games.html">Игры</a></li>
+          <li><a href="pain-games.html">Боль</a></li>
+          <li><a href="picker.html">Рулетка заказов</a></li>
+        </ul>
+      </li>
+      <li class="site-nav__dd">
+        <button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">Для стримера <span class="site-nav__caret">▾</span></button>
+        <ul class="site-nav__menu">
+          <li><a href="chat-wheel.html">Чат-рулетка</a></li>
+          <li><a href="pain.html">Боль стримера за шекели</a></li>
+          <li><a href="cards.html">Админка-рулетка</a></li>
+          <li><a href="cards.html?stream">Хаос-рулетка</a></li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+</nav>
+<script>
+  // Меню: подсветка текущей страницы и открытие разделов по клику (для тач-экранов)
+  (function () {
+    const nav = document.querySelector('.site-nav');
+    if (!nav) return;
+    const here = (location.pathname.split('/').pop() || 'index.html') + location.search;
+    nav.querySelectorAll('.site-nav__links a').forEach(a => {
+      if (a.getAttribute('href') === here) {
+        a.classList.add('is-active');
+        const dd = a.closest('.site-nav__dd');
+        if (dd) dd.classList.add('is-active');
+      }
+    });
+    const closeAll = () => nav.querySelectorAll('.site-nav__dd.is-open').forEach(dd => {
+      dd.classList.remove('is-open');
+      dd.querySelector('.site-nav__dd-btn').setAttribute('aria-expanded', 'false');
+    });
+    nav.querySelectorAll('.site-nav__dd-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const dd = btn.parentElement;
+        const open = !dd.classList.contains('is-open');
+        closeAll();
+        if (open) {
+          dd.classList.add('is-open');
+          btn.setAttribute('aria-expanded', 'true');
+        }
+      });
+    });
+    document.addEventListener('click', closeAll);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
+  })();
+</script>
+
+
+<div class="wrap">
+  <div class="header">
+    <h1 class="title">🔥 Боль 🔥</h1>
+    <p class="subtitle">Игры, которыми можно наказать стримера · в пуле <span class="accent" id="counter-total">—</span></p>
+  </div>
+
+  <section class="rules" aria-label="Как это работает">
+    <div class="rule">
+      <div class="rule__step">Шаг 1 · баллы канала</div>
+      <div class="rule__title">Добавь игру в пул</div>
+      <p class="rule__text">Закажи за баллы канала игру, в которую стример никогда бы не сел сам. Она появится в этом списке.</p>
+    </div>
+    <div class="rule">
+      <div class="rule__step">Шаг 2 · донат</div>
+      <div class="rule__title">Метка <span class="tag">#боль</span></div>
+      <p class="rule__text">Донаты с этой меткой копятся вместе. Набралось 1 000 ₽ — рулетка выбирает игру из пула и сколько её терпеть: 1, 4 или 8 часов.</p>
+    </div>
+    <div class="rule">
+      <div class="rule__step">Шаг 3 · додеп</div>
+      <div class="rule__title">Метка <span class="tag">#время</span></div>
+      <p class="rule__text">Каждые 250 ₽ с этой меткой — ещё одна крутка времени к текущей игре. Остаток сверх 1 000 ₽ от #боль тоже идёт сюда.</p>
+    </div>
+  </section>
+
+  <div class="controls-panel">
+    <input type="text" class="search-input" id="search" placeholder="🔍 Есть ли игра в пуле?..">
+  </div>
+  <p class="shown-count" id="shown-count" hidden></p>
+
+  <div id="status" class="empty-state">Загружаю пул игр...</div>
+  <ul id="list" class="list" hidden></ul>
+  <p id="no-results" class="empty-state" hidden>Такой игры в пуле нет. Самое время её заказать.</p>
+</div>
+
+<script>
+'use strict';
+const PALETTE = ['#8d4564','#555897','#ad704b','#487c87','#754d92','#9a5359','#687748','#455f95'];
+let games = [];
+
+function parseCSV(text) {
+  const rows = []; let row = [], cell = '', quoted = false;
+  text = text.replace(/^﻿/, '');
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"') {
+      if (quoted && text[i + 1] === '"') { cell += '"'; i++; } else quoted = !quoted;
+    } else if (c === ',' && !quoted) { row.push(cell); cell = ''; }
+    else if ((c === '\n' || c === '\r') && !quoted) {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      row.push(cell); rows.push(row); row = []; cell = '';
+    } else cell += c;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows;
+}
+// Те же правила, что у рулетки: пустые строки и повторы (без учёта регистра) пропускаются.
+function rowsToGames(rows) {
+  const names = new Map();
+  for (const row of rows.slice(1)) {
+    const name = (row[0] || '').trim().replace(/\s+/g, ' ');
+    const key = name.toLocaleLowerCase('ru');
+    if (name && !names.has(key)) names.set(key, name);
+  }
+  return [...names.values()];
+}
+function plural(n, one, few, many) {
+  const t = n % 100, d = n % 10;
+  if (t >= 11 && t <= 14) return many;
+  return d === 1 ? one : d >= 2 && d <= 4 ? few : many;
+}
+function render() {
+  const query = document.getElementById('search').value.trim().toLocaleLowerCase('ru');
+  const shown = games.map((name, i) => ({name, i}))
+    .filter(g => !query || g.name.toLocaleLowerCase('ru').includes(query));
+  const list = document.getElementById('list');
+  list.replaceChildren(...shown.map(({name, i}) => {
+    const li = document.createElement('li'); li.className = 'pcard';
+    const num = document.createElement('span'); num.className = 'pcard__num';
+    num.style.background = PALETTE[i % PALETTE.length]; num.textContent = i + 1;
+    const title = document.createElement('span'); title.className = 'pcard__title'; title.textContent = name;
+    li.append(num, title);
+    return li;
+  }));
+  list.hidden = !shown.length;
+  document.getElementById('no-results').hidden = !!shown.length || !games.length;
+  const count = document.getElementById('shown-count');
+  count.hidden = !query || !shown.length;
+  count.textContent = `Найдено: ${shown.length} из ${games.length}`;
+}
+async function load() {
+  const status = document.getElementById('status');
+  try {
+    const res = await fetch(PAIN_CSV_URL + '&cache=' + Date.now(), {cache: 'no-store'});
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    if (/^\s*</.test(text)) throw new Error('таблица не опубликована');
+    games = rowsToGames(parseCSV(text));
+    document.getElementById('counter-total').textContent = `${games.length} ${plural(games.length, 'игра', 'игры', 'игр')}`;
+    status.hidden = !!games.length;
+    status.textContent = 'Пул пока пуст. Закажи первую игру за баллы канала.';
+    render();
+  } catch (err) {
+    console.warn('Pain pool load failed:', err.message);
+    status.textContent = 'Не удалось загрузить пул игр. Обнови страницу чуть позже.';
+  }
+}
+document.getElementById('search').addEventListener('input', render);
+load();
+</script>
+</body>
+</html>
