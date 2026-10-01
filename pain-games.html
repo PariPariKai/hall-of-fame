@@ -7,8 +7,8 @@
 <meta http-equiv="Pragma" content="no-cache">
 <title>Боль — пул игр — Hall of Fame</title>
 <script>
-  // Тот же лист, из которого берёт игры рулетка «Боль стримера за шекели» (столбец A).
-  const PAIN_CSV_URL = "https://docs.google.com/spreadsheets/d/1voGKd0Zx09_Io-Wb0F5uag9nKi5pME8LGbsyWwTVWOM/gviz/tq?tqx=out:csv&gid=827100001&headers=1&tq=select%20A";
+  // Тот же лист, из которого берёт игры рулетка «Боль стримера за шекели» (A — название, остальные колонки — сколько и когда играли).
+  const PAIN_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=827100001&single=true&output=csv";
 </script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -92,58 +92,108 @@
   }
 
   /* ========== СТРАНИЦА ========== */
-  .wrap { max-width: 1100px; margin: 0 auto; padding-top: 8px; }
-  .header { text-align: center; margin-bottom: 24px; }
+  [hidden] { display: none !important; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding-top: 8px; }
+  .header { text-align: center; margin-bottom: 26px; }
   .title {
-    font-size: 36px; font-weight: 500; letter-spacing: 4px; color: #FAC775;
-    text-shadow: 0 0 20px rgba(250, 199, 117, 0.4); margin-bottom: 8px; text-transform: uppercase;
+    font-size: 40px; font-weight: 500; letter-spacing: 6px; color: #FAC775;
+    text-shadow: 0 0 24px rgba(250, 140, 80, 0.55); margin-bottom: 10px; text-transform: uppercase;
   }
-  .subtitle { font-size: 13px; letter-spacing: 3px; color: rgba(255,255,255,0.5); text-transform: uppercase; }
+  .subtitle { font-size: 13px; letter-spacing: 3px; color: rgba(255,255,255,0.5); text-transform: uppercase; line-height: 1.8; }
   .subtitle .accent { color: #FAC775; font-weight: 600; }
 
-  .rules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 26px; }
+  /* --- как это работает --- */
+  .rules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 30px; }
   .rule {
-    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 14px; padding: 16px 18px;
+    position: relative; overflow: hidden; display: flex; gap: 14px; align-items: flex-start;
+    background: linear-gradient(135deg, rgba(255,140,80,0.07), rgba(255,255,255,0.02));
+    border: 1px solid rgba(250,199,117,0.14); border-radius: 16px; padding: 16px 18px;
   }
-  .rule__step { font-size: 11px; letter-spacing: 2px; color: rgba(255,255,255,0.45); text-transform: uppercase; margin-bottom: 8px; }
-  .rule__title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .rule__icon { flex: 0 0 auto; font-size: 26px; line-height: 1; filter: drop-shadow(0 0 10px rgba(250,140,80,0.4)); }
+  .rule__step { font-size: 10px; letter-spacing: 2px; color: rgba(255,255,255,0.4); text-transform: uppercase; margin-bottom: 5px; }
+  .rule__title { font-size: 16px; font-weight: 600; margin-bottom: 5px; }
   .rule__title .tag { color: #FAC775; }
-  .rule__text { font-size: 13px; line-height: 1.55; color: rgba(255,255,255,0.65); }
+  .rule__text { font-size: 13px; line-height: 1.5; color: rgba(255,255,255,0.62); }
 
-  .controls-panel { display: flex; justify-content: center; margin-bottom: 18px; }
+  /* --- панель фильтров --- */
+  .toolbar { display: flex; flex-direction: column; gap: 12px; align-items: center; margin-bottom: 22px; }
+  .toolbar__row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center; }
+  .toolbar__label { font-size: 11px; letter-spacing: 1.5px; color: rgba(255,255,255,0.4); text-transform: uppercase; margin-right: 4px; }
   .search-input {
-    background: transparent; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
-    padding: 10px 14px; color: #fff; font-family: inherit; font-size: 13px; width: 300px; max-width: 100%;
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
+    padding: 11px 16px; color: #fff; font-family: inherit; font-size: 14px; width: 340px; max-width: 100%;
     outline: none; transition: all 0.15s ease;
   }
   .search-input:focus { border-color: rgba(250,199,117,0.5); background: rgba(255,255,255,0.04); }
   .search-input::placeholder { color: rgba(255,255,255,0.4); }
-
-  .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; list-style: none; }
-  .pcard {
-    display: flex; align-items: center; gap: 12px; min-width: 0;
-    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px; padding: 12px 14px; transition: all 0.15s ease;
+  .chip {
+    background: transparent; border: 1px solid rgba(255,255,255,0.14); border-radius: 999px;
+    padding: 7px 13px; cursor: pointer; color: rgba(255,255,255,0.72); font-family: inherit; font-size: 12px;
+    letter-spacing: .5px; display: inline-flex; align-items: center; gap: 7px; transition: all 0.15s ease;
   }
-  .pcard:hover { border-color: rgba(250,199,117,0.35); background: rgba(250,199,117,0.04); }
-  .pcard__num {
-    flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
-    font-size: 12px; font-weight: 600; color: #fff;
-  }
-  .pcard__title { font-size: 15px; line-height: 1.35; overflow-wrap: anywhere; min-width: 0; }
+  .chip:hover { background: rgba(255,255,255,0.05); color: #fff; }
+  .chip .count { font-size: 11px; color: rgba(255,255,255,0.45); }
+  .chip.is-active { border-color: rgba(250,199,117,0.6); color: #FAC775; background: rgba(250,199,117,0.1); }
+  .chip.is-active .count { color: #FAC775; }
+  .chip:focus-visible, .pcard:focus-visible { outline: 2px solid #FAC775; outline-offset: 3px; }
+  .hint { font-size: 12px; color: rgba(255,255,255,0.38); letter-spacing: .5px; }
 
-  .shown-count { text-align: center; font-size: 12px; color: rgba(255,255,255,0.45); margin-bottom: 12px; letter-spacing: 1px; }
+  /* --- карточки --- */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 18px; list-style: none; }
+  .pcard { perspective: 1200px; aspect-ratio: 2 / 3; cursor: pointer; border-radius: 14px; user-select: none; }
+  .pcard__inner {
+    position: relative; width: 100%; height: 100%; transform-style: preserve-3d;
+    transition: transform .6s cubic-bezier(.3,.9,.3,1);
+  }
+  .pcard.is-flipped .pcard__inner { transform: rotateY(180deg); }
+  .pcard__face {
+    position: absolute; inset: 0; border-radius: 14px; overflow: hidden; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    border: 1px solid rgba(255,255,255,0.08); background: #141929; box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+  }
+  .pcard:not(.is-flipped):hover .pcard__front { border-color: rgba(250,199,117,0.45); box-shadow: 0 14px 34px rgba(0,0,0,0.55), 0 0 22px rgba(250,140,80,0.18); }
+  .pcard__front img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s ease; }
+  .pcard:not(.is-flipped):hover .pcard__front img { transform: scale(1.04); }
+  .pcard__shade { position: absolute; inset: auto 0 0 0; padding: 40px 14px 13px; background: linear-gradient(transparent, rgba(6,8,16,0.92) 55%); }
+  .pcard__title { font-size: 15px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; text-shadow: 0 2px 6px #000; }
+  .pcard__flip-hint {
+    position: absolute; top: 9px; right: 9px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+    background: rgba(6,8,16,0.6); color: rgba(255,255,255,0.75); font-size: 14px; opacity: 0; transition: opacity .2s ease;
+  }
+  .pcard:hover .pcard__flip-hint { opacity: 1; }
+  .pcard__placeholder {
+    position: absolute; inset: 0; display: grid; place-items: center; font-size: 72px; font-weight: 700; color: rgba(255,255,255,0.85);
+    text-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+
+  .pcard__back { transform: rotateY(180deg); background: #0b0f1c; }
+  .pcard__back-bg { position: absolute; inset: -20px; background-size: cover; background-position: center; filter: blur(14px) brightness(.28) saturate(1.2); }
+  .pcard__back-body { position: relative; height: 100%; display: flex; flex-direction: column; gap: 8px; padding: 15px 14px 14px; }
+  .pcard__back-title { font-size: 15px; font-weight: 700; line-height: 1.25; color: #FAC775; overflow-wrap: anywhere; }
+  .pcard__meta { font-size: 12px; color: rgba(255,255,255,0.6); }
+  .pcard__genres { display: flex; flex-wrap: wrap; gap: 5px; }
+  .pcard__genre { font-size: 10.5px; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.85); }
+  .pcard__desc {
+    font-size: 12px; line-height: 1.45; color: rgba(255,255,255,0.72);
+    display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .pcard__stats { margin-top: auto; display: grid; gap: 6px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); }
+  .stat { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: rgba(255,255,255,0.55); }
+  .stat b { color: #fff; font-weight: 600; text-align: right; }
+  .stat.is-played b { color: #ff9f7a; }
+  .pcard__link { font-size: 12px; color: #FAC775; text-decoration: none; align-self: flex-start; }
+  .pcard__link:hover { text-decoration: underline; }
+
+  .shown-count { text-align: center; font-size: 12px; color: rgba(255,255,255,0.45); margin-bottom: 14px; letter-spacing: 1px; }
   .empty-state { text-align: center; padding: 40px 20px; color: rgba(255,255,255,0.5); font-size: 14px; }
-  [hidden] { display: none !important; }
 
+  @media (max-width: 900px) { .rules { grid-template-columns: 1fr; } }
   @media (max-width: 720px) {
     body { padding: 0 12px 32px; }
     .site-nav { margin: 0 -12px 20px; }
-    .title { font-size: 26px; letter-spacing: 2px; }
-    .rules { grid-template-columns: 1fr; }
-    .list { grid-template-columns: 1fr; }
+    .title { font-size: 28px; letter-spacing: 3px; }
+    .grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
     .search-input { width: 100%; }
+    .pcard__desc { -webkit-line-clamp: 3; }
   }
 </style>
 </head>
@@ -261,45 +311,71 @@
   })();
 </script>
 
-
 <div class="wrap">
   <div class="header">
     <h1 class="title">🔥 Боль 🔥</h1>
-    <p class="subtitle">Игры, которыми можно наказать стримера · в пуле <span class="accent" id="counter-total">—</span></p>
+    <p class="subtitle" id="subtitle">Игры, которыми можно наказать стримера</p>
   </div>
 
   <section class="rules" aria-label="Как это работает">
     <div class="rule">
-      <div class="rule__step">Шаг 1 · баллы канала</div>
-      <div class="rule__title">Добавь игру в пул</div>
-      <p class="rule__text">Закажи за баллы канала игру, в которую стример никогда бы не сел сам. Она появится в этом списке.</p>
+      <div class="rule__icon">🎯</div>
+      <div>
+        <div class="rule__step">Шаг 1 · баллы канала</div>
+        <div class="rule__title">Добавь игру в пул</div>
+        <p class="rule__text">Закажи за баллы канала игру, в которую стример никогда бы не сел сам. Она появится здесь.</p>
+      </div>
     </div>
     <div class="rule">
-      <div class="rule__step">Шаг 2 · донат</div>
-      <div class="rule__title">Метка <span class="tag">#боль</span></div>
-      <p class="rule__text">Донаты с этой меткой копятся вместе. Набралось 1 000 ₽ — рулетка выбирает игру из пула и сколько её терпеть: 1, 4 или 8 часов.</p>
+      <div class="rule__icon">💸</div>
+      <div>
+        <div class="rule__step">Шаг 2 · донат</div>
+        <div class="rule__title">Метка <span class="tag">#боль</span></div>
+        <p class="rule__text">Донаты с меткой копятся вместе. 1 000 ₽ — рулетка выбирает игру из пула и сколько терпеть: 1, 4 или 8 часов.</p>
+      </div>
     </div>
     <div class="rule">
-      <div class="rule__step">Шаг 3 · додеп</div>
-      <div class="rule__title">Метка <span class="tag">#время</span></div>
-      <p class="rule__text">Каждые 250 ₽ с этой меткой — ещё одна крутка времени к текущей игре. Остаток сверх 1 000 ₽ от #боль тоже идёт сюда.</p>
+      <div class="rule__icon">⏳</div>
+      <div>
+        <div class="rule__step">Шаг 3 · додеп</div>
+        <div class="rule__title">Метка <span class="tag">#время</span></div>
+        <p class="rule__text">Каждые 250 ₽ — ещё одна крутка времени к текущей игре. Остаток сверх 1 000 ₽ от #боль тоже идёт сюда.</p>
+      </div>
     </div>
   </section>
 
-  <div class="controls-panel">
-    <input type="text" class="search-input" id="search" placeholder="🔍 Есть ли игра в пуле?..">
+  <div class="toolbar">
+    <input type="search" class="search-input" id="search" placeholder="🔍 Есть ли игра в пуле?.." aria-label="Поиск игры">
+    <div class="toolbar__row" id="status-filters">
+      <button class="chip is-active" data-status="all">Все <span class="count" id="cnt-all">0</span></button>
+      <button class="chip" data-status="fresh">Ещё не страдал <span class="count" id="cnt-fresh">0</span></button>
+      <button class="chip" data-status="played">Уже страдал <span class="count" id="cnt-played">0</span></button>
+    </div>
+    <div class="toolbar__row" id="genre-filters"></div>
+    <div class="toolbar__row" id="sort-filters">
+      <span class="toolbar__label">Сортировка:</span>
+      <button class="chip is-active" data-sort="added">Новые в пуле</button>
+      <button class="chip" data-sort="recent">Недавно играли</button>
+      <button class="chip" data-sort="hours">Больше часов</button>
+      <button class="chip" data-sort="year">По году выхода</button>
+      <button class="chip" data-sort="name">А–Я</button>
+    </div>
+    <p class="hint">Нажми на карточку (или ПКМ), чтобы перевернуть</p>
   </div>
-  <p class="shown-count" id="shown-count" hidden></p>
 
+  <p class="shown-count" id="shown-count" hidden></p>
   <div id="status" class="empty-state">Загружаю пул игр...</div>
-  <ul id="list" class="list" hidden></ul>
+  <ul id="grid" class="grid" hidden></ul>
   <p id="no-results" class="empty-state" hidden>Такой игры в пуле нет. Самое время её заказать.</p>
 </div>
 
 <script>
 'use strict';
+// Цвета заглушки для игр без обложки — те же, что у секторов рулетки.
 const PALETTE = ['#8d4564','#555897','#ad704b','#487c87','#754d92','#9a5359','#687748','#455f95'];
-let games = [];
+const MONTHS = ['янв.','февр.','марта','апр.','мая','июня','июля','авг.','сент.','окт.','нояб.','дек.'];
+const state = {games: [], status: 'all', genre: 'all', sort: 'added', query: ''};
+const key = s => s.trim().replace(/\s+/g, ' ').toLocaleLowerCase('ru');
 
 function parseCSV(text) {
   const rows = []; let row = [], cell = '', quoted = false;
@@ -317,58 +393,228 @@ function parseCSV(text) {
   if (cell || row.length) { row.push(cell); rows.push(row); }
   return rows;
 }
-// Те же правила, что у рулетки: пустые строки и повторы (без учёта регистра) пропускаются.
-function rowsToGames(rows) {
-  const names = new Map();
-  for (const row of rows.slice(1)) {
-    const name = (row[0] || '').trim().replace(/\s+/g, ' ');
-    const key = name.toLocaleLowerCase('ru');
-    if (name && !names.has(key)) names.set(key, name);
-  }
-  return [...names.values()];
+// «12», «12,5» — часы; «12:30» — часы:минуты. Возвращает минуты или null.
+function parseHours(s) {
+  s = (s || '').trim().replace(',', '.');
+  if (!s) return null;
+  const hm = s.match(/^(\d+):(\d{1,2})$/);
+  if (hm) return Number(hm[1]) * 60 + Number(hm[2]);
+  const n = parseFloat(s);
+  return Number.isFinite(n) && n > 0 ? Math.round(n * 60) : null;
 }
+// «02.10.2026», «2026-10-02», «10/2/2026». Возвращает timestamp или null.
+function parseDate(s) {
+  s = (s || '').trim();
+  let m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+  if (m) return new Date(+m[3], m[2] - 1, +m[1]).getTime();
+  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return new Date(+m[1], m[2] - 1, +m[3]).getTime();
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m) return new Date(+m[3], m[1] - 1, +m[2]).getTime();
+  return null;
+}
+function fmtMinutes(min) {
+  const h = Math.floor(min / 60), m = min % 60;
+  return h && m ? `${h} ч ${m} мин` : h ? `${h} ч` : `${m} мин`;
+}
+function fmtDate(ts) { const d = new Date(ts); return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`; }
 function plural(n, one, few, many) {
   const t = n % 100, d = n % 10;
   if (t >= 11 && t <= 14) return many;
   return d === 1 ? one : d >= 2 && d <= 4 ? few : many;
 }
-function render() {
-  const query = document.getElementById('search').value.trim().toLocaleLowerCase('ru');
-  const shown = games.map((name, i) => ({name, i}))
-    .filter(g => !query || g.name.toLocaleLowerCase('ru').includes(query));
-  const list = document.getElementById('list');
-  list.replaceChildren(...shown.map(({name, i}) => {
-    const li = document.createElement('li'); li.className = 'pcard';
-    const num = document.createElement('span'); num.className = 'pcard__num';
-    num.style.background = PALETTE[i % PALETTE.length]; num.textContent = i + 1;
-    const title = document.createElement('span'); title.className = 'pcard__title'; title.textContent = name;
-    li.append(num, title);
-    return li;
-  }));
-  list.hidden = !shown.length;
-  document.getElementById('no-results').hidden = !!shown.length || !games.length;
-  const count = document.getElementById('shown-count');
-  count.hidden = !query || !shown.length;
-  count.textContent = `Найдено: ${shown.length} из ${games.length}`;
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
 }
+
+function buildGames(rows, meta) {
+  const header = rows[0].map(h => h.trim().toLowerCase());
+  const col = re => header.findIndex((h, i) => i > 0 && re.test(h));
+  const playedCol = col(/наигр|сыгр|час/), lastCol = col(/послед|дата|когда/);
+  const seen = new Set(), games = [];
+  rows.slice(1).forEach(r => {
+    const name = (r[0] || '').trim().replace(/\s+/g, ' ');
+    if (!name || seen.has(key(name))) return;
+    seen.add(key(name));
+    const m = meta[key(name)] || {};
+    games.push({
+      name, order: games.length, meta: m,
+      minutes: playedCol >= 0 ? parseHours(r[playedCol]) : null,
+      last: lastCol >= 0 ? parseDate(r[lastCol]) : null,
+    });
+  });
+  return games;
+}
+
+function buildCard(g) {
+  const li = el('li', 'pcard');
+  li.tabIndex = 0;
+  li.setAttribute('role', 'button');
+  li.setAttribute('aria-label', `${g.name} — перевернуть карточку`);
+  const inner = el('div', 'pcard__inner');
+  const color = PALETTE[g.order % PALETTE.length];
+  const image = g.meta.cover || g.meta.header;
+
+  // Лицо: только обложка и название.
+  const front = el('div', 'pcard__face pcard__front');
+  const placeholder = () => {
+    front.style.background = `linear-gradient(160deg, ${color}, #10142a)`;
+    front.prepend(el('div', 'pcard__placeholder', [...g.name][0].toUpperCase()));
+  };
+  if (image) {
+    const img = el('img');
+    img.alt = ''; img.loading = 'lazy'; img.decoding = 'async'; img.src = image;
+    img.onerror = () => {
+      if (g.meta.header && img.src !== g.meta.header) img.src = g.meta.header;
+      else { img.remove(); placeholder(); }
+    };
+    front.append(img);
+  } else placeholder();
+  const shade = el('div', 'pcard__shade');
+  shade.append(el('div', 'pcard__title', g.name));
+  front.append(shade, el('div', 'pcard__flip-hint', '↻'));
+
+  // Оборот: жанры, год, описание, сколько и когда играли.
+  const back = el('div', 'pcard__face pcard__back');
+  const bg = el('div', 'pcard__back-bg');
+  if (image) bg.style.backgroundImage = `url("${image}")`; else bg.style.background = color;
+  const body = el('div', 'pcard__back-body');
+  body.append(el('div', 'pcard__back-title', g.meta.title || g.name));
+  if (g.meta.year) body.append(el('div', 'pcard__meta', `${g.meta.year} год`));
+  if (g.meta.genres?.length) {
+    const genres = el('div', 'pcard__genres');
+    g.meta.genres.forEach(name => genres.append(el('span', 'pcard__genre', name)));
+    body.append(genres);
+  }
+  if (g.meta.description) body.append(el('p', 'pcard__desc', g.meta.description));
+  else if (!g.meta.found) body.append(el('p', 'pcard__desc', g.meta.checked
+    ? 'Не нашли эту игру ни в Steam, ни в базах игр. Стример может добавить картинку вручную.'
+    : 'Игра только что попала в пул — данные подтянутся в течение получаса.'));
+  const stats = el('div', 'pcard__stats');
+  const stat = (label, value, played) => {
+    const row = el('div', 'stat' + (played ? ' is-played' : ''));
+    row.append(el('span', '', label), el('b', '', value));
+    return row;
+  };
+  stats.append(
+    stat('Наиграно', g.minutes ? fmtMinutes(g.minutes) : 'ещё не страдал', !!g.minutes),
+    stat('Последний раз', g.last ? fmtDate(g.last) : '—', false),
+  );
+  const url = g.meta.steamUrl || g.meta.igdbUrl;
+  if (url) {
+    const link = el('a', 'pcard__link', g.meta.steamUrl ? 'Страница в Steam ↗' : 'Страница на IGDB ↗');
+    link.href = url; link.target = '_blank'; link.rel = 'noopener';
+    link.addEventListener('click', e => e.stopPropagation());
+    stats.append(link);
+  }
+  body.append(stats);
+  back.append(bg, body);
+
+  inner.append(front, back);
+  li.append(inner);
+  const flip = () => li.classList.toggle('is-flipped');
+  li.addEventListener('click', flip);
+  li.addEventListener('contextmenu', e => { e.preventDefault(); flip(); });
+  li.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } });
+  g.card = li;
+  return li;
+}
+
+const isPlayed = g => !!(g.minutes || g.last);
+const SORTS = {
+  added: (a, b) => b.order - a.order,
+  recent: (a, b) => (b.last || 0) - (a.last || 0) || (b.minutes || 0) - (a.minutes || 0) || b.order - a.order,
+  hours: (a, b) => (b.minutes || 0) - (a.minutes || 0) || (b.last || 0) - (a.last || 0) || b.order - a.order,
+  year: (a, b) => (b.meta.year || 0) - (a.meta.year || 0) || a.name.localeCompare(b.name, 'ru'),
+  name: (a, b) => a.name.localeCompare(b.name, 'ru'),
+};
+
+function renderGenres() {
+  const counts = new Map();
+  state.games.forEach(g => (g.meta.genres || []).forEach(name => counts.set(name, (counts.get(name) || 0) + 1)));
+  const box = document.getElementById('genre-filters');
+  const chips = [['all', 'Все жанры', state.games.length], ...[...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ru')).map(([n, c]) => [n, n, c])];
+  box.replaceChildren(...chips.map(([value, label, count]) => {
+    const b = el('button', 'chip' + (state.genre === value ? ' is-active' : ''), label + ' ');
+    b.append(el('span', 'count', count));
+    b.addEventListener('click', () => { state.genre = value; renderGenres(); render(); });
+    return b;
+  }));
+  box.hidden = counts.size === 0;
+}
+
+function render() {
+  const q = state.query;
+  const shown = state.games.filter(g =>
+    (!q || g.name.toLocaleLowerCase('ru').includes(q) || (g.meta.title || '').toLocaleLowerCase('ru').includes(q)) &&
+    (state.status === 'all' || (state.status === 'played') === isPlayed(g)) &&
+    (state.genre === 'all' || (g.meta.genres || []).includes(state.genre))
+  ).sort(SORTS[state.sort]);
+  const grid = document.getElementById('grid');
+  grid.replaceChildren(...shown.map(g => g.card));
+  grid.hidden = !shown.length;
+  document.getElementById('no-results').hidden = !!shown.length || !state.games.length;
+  const filtered = shown.length !== state.games.length;
+  const count = document.getElementById('shown-count');
+  count.hidden = !filtered || !shown.length;
+  count.textContent = `Показано: ${shown.length} из ${state.games.length}`;
+}
+
+function renderSummary() {
+  const total = state.games.length, played = state.games.filter(isPlayed);
+  const minutes = played.reduce((s, g) => s + (g.minutes || 0), 0);
+  document.getElementById('cnt-all').textContent = total;
+  document.getElementById('cnt-played').textContent = played.length;
+  document.getElementById('cnt-fresh').textContent = total - played.length;
+  const sub = document.getElementById('subtitle');
+  sub.replaceChildren('Игры, которыми можно наказать стримера · в пуле ');
+  const a = el('span', 'accent', `${total} ${plural(total, 'игра', 'игры', 'игр')}`);
+  sub.append(a);
+  if (minutes) {
+    sub.append(' · отстрадано ');
+    sub.append(el('span', 'accent', fmtMinutes(minutes)));
+  }
+}
+
+function bindChips(boxId, attr, field) {
+  document.getElementById(boxId).addEventListener('click', e => {
+    const b = e.target.closest('.chip');
+    if (!b) return;
+    state[field] = b.dataset[attr];
+    document.querySelectorAll(`#${boxId} .chip`).forEach(c => c.classList.toggle('is-active', c === b));
+    render();
+  });
+}
+
 async function load() {
   const status = document.getElementById('status');
   try {
-    const res = await fetch(PAIN_CSV_URL + '&cache=' + Date.now(), {cache: 'no-store'});
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const text = await res.text();
-    if (/^\s*</.test(text)) throw new Error('таблица не опубликована');
-    games = rowsToGames(parseCSV(text));
-    document.getElementById('counter-total').textContent = `${games.length} ${plural(games.length, 'игра', 'игры', 'игр')}`;
-    status.hidden = !!games.length;
+    const [csv, meta] = await Promise.all([
+      fetch(PAIN_CSV_URL + '&cache=' + Date.now(), {cache: 'no-store'}).then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.text();
+      }),
+      // Без данных об играх страница всё равно работает — просто без обложек.
+      fetch('pain-meta.json?v=' + Math.floor(Date.now() / 60000), {cache: 'no-cache'})
+        .then(r => r.ok ? r.json() : {games: {}}).catch(() => ({games: {}})),
+    ]);
+    if (/^\s*</.test(csv)) throw new Error('таблица не опубликована');
+    state.games = buildGames(parseCSV(csv), meta.games || {});
+    state.games.forEach(buildCard);
+    status.hidden = !!state.games.length;
     status.textContent = 'Пул пока пуст. Закажи первую игру за баллы канала.';
-    render();
+    renderSummary(); renderGenres(); render();
   } catch (err) {
     console.warn('Pain pool load failed:', err.message);
     status.textContent = 'Не удалось загрузить пул игр. Обнови страницу чуть позже.';
   }
 }
-document.getElementById('search').addEventListener('input', render);
+document.getElementById('search').addEventListener('input', e => { state.query = e.target.value.trim().toLocaleLowerCase('ru'); render(); });
+bindChips('status-filters', 'status', 'status');
+bindChips('sort-filters', 'sort', 'sort');
 load();
 </script>
 </body>

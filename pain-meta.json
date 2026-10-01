@@ -1,0 +1,247 @@
+{
+  "note": "Генерируется автоматически .github/scripts/pain-meta.mjs — руками не править.",
+  "games": {
+    "dark souls 1": {
+      "name": "Dark Souls 1",
+      "override": "",
+      "checked": "2026-10-01T21:32:36.242Z",
+      "found": true,
+      "appid": 211420,
+      "title": "DARK SOULS™: Prepare To Die™ Edition",
+      "year": 2012,
+      "genres": [
+        "Экшены",
+        "Ролевые игры"
+      ],
+      "description": "По мере прохождения игры уровень сложности будет повышаться, так что Dark Souls станет для вас самым серьезным игровым испытанием в этом году. Сможете ли вы пережить тысячи смертей и увековечить свое наследие?",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/211420/library_600x900.jpg",
+      "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/211420/header.jpg?t=1721682669",
+      "source": "steam",
+      "steamUrl": "https://store.steampowered.com/app/211420/"
+    },
+    "dark souls 2": {
+      "name": "Dark Souls 2",
+      "override": "",
+      "checked": "2026-10-01T21:32:43.602Z",
+      "found": true,
+      "appid": 236430,
+      "title": "DARK SOULS™ II",
+      "year": 2014,
+      "genres": [
+        "Экшены",
+        "Ролевые игры"
+      ],
+      "description": "Разработчики из FROM SOFTWARE дарят вам DARK SOULS™ II - долгожданное продолжение нашумевшего хита 2011 года - игры Dark Souls. Это уникальная ролевая игра старой школы, покорившая игроков по всему миру. Здесь вас ждут труднейшие испытания и невероятное чувство удовлетворения.",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/236430/library_600x900.jpg",
+      "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/236430/header.jpg?t=1726158600",
+      "source": "steam",
+      "steamUrl": "https://store.steampowered.com/app/236430/"
+    },
+    "dragon age origins": {
+      "name": "Dragon age origins",
+      "override": "",
+      "checked": "2026-10-01T21:32:46.722Z",
+      "found": true,
+      "appid": 47810,
+      "title": "Dragon Age: Origins - Ultimate Edition",
+      "year": 2010,
+      "genres": [
+        "Ролевые игры"
+      ],
+      "description": "Dragon Age: Origins - Ultimate Edition включает Dragon Age: Origins, Dragon Age: Origins - Awakening и весь загружаемый контент.",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/47810/library_600x900.jpg",
+      "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/47810/header.jpg?t=1782471846",
+      "source": "steam",
+      "steamUrl": "https://store.steampowered.com/app/47810/"
+    },
+    "v rising": {
+      "name": "V Rising",
+      "override": "",
+      "checked": "2026-10-01T21:32:55.333Z",
+      "found": true,
+      "appid": 1604030,
+      "title": "V Rising",
+      "year": 2024,
+      "genres": [
+        "Экшены",
+        "Приключенческие игры"
+      ],
+      "description": "Восстань из теней, вампир! Охота начинается.",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/1604030/library_600x900.jpg",
+      "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1604030/be49834ab147ad22ba17005fb847c93917d18b97/header.jpg?t=1787038382",
+      "source": "steam",
+      "steamUrl": "https://store.steampowered.com/app/1604030/"
+    },
+    "fallout 3": {
+      "name": "Fallout 3",
+      "override": "",
+      "checked": "2026-10-01T21:32:58.396Z",
+      "found": true,
+      "appid": 22300,
+      "title": "Fallout 3",
+      "year": 2008,
+      "genres": [
+        "Ролевые игры"
+      ],
+      "description": "Инженеры из Vault-Tec круглосуточно работали над интерактивным воспроизведением жизни в Пустоши, чтобы вы могли насладиться ей, не покидая собственного убежища. Сюда входит обширный мир, уникальные бои, поразительно реалистичные визуальные эффекты, множество вариантов выбора и невероятная группа динамичных персонажей.",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/22300/library_600x900.jpg",
+      "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/22300/header.jpg?t=1732208474",
+      "source": "steam",
+      "steamUrl": "https://store.steampowered.com/app/22300/"
+    },
+    "subnautica: below zero": {
+      "name": "Subnautica: Below Zero",
+      "override": "",
+      "checked": "2026-10-01T21:33:07.552Z",
+      "found": true,
+      "appid": 848450,
+      "title": "Subnautica: Below Zero",
+      "year": 2021,
+      "genres": [
+        "Приключенческие игры",
+        "Инди"
+      ],
+      "description": "Отправляйтесь в ледяное подводное приключение на чужой планете. Действие Below Zero разворачивается через два года после событий оригинальной игры Subnautica. Выживайте с суровых условиях — стройте жилища, создавайте инструменты и погружайтесь еще глубже в пучину вселенной Subnautica.",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/848450/library_600x900.jpg",
+      "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/848450/header.jpg?t=1777456254",
+      "source": "steam",
+      "steamUrl": "https://store.steampowered.com/app/848450/"
+    },
+    "the game of sisyphus": {
+      "name": "The game of Sisyphus",
+      "override": "",
+      "checked": "2026-10-01T21:33:10.624Z",
+      "found": true,
+      "appid": 2904890,
+      "title": "The Game of Sisyphus",
+      "year": 2024,
+      "genres": [
+        "Экшены",
+        "Приключенческие игры",
+        "Инди"
+      ],
+      "description": "Roll the boulder to the top.",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/2904890/library_600x900.jpg",
+      "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2904890/header.jpg?t=1790675075",
+      "source": "steam",
+      "steamUrl": "https://store.steampowered.com/app/2904890/"
+    },
+    "phasmophobia": {
+      "name": "Phasmophobia",
+      "override": "",
+      "checked": "2026-10-01T21:33:13.947Z",
+      "found": true,
+      "appid": 739630,
+      "title": "Phasmophobia",
+      "year": 2020,
+      "genres": [
+        "Экшены",
+        "Инди"
+      ],
+      "description": "Phasmophobia is a 4 player online co-op psychological horror. Paranormal activity is on the rise and it’s up to you and your team to use all the ghost-hunting equipment at your disposal in order to gather as much evidence as you can.",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/739630/library_600x900.jpg",
+      "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/739630/c227a2855aba60f3657bc0c3a46515b8c41fb2b6/header.jpg?t=1789487643",
+      "source": "steam",
+      "steamUrl": "https://store.steampowered.com/app/739630/"
+    },
+    "getting over it": {
+      "name": "Getting Over It",
+      "override": "",
+      "checked": "2026-10-01T21:33:17.007Z",
+      "found": true,
+      "appid": 240720,
+      "title": "Getting Over It with Bennett Foddy",
+      "year": 2017,
+      "genres": [
+        "Экшены"
+      ],
+      "description": "Я создал эту игру для определенного круга лиц. Чтобы заставить их страдать.",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/240720/library_600x900.jpg",
+      "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/240720/header.jpg?t=1666987027",
+      "source": "steam",
+      "steamUrl": "https://store.steampowered.com/app/240720/"
+    },
+    "geometry dash": {
+      "name": "Geometry Dash",
+      "override": "",
+      "checked": "2026-10-01T21:33:20.037Z",
+      "found": true,
+      "appid": 322170,
+      "title": "Geometry Dash",
+      "year": 2014,
+      "genres": [
+        "Экшены",
+        "Инди"
+      ],
+      "description": "Jump and fly your way through danger in this rhythm-based action platformer!",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/322170/library_600x900.jpg",
+      "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/322170/header.jpg?t=1775300400",
+      "source": "steam",
+      "steamUrl": "https://store.steampowered.com/app/322170/"
+    },
+    "divinity: original sin 2 - definitive edition": {
+      "name": "Divinity: Original Sin 2 - Definitive Edition",
+      "override": "",
+      "checked": "2026-10-01T21:33:23.071Z",
+      "found": true,
+      "appid": 435150,
+      "title": "Divinity: Original Sin 2 - Definitive Edition",
+      "year": 2017,
+      "genres": [
+        "Приключенческие игры",
+        "Ролевые игры",
+        "Стратегии"
+      ],
+      "description": "Знаменитая ролевая игра от разработчиков Baldur's Gate 3. Соберите отряд. Освойте мощную боевую систему. Пригласите с собой до трех друзей, но помните, что только один из вас сможет стать богом.",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/435150/library_600x900.jpg",
+      "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/435150/3f6ee788cb01bd65097c52399d536eb424b4876f/header.jpg?t=1765811123",
+      "source": "steam",
+      "steamUrl": "https://store.steampowered.com/app/435150/"
+    },
+    "once human": {
+      "name": "Once Human",
+      "override": "",
+      "checked": "2026-10-01T21:33:30.142Z",
+      "found": true,
+      "appid": 2139460,
+      "title": "Once Human",
+      "year": 2024,
+      "genres": [
+        "Экшены",
+        "Приключенческие игры",
+        "Казуальные игры",
+        "Гонки"
+      ],
+      "description": "Once Human — игра на выживание в странных мирах. Сражайтесь с друзьями за ресурсы, стройте убежище и преодолевайте ужасы неизведанного, раскрывая правду о падении мира. Когда-то вы были человеком. Остались ли им?",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/2139460/library_600x900.jpg",
+      "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2139460/c18b08a2f93dec32fcc5fa71bc2da44ee42de1f0/header.jpg?t=1786675226",
+      "source": "steam",
+      "steamUrl": "https://store.steampowered.com/app/2139460/"
+    },
+    "the mortuary assistant": {
+      "name": "The Mortuary Assistant",
+      "override": "",
+      "checked": "2026-10-01T21:33:33.180Z",
+      "found": true,
+      "appid": 1295920,
+      "title": "The Mortuary Assistant",
+      "year": 2022,
+      "genres": [
+        "Приключенческие игры",
+        "Инди",
+        "Симуляторы"
+      ],
+      "description": "Alone with the dead... Embalm corpses, banish demons, save your soul.",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/1295920/library_600x900.jpg",
+      "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1295920/header.jpg?t=1772040295",
+      "source": "steam",
+      "steamUrl": "https://store.steampowered.com/app/1295920/"
+    },
+    "спасти кошку": {
+      "name": "Спасти Кошку",
+      "override": "",
+      "checked": "2026-10-01T21:33:36.445Z",
+      "found": false
+    }
+  }
+}
