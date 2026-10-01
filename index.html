@@ -108,27 +108,99 @@
     .site-nav__links li { flex: 0 0 auto; }
   }
 
+  /* ========== РОЗЫГРЫШ (баннер, только когда raffle_active) ========== */
+  .event {
+    max-width: 1080px;
+    margin: 22px auto 0;
+  }
+  .event[hidden] { display: none; }
+  .event__inner {
+    display: flex;
+    align-items: center;
+    gap: 14px 22px;
+    flex-wrap: wrap;
+    padding: 14px 22px;
+    border-radius: 14px;
+    text-decoration: none;
+    color: #fff;
+    background:
+      linear-gradient(100deg, rgba(250,199,117,0.18), rgba(250,199,117,0.04) 45%, rgba(127,119,221,0.10));
+    border: 1px solid rgba(250,199,117,0.45);
+    box-shadow: 0 0 30px rgba(250,199,117,0.12);
+    position: relative;
+    overflow: hidden;
+    transition: box-shadow .2s ease, transform .2s ease;
+  }
+  .event__inner::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,0.10) 50%, transparent 70%);
+    transform: translateX(-100%);
+    animation: event-shine 5s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes event-shine { 0%, 60% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+  .event__inner:hover { transform: translateY(-2px); box-shadow: 0 0 40px rgba(250,199,117,0.25); }
+  .event__badge {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #0a0e1a;
+    background: #FAC775;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .event__title { font-size: 16px; font-weight: 600; color: #FAC775; letter-spacing: .5px; }
+  .event__timer {
+    font-variant-numeric: tabular-nums;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+  .event__stats { font-size: 13px; color: rgba(255,255,255,0.65); }
+  .event__stats b { color: #fff; }
+  .event__cta {
+    margin-left: auto;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #FAC775;
+    white-space: nowrap;
+  }
+
   /* ========== HERO ========== */
   .hero {
-    text-align: center;
-    padding: 50px 16px 56px;
-    max-width: 760px;
+    max-width: 1080px;
     margin: 0 auto;
+    padding: 56px 0 44px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 460px);
+    gap: 48px;
+    align-items: center;
+  }
+  .hero__top {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    margin-bottom: 20px;
   }
   .hero__avatar-wrap {
-    width: 140px;
-    height: 140px;
-    margin: 0 auto 24px;
+    width: 116px;
+    height: 116px;
+    flex: 0 0 auto;
     border-radius: 50%;
     background: #1a2238;
-    border: 3px solid rgba(250,199,117,0.4);
-    box-shadow: 0 0 0 6px rgba(250,199,117,0.06), 0 8px 30px rgba(0,0,0,0.5);
+    border: 3px solid rgba(250,199,117,0.55);
+    box-shadow: 0 0 0 6px rgba(250,199,117,0.07), 0 0 40px rgba(250,199,117,0.18), 0 8px 30px rgba(0,0,0,0.5);
     overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #FAC775;
-    font-size: 48px;
+    font-size: 40px;
     font-weight: 600;
     letter-spacing: 2px;
   }
@@ -139,21 +211,21 @@
     display: block;
   }
   .hero__name {
-    font-size: 48px;
-    font-weight: 500;
+    font-size: 52px;
+    font-weight: 600;
     letter-spacing: 4px;
+    line-height: 1.05;
     color: #FAC775;
     text-shadow: 0 0 28px rgba(250, 199, 117, 0.45);
-    margin-bottom: 14px;
     text-transform: uppercase;
     word-break: break-word;
   }
   .hero__intro {
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1.65;
     color: rgba(255,255,255,0.75);
-    max-width: 600px;
-    margin: 0 auto 28px;
+    max-width: 560px;
+    margin: 0 0 28px;
   }
   .hero__cta {
     display: inline-flex;
@@ -180,39 +252,321 @@
   }
   .hero__cta--hidden { display: none; }
 
+  /* ----- «Сейчас на стриме» ----- */
+  .now {
+    background: rgba(255,255,255,0.035);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 18px;
+    padding: 18px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+  }
+  .now__label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.6);
+    margin: 2px 4px 14px;
+  }
+  .now__dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #ff4d5e;
+    box-shadow: 0 0 0 0 rgba(255,77,94,0.6);
+    animation: now-pulse 1.8s ease-out infinite;
+  }
+  .now__dot[hidden] { display: none; }
+  @keyframes now-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(255,77,94,0.6); }
+    100% { box-shadow: 0 0 0 10px rgba(255,77,94,0); }
+  }
+  .now__list { display: flex; flex-direction: column; gap: 12px; }
+  .now-item {
+    display: flex;
+    gap: 16px;
+    padding: 10px;
+    border-radius: 12px;
+    text-decoration: none;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    background: rgba(10,14,26,0.55);
+    border: 1px solid rgba(255,255,255,0.06);
+    transition: border-color .18s ease, transform .18s ease;
+  }
+  .now-item:hover { border-color: rgba(250,199,117,0.45); transform: translateY(-2px); }
+  .now-item__glow {
+    position: absolute;
+    inset: -20px;
+    background-size: cover;
+    background-position: center;
+    filter: blur(28px) saturate(1.3);
+    opacity: .28;
+    pointer-events: none;
+  }
+  .now-item__cover {
+    position: relative;
+    flex: 0 0 auto;
+    width: 92px;
+    height: 138px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #1a2238;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 34px;
+  }
+  .now-item--wide .now-item__cover { width: 148px; height: 69px; align-self: center; }
+  .now-item__cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .now-item__body {
+    position: relative;
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+  }
+  .now-item__type {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #FAC775;
+  }
+  .now-item__title {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .now-item__by { font-size: 13px; color: rgba(255,255,255,0.6); }
+  .now-item__by b { color: #fff; font-weight: 600; }
+  .now-item__bar {
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.1);
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  .now-item__bar span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #BA7517, #FAC775);
+    box-shadow: 0 0 10px rgba(250,199,117,0.5);
+  }
+  .now-item__meta { font-size: 12px; color: rgba(255,255,255,0.55); font-variant-numeric: tabular-nums; }
+  .now__skeleton {
+    height: 158px;
+    border-radius: 12px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+    background-size: 200% 100%;
+    animation: skel 1.4s linear infinite;
+  }
+  @keyframes skel { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+  /* ----- Афиша: главный анонс крупнее ----- */
+  .now-item--big .now-item__cover { width: 116px; height: 174px; }
+  .now-item--big .now-item__title { font-size: 21px; }
+  .now-item__when {
+    font-size: 17px;
+    font-weight: 600;
+    color: #FAC775;
+    letter-spacing: .3px;
+    font-variant-numeric: tabular-nums;
+  }
+  .now-item__rel {
+    display: inline-block;
+    align-self: flex-start;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(250,199,117,0.12);
+    color: #FAC775;
+  }
+  .now-item__rel--live { background: rgba(255,77,94,0.18); color: #ff8a95; }
+  .now__sub {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin: 6px 4px -4px;
+  }
+
+  /* ----- Традиция: когда ничего не назначено ----- */
+  .ritual {
+    padding: 16px;
+    border-radius: 12px;
+    background: rgba(10,14,26,0.55);
+    border: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .ritual__row { display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: rgba(255,255,255,0.8); line-height: 1.4; }
+  .ritual__time {
+    flex: 0 0 auto;
+    font-size: 18px;
+    font-weight: 600;
+    color: #FAC775;
+    font-variant-numeric: tabular-nums;
+  }
+  .ritual__next { font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.5; }
+  .ritual__next b { color: #fff; font-weight: 600; }
+  .ritual a { font-size: 12px; letter-spacing: 1px; color: #FAC775; text-decoration: none; }
+  .ritual a:hover { text-decoration: underline; }
+
+  /* ----- Расписание недели ----- */
+  .week { margin-top: 32px; max-width: 520px; }
+  .week__label {
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 10px;
+  }
+  .week__days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+  .week__day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 9px 2px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.035);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .week__name { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.5); }
+  .week__time { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .week__day.is-off .week__time { color: rgba(255,255,255,0.35); font-weight: 400; font-size: 12px; }
+  .week__day.is-today {
+    border-color: rgba(250,199,117,0.55);
+    background: rgba(250,199,117,0.08);
+    box-shadow: 0 0 16px rgba(250,199,117,0.12);
+  }
+  .week__day.is-today .week__name { color: #FAC775; }
+  .week__note { margin-top: 10px; font-size: 12px; line-height: 1.5; color: rgba(255,255,255,0.5); }
+  .week__note b { color: #FAC775; font-weight: 600; }
+  @media (max-width: 480px) {
+    .now-item--big .now-item__cover { width: 90px; height: 135px; }
+    .now-item--big .now-item__title { font-size: 18px; }
+    .week__days { gap: 4px; }
+    .week__time { font-size: 12px; }
+  }
+
+  /* ========== ЛЕНТА ПОБЕД ========== */
+  .wins {
+    max-width: 1080px;
+    margin: 0 auto 36px;
+  }
+  .wins[hidden] { display: none; }
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 4px 12px;
+  }
+  .section-head h2 {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.6);
+  }
+  .section-head a {
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: #FAC775;
+    text-decoration: none;
+    opacity: .85;
+  }
+  .section-head a:hover { opacity: 1; text-decoration: underline; }
+  .wins__track {
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+            mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  }
+  .wins__row {
+    display: flex;
+    gap: 12px;
+    width: max-content;
+    padding: 4px 0 8px;
+  }
+  .wins__row.is-moving { animation: wins-scroll var(--wins-dur, 60s) linear infinite; }
+  .wins__track:hover .wins__row { animation-play-state: paused; }
+  @keyframes wins-scroll { from { transform: translateX(0); } to { transform: translateX(calc(-50% - 6px)); } }
+  .win {
+    --rc: #AFA9EC;
+    --rc-bg: rgba(127,119,221,0.10);
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 260px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    text-decoration: none;
+    color: #fff;
+    background: var(--rc-bg);
+    border: 1px solid color-mix(in srgb, var(--rc) 35%, transparent);
+    transition: border-color .18s ease, transform .18s ease;
+  }
+  .win:hover { border-color: var(--rc); transform: translateY(-2px); }
+  .win--legendary { --rc: #F0997B; --rc-bg: rgba(216,90,48,0.10); }
+  .win--artifact  { --rc: #FAC775; --rc-bg: rgba(250,199,117,0.09); }
+  .win__top { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .win__rank { color: var(--rc); font-size: 14px; }
+  .win__nick { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .win__date { margin-left: auto; font-size: 11px; color: rgba(255,255,255,0.45); font-variant-numeric: tabular-nums; }
+  .win__prize {
+    font-size: 14px;
+    color: var(--rc);
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .win__quote {
+    font-size: 12px;
+    font-style: italic;
+    color: rgba(255,255,255,0.55);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   /* ========== СЕТКА КАРТОЧЕК ========== */
   .cards {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 16px;
-    max-width: 960px;
+    max-width: 1080px;
     margin: 0 auto;
   }
+  .cards:not(.has-tickets) .page-card--hall { grid-column: span 2; }
+  .page-card[hidden] { display: none; }
   .page-card {
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 14px;
-    padding: 24px 18px 22px;
-    text-align: center;
+    border-radius: 16px;
     text-decoration: none;
     color: #fff;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    min-height: 160px;
     transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
     position: relative;
     overflow: hidden;
-  }
-  .page-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at center top, rgba(250,199,117,0.08), transparent 60%);
-    opacity: 0;
-    transition: opacity 0.18s ease;
-    pointer-events: none;
   }
   .page-card:hover {
     transform: translateY(-3px);
@@ -220,37 +574,148 @@
     background: rgba(255,255,255,0.06);
     box-shadow: 0 14px 32px rgba(0,0,0,0.4), 0 0 24px rgba(250,199,117,0.1);
   }
-  .page-card:hover::before { opacity: 1; }
+  .page-card__art {
+    position: relative;
+    height: 170px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: radial-gradient(circle at 50% 120%, rgba(250,199,117,0.12), transparent 65%);
+  }
+  .page-card__bg {
+    position: absolute;
+    inset: -30px;
+    background-size: cover;
+    background-position: center;
+    filter: blur(26px) saturate(.9) brightness(.4);
+    opacity: .45;
+    transition: opacity .25s ease;
+  }
+  .page-card:hover .page-card__bg { opacity: .65; }
   .page-card__icon {
-    font-size: 36px;
+    position: relative;
+    font-size: 54px;
     line-height: 1;
-    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
+    filter: drop-shadow(0 4px 14px rgba(0,0,0,0.5));
+  }
+  .fan { position: relative; width: 100%; height: 100%; }
+  .fan__item {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 84px;
+    height: 126px;
+    margin: -63px 0 0 -42px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #1a2238;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.55);
+    border: 1px solid rgba(255,255,255,0.12);
+    transition: transform .3s cubic-bezier(.2,.8,.2,1);
+  }
+  .fan--wide .fan__item { width: 150px; height: 70px; margin: -35px 0 0 -75px; }
+  .fan__item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .fan__item:nth-child(1) { transform: translateX(-62px) rotate(-11deg); z-index: 1; }
+  .fan__item:nth-child(2) { transform: translateX(62px) rotate(11deg); z-index: 1; }
+  .fan__item:nth-child(3) { transform: translateY(-4px); z-index: 2; }
+  .page-card:hover .fan__item:nth-child(1) { transform: translateX(-78px) rotate(-15deg); }
+  .page-card:hover .fan__item:nth-child(2) { transform: translateX(78px) rotate(15deg); }
+  .page-card:hover .fan__item:nth-child(3) { transform: translateY(-10px) scale(1.05); }
+  .fan--wide .fan__item:nth-child(1) { transform: translate(-50px, -26px) rotate(-6deg); }
+  .fan--wide .fan__item:nth-child(2) { transform: translate(50px, 26px) rotate(6deg); }
+  .fan--wide .fan__item:nth-child(3) { transform: translateY(0); }
+  .page-card:hover .fan--wide .fan__item:nth-child(1) { transform: translate(-64px, -30px) rotate(-8deg); }
+  .page-card:hover .fan--wide .fan__item:nth-child(2) { transform: translate(64px, 30px) rotate(8deg); }
+  .page-card:hover .fan--wide .fan__item:nth-child(3) { transform: scale(1.06); }
+  .page-card__body {
+    padding: 16px 18px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
   }
   .page-card__title {
     font-size: 15px;
-    font-weight: 500;
+    font-weight: 600;
     letter-spacing: 2px;
     color: #FAC775;
     text-transform: uppercase;
-    margin: 4px 0 0;
   }
   .page-card__count {
     font-size: 12px;
     color: rgba(255,255,255,0.55);
     letter-spacing: 0.5px;
-    margin-top: auto;
     min-height: 16px;
   }
   .page-card__count .accent { color: #fff; font-weight: 600; }
 
-  @media (max-width: 720px) {
-    .hero { padding: 32px 16px 40px; }
-    .hero__name { font-size: 32px; letter-spacing: 3px; }
-    .hero__avatar-wrap { width: 110px; height: 110px; font-size: 38px; }
-    .cards { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  /* Зал Славы: большая цифра и разбивка по рангам вместо обложек */
+  .hall-art { position: relative; text-align: center; width: 100%; display: flex; flex-direction: column; align-items: center; }
+  .hall-art__num {
+    font-size: 72px;
+    font-weight: 700;
+    line-height: 1;
+    color: #FAC775;
+    text-shadow: 0 0 30px rgba(250,199,117,0.5);
+    font-variant-numeric: tabular-nums;
   }
-  @media (max-width: 420px) {
+  .hall-art__ranks {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .rank-pill {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(127,119,221,0.15);
+    color: #AFA9EC;
+  }
+  .rank-pill--legendary { background: rgba(240,153,123,0.15); color: #F0997B; }
+  .rank-pill--artifact  { background: rgba(250,199,117,0.15); color: #FAC775; }
+  .hall-art__last {
+    margin-top: 10px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.55);
+    max-width: min(420px, 100%);
+    padding: 0 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .hall-art__last b { color: #fff; }
+  .cards.has-tickets .hall-art__last { display: none; }
+  .cards.has-tickets .hall-art__num { font-size: 56px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wins__row.is-moving { animation: none; }
+    .wins__track { overflow-x: auto; }
+    .event__inner::after, .now__dot { animation: none; }
+  }
+
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; gap: 32px; padding: 36px 0 32px; }
+    .hero__name { font-size: 40px; }
+  }
+  @media (max-width: 720px) {
+    .hero__top { flex-direction: column; align-items: flex-start; gap: 14px; }
+    .hero__name { font-size: 32px; letter-spacing: 3px; }
+    .hero__avatar-wrap { width: 96px; height: 96px; font-size: 32px; }
+    .cards { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .page-card__art { height: 150px; }
+    .event__cta { margin-left: 0; }
+  }
+  @media (max-width: 480px) {
     .cards { grid-template-columns: 1fr; }
+    .cards:not(.has-tickets) .page-card--hall { grid-column: auto; }
+    .now-item__cover { width: 76px; height: 114px; }
+    .now-item__title { font-size: 16px; }
+    .win { width: 230px; }
   }
 </style>
 </head>
@@ -368,46 +833,87 @@
   })();
 </script>
 
-<main class="hero">
-  <div class="hero__avatar-wrap">
-    <img id="hero-avatar" class="hero__avatar" alt="" style="display:none;">
-    <span id="hero-avatar-fallback">PK</span>
+<!-- Розыгрыш: виден, только когда в листе Config raffle_active = TRUE -->
+<section class="event" id="event" hidden aria-label="Розыгрыш">
+  <a class="event__inner" href="tickets.html">
+    <span class="event__badge">🎟 Розыгрыш</span>
+    <span class="event__title" id="event-title">Идёт сбор билетов</span>
+    <span class="event__timer" id="event-timer"></span>
+    <span class="event__stats" id="event-stats"></span>
+    <span class="event__cta">Билеты →</span>
+  </a>
+</section>
+
+<main class="hero" id="hero">
+  <div class="hero__id">
+    <div class="hero__top">
+      <div class="hero__avatar-wrap">
+        <img id="hero-avatar" class="hero__avatar" alt="" style="display:none;">
+        <span id="hero-avatar-fallback">PK</span>
+      </div>
+      <h1 class="hero__name" id="hero-name">Stream</h1>
+    </div>
+    <p class="hero__intro" id="hero-intro">Добро пожаловать</p>
+    <a class="hero__cta hero__cta--hidden" id="hero-cta" href="#" target="_blank" rel="noopener">▶ Смотреть на Twitch</a>
+    <div class="week" id="week"></div>
   </div>
-  <h1 class="hero__name" id="hero-name">Stream</h1>
-  <p class="hero__intro" id="hero-intro">Добро пожаловать</p>
-  <a class="hero__cta hero__cta--hidden" id="hero-cta" href="#" target="_blank" rel="noopener">▶ Смотреть на Twitch</a>
+
+  <aside class="now" aria-labelledby="now-label">
+    <div class="now__label"><span class="now__dot" id="now-dot" hidden></span><span id="now-label">Афиша</span></div>
+    <div class="now__list" id="now-list"><div class="now__skeleton"></div></div>
+  </aside>
 </main>
 
-<section class="cards" aria-label="Разделы сайта">
-  <a class="page-card" href="hall.html">
-    <span class="page-card__icon">🏆</span>
-    <h2 class="page-card__title">Зал Славы</h2>
-    <p class="page-card__count" data-counter="hall">…</p>
+<section class="wins" id="wins" aria-labelledby="wins-label">
+  <div class="section-head">
+    <h2 id="wins-label">Последние победы в рулетке</h2>
+    <a href="hall.html">Весь Зал Славы →</a>
+  </div>
+  <div class="wins__track"><div class="wins__row" id="wins-row"></div></div>
+</section>
+
+<section class="cards" id="cards" aria-label="Разделы сайта">
+  <a class="page-card page-card--hall" href="hall.html">
+    <div class="page-card__art" id="art-hall"><span class="page-card__icon">🏆</span></div>
+    <div class="page-card__body">
+      <h2 class="page-card__title">Зал Славы</h2>
+      <p class="page-card__count" data-counter="hall">…</p>
+    </div>
   </a>
-  <a class="page-card" href="tickets.html">
-    <span class="page-card__icon">🎟️</span>
-    <h2 class="page-card__title">Билеты</h2>
-    <p class="page-card__count" data-counter="tickets">…</p>
+  <a class="page-card page-card--tickets" id="card-tickets" href="tickets.html" hidden>
+    <div class="page-card__art"><span class="page-card__icon">🎟️</span></div>
+    <div class="page-card__body">
+      <h2 class="page-card__title">Билеты</h2>
+      <p class="page-card__count" data-counter="tickets">…</p>
+    </div>
   </a>
   <a class="page-card" href="anime.html">
-    <span class="page-card__icon">⛩️</span>
-    <h2 class="page-card__title">Аниме</h2>
-    <p class="page-card__count" data-counter="anime">…</p>
+    <div class="page-card__art" id="art-anime"><span class="page-card__icon">⛩️</span></div>
+    <div class="page-card__body">
+      <h2 class="page-card__title">Аниме</h2>
+      <p class="page-card__count" data-counter="anime">…</p>
+    </div>
   </a>
   <a class="page-card" href="movies.html">
-    <span class="page-card__icon">🎬</span>
-    <h2 class="page-card__title">Фильмы</h2>
-    <p class="page-card__count" data-counter="movies">…</p>
+    <div class="page-card__art" id="art-movies"><span class="page-card__icon">🎬</span></div>
+    <div class="page-card__body">
+      <h2 class="page-card__title">Фильмы</h2>
+      <p class="page-card__count" data-counter="movies">…</p>
+    </div>
   </a>
   <a class="page-card" href="series.html">
-    <span class="page-card__icon">📺</span>
-    <h2 class="page-card__title">Сериалы</h2>
-    <p class="page-card__count" data-counter="series">…</p>
+    <div class="page-card__art" id="art-series"><span class="page-card__icon">📺</span></div>
+    <div class="page-card__body">
+      <h2 class="page-card__title">Сериалы</h2>
+      <p class="page-card__count" data-counter="series">…</p>
+    </div>
   </a>
   <a class="page-card" href="games.html">
-    <span class="page-card__icon">🎮</span>
-    <h2 class="page-card__title">Игры</h2>
-    <p class="page-card__count" data-counter="games">…</p>
+    <div class="page-card__art" id="art-games"><span class="page-card__icon">🎮</span></div>
+    <div class="page-card__body">
+      <h2 class="page-card__title">Игры</h2>
+      <p class="page-card__count" data-counter="games">…</p>
+    </div>
   </a>
 </section>
 
@@ -436,19 +942,32 @@ function parseCSV(text) {
   return rows;
 }
 
-function rowsToConfig(rows) {
-  if (rows.length < 2) return {};
+// Строки CSV -> объекты по заголовкам (заголовки в нижнем регистре), пустые строки отбрасываются
+function rowsToObjects(rows) {
+  if (rows.length < 2) return [];
   const headers = rows[0].map(h => h.trim().toLowerCase());
-  const keyIdx = headers.indexOf('key');
-  const valIdx = headers.indexOf('value');
-  if (keyIdx < 0 || valIdx < 0) return {};
+  return rows.slice(1)
+    .filter(r => r.some(c => (c || '').trim().length > 0))
+    .map(r => {
+      const o = {};
+      headers.forEach((h, i) => { o[h] = (r[i] || '').trim(); });
+      return o;
+    });
+}
+
+function rowsToConfig(rows) {
   const config = {};
-  rows.slice(1).forEach(r => {
-    if (r.length > 0 && r[keyIdx]) {
-      config[r[keyIdx].trim().toLowerCase()] = (r[valIdx] || '').trim();
-    }
+  rowsToObjects(rows).forEach(r => {
+    if (r.key) config[r.key.toLowerCase()] = r.value || '';
   });
   return config;
+}
+
+async function fetchRows(url) {
+  if (!url) throw new Error('нет ссылки');
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return parseCSV(await res.text());
 }
 
 function isValidUrl(s) {
@@ -461,61 +980,44 @@ function isValidUrl(s) {
   }
 }
 
+// Обложка для витрины: гифки (часто мемы-заглушки) не берём
+function isNiceCover(s) {
+  return isValidUrl(s) && !/\.gif(\?|$)|tenor\.com|giphy\.com/i.test(s);
+}
+
+function isTruthy(v) {
+  return ['true', 'yes', '1', 'да'].includes(String(v || '').trim().toLowerCase());
+}
+
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   }[c]));
 }
 
-function rowsToCount(rows) {
-  if (rows.length < 2) return 0;
-  return rows.slice(1).filter(r => r.some(c => (c || '').trim().length > 0)).length;
+// plural(5, ['победа','победы','побед']) -> 'побед'
+function plural(n, forms) {
+  const a = Math.abs(n) % 100, b = a % 10;
+  if (a > 10 && a < 20) return forms[2];
+  if (b === 1) return forms[0];
+  if (b >= 2 && b <= 4) return forms[1];
+  return forms[2];
 }
 
-function getColIdx(rows, name) {
-  if (rows.length < 1) return -1;
-  return rows[0].map(h => h.trim().toLowerCase()).indexOf(name.toLowerCase());
+// Google Sheets (EU locale) отдаёт даты как DD.MM.YYYY — Date() прочитал бы их как MM.DD
+function parseSheetDate(str) {
+  if (!str) return null;
+  const s = String(str).trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0));
+  m = s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if (m) return new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0));
+  const t = Date.parse(s);
+  return isNaN(t) ? null : new Date(t);
 }
-
-function summarizeStatusList(rows, statusGroups) {
-  // statusGroups example: { active: ['pending','watching'], done: ['watched'] }
-  const idx = getColIdx(rows, 'status');
-  if (idx < 0 || rows.length < 2) {
-    const out = {};
-    Object.keys(statusGroups).forEach(k => out[k] = 0);
-    out.total = 0;
-    return out;
-  }
-  const out = {};
-  Object.keys(statusGroups).forEach(k => out[k] = 0);
-  out.total = 0;
-  rows.slice(1).forEach(r => {
-    if (!r.some(c => (c || '').trim().length > 0)) return;
-    const status = (r[idx] || '').trim().toLowerCase();
-    out.total++;
-    Object.keys(statusGroups).forEach(group => {
-      if (statusGroups[group].includes(status)) out[group]++;
-    });
-  });
-  return out;
-}
-
-function summarizeTickets(rows) {
-  const silverIdx = getColIdx(rows, 'silver');
-  const goldIdx = getColIdx(rows, 'gold');
-  if (rows.length < 2) return { participants: 0, totalTickets: 0 };
-  let participants = 0;
-  let totalTickets = 0;
-  rows.slice(1).forEach(r => {
-    if (!r.some(c => (c || '').trim().length > 0)) return;
-    const silver = parseInt((silverIdx >= 0 ? (r[silverIdx] || '0') : '0').trim(), 10) || 0;
-    const gold = parseInt((goldIdx >= 0 ? (r[goldIdx] || '0') : '0').trim(), 10) || 0;
-    if (silver + gold > 0) {
-      participants++;
-      totalTickets += silver + gold;
-    }
-  });
-  return { participants, totalTickets };
+function dateTs(str) {
+  const d = parseSheetDate(str);
+  return d && !isNaN(d.getTime()) ? d.getTime() : 0;
 }
 
 function setCounter(key, html) {
@@ -523,6 +1025,7 @@ function setCounter(key, html) {
   if (el) el.innerHTML = html;
 }
 
+// ===== Конфиг: имя, интро, аватар, Twitch, розыгрыш =====
 function applyConfig(config) {
   const name = (config.streamer_name || '').trim();
   const intro = (config.streamer_intro || '').trim();
@@ -544,7 +1047,10 @@ function applyConfig(config) {
     const fb = document.getElementById('hero-avatar-fallback');
     img.onload = () => { img.style.display = 'block'; fb.style.display = 'none'; };
     img.onerror = () => { img.style.display = 'none'; fb.style.display = ''; };
-    img.src = avatar;
+    // Twitch отдаёт аватар в нескольких размерах — 70x70 на большом круге мылит, берём 300x300
+    img.src = /jtvnw\.net/.test(avatar)
+      ? avatar.replace(/-profile_image-\d+x\d+\./, '-profile_image-300x300.')
+      : avatar;
     img.alt = name || 'Avatar';
   }
 
@@ -553,67 +1059,449 @@ function applyConfig(config) {
     cta.href = twitch;
     cta.classList.remove('hero__cta--hidden');
   }
+
+  setupRaffle(config);
 }
 
-async function loadAndCount(url, key, mapper, fallbackText) {
-  if (!url) {
-    setCounter(key, '—');
-    return;
+// ===== Розыгрыш: включается/выключается ключом raffle_active в листе Config =====
+let raffleTimer = null;
+
+function setupRaffle(config) {
+  const active = isTruthy(config.raffle_active);
+  const ticketsNav = document.querySelector('.site-nav__links a[href="tickets.html"]');
+  if (ticketsNav) ticketsNav.parentElement.hidden = !active;
+  if (!active) return;
+
+  document.getElementById('event').hidden = false;
+  document.getElementById('card-tickets').hidden = false;
+  document.getElementById('cards').classList.add('has-tickets');
+  if (config.raffle_title) document.getElementById('event-title').textContent = config.raffle_title;
+
+  const date = parseSheetDate(config.raffle_date);
+  const timerEl = document.getElementById('event-timer');
+  if (date && !isNaN(date.getTime())) {
+    const tick = () => {
+      const diff = date - Date.now();
+      if (diff <= 0) {
+        timerEl.textContent = '⚡ Розыгрыш уже идёт!';
+        clearInterval(raffleTimer);
+        return;
+      }
+      const d = Math.floor(diff / 86400000);
+      const h = Math.floor(diff / 3600000) % 24;
+      const m = Math.floor(diff / 60000) % 60;
+      const s = Math.floor(diff / 1000) % 60;
+      const pad = n => String(n).padStart(2, '0');
+      timerEl.textContent = (d > 0 ? `${d} д ` : '') + `${pad(h)}:${pad(m)}:${pad(s)}`;
+    };
+    tick();
+    raffleTimer = setInterval(tick, 1000);
   }
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const text = await res.text();
-    const rows = parseCSV(text);
-    setCounter(key, mapper(rows));
-  } catch (err) {
-    console.warn(`Counter "${key}" failed:`, err.message);
-    setCounter(key, fallbackText || '—');
+
+  fetchRows(TICKETS_CSV_URL)
+    .then(rows => {
+      let participants = 0, total = 0;
+      rowsToObjects(rows).forEach(r => {
+        const n = (parseInt(r.silver, 10) || 0) + (parseInt(r.gold, 10) || 0);
+        if (n > 0) { participants++; total += n; }
+      });
+      const stats = participants === 0
+        ? 'пока нет участников — будь первым'
+        : `<b>${participants}</b> ${plural(participants, ['участник', 'участника', 'участников'])} · <b>${total}</b> ${plural(total, ['билет', 'билета', 'билетов'])}`;
+      document.getElementById('event-stats').innerHTML = stats;
+      setCounter('tickets', stats.replace(/<b>/g, '<span class="accent">').replace(/<\/b>/g, '</span>'));
+    })
+    .catch(err => {
+      console.warn('Tickets load failed:', err.message);
+      setCounter('tickets', '—');
+    });
+}
+
+// ===== Списки заказов =====
+const CATS = {
+  anime:  { url: ANIME_CSV_URL,  page: 'anime.html',  label: 'Аниме',  icon: '⛩️', active: ['watching'], done: ['watched'] },
+  movies: { url: MOVIES_CSV_URL, page: 'movies.html', label: 'Фильм',  icon: '🎬', active: ['watching'], done: ['watched'] },
+  series: { url: SERIES_CSV_URL, page: 'series.html', label: 'Сериал', icon: '📺', active: ['watching'], done: ['watched'] },
+  games:  { url: GAMES_CSV_URL,  page: 'games.html',  label: 'Игра',   icon: '🎮', active: ['playing'],  done: ['completed'], wide: true },
+};
+
+function statusOf(item) { return (item.status || 'pending').toLowerCase(); }
+
+function countText(key, items) {
+  if (items.length === 0) return 'пока пусто';
+  const cat = CATS[key];
+  const queued = items.filter(i => statusOf(i) === 'pending').length;
+  const active = items.filter(i => cat.active.includes(statusOf(i))).length;
+  const done = items.filter(i => cat.done.includes(statusOf(i))).length;
+  const parts = [`<span class="accent">${queued}</span> в очереди`];
+  if (active > 0) parts.push(`<span class="accent">${active}</span> ${key === 'games' ? 'играем' : 'смотрим'}`);
+  parts.push(`<span class="accent">${done}</span> ${key === 'games' ? 'пройдено' : 'просмотрено'}`);
+  return parts.join(' · ');
+}
+
+// Веер из трёх свежих обложек очереди; если обложек нет — остаётся эмодзи
+function renderFan(key, items) {
+  const art = document.getElementById('art-' + key);
+  if (!art) return;
+  const covers = items
+    .filter(i => statusOf(i) === 'pending' && isNiceCover(i.cover_url))
+    .map((i, idx) => ({ i, idx }))
+    .sort((a, b) => (dateTs(b.i.date_added) - dateTs(a.i.date_added)) || (b.idx - a.idx))
+    .slice(0, 3)
+    .map(x => x.i);
+  if (covers.length === 0) return;
+  // Порядок в DOM: левая, правая, центральная (центральная — самая свежая, рисуется сверху)
+  const order = covers.length === 3 ? [covers[1], covers[2], covers[0]]
+              : covers.length === 2 ? [covers[1], covers[0]]
+              : [covers[0]];
+  const fanItems = order.map((c, n) => {
+    const pos = order.length === 1 ? ' style="transform:none"' : (order.length === 2 && n === 1 ? ' style="z-index:2"' : '');
+    return `<div class="fan__item"${pos}><img src="${esc(c.cover_url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.remove()"></div>`;
+  }).join('');
+  art.innerHTML = `
+    <div class="page-card__bg" style="background-image:url('${esc(covers[0].cover_url)}')"></div>
+    <div class="fan${CATS[key].wide ? ' fan--wide' : ''}">${fanItems}</div>`;
+}
+
+function progressOf(key, it) {
+  if (key === 'games') {
+    const pct = parseFloat((it.progress_percent || '').replace(',', '.'));
+    const hours = parseFloat((it.hours_played || '').replace(',', '.'));
+    const bits = [];
+    if (pct > 0) bits.push(`${Math.round(pct)}%`);
+    if (hours > 0) bits.push(`${hours % 1 ? hours.toFixed(1) : hours} ч в игре`);
+    return { pct: pct > 0 ? Math.min(100, pct) : null, text: bits.join(' · ') };
   }
+  const total = parseInt(it.episodes_total, 10);
+  const watched = parseInt(it.episodes_watched, 10);
+  if (total > 0 && watched >= 0) {
+    const ofForm = (total % 10 === 1 && total % 100 !== 11) ? 'серии' : 'серий';
+    return { pct: Math.min(100, watched / total * 100), text: `${watched} из ${total} ${ofForm}` };
+  }
+  if (total > 0) return { pct: null, text: `${total} ${plural(total, ['серия', 'серии', 'серий'])}` };
+  return { pct: null, text: '' };
+}
+
+// ===== Расписание недели =====
+// Лист Config: schedule_sun … schedule_sat = "17:00-22:00" (пусто = выходной), picker_time, movie_time.
+// Пока ключей в Config нет — действует расписание ниже.
+const DAY_KEYS  = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];   // индекс = Date.getDay()
+const DAY_SHORT = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+const DAY_IN    = ['в воскресенье', 'в понедельник', 'во вторник', 'в среду', 'в четверг', 'в пятницу', 'в субботу'];
+const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+
+let SCHEDULE = {
+  days: { sun: '17:00-22:00', mon: '17:00-22:00', tue: '17:00-22:00', wed: '17:00-22:00', thu: '17:00-22:00', fri: '14:00-18:00', sat: '' },
+  picker: '19:00',
+  movie: '20:00',
+};
+
+function applyScheduleConfig(config) {
+  DAY_KEYS.forEach(k => {
+    if (('schedule_' + k) in config) SCHEDULE.days[k] = config['schedule_' + k];
+  });
+  if (parseHM(config.picker_time)) SCHEDULE.picker = config.picker_time;
+  if (parseHM(config.movie_time)) SCHEDULE.movie = config.movie_time;
+}
+
+function parseHM(s) {
+  const m = String(s || '').match(/(\d{1,2})[:.](\d{2})/);
+  return m ? { h: +m[1], m: +m[2] } : null;
+}
+function parseRange(s) {
+  const m = String(s || '').match(/(\d{1,2})[:.](\d{2})\s*[-–—]\s*(\d{1,2})[:.](\d{2})/);
+  return m ? { start: { h: +m[1], m: +m[2] }, end: { h: +m[3], m: +m[4] } } : null;
+}
+function atTime(day, hm) {
+  const d = new Date(day);
+  d.setHours(hm.h, hm.m, 0, 0);
+  return d;
+}
+function startOfDay(d) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+function addDays(d, n) {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+}
+const pad2 = n => String(n).padStart(2, '0');
+const fmtHM = d => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+
+// Окно стрима в этот день: { start, end } или null (выходной)
+function streamWindow(day) {
+  const r = parseRange(SCHEDULE.days[DAY_KEYS[day.getDay()]]);
+  if (!r) return null;
+  return { start: atTime(day, r.start), end: atTime(day, r.end) };
+}
+
+// Ближайший стрим (начиная с from), в окно которого попадает время hm
+function nextStreamAt(from, hm, includeFrom) {
+  for (let i = 0; i < 14; i++) {
+    const day = addDays(startOfDay(from), i);
+    const w = streamWindow(day);
+    if (!w) continue;
+    const t = atTime(day, hm);
+    if (t >= w.start && t < w.end && (includeFrom ? t > from : t >= addDays(startOfDay(from), 1))) return t;
+  }
+  return null;
+}
+
+function dayPhrase(d, now) {
+  const diff = Math.round((startOfDay(d) - startOfDay(now)) / 86400000);
+  if (diff === 0) return 'сегодня';
+  if (diff === 1) return 'завтра';
+  return DAY_IN[d.getDay()];
+}
+
+function renderWeek() {
+  const now = new Date();
+  const order = [1, 2, 3, 4, 5, 6, 0];
+  const short = hm => hm.m ? `${hm.h}:${pad2(hm.m)}` : String(hm.h);
+  const days = order.map(i => {
+    const r = parseRange(SCHEDULE.days[DAY_KEYS[i]]);
+    const cls = ['week__day'];
+    if (!r) cls.push('is-off');
+    if (i === now.getDay()) cls.push('is-today');
+    const time = r ? `${short(r.start)}–${short(r.end)}` : 'отдых';
+    return `<div class="${cls.join(' ')}"${i === now.getDay() ? ' aria-current="date"' : ''}>
+      <span class="week__name">${DAY_SHORT[i]}</span><span class="week__time">${time}</span></div>`;
+  }).join('');
+  document.getElementById('week').innerHTML = `
+    <div class="week__label">Расписание стримов</div>
+    <div class="week__days">${days}</div>
+    <p class="week__note">По вечерам: <b>${esc(SCHEDULE.picker)}</b> рулетка заказов · <b>${esc(SCHEDULE.movie)}</b> кино-вечер. Иногда начинаю раньше.</p>`;
+}
+
+// ===== Афиша: анонсы из колонки scheduled_at + то, что смотрим/играем сейчас =====
+const SHOW_CATS = ['anime', 'movies', 'series'];
+const FORMAT_LABEL = { sub: 'с субтитрами', dub: 'в озвучке' };
+let afishaLists = null;
+
+// Когда показ «закончился»: конец стрима в тот день, иначе +4 часа
+function showEnd(start) {
+  const w = streamWindow(start);
+  if (w && w.end > start) return w.end;
+  return new Date(start.getTime() + 4 * 3600000);
+}
+
+function relText(start, now) {
+  const mins = Math.round((start - now) / 60000);
+  const days = Math.round((startOfDay(start) - startOfDay(now)) / 86400000);
+  if (days >= 2) return `через ${days} ${plural(days, ['день', 'дня', 'дней'])}`;
+  if (days === 1) return 'завтра';
+  if (mins >= 60) {
+    const h = Math.floor(mins / 60), m = mins % 60;
+    return `через ${h} ч${m ? ` ${m} мин` : ''}`;
+  }
+  return `через ${Math.max(1, mins)} мин`;
+}
+
+function renderNowItem(it, opts) {
+  opts = opts || {};
+  const cat = CATS[it._cat];
+  const cover = isValidUrl(it.cover_url) ? it.cover_url : '';
+  const prog = opts.noProgress ? { pct: null, text: '' } : progressOf(it._cat, it);
+  let type = it._cat === 'movies' && (it.type || '').toLowerCase() === 'youtube' ? 'YouTube' : cat.label;
+  const fmt = FORMAT_LABEL[(it.format || '').toLowerCase()];
+  if (fmt) type += ' · ' + fmt;
+  const meta = opts.meta != null ? opts.meta : prog.text;
+  return `
+    <a class="now-item${cat.wide ? ' now-item--wide' : ''}${opts.big ? ' now-item--big' : ''}" href="${cat.page}">
+      ${cover ? `<div class="now-item__glow" style="background-image:url('${esc(cover)}')"></div>` : ''}
+      <div class="now-item__cover">${cover
+        ? `<img src="${esc(cover)}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith(document.createTextNode('${cat.icon}'))">`
+        : cat.icon}</div>
+      <div class="now-item__body">
+        <span class="now-item__type">${esc(type)}</span>
+        <h3 class="now-item__title">${esc(it.title || 'Без названия')}</h3>
+        ${opts.when ? `<div class="now-item__when">${esc(opts.when)}</div>` : ''}
+        ${opts.rel ? `<span class="now-item__rel${opts.live ? ' now-item__rel--live' : ''}">${esc(opts.rel)}</span>` : ''}
+        ${it.nick ? `<p class="now-item__by">заказ от <b>${esc(it.nick)}</b></p>` : ''}
+        ${prog.pct != null ? `<div class="now-item__bar"><span style="width:${prog.pct.toFixed(1)}%"></span></div>` : ''}
+        ${meta ? `<p class="now-item__meta">${esc(meta)}</p>` : ''}
+      </div>
+    </a>`;
+}
+
+function renderRitual(now) {
+  const picker = nextStreamAt(now, parseHM(SCHEDULE.picker), true);
+  const movie = picker ? nextStreamAt(picker, parseHM(SCHEDULE.movie), false) : null;
+  let next = '';
+  if (picker) {
+    next = `Ближайшая рулетка — <b>${dayPhrase(picker, now)} в ${fmtHM(picker)}</b>.`;
+    if (movie) next += ` Что выпадет, смотрим <b>${dayPhrase(movie, now)} в ${fmtHM(movie)}</b>.`;
+  }
+  return `
+    <div class="ritual">
+      <div class="ritual__row"><span class="ritual__time">${esc(SCHEDULE.picker)}</span><span>Рулетка заказов: зрители решают, что смотрим дальше</span></div>
+      <div class="ritual__row"><span class="ritual__time">${esc(SCHEDULE.movie)}</span><span>Кино-вечер: смотрим победителя прошлой рулетки</span></div>
+      ${next ? `<p class="ritual__next">${next}</p>` : ''}
+      <a href="picker.html">Рулетка заказов →</a>
+    </div>`;
+}
+
+function renderNow() {
+  const lists = afishaLists;
+  if (!lists) return;
+  const now = new Date();
+  const all = [];
+  Object.keys(lists).forEach(key => (lists[key] || []).forEach(it => all.push({ ...it, _cat: key })));
+
+  // Анонсы: есть дата, не досмотрено и не на паузе, показ ещё не закончился
+  const shows = all
+    .filter(it => SHOW_CATS.includes(it._cat) && it.scheduled_at && !['watched', 'paused'].includes(statusOf(it)))
+    .map(it => {
+      let start = parseSheetDate(it.scheduled_at);
+      if (!start || isNaN(start.getTime())) return null;
+      // Только дата без времени — значит в обычное время кино-вечера
+      if (start.getHours() === 0 && start.getMinutes() === 0) start = atTime(start, parseHM(SCHEDULE.movie));
+      return { ...it, _start: start, _end: showEnd(start) };
+    })
+    .filter(it => it && it._end > now)
+    .sort((a, b) => a._start - b._start);
+
+  const shownKeys = new Set(shows.map(s => s._cat + '|' + s.title + '|' + s.nick));
+  const continuing = all.filter(it =>
+    CATS[it._cat].active.includes(statusOf(it)) && !shownKeys.has(it._cat + '|' + it.title + '|' + it.nick));
+
+  const live = shows.length > 0 && shows[0]._start <= now;
+  document.getElementById('now-dot').hidden = !live;
+  document.getElementById('now-label').textContent = live ? 'Смотрим прямо сейчас' : 'Афиша';
+
+  const parts = [];
+  if (shows.length > 0) {
+    const s = shows[0];
+    parts.push(renderNowItem(s, {
+      big: true,
+      noProgress: s._cat === 'movies',
+      when: `${DAY_SHORT[s._start.getDay()]}, ${s._start.getDate()} ${MONTHS_GEN[s._start.getMonth()]} · ${fmtHM(s._start)}`,
+      rel: live ? 'идёт сейчас' : relText(s._start, now),
+      live,
+    }));
+    shows.slice(1, 3).forEach(n => parts.push(renderNowItem(n, {
+      noProgress: true,
+      meta: `${dayPhrase(n._start, now)}, ${n._start.getDate()} ${MONTHS_GEN[n._start.getMonth()]} в ${fmtHM(n._start)}`,
+    })));
+  } else {
+    parts.push(renderRitual(now));
+  }
+  const room = shows.length > 0 ? Math.max(0, 3 - Math.min(shows.length, 3)) : 2;
+  if (continuing.length > 0 && room > 0) {
+    parts.push(`<div class="now__sub">Продолжаем</div>`);
+    continuing.slice(0, room).forEach(it => parts.push(renderNowItem(it)));
+  }
+  document.getElementById('now-list').innerHTML = parts.join('');
+}
+
+// ===== Зал Славы: лента последних побед + карточка =====
+const RANKS = {
+  epic:      { label: 'Эпическая',  symbol: '◆', forms: ['эпическая', 'эпических', 'эпических'] },
+  legendary: { label: 'Легендарка', symbol: '★', forms: ['легендарка', 'легендарки', 'легендарок'] },
+  artifact:  { label: 'Артефакт',   symbol: '✦', forms: ['артефакт', 'артефакта', 'артефактов'] },
+};
+
+function cleanQuote(q) {
+  const s = String(q || '').trim().replace(/^["«„“']+|["»“”']+$/g, '').trim();
+  return /^[?!.\s-]*$/.test(s) ? '' : s;
+}
+
+function renderWins(rows) {
+  const wins = rowsToObjects(rows)
+    .filter(w => w.nick && w.prize)
+    .map((w, idx) => ({ ...w, rank: (w.rank || '').toLowerCase(), _idx: idx, _ts: dateTs(w.date) }));
+
+  // Карточка Зала Славы
+  const n = wins.length;
+  setCounter('hall', `<span class="accent">${n}</span> ${plural(n, ['победа', 'победы', 'побед'])}`);
+  const recent = wins.slice().sort((a, b) => (b._ts - a._ts) || (b._idx - a._idx));
+  if (n > 0) {
+    const pills = ['artifact', 'legendary', 'epic']
+      .map(r => {
+        const c = wins.filter(w => w.rank === r).length;
+        return c ? `<span class="rank-pill rank-pill--${r}">${RANKS[r].symbol} ${c} ${plural(c, RANKS[r].forms)}</span>` : '';
+      }).join('');
+    const last = recent[0];
+    document.getElementById('art-hall').innerHTML = `
+      <div class="hall-art">
+        <div class="hall-art__num">${n}</div>
+        <div class="hall-art__ranks">${pills}</div>
+        <div class="hall-art__last">последний: <b>${esc(last.nick)}</b> — ${esc(last.prize)}</div>
+      </div>`;
+  }
+
+  // Лента
+  const section = document.getElementById('wins');
+  const row = document.getElementById('wins-row');
+  const top = recent.slice(0, 16);
+  if (top.length === 0) { section.hidden = true; return; }
+  const chips = top.map(w => {
+    const r = RANKS[w.rank] || RANKS.epic;
+    const quote = cleanQuote(w.quote);
+    const d = parseSheetDate(w.date);
+    const dd = d && !isNaN(d.getTime()) ? `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}` : '';
+    return `
+      <a class="win win--${esc(w.rank)}" href="hall.html" title="${esc(r.label)}: ${esc(w.prize)}">
+        <span class="win__top"><span class="win__rank">${r.symbol}</span><span class="win__nick">${esc(w.nick)}</span><span class="win__date">${dd}</span></span>
+        <span class="win__prize">${esc(w.prize)}</span>
+        ${quote ? `<span class="win__quote">«${esc(quote)}»</span>` : ''}
+      </a>`;
+  }).join('');
+
+  // Бесконечная прокрутка: дублируем ленту, но только если она шире экрана
+  row.innerHTML = chips;
+  requestAnimationFrame(() => {
+    if (row.scrollWidth <= row.parentElement.clientWidth) return;
+    row.insertAdjacentHTML('beforeend', chips.replace(/<a /g, '<a tabindex="-1" aria-hidden="true" '));
+    row.style.setProperty('--wins-dur', `${top.length * 5}s`);
+    row.classList.add('is-moving');
+  });
 }
 
 async function loadAll() {
-  // Config first (controls hero rendering)
-  fetch(CONFIG_CSV_URL)
-    .then(r => r.ok ? r.text() : Promise.reject(new Error('Config HTTP ' + r.status)))
-    .then(text => applyConfig(rowsToConfig(parseCSV(text))))
+  renderWeek();
+
+  const configReady = fetchRows(CONFIG_CSV_URL)
+    .then(rows => {
+      const config = rowsToConfig(rows);
+      applyConfig(config);
+      applyScheduleConfig(config);
+      renderWeek();
+    })
     .catch(err => console.warn('Config load failed:', err.message));
 
-  // 6 counters in parallel — each independently survives errors
-  loadAndCount(WINNERS_CSV_URL, 'hall', (rows) => {
-    const n = rowsToCount(rows);
-    return `<span class="accent">${n}</span> ${n === 1 ? 'победа' : (n >= 2 && n <= 4 ? 'победы' : 'побед')}`;
-  });
+  fetchRows(WINNERS_CSV_URL)
+    .then(renderWins)
+    .catch(err => {
+      console.warn('Winners load failed:', err.message);
+      setCounter('hall', '—');
+      document.getElementById('wins').hidden = true;
+    });
 
-  loadAndCount(TICKETS_CSV_URL, 'tickets', (rows) => {
-    const t = summarizeTickets(rows);
-    if (t.participants === 0) return 'нет участников';
-    return `<span class="accent">${t.participants}</span> участников · <span class="accent">${t.totalTickets}</span> билетов`;
-  });
-
-  loadAndCount(ANIME_CSV_URL, 'anime', (rows) => {
-    const s = summarizeStatusList(rows, { active: ['pending','watching'], done: ['watched'] });
-    if (s.total === 0) return 'пока пусто';
-    return `<span class="accent">${s.active}</span> в очереди · <span class="accent">${s.done}</span> просмотрено`;
-  });
-
-  loadAndCount(MOVIES_CSV_URL, 'movies', (rows) => {
-    const s = summarizeStatusList(rows, { active: ['pending','watching'], done: ['watched'] });
-    if (s.total === 0) return 'пока пусто';
-    return `<span class="accent">${s.active}</span> в очереди · <span class="accent">${s.done}</span> просмотрено`;
-  });
-
-  loadAndCount(SERIES_CSV_URL, 'series', (rows) => {
-    const s = summarizeStatusList(rows, { active: ['pending','watching'], done: ['watched'] });
-    if (s.total === 0) return 'пока пусто';
-    return `<span class="accent">${s.active}</span> в очереди · <span class="accent">${s.done}</span> просмотрено`;
-  });
-
-  loadAndCount(GAMES_CSV_URL, 'games', (rows) => {
-    const s = summarizeStatusList(rows, { pending: ['pending'], playing: ['playing'] });
-    if (s.total === 0) return 'пока пусто';
-    return `<span class="accent">${s.pending}</span> в очереди · <span class="accent">${s.playing}</span> играем`;
-  });
+  // Списки грузятся параллельно; каждый переживает свою ошибку
+  const keys = Object.keys(CATS);
+  const results = await Promise.all(keys.map(key =>
+    fetchRows(CATS[key].url)
+      .then(rows => {
+        const items = rowsToObjects(rows);
+        setCounter(key, countText(key, items));
+        renderFan(key, items);
+        return items;
+      })
+      .catch(err => {
+        console.warn(`List "${key}" failed:`, err.message);
+        setCounter(key, '—');
+        return [];
+      })
+  ));
+  afishaLists = {};
+  keys.forEach((k, i) => { afishaLists[k] = results[i]; });
+  await configReady;   // афише нужно расписание (конец стрима, время рулетки)
+  renderNow();
+  // Раз в минуту: «через 2 ч» → «через 1 ч», анонс сам переключается на «идёт сейчас»
+  setInterval(() => { renderNow(); renderWeek(); }, 60000);
 }
 
 loadAll();

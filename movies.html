@@ -297,6 +297,13 @@
   .badge--pending { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.65); border-color: rgba(255,255,255,0.18); }
   .badge--watching { background: rgba(250,199,117,0.15); color: #FAC775; border-color: rgba(250,199,117,0.4); }
   .badge--watched { background: rgba(151,196,89,0.15); color: #97C459; border-color: rgba(151,196,89,0.4); }
+  .badge--paused { background: rgba(136,180,245,0.12); color: #88B4F5; border-color: rgba(136,180,245,0.35); }
+  .badge--show { background: rgba(250,199,117,0.18); color: #FAC775; border-color: rgba(250,199,117,0.55); font-weight: 600; }
+  .mcard.is-scheduled { border-color: rgba(250,199,117,0.45); box-shadow: 0 0 22px rgba(250,199,117,0.10); }
+  .mcard.is-paused { opacity: 0.75; }
+  .mcard.is-paused:hover { opacity: 0.95; }
+  .badge--dub { background: rgba(80,140,250,0.18); color: #88B4F5; border-color: rgba(80,140,250,0.35); }
+  .badge--sub { background: rgba(170,130,240,0.18); color: #C5A9F8; border-color: rgba(170,130,240,0.35); }
   .badge--rating { background: rgba(250,199,117,0.15); color: #FAC775; border-color: rgba(250,199,117,0.4); font-weight: 600; }
 
   .mcard__date {
@@ -522,6 +529,7 @@
       <button class="f-btn is-active" data-status="all">Все <span class="count" id="cnt-all">0</span></button>
       <button class="f-btn" data-status="pending">В очереди <span class="count" id="cnt-pending">0</span></button>
       <button class="f-btn" data-status="watching">Смотрим <span class="count" id="cnt-watching">0</span></button>
+      <button class="f-btn" data-status="paused">На паузе <span class="count" id="cnt-paused">0</span></button>
       <button class="f-btn" data-status="watched">Просмотрено <span class="count" id="cnt-watched">0</span></button>
     </div>
   </div>
@@ -613,6 +621,8 @@ function rowsToMovies(rows, viewersMap) {
     date_added:     headers.indexOf('date_added'),
     date_completed: headers.indexOf('date_completed'),
     notes:          headers.indexOf('notes'),
+    scheduled_at: headers.indexOf('scheduled_at'),
+    format: headers.indexOf('format'),
   };
   if (idx.nick < 0 || idx.title < 0) return [];
   return rows.slice(1)
@@ -622,7 +632,7 @@ function rowsToMovies(rows, viewersMap) {
       const nick = get(idx.nick);
       const viewer = viewersMap[nick.toLowerCase()] || {};
       const rawStatus = get(idx.status).toLowerCase();
-      const status = ['pending', 'watching', 'watched'].includes(rawStatus) ? rawStatus : 'pending';
+      const status = ['pending', 'watching', 'paused', 'watched'].includes(rawStatus) ? rawStatus : 'pending';
       const rawType = get(idx.type).toLowerCase();
       const type = ['movie', 'youtube', 'other'].includes(rawType) ? rawType : 'other';
       const ratingRaw = get(idx.rating).replace(',', '.');
@@ -641,11 +651,13 @@ function rowsToMovies(rows, viewersMap) {
         date_added: get(idx.date_added),
         date_completed: get(idx.date_completed),
         notes: get(idx.notes),
+        scheduled_at: get(idx.scheduled_at),
+        format: ['sub', 'dub'].includes(get(idx.format).toLowerCase()) ? get(idx.format).toLowerCase() : '',
       };
     });
 }
 
-const STATUS_WEIGHT = { watching: 0, pending: 1, watched: 2 };
+const STATUS_WEIGHT = { watching: 0, pending: 1, paused: 2, watched: 3 };
 // Google Sheets (EU locale) exports dates as DD.MM.YYYY.
 // native Date("12.04.2026") wrongly reads that as Dec 4 — parse day-first explicitly.
 function parseSheetDate(str) {
@@ -690,6 +702,9 @@ function sortItems(items, statusFilter, sortMode) {
       if (da !== db) return db - da;
       return a._order - b._order;
     }
+    const ua = upcomingTs(a), ub = upcomingTs(b);
+    if (!!ua !== !!ub) return ua ? -1 : 1;
+    if (ua !== ub) return ua - ub;
     const sw = (STATUS_WEIGHT[a.status] ?? 9) - (STATUS_WEIGHT[b.status] ?? 9);
     if (sw !== 0) return sw;
     const da = parseDateTs(a.date_added);
@@ -743,9 +758,32 @@ function formatShortDate(iso) {
   return `${d.getDate()} ${MONTHS_RU[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+const WEEKDAYS_RU = ['вс','пн','вт','ср','чт','пт','сб'];
+// Дата показа из scheduled_at: «сегодня в 20:00», «завтра в 18:00», «вс, 4 окт в 18:00»
+function formatShowTime(str) {
+  const d = parseSheetDate(str);
+  if (!d || isNaN(d.getTime())) return str;
+  const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0;
+  const hm = hasTime ? ` в ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : '';
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const day = new Date(d); day.setHours(0, 0, 0, 0);
+  const diff = Math.round((day - today) / 86400000);
+  if (diff === 0) return 'сегодня' + hm;
+  if (diff === 1) return 'завтра' + hm;
+  return `${WEEKDAYS_RU[d.getDay()]}, ${d.getDate()} ${MONTHS_RU[d.getMonth()]}${hm}`;
+}
+// Время назначенного показа (сегодня или позже), иначе 0. Досмотренное и паузу не анонсируем.
+function upcomingTs(item) {
+  if (!item.scheduled_at || item.status === 'watched' || item.status === 'paused') return 0;
+  const ts = parseDateTs(item.scheduled_at);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  return ts >= today.getTime() ? ts : 0;
+}
+
 const STATUS_LABEL = {
   pending:  'В очереди',
   watching: 'Смотрим',
+  paused:   'На паузе',
   watched:  'Просмотрено',
 };
 const TYPE_LABEL = {
@@ -772,7 +810,11 @@ function buildNickHtml(item) {
 function buildBadgesHtml(item) {
   const badges = [];
   badges.push(`<span class="badge badge--${item.type}">${esc(TYPE_LABEL[item.type])}</span>`);
-  badges.push(`<span class="badge badge--${item.status}">${esc(STATUS_LABEL[item.status])}</span>`);
+  const showTs = upcomingTs(item);
+  if (showTs) badges.push(`<span class="badge badge--show">📅 ${esc(formatShowTime(item.scheduled_at))}</span>`);
+  if (!showTs || item.status !== 'pending') badges.push(`<span class="badge badge--${item.status}">${esc(STATUS_LABEL[item.status])}</span>`);
+  if (item.format === 'dub') badges.push('<span class="badge badge--dub">DUB</span>');
+  else if (item.format === 'sub') badges.push('<span class="badge badge--sub">SUB</span>');
   const ratingTxt = formatRating(item.rating);
   if (ratingTxt) badges.push(`<span class="badge badge--rating">★ ${esc(ratingTxt)}</span>`);
   if (item.date_completed) {
@@ -808,7 +850,9 @@ function buildCard(item) {
     ? `<a href="${esc(item.url)}" target="_blank" rel="noopener">${esc(item.title)}</a>`
     : esc(item.title);
   const cover = buildCoverHtml(item);
-  const watchedClass = item.status === 'watched' ? ' is-watched' : '';
+  const watchedClass = (item.status === 'watched' ? ' is-watched' : '')
+    + (item.status === 'paused' ? ' is-paused' : '')
+    + (upcomingTs(item) ? ' is-scheduled' : '');
   const noCoverClass = cover ? '' : ' no-cover';
   return `
     <article class="mcard${watchedClass}${noCoverClass}" data-status="${esc(item.status)}" data-type="${esc(item.type)}" data-title="${esc(item.title.toLowerCase())}" data-nick="${esc(item.nick.toLowerCase())}">
@@ -881,16 +925,17 @@ function applyFilters() {
 }
 
 function updateCounters(items) {
-  const sCounts = { pending: 0, watching: 0, watched: 0 };
+  const sCounts = { pending: 0, watching: 0, paused: 0, watched: 0 };
   const tCounts = { all: items.length, movie: 0, youtube: 0, other: 0 };
   items.forEach(it => {
     sCounts[it.status] = (sCounts[it.status] || 0) + 1;
     tCounts[it.type]   = (tCounts[it.type]   || 0) + 1;
   });
-  const activeCount = sCounts.pending + sCounts.watching;
+  const activeCount = sCounts.pending + sCounts.watching + sCounts.paused;
   document.getElementById('cnt-all').textContent       = activeCount;
   document.getElementById('cnt-pending').textContent   = sCounts.pending;
   document.getElementById('cnt-watching').textContent  = sCounts.watching;
+  document.getElementById('cnt-paused').textContent    = sCounts.paused;
   document.getElementById('cnt-watched').textContent   = sCounts.watched;
   document.getElementById('tcnt-all').textContent      = tCounts.all;
   document.getElementById('tcnt-movie').textContent    = tCounts.movie;
