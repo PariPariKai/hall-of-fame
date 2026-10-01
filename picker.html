@@ -194,9 +194,10 @@
     transform-origin: 88% 50%; transition: transform 0.05s ease-out;
   }
   .wheel-pointer svg { width: 100%; height: 100%; }
+  /* Колесо идёт по часовой — справа край уезжает вниз и тянет кончик стрелки за собой */
   @keyframes pointerTick {
     0%   { transform: translateY(-50%) rotate(0deg); }
-    30%  { transform: translateY(-50%) rotate(16deg); }
+    30%  { transform: translateY(-50%) rotate(-16deg); }
     100% { transform: translateY(-50%) rotate(0deg); }
   }
   .wheel-pointer.ticking { animation: pointerTick 0.18s ease-out; }
@@ -233,14 +234,18 @@
     border-radius: 6px; cursor: pointer; transition: all 0.15s ease;
   }
   .duration-btn.active { background: rgba(250,199,117,0.18); color: #FAC775; }
-  .duration-btn:hover:not(.active) { color: #fff; }
+  .duration-btn:hover:not(.active):not(:disabled) { color: #fff; }
+  .duration-btn:disabled { cursor: not-allowed; }
+  .duration-btn:disabled:not(.active) { opacity: 0.4; }
 
-  .sound-toggle {
-    background: transparent; border: 1px solid rgba(151,196,89,0.35);
-    border-radius: 8px; padding: 9px 12px; cursor: pointer;
-    color: #97C459; font-family: inherit; font-size: 12.5px;
-  }
-  .sound-toggle.off { color: rgba(255,255,255,0.45); border-color: rgba(255,255,255,0.14); }
+  .sound-group .duration-btn.active { background: rgba(151,196,89,0.18); color: #97C459; }
+  .sound-group .duration-btn[data-sound="off"].active { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); }
+
+  .ctrl-btn.auto { border-color: rgba(151,196,89,0.45); color: #97C459; }
+  .ctrl-btn.auto:hover:not(:disabled) { background: rgba(151,196,89,0.12); border-color: #97C459; }
+  .ctrl-btn.auto.running { background: rgba(151,196,89,0.16); border-color: #97C459; }
+  .elim-auto { display: block; margin-top: 3px; font-size: 11.5px; color: #97C459; }
+  .elim-auto:empty { display: none; }
 
   .elimination-status {
     background: rgba(250,199,117,0.1); border: 1px solid rgba(250,199,117,0.28);
@@ -505,6 +510,7 @@
     <div class="wheel-col">
       <div id="elimination-status" class="elimination-status">
         Режим выбывания. Осталось вариантов: <span id="elim-remaining">0</span>
+        <span class="elim-auto" id="elim-auto"></span>
       </div>
 
       <div class="wheel-area">
@@ -526,12 +532,19 @@
           <button class="duration-btn" data-dur="10">10с</button>
           <button class="duration-btn" data-dur="60">60с</button>
         </div>
-        <button class="sound-toggle" id="sound-toggle">🔊 Звук вкл.</button>
+        <div class="duration-group sound-group" title="Звук щелчка стрелки (нажми — услышишь)">
+          <span class="duration-label">🔊</span>
+          <button class="duration-btn" data-sound="wood">Дерево</button>
+          <button class="duration-btn" data-sound="soft">Мягкий</button>
+          <button class="duration-btn" data-sound="ball">Шарик</button>
+          <button class="duration-btn" data-sound="off">Выкл</button>
+        </div>
       </div>
 
       <div class="controls">
         <button class="ctrl-btn primary" id="btn-single">🎯 Один победитель</button>
         <button class="ctrl-btn primary" id="btn-elim">⚔ Режим выбывания</button>
+        <button class="ctrl-btn auto" id="btn-auto">🤖 Авто-выбывание</button>
         <button class="ctrl-btn danger" id="btn-reset">↺ Сброс</button>
         <button class="ctrl-btn" id="btn-reload">🔄 Перезагрузить</button>
       </div>
@@ -920,8 +933,9 @@ let currentRotation = 0;
 let isSpinning = false;
 let duration = 5;
 let eliminationMode = false;
+let autoRunning = false;
+let wheelGen = 0;          // растёт при пересборке колеса — старая крутка результат не применяет
 let log = [];
-let soundOn = true;
 
 // Когда вариантов мало, каждый получает несколько тонких кусочков
 // вперемешку: шансы те же, но по колесу не предугадать результат
@@ -930,10 +944,10 @@ const MIN_SLICE_ANGLE = 4;
 const MAX_PARTS = 6;   // шире сектор — больше влезает в подпись
 
 function rebuildWheel() {
+  wheelGen++;
+  stopAuto();
   activeItems = visibleItems();
-  eliminationMode = false;
-  document.getElementById('elimination-status').classList.remove('active');
-  document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+  setEliminationUi(false);
   log = [];
   document.getElementById('log-entries').innerHTML = '';
   document.getElementById('log').classList.remove('has-entries');
@@ -950,7 +964,8 @@ function updateStats() {
     `<b>${total}</b> ${pluralize(total,'вариант','варианта','вариантов')}${bySrc ? ' &nbsp;•&nbsp; ' + bySrc : ''}`;
   document.getElementById('elim-remaining').textContent = total;
   document.getElementById('wheel-empty').style.display = total === 0 ? 'flex' : 'none';
-  ['btn-single','btn-elim'].forEach(id => { document.getElementById(id).disabled = total === 0; });
+  ['btn-single','btn-elim'].forEach(id => { document.getElementById(id).disabled = total === 0 || isSpinning || autoRunning; });
+  document.getElementById('btn-auto').disabled = !autoRunning && (total === 0 || isSpinning);
 }
 
 // ============================================================
@@ -1160,17 +1175,21 @@ function triggerTick() {
   playClick();
 }
 
+// В авто-режиме всё, кроме кнопки «Стоп», заблокировано и между крутками
 function setControlsDisabled(d) {
-  ['btn-single','btn-elim','btn-reset','btn-reload'].forEach(id => document.getElementById(id).disabled = d);
-  document.querySelectorAll('.duration-btn').forEach(b => b.disabled = d);
+  const lock = d || autoRunning;
+  ['btn-single','btn-elim','btn-reset','btn-reload'].forEach(id => document.getElementById(id).disabled = lock);
+  document.querySelectorAll('.duration-btn[data-dur]').forEach(b => b.disabled = lock);
+  document.getElementById('btn-auto').disabled = autoRunning ? false : d;
 }
 
-async function spin(callback) {
+async function spin(callback, dur = duration) {
   if (isSpinning || activeItems.length === 0) return;
   if (activeItems.length === 1) { if (callback) callback(0); return; }
 
   isSpinning = true;
   setControlsDisabled(true);
+  const gen = wheelGen;
 
   const segments = currentSegments.length ? currentSegments : computeSegments();
   const winnerIdx = pickWinnerIndex();
@@ -1192,41 +1211,120 @@ async function spin(callback) {
   currentRotation = finalRotation;
 
   const group = document.querySelector('#wheel-group');
-  group.style.transition = `transform ${duration}s cubic-bezier(0.17, 0.67, 0.2, 1)`;
+  group.style.transition = `transform ${dur}s cubic-bezier(0.17, 0.67, 0.2, 1)`;
   group.style.transform = `rotate(${finalRotation}deg)`;
 
-  await trackPointerTicks(startRotation, finalRotation, duration, segments);
+  await trackPointerTicks(startRotation, finalRotation, dur, segments);
   updateLabelOrientation(finalRotation);
   await new Promise(r => setTimeout(r, 100));
 
   isSpinning = false;
   setControlsDisabled(false);
+  // Пока крутилось, колесо пересобрали фильтрами — индекс уже про другой список
+  if (gen !== wheelGen) return;
   if (callback) callback(winnerIdx);
 }
 
 // ============================================================
 // Звук
 // ============================================================
-let audioCtx = null;
+// Щелчок стрелки — на выбор: «Дерево» и «Мягкий» синтезируются,
+// «Шарик» — файлы sounds/click-2..5.wav (те же, что в Хаос-рулетке).
+// Выбор запоминается в браузере. «Выкл» глушит и фанфары.
+const SOUND_KEY = 'picker.clickSound';
+const BALL_SOUNDS = [2, 3, 4, 5].map(n => `sounds/click-${n}.wav`);
+let clickSound = 'wood';
+try { const s = localStorage.getItem(SOUND_KEY); if (s) clickSound = s; } catch (e) {}
+if (!document.querySelector(`.sound-group [data-sound="${clickSound}"]`)) clickSound = 'wood';
+const soundOn = () => clickSound !== 'off';
+
+let audioCtx = null, noiseBuf = null, ballBufs = null, lastClickAt = 0;
 function ensureAudio() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+    // Полсекунды белого шума — из него «деревянная» атака щелчка
+    noiseBuf = audioCtx.createBuffer(1, audioCtx.sampleRate / 2, audioCtx.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
   if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
 }
+function loadBallSounds() {
+  if (ballBufs || !audioCtx) return;
+  ballBufs = [];
+  BALL_SOUNDS.forEach(src => fetch(src)
+    .then(r => r.arrayBuffer())
+    .then(b => audioCtx.decodeAudioData(b))
+    .then(buf => ballBufs.push(buf))
+    .catch(() => {}));
+}
+
+// Короткий глухой «ток»: щелчок шума через полосовой фильтр + затухающий тон корпуса
+function clickWood(now, vol) {
+  const pitch = 1 + (Math.random() - 0.5) * 0.08;
+  const n = audioCtx.createBufferSource();
+  n.buffer = noiseBuf;
+  n.playbackRate.value = pitch;
+  const bp = audioCtx.createBiquadFilter();
+  bp.type = 'bandpass'; bp.frequency.value = 2200 * pitch; bp.Q.value = 1.2;
+  const ng = audioCtx.createGain();
+  ng.gain.setValueAtTime(0.0001, now);
+  ng.gain.exponentialRampToValueAtTime(0.35 * vol, now + 0.001);
+  ng.gain.exponentialRampToValueAtTime(0.0001, now + 0.018);
+  n.connect(bp).connect(ng).connect(audioCtx.destination);
+  n.start(now, Math.random() * 0.4); n.stop(now + 0.03);
+
+  const o = audioCtx.createOscillator(), og = audioCtx.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(950 * pitch, now);
+  o.frequency.exponentialRampToValueAtTime(520 * pitch, now + 0.03);
+  og.gain.setValueAtTime(0.0001, now);
+  og.gain.exponentialRampToValueAtTime(0.16 * vol, now + 0.002);
+  og.gain.exponentialRampToValueAtTime(0.0001, now + 0.045);
+  o.connect(og).connect(audioCtx.destination);
+  o.start(now); o.stop(now + 0.06);
+}
+
+// Тихий округлый «пум» без высоких частот
+function clickSoft(now, vol) {
+  const pitch = 1 + (Math.random() - 0.5) * 0.06;
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  const lp = audioCtx.createBiquadFilter();
+  lp.type = 'lowpass'; lp.frequency.value = 1400;
+  o.type = 'triangle';
+  o.frequency.setValueAtTime(560 * pitch, now);
+  o.frequency.exponentialRampToValueAtTime(330 * pitch, now + 0.05);
+  g.gain.setValueAtTime(0.0001, now);
+  g.gain.exponentialRampToValueAtTime(0.22 * vol, now + 0.004);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + 0.07);
+  o.connect(lp).connect(g).connect(audioCtx.destination);
+  o.start(now); o.stop(now + 0.09);
+}
+
+function clickBall(now, vol) {
+  if (!ballBufs || !ballBufs.length) { clickWood(now, vol); return; }
+  const s = audioCtx.createBufferSource(), g = audioCtx.createGain();
+  s.buffer = ballBufs[Math.floor(Math.random() * ballBufs.length)];
+  g.gain.value = 0.6 * vol;
+  s.connect(g).connect(audioCtx.destination);
+  s.start(now);
+}
+
 function playClick() {
-  if (!soundOn) return; ensureAudio(); if (!audioCtx) return;
+  if (!soundOn()) return; ensureAudio(); if (!audioCtx) return;
   const now = audioCtx.currentTime;
-  const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-  osc.type = 'square';
-  osc.frequency.setValueAtTime(2400, now);
-  osc.frequency.exponentialRampToValueAtTime(800, now + 0.04);
-  gain.gain.setValueAtTime(0, now);
-  gain.gain.linearRampToValueAtTime(0.05, now + 0.005);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-  osc.connect(gain); gain.connect(audioCtx.destination);
-  osc.start(now); osc.stop(now + 0.08);
+  // На разгоне сектора мелькают десятками в секунду: реже 25 мс не щёлкаем,
+  // а частые щелчки делаем тише — вместо трещотки получается мягкий шелест
+  const dt = now - lastClickAt;
+  if (dt < 0.025) return;
+  lastClickAt = now;
+  const vol = Math.min(1, 0.35 + dt * 5);
+  if (clickSound === 'soft') clickSoft(now, vol);
+  else if (clickSound === 'ball') clickBall(now, vol);
+  else clickWood(now, vol);
 }
 function playFanfare() {
-  if (!soundOn) return; ensureAudio(); if (!audioCtx) return;
+  if (!soundOn()) return; ensureAudio(); if (!audioCtx) return;
   const t0 = audioCtx.currentTime;
   [[261.63,0,0.18],[329.63,0.18,0.18],[392,0.36,0.18],[523.25,0.54,0.4],
    [659.25,1.0,0.2],[783.99,1.2,0.2],[1046.5,1.45,0.8]].forEach(([f,t,d]) => {
@@ -1240,14 +1338,24 @@ function playFanfare() {
     osc.start(t0 + t); osc.stop(t0 + t + d + 0.05);
   });
 }
-const soundBtn = document.getElementById('sound-toggle');
-function updateSoundButton() {
-  soundBtn.classList.toggle('off', !soundOn);
-  soundBtn.textContent = soundOn ? '🔊 Звук вкл.' : '🔇 Звук выкл.';
+function updateSoundButtons() {
+  document.querySelectorAll('.sound-group [data-sound]').forEach(b =>
+    b.classList.toggle('active', b.dataset.sound === clickSound));
 }
-soundBtn.addEventListener('click', () => { soundOn = !soundOn; if (soundOn) ensureAudio(); updateSoundButton(); });
-updateSoundButton();
-document.addEventListener('click', () => { if (soundOn) ensureAudio(); }, { once: true });
+document.querySelectorAll('.sound-group [data-sound]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    clickSound = btn.dataset.sound;
+    try { localStorage.setItem(SOUND_KEY, clickSound); } catch (e) {}
+    updateSoundButtons();
+    if (!soundOn()) return;
+    ensureAudio(); loadBallSounds();
+    // Сразу даём послушать: три щелчка с замедлением
+    lastClickAt = 0;
+    [0, 140, 320].forEach(ms => setTimeout(() => { lastClickAt = 0; playClick(); }, ms));
+  });
+});
+updateSoundButtons();
+document.addEventListener('click', () => { if (soundOn()) { ensureAudio(); loadBallSounds(); } }, { once: true });
 
 // ============================================================
 // Победитель
@@ -1336,54 +1444,139 @@ function addLogEntry(item, isWinner) {
 // ============================================================
 // Кнопки
 // ============================================================
-document.querySelectorAll('.duration-btn').forEach(btn => {
+function highlightDuration(sec) {
+  document.querySelectorAll('.duration-btn[data-dur]').forEach(b =>
+    b.classList.toggle('active', parseInt(b.dataset.dur, 10) === sec));
+}
+document.querySelectorAll('.duration-btn[data-dur]').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
     duration = parseInt(btn.dataset.dur, 10);
+    highlightDuration(duration);
   });
 });
+
+// ============================================================
+// Выбывание (ручное и авто)
+// ============================================================
+function setEliminationUi(on) {
+  eliminationMode = on;
+  document.getElementById('elimination-status').classList.toggle('active', on);
+  document.getElementById('btn-elim').textContent = on ? '⚔ Крутить (выбывание)' : '⚔ Режим выбывания';
+}
+
+function finishElimination() {
+  if (!activeItems.length) return;
+  const w = activeItems[0];
+  addLogEntry(w, true); showWinner(w);
+  setEliminationUi(false);
+}
+
+// Выкидываем выпавший вариант; когда остаётся один — он победитель
+function eliminateAt(idx) {
+  if (activeItems.length === 1) { finishElimination(); return; }
+  addLogEntry(activeItems[idx], false);
+  activeItems.splice(idx, 1);
+  updateStats();
+  renderWheel();
+  if (activeItems.length === 1) {
+    const gen = wheelGen;
+    setTimeout(() => { if (gen === wheelGen) finishElimination(); }, 700);
+  }
+}
 
 document.getElementById('btn-single').addEventListener('click', () => {
   if (eliminationMode) {
     if (!confirm('Активен режим выбывания. Прервать и выбрать одного?')) return;
-    eliminationMode = false;
-    document.getElementById('elimination-status').classList.remove('active');
-    document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+    setEliminationUi(false);
   }
   spin(idx => { const w = activeItems[idx]; addLogEntry(w, true); showWinner(w); });
 });
 
 document.getElementById('btn-elim').addEventListener('click', () => {
-  if (!eliminationMode) {
-    eliminationMode = true;
-    document.getElementById('elimination-status').classList.add('active');
-    document.getElementById('btn-elim').textContent = '⚔ Крутить (выбывание)';
-  }
-  spin(idx => {
-    const out = activeItems[idx];
-    if (activeItems.length === 1) {
-      const w = activeItems[0];
-      addLogEntry(w, true); showWinner(w);
-      eliminationMode = false;
-      document.getElementById('elimination-status').classList.remove('active');
-      document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
-      return;
-    }
-    addLogEntry(out, false);
-    activeItems.splice(idx, 1);
-    updateStats();
-    renderWheel();
-    if (activeItems.length === 1) {
-      setTimeout(() => {
-        const w = activeItems[0];
-        addLogEntry(w, true); showWinner(w);
-        eliminationMode = false;
-        document.getElementById('elimination-status').classList.remove('active');
-        document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
-      }, 700);
-    }
+  if (!eliminationMode) setEliminationUi(true);
+  spin(eliminateAt);
+});
+
+// ------------------------------------------------------------
+// Авто-выбывание: колесо само крутит и выкидывает по одному.
+// Чем меньше осталось, тем дольше крутка и пауза — финал тянется.
+// Скорость выбирается по числу вариантов перед круткой.
+// ------------------------------------------------------------
+const AUTO_PHASES = [
+  { upTo: 2,        spin: 60, pause: 3 },   // финальная крутка
+  { upTo: 5,        spin: 10, pause: 3 },
+  { upTo: 10,       spin: 5,  pause: 2 },
+  { upTo: Infinity, spin: 3,  pause: 2 },
+];
+const autoPhase = n => AUTO_PHASES.find(p => n <= p.upTo);
+
+let autoWake = null;          // прерывает паузу между крутками при «Стоп»
+let manualDuration = duration;
+
+function setAutoInfo(text) { document.getElementById('elim-auto').textContent = text; }
+
+function pause(sec, onTick) {
+  return new Promise(resolve => {
+    let left = sec;
+    const done = () => { clearInterval(timer); autoWake = null; resolve(); };
+    const timer = setInterval(() => { left--; if (left <= 0) done(); else onTick(left); }, 1000);
+    autoWake = done;
+    onTick(left);
   });
+}
+
+function stopAuto() {
+  if (!autoRunning) return;
+  autoRunning = false;
+  if (autoWake) autoWake();
+}
+
+async function runAuto() {
+  autoRunning = true;
+  manualDuration = duration;
+  const btn = document.getElementById('btn-auto');
+  btn.classList.add('running');
+  btn.textContent = '⏹ Стоп авто';
+  setEliminationUi(true);
+  setControlsDisabled(false);
+  updateStats();
+
+  const gen = wheelGen;
+  let first = true;
+  while (autoRunning && gen === wheelGen && activeItems.length > 1) {
+    const n = activeItems.length;
+    const ph = autoPhase(n);
+    if (!first) {
+      await pause(ph.pause, left => setAutoInfo(`🤖 Следующая крутка (${ph.spin}с) через ${left}…`));
+      if (!autoRunning || gen !== wheelGen) break;
+    }
+    first = false;
+    highlightDuration(ph.spin);
+    setAutoInfo(n === 2 ? `🤖 Финальная крутка — ${ph.spin}с` : `🤖 Крутим ${ph.spin}с`);
+    await spin(eliminateAt, ph.spin);
+  }
+
+  autoRunning = false;
+  autoWake = null;
+  btn.classList.remove('running');
+  btn.textContent = '🤖 Авто-выбывание';
+  setAutoInfo('');
+  duration = manualDuration;
+  highlightDuration(duration);
+  setControlsDisabled(isSpinning);
+  updateStats();
+}
+
+document.getElementById('btn-auto').addEventListener('click', () => {
+  if (autoRunning) {
+    // Идущая крутка доедет и выкинет свой вариант, дальше — ручной режим
+    stopAuto();
+    setAutoInfo(isSpinning ? '⏹ Остановится после этой крутки' : '');
+    return;
+  }
+  if (activeItems.length === 0 || isSpinning) return;
+  if (activeItems.length === 1) { finishElimination(); return; }
+  runAuto();
 });
 
 document.getElementById('btn-reset').addEventListener('click', () => {
