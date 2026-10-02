@@ -10,125 +10,20 @@
   // Тот же лист, из которого берёт игры рулетка «Боль стримера за шекели» (A — название, остальные колонки — сколько и когда играли).
   const PAIN_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=827100001&single=true&output=csv";
 </script>
+<link rel="stylesheet" href="site.css?v=1">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: #0a0e1a;
-    background-image:
-      radial-gradient(ellipse at top left, rgba(255, 199, 117, 0.08), transparent 50%),
-      radial-gradient(ellipse at bottom right, rgba(127, 119, 221, 0.06), transparent 50%);
-    background-attachment: fixed;
-    min-height: 100vh;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    color: #fff;
-    padding: 0 20px 40px;
-  }
-
-  /* ========== ОБЩЕЕ ВЕРХНЕЕ МЕНЮ ========== */
-  .site-nav {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    margin: 0 -20px 28px;
-    background: rgba(20, 25, 40, 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-  }
-  .site-nav__inner {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 12px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    flex-wrap: wrap;
-  }
-  .site-nav__brand {
-    font-size: 13px;
-    letter-spacing: 3px;
-    color: #FAC775;
-    text-decoration: none;
-    text-transform: uppercase;
-    text-shadow: 0 0 8px rgba(250,199,117,0.25);
-    flex: 0 0 auto;
-  }
-  .site-nav__links {
-    display: flex;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    gap: 22px;
-    flex-wrap: wrap;
-  }
-  .site-nav__links a {
-    color: rgba(255,255,255,0.7);
-    text-decoration: none;
-    font-size: 13px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    padding: 4px 0;
-    border-bottom: 2px solid transparent;
-    transition: color 0.2s ease, border-color 0.2s ease, text-shadow 0.2s ease;
-  }
-  .site-nav__links a:hover { color: #FAC775; }
-  .site-nav__links a.is-active {
-    color: #FAC775;
-    border-bottom-color: #FAC775;
-    text-shadow: 0 0 8px rgba(250,199,117,0.5);
-  }
-  @media (max-width: 720px) {
-    .site-nav__inner { padding: 10px 16px; gap: 12px; justify-content: center; }
-    .site-nav__brand { display: none; }
-    .site-nav__links { gap: 14px; justify-content: center; }
-    .site-nav__links a { font-size: 12px; letter-spacing: 1px; }
-  }
-  @media (max-width: 480px) {
-    .site-nav__links { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; padding-bottom: 4px; }
-    .site-nav__links::-webkit-scrollbar { height: 0; display: none; }
-    .site-nav__links li { flex: 0 0 auto; }
-  }
-
-  /* ========== СТРАНИЦА ========== */
-  [hidden] { display: none !important; }
-  .wrap { max-width: 1240px; margin: 0 auto; padding-top: 8px; }
-  .header { text-align: center; margin-bottom: 26px; }
-  .title {
-    font-size: 40px; font-weight: 500; letter-spacing: 6px; color: #FAC775;
-    text-shadow: 0 0 24px rgba(250, 140, 80, 0.55); margin-bottom: 10px; text-transform: uppercase;
-  }
-  .subtitle { font-size: 13px; letter-spacing: 3px; color: rgba(255,255,255,0.5); text-transform: uppercase; line-height: 1.8; }
-  .subtitle .accent { color: #FAC775; font-weight: 600; }
-
-  /* --- как это работает --- */
-  .rules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 30px; }
-  .rule {
-    position: relative; overflow: hidden; display: flex; gap: 14px; align-items: flex-start;
-    background: linear-gradient(135deg, rgba(255,140,80,0.07), rgba(255,255,255,0.02));
-    border: 1px solid rgba(250,199,117,0.14); border-radius: 16px; padding: 16px 18px;
-  }
-  .rule__icon { flex: 0 0 auto; font-size: 26px; line-height: 1; filter: drop-shadow(0 0 10px rgba(250,140,80,0.4)); }
-  .rule__step { font-size: 10px; letter-spacing: 2px; color: rgba(255,255,255,0.4); text-transform: uppercase; margin-bottom: 5px; }
-  .rule__title { font-size: 16px; font-weight: 600; margin-bottom: 5px; }
-  .rule__title .tag { color: #FAC775; }
-  .rule__text { font-size: 13px; line-height: 1.5; color: rgba(255,255,255,0.62); }
-
-  /* --- донат --- */
+  /* Общее (меню, шапка, шаги, фильтры, карточки) — в site.css. Здесь только блок доната. */
   .donate {
     display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center;
-    margin-bottom: 34px; padding: 22px 26px; border-radius: 18px;
-    background: radial-gradient(ellipse at 0% 0%, rgba(255,110,60,0.22), transparent 60%), rgba(20,14,22,0.9);
-    border: 1px solid rgba(255,140,80,0.4); box-shadow: 0 0 34px rgba(255,110,60,0.12);
+    margin-bottom: 34px; padding: 22px 26px;
   }
-  .donate__title { font-size: 22px; font-weight: 700; color: #FAC775; margin-bottom: 6px; letter-spacing: .5px; }
+  .donate__title { font-size: 22px; font-weight: 700; color: var(--gold); margin-bottom: 6px; letter-spacing: .5px; }
   .donate__lead, .donate__note { font-size: 13.5px; line-height: 1.5; color: rgba(255,255,255,0.72); }
   .donate__note { font-size: 12.5px; color: rgba(255,255,255,0.5); margin-top: 8px; }
   .donate__tags { list-style: none; display: grid; gap: 6px; margin-top: 10px; font-size: 14px; color: rgba(255,255,255,0.85); }
   .donate__tags code {
     display: inline-block; min-width: 74px; margin-right: 8px; padding: 2px 8px; border-radius: 6px; font-family: inherit;
-    font-weight: 700; color: #FAC775; background: rgba(250,199,117,0.12); border: 1px solid rgba(250,199,117,0.3);
+    font-weight: 700; color: var(--gold); background: rgba(var(--gold-rgb),0.12); border: 1px solid rgba(var(--gold-rgb),0.3);
   }
   .donate__tags b { color: #fff; white-space: nowrap; }
   .donate__buttons { display: flex; flex-direction: column; gap: 10px; min-width: 230px; }
@@ -138,236 +33,30 @@
     transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
   }
   .donate__btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
-  .donate__btn:focus-visible { outline: 2px solid #FAC775; outline-offset: 3px; }
-  .donate__btn-go { font-size: 12.5px; font-weight: 600; opacity: .85; }
+  .donate__btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+  .donate__btn-go { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 600; opacity: .85; }
   .donate__btn--da { background: linear-gradient(120deg, #f57d07, #f5a623); box-shadow: 0 6px 20px rgba(245,125,7,0.3); }
   .donate__btn--dx { background: linear-gradient(120deg, #6a2ee8, #a23cf0); box-shadow: 0 6px 20px rgba(130,60,240,0.3); }
-
-  /* --- панель фильтров --- */
-  .toolbar { display: flex; flex-direction: column; gap: 12px; align-items: center; margin-bottom: 22px; }
-  .toolbar__row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center; }
-  .toolbar__label { font-size: 11px; letter-spacing: 1.5px; color: rgba(255,255,255,0.4); text-transform: uppercase; margin-right: 4px; }
-  .search-input {
-    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
-    padding: 11px 16px; color: #fff; font-family: inherit; font-size: 14px; width: 340px; max-width: 100%;
-    outline: none; transition: all 0.15s ease;
-  }
-  .search-input:focus { border-color: rgba(250,199,117,0.5); background: rgba(255,255,255,0.04); }
-  .search-input::placeholder { color: rgba(255,255,255,0.4); }
-  .chip {
-    background: transparent; border: 1px solid rgba(255,255,255,0.14); border-radius: 999px;
-    padding: 7px 13px; cursor: pointer; color: rgba(255,255,255,0.72); font-family: inherit; font-size: 12px;
-    letter-spacing: .5px; display: inline-flex; align-items: center; gap: 7px; transition: all 0.15s ease;
-  }
-  .chip:hover { background: rgba(255,255,255,0.05); color: #fff; }
-  .chip .count { font-size: 11px; color: rgba(255,255,255,0.45); }
-  .chip.is-active { border-color: rgba(250,199,117,0.6); color: #FAC775; background: rgba(250,199,117,0.1); }
-  .chip.is-active .count { color: #FAC775; }
-  .chip:focus-visible, .pcard:focus-visible { outline: 2px solid #FAC775; outline-offset: 3px; }
-  .hint { font-size: 12px; color: rgba(255,255,255,0.38); letter-spacing: .5px; }
-
-  /* --- карточки --- */
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 18px; list-style: none; }
-  .pcard { perspective: 1200px; aspect-ratio: 2 / 3; cursor: pointer; border-radius: 14px; user-select: none; }
-  .pcard__inner {
-    position: relative; width: 100%; height: 100%; transform-style: preserve-3d;
-    transition: transform .6s cubic-bezier(.3,.9,.3,1);
-  }
-  .pcard.is-flipped .pcard__inner { transform: rotateY(180deg); }
-  .pcard__face {
-    position: absolute; inset: 0; border-radius: 14px; overflow: hidden; backface-visibility: hidden; -webkit-backface-visibility: hidden;
-    border: 1px solid rgba(255,255,255,0.08); background: #141929; box-shadow: 0 10px 28px rgba(0,0,0,0.45);
-  }
-  .pcard:not(.is-flipped):hover .pcard__front { border-color: rgba(250,199,117,0.45); box-shadow: 0 14px 34px rgba(0,0,0,0.55), 0 0 22px rgba(250,140,80,0.18); }
-  .pcard__front img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s ease; }
-  .pcard:not(.is-flipped):hover .pcard__front img { transform: scale(1.04); }
-  .pcard__shade { position: absolute; inset: auto 0 0 0; padding: 40px 14px 13px; background: linear-gradient(transparent, rgba(6,8,16,0.92) 55%); }
-  .pcard__title { font-size: 15px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; text-shadow: 0 2px 6px #000; }
-  .pcard__flip-hint {
-    position: absolute; top: 9px; right: 9px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
-    background: rgba(6,8,16,0.6); color: rgba(255,255,255,0.75); font-size: 14px; opacity: 0; transition: opacity .2s ease;
-  }
-  .pcard:hover .pcard__flip-hint { opacity: 1; }
-  .pcard__placeholder {
-    position: absolute; inset: 0; display: grid; place-items: center; font-size: 72px; font-weight: 700; color: rgba(255,255,255,0.85);
-    text-shadow: 0 4px 20px rgba(0,0,0,0.4);
-  }
-
-  .pcard__back { transform: rotateY(180deg); background: #0b0f1c; }
-  .pcard__back-bg { position: absolute; inset: -20px; background-size: cover; background-position: center; filter: blur(14px) brightness(.28) saturate(1.2); }
-  .pcard__back-body { position: relative; height: 100%; display: flex; flex-direction: column; gap: 6px; padding: 13px 12px 12px; }
-  .pcard__back-title {
-    flex: 0 0 auto; font-size: 14px; font-weight: 700; line-height: 1.25; color: #FAC775; overflow-wrap: anywhere;
-    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-  }
-  .pcard__meta { flex: 0 0 auto; font-size: 11px; color: rgba(255,255,255,0.55); }
-  .pcard__genres { flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 4px; }
-  .pcard__genre { font-size: 9.5px; padding: 2px 7px; line-height: 1.4; border-radius: 999px; background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.85); }
-  /* Текст занимает всё свободное место между жанрами и статистикой; не влез — прокручивается колёсиком. */
-  .pcard__desc, .pcard__quip {
-    flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
-    scrollbar-width: thin; scrollbar-color: rgba(255,140,80,0.5) transparent;
-  }
-  .pcard__desc { font-size: 12px; line-height: 1.45; color: rgba(255,255,255,0.72); }
-  .pcard__quip {
-    font-size: 13px; line-height: 1.4; color: #ffe2c4; font-style: italic;
-    padding-left: 9px; border-left: 2px solid rgba(255,140,80,0.6); margin-top: 2px;
-  }
-  .pcard__desc::-webkit-scrollbar, .pcard__quip::-webkit-scrollbar { width: 4px; }
-  .pcard__desc::-webkit-scrollbar-thumb, .pcard__quip::-webkit-scrollbar-thumb { background: rgba(255,140,80,0.5); border-radius: 4px; }
-  .pcard__stats { flex: 0 0 auto; margin-top: auto; display: grid; gap: 5px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); }
-  .stat { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: rgba(255,255,255,0.55); }
-  .stat b { color: #fff; font-weight: 600; text-align: right; white-space: nowrap; }
-  .stat--fresh { justify-content: flex-start; color: rgba(255,255,255,0.45); font-style: italic; }
-  .stat.is-played b { color: #ff9f7a; }
-  .pcard__link { font-size: 12px; color: #FAC775; text-decoration: none; align-self: flex-start; }
-  .pcard__link:hover { text-decoration: underline; }
-
-  .shown-count { text-align: center; font-size: 12px; color: rgba(255,255,255,0.45); margin-bottom: 14px; letter-spacing: 1px; }
-  .empty-state { text-align: center; padding: 40px 20px; color: rgba(255,255,255,0.5); font-size: 14px; }
-
   @media (max-width: 900px) {
-    .rules { grid-template-columns: 1fr; }
     .donate { grid-template-columns: 1fr; padding: 18px; }
     .donate__buttons { min-width: 0; }
-  }
-  @media (max-width: 720px) {
-    body { padding: 0 12px 32px; }
-    .site-nav { margin: 0 -12px 20px; }
-    .title { font-size: 28px; letter-spacing: 3px; }
-    .grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-    .pcard { aspect-ratio: 5 / 8; }
-    .pcard__back-body { padding: 11px 10px 10px; gap: 5px; }
-    .pcard__back-title { font-size: 13px; }
-    .pcard__quip { font-size: 12.5px; }
-    .stat { font-size: 11px; }
-    .search-input { width: 100%; }
   }
 </style>
 </head>
 
 <body>
 
-<!-- ===== ОБЩЕЕ МЕНЮ: выпадающие разделы (одинаково на всех страницах) ===== -->
-<style>
-  .site-nav__dd { position: relative; }
-  .site-nav__dd-btn {
-    background: none; border: none; cursor: pointer; font-family: inherit;
-    color: rgba(255,255,255,0.7); font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase;
-    padding: 4px 0; border-bottom: 2px solid transparent;
-    display: inline-flex; align-items: center; gap: 6px;
-    transition: color .2s ease, border-color .2s ease, text-shadow .2s ease;
-  }
-  .site-nav__dd-btn:hover,
-  .site-nav__dd.is-open > .site-nav__dd-btn { color: #FAC775; }
-  .site-nav__dd.is-active > .site-nav__dd-btn {
-    color: #FAC775; border-bottom-color: #FAC775; text-shadow: 0 0 8px rgba(250,199,117,0.5);
-  }
-  .site-nav__caret { font-size: 10px; transition: transform .2s ease; }
-  .site-nav__dd.is-open .site-nav__caret { transform: rotate(180deg); }
-  .site-nav__menu {
-    position: absolute; top: calc(100% + 10px); left: 50%; transform: translate(-50%, -6px);
-    min-width: 210px; list-style: none; margin: 0; padding: 8px;
-    background: rgba(20, 25, 40, 0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
-    box-shadow: 0 16px 40px rgba(0,0,0,0.5);
-    opacity: 0; visibility: hidden; pointer-events: none;
-    transition: opacity .18s ease, transform .18s ease, visibility .18s; z-index: 120;
-  }
-  .site-nav__menu::before { content: ''; position: absolute; top: -12px; left: 0; right: 0; height: 12px; }
-  .site-nav__dd:hover > .site-nav__menu,
-  .site-nav__dd.is-open > .site-nav__menu,
-  .site-nav__dd:focus-within > .site-nav__menu {
-    opacity: 1; visibility: visible; pointer-events: auto; transform: translate(-50%, 0);
-  }
-  .site-nav__menu li { display: block; flex: none; }
-  .site-nav__links .site-nav__menu a {
-    display: block; padding: 9px 14px; border-radius: 8px; border-bottom: none;
-    text-transform: none; letter-spacing: .3px; font-size: 14px;
-    color: rgba(255,255,255,0.8); white-space: nowrap; text-shadow: none;
-  }
-  .site-nav__links .site-nav__menu a:hover { background: rgba(255,255,255,0.06); color: #FAC775; }
-  .site-nav__links .site-nav__menu a.is-active { color: #FAC775; background: rgba(250,199,117,0.08); }
-  @media (max-width: 720px) {
-    .site-nav__dd-btn { font-size: 12px; letter-spacing: 1px; }
-    .site-nav__dd { position: static; }
-    .site-nav__menu { position: absolute; left: 16px; right: 16px; top: calc(100% + 4px); transform: none; min-width: 0; }
-    .site-nav__dd:hover > .site-nav__menu { opacity: 0; visibility: hidden; pointer-events: none; }
-    .site-nav__dd.is-open > .site-nav__menu,
-    .site-nav__dd:focus-within > .site-nav__menu { opacity: 1; visibility: visible; pointer-events: auto; transform: none; }
-  }
-</style>
-<nav class="site-nav">
-  <div class="site-nav__inner">
-    <a class="site-nav__brand" href="index.html">ParipariKai</a>
-    <ul class="site-nav__links">
-      <li><a href="hall.html">Зал Славы</a></li>
-      <li><a href="tickets.html">Билеты</a></li>
-      <li class="site-nav__dd">
-        <button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">Заказы зрителя <span class="site-nav__caret">▾</span></button>
-        <ul class="site-nav__menu">
-          <li><a href="anime.html">Аниме</a></li>
-          <li><a href="movies.html">Фильмы</a></li>
-          <li><a href="series.html">Сериалы</a></li>
-          <li><a href="games.html">Игры</a></li>
-          <li><a href="pain-games.html">Боль</a></li>
-          <li><a href="picker.html">Рулетка заказов</a></li>
-        </ul>
-      </li>
-      <li class="site-nav__dd">
-        <button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">Для стримера <span class="site-nav__caret">▾</span></button>
-        <ul class="site-nav__menu">
-          <li><a href="chat-wheel.html">Чат-рулетка</a></li>
-          <li><a href="pain.html">Боль стримера за шекели</a></li>
-          <li><a href="cards.html">Админка-рулетка</a></li>
-          <li><a href="cards.html?stream">Хаос-рулетка</a></li>
-        </ul>
-      </li>
-    </ul>
-  </div>
-</nav>
-<script>
-  // Меню: подсветка текущей страницы и открытие разделов по клику (для тач-экранов)
-  (function () {
-    const nav = document.querySelector('.site-nav');
-    if (!nav) return;
-    const here = (location.pathname.split('/').pop() || 'index.html') + location.search;
-    nav.querySelectorAll('.site-nav__links a').forEach(a => {
-      if (a.getAttribute('href') === here) {
-        a.classList.add('is-active');
-        const dd = a.closest('.site-nav__dd');
-        if (dd) dd.classList.add('is-active');
-      }
-    });
-    const closeAll = () => nav.querySelectorAll('.site-nav__dd.is-open').forEach(dd => {
-      dd.classList.remove('is-open');
-      dd.querySelector('.site-nav__dd-btn').setAttribute('aria-expanded', 'false');
-    });
-    nav.querySelectorAll('.site-nav__dd-btn').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        const dd = btn.parentElement;
-        const open = !dd.classList.contains('is-open');
-        closeAll();
-        if (open) {
-          dd.classList.add('is-open');
-          btn.setAttribute('aria-expanded', 'true');
-        }
-      });
-    });
-    document.addEventListener('click', closeAll);
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
-  })();
-</script>
+<script src="site.js?v=1"></script>
 
 <div class="wrap">
   <div class="header">
-    <h1 class="title">🔥 Боль 🔥</h1>
+    <h1 class="title"><svg class="ic" aria-hidden="true"><use href="#i-flame"></use></svg>Боль<svg class="ic" aria-hidden="true"><use href="#i-flame"></use></svg></h1>
     <p class="subtitle" id="subtitle">Игры, которыми можно наказать стримера</p>
   </div>
 
   <section class="rules" aria-label="Как это работает">
     <div class="rule">
-      <div class="rule__icon">🎯</div>
+      <div class="rule__icon"><svg class="ic" aria-hidden="true"><use href="#i-target"></use></svg></div>
       <div>
         <div class="rule__step">Шаг 1 · баллы канала</div>
         <div class="rule__title">Добавь игру в пул</div>
@@ -375,24 +64,24 @@
       </div>
     </div>
     <div class="rule">
-      <div class="rule__icon">💸</div>
+      <div class="rule__icon"><svg class="ic" aria-hidden="true"><use href="#i-coins"></use></svg></div>
       <div>
         <div class="rule__step">Шаг 2 · донат</div>
-        <div class="rule__title">Метка <span class="tag">#боль</span></div>
+        <div class="rule__title">Метка <span class="mark">#боль</span></div>
         <p class="rule__text">Донаты с меткой копятся вместе. 1 000 ₽ — рулетка выбирает игру из пула и сколько терпеть: 1, 4 или 8 часов.</p>
       </div>
     </div>
     <div class="rule">
-      <div class="rule__icon">⏳</div>
+      <div class="rule__icon"><svg class="ic" aria-hidden="true"><use href="#i-hourglass"></use></svg></div>
       <div>
         <div class="rule__step">Шаг 3 · додеп</div>
-        <div class="rule__title">Метка <span class="tag">#время</span></div>
+        <div class="rule__title">Метка <span class="mark">#время</span></div>
         <p class="rule__text">Каждые 250 ₽ — ещё одна крутка времени к текущей игре. Остаток сверх 1 000 ₽ от #боль тоже идёт сюда.</p>
       </div>
     </div>
   </section>
 
-  <section class="donate" id="donate" aria-labelledby="donate-title">
+  <section class="donate spotlight" id="donate" aria-labelledby="donate-title">
     <div class="donate__text">
       <h2 class="donate__title" id="donate-title">Наказать стримера</h2>
       <p class="donate__lead">Напиши в сообщении доната метку — без неё донат в копилку не попадёт:</p>
@@ -404,16 +93,16 @@
     </div>
     <div class="donate__buttons">
       <a class="donate__btn donate__btn--da" href="https://dalink.to/pariparikai" target="_blank" rel="noopener">
-        <span class="donate__btn-name">DonationAlerts</span><span class="donate__btn-go">Задонатить ↗</span>
+        <span class="donate__btn-name">DonationAlerts</span><span class="donate__btn-go">Задонатить <svg class="ic" aria-hidden="true"><use href="#i-external"></use></svg></span>
       </a>
       <a class="donate__btn donate__btn--dx" href="https://donatex.gg/donate/pariparikai" target="_blank" rel="noopener">
-        <span class="donate__btn-name">DonateX</span><span class="donate__btn-go">Задонатить ↗</span>
+        <span class="donate__btn-name">DonateX</span><span class="donate__btn-go">Задонатить <svg class="ic" aria-hidden="true"><use href="#i-external"></use></svg></span>
       </a>
     </div>
   </section>
 
   <div class="toolbar">
-    <input type="search" class="search-input" id="search" placeholder="🔍 Есть ли игра в пуле?.." aria-label="Поиск игры">
+    <label class="search"><svg class="ic" aria-hidden="true"><use href="#i-search"></use></svg><input type="search" class="search-input" id="search" placeholder="Есть ли игра в пуле?.." aria-label="Поиск игры"></label>
     <div class="toolbar__row" id="status-filters">
       <button class="chip is-active" data-status="all">Все <span class="count" id="cnt-all">0</span></button>
       <button class="chip" data-status="fresh">Ещё не страдал <span class="count" id="cnt-fresh">0</span></button>
@@ -545,7 +234,9 @@ function buildCard(g) {
   } else placeholder();
   const shade = el('div', 'pcard__shade');
   shade.append(el('div', 'pcard__title', g.name));
-  front.append(shade, el('div', 'pcard__flip-hint', '↻'));
+  const hint = el('div', 'pcard__flip-hint');
+  hint.innerHTML = icon('flip');
+  front.append(shade, hint);
 
   // Оборот: жанры, год, описание, сколько и когда играли.
   const back = el('div', 'pcard__face pcard__back');
@@ -579,7 +270,8 @@ function buildCard(g) {
   }
   const url = g.meta.steamUrl || g.meta.igdbUrl;
   if (url) {
-    const link = el('a', 'pcard__link', g.meta.steamUrl ? 'Steam ↗' : 'IGDB ↗');
+    const link = el('a', 'pcard__link');
+    link.innerHTML = (g.meta.steamUrl ? 'Steam ' : 'IGDB ') + icon('external');
     link.href = url; link.target = '_blank'; link.rel = 'noopener';
     link.addEventListener('click', e => e.stopPropagation());
     stats.append(link);
