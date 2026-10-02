@@ -1,0 +1,21 @@
+{
+  "note": "Генерируется автоматически .github/scripts/friends-images.mjs — руками не править.",
+  "images": {
+    "https://i.ibb.co/vCYhxV9m/banner4.jpg": {
+      "nick": "noisy_moth",
+      "file": "friends/noisy_moth-9cf341f8.jpg",
+      "width": 2500,
+      "height": 495,
+      "bytes": 137008,
+      "sourceBytes": 638169
+    },
+    "https://i.ibb.co/m50vLRwv/Banner.png": {
+      "nick": "Midn1ghtCat",
+      "file": "friends/midn1ghtcat-c6fc0928.jpg",
+      "width": 2500,
+      "height": 500,
+      "bytes": 200754,
+      "sourceBytes": 2305950
+    }
+  }
+}

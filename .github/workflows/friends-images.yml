@@ -1,0 +1,36 @@
+# Копирует картинки баннеров «Рекомендую» (лист Friends) на сам сайт в JPEG и коммитит friends/ + friends-meta.json.
+# Запуск: каждый час и вручную (Actions → «Рекомендую: копии баннеров» → Run workflow).
+name: "Рекомендую: копии баннеров"
+
+on:
+  schedule:
+    - cron: "47 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: friends-images
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save --no-audit --no-fund sharp
+      - run: node .github/scripts/friends-images.mjs
+      - name: Коммит, если что-то изменилось
+        run: |
+          if [ -z "$(git status --porcelain -- friends friends-meta.json)" ]; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898341+github-actions[bot]@users.noreply.github.com"
+          git add -A friends friends-meta.json
+          git commit -m "Рекомендую: обновлены копии баннеров"
+          git pull --rebase
+          git push

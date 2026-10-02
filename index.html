@@ -1528,12 +1528,16 @@ const FRIEND_COLORS = ['#8d4564', '#555897', '#ad704b', '#487c87', '#754d92', '#
 let friendsTimer = null;
 async function loadFriends() {
   if (!FRIENDS_CSV_URL) return;
+  // Копии картинок на самом сайте (робот .github/scripts/friends-images.mjs): JPEG, лёгкие,
+  // открываются у всех — сторонние хостинги видны не каждому зрителю
+  const copies = fetch('friends-meta.json', {cache: 'no-cache'}).then(r => r.ok ? r.json() : {}).catch(() => ({}));
   let rows;
   try {
     const res = await fetch(FRIENDS_CSV_URL + '&cache=' + Date.now());
     if (!res.ok) return;
     rows = parseCSV(await res.text());
   } catch (e) { return; }
+  const local = ((await copies).images) || {};
   if (rows.length < 2) return;
   const h = rows[0].map(x => x.trim().toLowerCase());
   const col = n => h.indexOf(n);
@@ -1542,6 +1546,7 @@ async function loadFriends() {
   const friends = rows.slice(1).map(r => ({
     nick: (r[cNick] || '').trim(),
     image: cImg >= 0 ? (r[cImg] || '').trim() : '',
+    copy: cImg >= 0 ? (local[(r[cImg] || '').trim()] || {}).file || '' : '',
     url: cUrl >= 0 ? (r[cUrl] || '').trim() : '',
     active: cActive < 0 || !/^(false|нет|0|no)$/i.test((r[cActive] || '').trim()),
   })).filter(f => f.nick && f.active);
@@ -1563,10 +1568,15 @@ function renderFriends(friends) {
     a.href = url; a.target = '_blank'; a.rel = 'noopener'; a.draggable = false;
     a.setAttribute('aria-label', `${f.nick} — открыть стрим`);
     const fallback = `<div class="friend__fallback" style="background:linear-gradient(120deg, ${FRIEND_COLORS[i % FRIEND_COLORS.length]}, #10142a)">${esc(f.nick)}</div>`;
-    a.innerHTML = (isValidUrl(f.image) ? `<img class="friend__img" src="${esc(f.image)}" alt="" referrerpolicy="no-referrer" draggable="false">` : fallback) +
+    const src = f.copy || (isValidUrl(f.image) ? f.image : '');
+    a.innerHTML = (src ? `<img class="friend__img" src="${esc(src)}" alt="" referrerpolicy="no-referrer" draggable="false">` : fallback) +
       `<span class="friend__tag"><span class="friend__live"></span>${esc(f.nick)}<span class="friend__go">смотреть ${icon('external')}</span></span>`;
     const img = a.querySelector('img');
-    if (img) img.addEventListener('error', () => img.outerHTML = fallback);
+    // Копия не загрузилась — пробуем исходную ссылку, потом — заглушка с ником
+    if (img) img.addEventListener('error', () => {
+      if (f.copy && isValidUrl(f.image) && img.getAttribute('src') !== f.image) img.src = f.image;
+      else img.outerHTML = fallback;
+    });
     stage.insertBefore(a, document.getElementById('friends-dots'));
     return a;
   });
