@@ -27,8 +27,9 @@
   const GAMES_CSV_URL   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=727100001&single=true&output=csv";
 </script>
 
+<link rel="stylesheet" href="site.css?v=1">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  /* Меню и иконки — общие (site.css / site.js). Остальное — своё у главной. */
 
   body {
     background: #0a0e1a;
@@ -42,71 +43,7 @@
     padding: 0 20px 60px;
   }
 
-  /* ========== ОБЩЕЕ ВЕРХНЕЕ МЕНЮ ========== */
-  .site-nav {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    margin: 0 -20px 0;
-    background: rgba(20, 25, 40, 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-  }
-  .site-nav__inner {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 12px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    flex-wrap: wrap;
-  }
-  .site-nav__brand {
-    font-size: 13px;
-    letter-spacing: 3px;
-    color: #FAC775;
-    text-decoration: none;
-    text-transform: uppercase;
-    text-shadow: 0 0 8px rgba(250,199,117,0.25);
-    flex: 0 0 auto;
-  }
-  .site-nav__links {
-    display: flex;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    gap: 22px;
-    flex-wrap: wrap;
-  }
-  .site-nav__links a {
-    color: rgba(255,255,255,0.7);
-    text-decoration: none;
-    font-size: 13px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    padding: 4px 0;
-    border-bottom: 2px solid transparent;
-    transition: color 0.2s ease, border-color 0.2s ease, text-shadow 0.2s ease;
-  }
-  .site-nav__links a:hover { color: #FAC775; }
-  .site-nav__links a.is-active {
-    color: #FAC775;
-    border-bottom-color: #FAC775;
-    text-shadow: 0 0 8px rgba(250,199,117,0.5);
-  }
-  @media (max-width: 720px) {
-    .site-nav__inner { padding: 10px 16px; gap: 12px; justify-content: center; }
-    .site-nav__brand { display: none; }
-    .site-nav__links { gap: 14px; justify-content: center; }
-    .site-nav__links a { font-size: 12px; letter-spacing: 1px; }
-  }
-  @media (max-width: 480px) {
-    .site-nav__links { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; padding-bottom: 4px; }
-    .site-nav__links::-webkit-scrollbar { height: 0; display: none; }
-    .site-nav__links li { flex: 0 0 auto; }
-  }
+  .site-nav { margin-bottom: 0; }
 
   /* ========== РОЗЫГРЫШ (баннер, только когда raffle_active) ========== */
   .event {
@@ -143,6 +80,7 @@
   @keyframes event-shine { 0%, 60% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
   .event__inner:hover { transform: translateY(-2px); box-shadow: 0 0 40px rgba(250,199,117,0.25); }
   .event__badge {
+    display: inline-flex; align-items: center; gap: 6px;
     font-size: 11px;
     letter-spacing: 2px;
     text-transform: uppercase;
@@ -614,8 +552,11 @@
     position: relative;
     font-size: 54px;
     line-height: 1;
-    filter: drop-shadow(0 4px 14px rgba(0,0,0,0.5));
+    color: #FAC775;
+    filter: drop-shadow(0 0 16px rgba(250,140,80,0.45));
   }
+  .page-card__icon .ic { display: block; stroke-width: 1.5; }
+  .now-item__cover > .ic { font-size: 36px; color: #FAC775; stroke-width: 1.6; }
   .fan { position: relative; width: 100%; height: 100%; }
   .fan__item {
     position: absolute;
@@ -736,121 +677,12 @@
 
 <body>
 
-<!-- ===== ОБЩЕЕ МЕНЮ: выпадающие разделы (одинаково на всех страницах) ===== -->
-<style>
-  .site-nav__dd { position: relative; }
-  .site-nav__dd-btn {
-    background: none; border: none; cursor: pointer; font-family: inherit;
-    color: rgba(255,255,255,0.7); font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase;
-    padding: 4px 0; border-bottom: 2px solid transparent;
-    display: inline-flex; align-items: center; gap: 6px;
-    transition: color .2s ease, border-color .2s ease, text-shadow .2s ease;
-  }
-  .site-nav__dd-btn:hover,
-  .site-nav__dd.is-open > .site-nav__dd-btn { color: #FAC775; }
-  .site-nav__dd.is-active > .site-nav__dd-btn {
-    color: #FAC775; border-bottom-color: #FAC775; text-shadow: 0 0 8px rgba(250,199,117,0.5);
-  }
-  .site-nav__caret { font-size: 10px; transition: transform .2s ease; }
-  .site-nav__dd.is-open .site-nav__caret { transform: rotate(180deg); }
-  .site-nav__menu {
-    position: absolute; top: calc(100% + 10px); left: 50%; transform: translate(-50%, -6px);
-    min-width: 210px; list-style: none; margin: 0; padding: 8px;
-    background: rgba(20, 25, 40, 0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
-    box-shadow: 0 16px 40px rgba(0,0,0,0.5);
-    opacity: 0; visibility: hidden; pointer-events: none;
-    transition: opacity .18s ease, transform .18s ease, visibility .18s; z-index: 120;
-  }
-  .site-nav__menu::before { content: ''; position: absolute; top: -12px; left: 0; right: 0; height: 12px; }
-  .site-nav__dd:hover > .site-nav__menu,
-  .site-nav__dd.is-open > .site-nav__menu,
-  .site-nav__dd:focus-within > .site-nav__menu {
-    opacity: 1; visibility: visible; pointer-events: auto; transform: translate(-50%, 0);
-  }
-  .site-nav__menu li { display: block; flex: none; }
-  .site-nav__links .site-nav__menu a {
-    display: block; padding: 9px 14px; border-radius: 8px; border-bottom: none;
-    text-transform: none; letter-spacing: .3px; font-size: 14px;
-    color: rgba(255,255,255,0.8); white-space: nowrap; text-shadow: none;
-  }
-  .site-nav__links .site-nav__menu a:hover { background: rgba(255,255,255,0.06); color: #FAC775; }
-  .site-nav__links .site-nav__menu a.is-active { color: #FAC775; background: rgba(250,199,117,0.08); }
-  @media (max-width: 720px) {
-    .site-nav__dd-btn { font-size: 12px; letter-spacing: 1px; }
-    .site-nav__dd { position: static; }
-    .site-nav__menu { position: absolute; left: 16px; right: 16px; top: calc(100% + 4px); transform: none; min-width: 0; }
-    .site-nav__dd:hover > .site-nav__menu { opacity: 0; visibility: hidden; pointer-events: none; }
-    .site-nav__dd.is-open > .site-nav__menu,
-    .site-nav__dd:focus-within > .site-nav__menu { opacity: 1; visibility: visible; pointer-events: auto; transform: none; }
-  }
-</style>
-<nav class="site-nav">
-  <div class="site-nav__inner">
-    <a class="site-nav__brand" href="index.html">ParipariKai</a>
-    <ul class="site-nav__links">
-      <li><a href="hall.html">Зал Славы</a></li>
-      <li><a href="tickets.html">Билеты</a></li>
-      <li class="site-nav__dd">
-        <button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">Заказы зрителя <span class="site-nav__caret">▾</span></button>
-        <ul class="site-nav__menu">
-          <li><a href="anime.html">Аниме</a></li>
-          <li><a href="movies.html">Фильмы</a></li>
-          <li><a href="series.html">Сериалы</a></li>
-          <li><a href="games.html">Игры</a></li>
-          <li><a href="pain-games.html">Боль</a></li>
-          <li><a href="picker.html">Рулетка заказов</a></li>
-        </ul>
-      </li>
-      <li class="site-nav__dd">
-        <button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">Для стримера <span class="site-nav__caret">▾</span></button>
-        <ul class="site-nav__menu">
-          <li><a href="chat-wheel.html">Чат-рулетка</a></li>
-          <li><a href="pain.html">Боль стримера за шекели</a></li>
-          <li><a href="cards.html">Админка-рулетка</a></li>
-          <li><a href="cards.html?stream">Хаос-рулетка</a></li>
-        </ul>
-      </li>
-    </ul>
-  </div>
-</nav>
-<script>
-  // Меню: подсветка текущей страницы и открытие разделов по клику (для тач-экранов)
-  (function () {
-    const nav = document.querySelector('.site-nav');
-    if (!nav) return;
-    const here = (location.pathname.split('/').pop() || 'index.html') + location.search;
-    nav.querySelectorAll('.site-nav__links a').forEach(a => {
-      if (a.getAttribute('href') === here) {
-        a.classList.add('is-active');
-        const dd = a.closest('.site-nav__dd');
-        if (dd) dd.classList.add('is-active');
-      }
-    });
-    const closeAll = () => nav.querySelectorAll('.site-nav__dd.is-open').forEach(dd => {
-      dd.classList.remove('is-open');
-      dd.querySelector('.site-nav__dd-btn').setAttribute('aria-expanded', 'false');
-    });
-    nav.querySelectorAll('.site-nav__dd-btn').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        const dd = btn.parentElement;
-        const open = !dd.classList.contains('is-open');
-        closeAll();
-        if (open) {
-          dd.classList.add('is-open');
-          btn.setAttribute('aria-expanded', 'true');
-        }
-      });
-    });
-    document.addEventListener('click', closeAll);
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
-  })();
-</script>
+<script src="site.js?v=1"></script>
 
 <!-- Розыгрыш: виден, только когда в листе Config raffle_active = TRUE -->
 <section class="event" id="event" hidden aria-label="Розыгрыш">
   <a class="event__inner" href="tickets.html">
-    <span class="event__badge">🎟 Розыгрыш</span>
+    <span class="event__badge"><svg class="ic" aria-hidden="true"><use href="#i-ticket"></use></svg>Розыгрыш</span>
     <span class="event__title" id="event-title">Идёт сбор билетов</span>
     <span class="event__timer" id="event-timer"></span>
     <span class="event__stats" id="event-stats"></span>
@@ -868,7 +700,7 @@
       <h1 class="hero__name" id="hero-name">Stream</h1>
     </div>
     <p class="hero__intro" id="hero-intro">Добро пожаловать</p>
-    <a class="hero__cta hero__cta--hidden" id="hero-cta" href="#" target="_blank" rel="noopener">▶ Смотреть на Twitch</a>
+    <a class="hero__cta hero__cta--hidden" id="hero-cta" href="#" target="_blank" rel="noopener"><svg class="ic ic--fill" aria-hidden="true"><use href="#i-play"></use></svg>Смотреть на Twitch</a>
     <div class="week" id="week"></div>
   </div>
 
@@ -888,28 +720,28 @@
 
 <section class="cards" id="cards" data-n="3" aria-label="Разделы сайта">
   <a class="page-card page-card--hall" href="hall.html">
-    <div class="page-card__art" id="art-hall"><span class="page-card__icon">🏆</span></div>
+    <div class="page-card__art" id="art-hall"><span class="page-card__icon"><svg class="ic" aria-hidden="true"><use href="#i-trophy"></use></svg></span></div>
     <div class="page-card__body">
       <h2 class="page-card__title">Зал Славы</h2>
       <p class="page-card__count" data-counter="hall">…</p>
     </div>
   </a>
   <a class="page-card page-card--tickets" id="card-tickets" href="tickets.html" hidden>
-    <div class="page-card__art"><span class="page-card__icon">🎟️</span></div>
+    <div class="page-card__art"><span class="page-card__icon"><svg class="ic" aria-hidden="true"><use href="#i-ticket"></use></svg></span></div>
     <div class="page-card__body">
       <h2 class="page-card__title">Билеты</h2>
       <p class="page-card__count" data-counter="tickets">…</p>
     </div>
   </a>
   <a class="page-card" href="anime.html">
-    <div class="page-card__art" id="art-anime"><span class="page-card__icon">⛩️</span></div>
+    <div class="page-card__art" id="art-anime"><span class="page-card__icon"><svg class="ic" aria-hidden="true"><use href="#i-torii"></use></svg></span></div>
     <div class="page-card__body">
       <h2 class="page-card__title">Аниме</h2>
       <p class="page-card__count" data-counter="anime">…</p>
     </div>
   </a>
   <a class="page-card" href="movies.html">
-    <div class="page-card__art" id="art-movies"><span class="page-card__icon">🎬</span></div>
+    <div class="page-card__art" id="art-movies"><span class="page-card__icon"><svg class="ic" aria-hidden="true"><use href="#i-film"></use></svg></span></div>
     <div class="page-card__body">
       <h2 class="page-card__title">Фильмы</h2>
       <p class="page-card__count" data-counter="movies">…</p>
@@ -917,14 +749,14 @@
   </a>
   <!-- Сериалы смотрим редко: карточка появляется, только когда сериал назначен или идёт -->
   <a class="page-card" id="card-series" href="series.html" hidden>
-    <div class="page-card__art" id="art-series"><span class="page-card__icon">📺</span></div>
+    <div class="page-card__art" id="art-series"><span class="page-card__icon"><svg class="ic" aria-hidden="true"><use href="#i-tv"></use></svg></span></div>
     <div class="page-card__body">
       <h2 class="page-card__title">Сериалы</h2>
       <p class="page-card__count" data-counter="series">…</p>
     </div>
   </a>
   <a class="page-card" href="games.html">
-    <div class="page-card__art" id="art-games"><span class="page-card__icon">🎮</span></div>
+    <div class="page-card__art" id="art-games"><span class="page-card__icon"><svg class="ic" aria-hidden="true"><use href="#i-gamepad"></use></svg></span></div>
     <div class="page-card__body">
       <h2 class="page-card__title">Игры</h2>
       <p class="page-card__count" data-counter="games">…</p>
@@ -1098,7 +930,7 @@ function setupRaffle(config) {
     const tick = () => {
       const diff = date - Date.now();
       if (diff <= 0) {
-        timerEl.textContent = '⚡ Розыгрыш уже идёт!';
+        timerEl.innerHTML = icon('zap', 'ic--fill') + ' Розыгрыш уже идёт!';
         clearInterval(raffleTimer);
         return;
       }
@@ -1155,10 +987,10 @@ function applyOrdersMeta(items, meta, list) {
 
 // ===== Списки заказов =====
 const CATS = {
-  anime:  { url: ANIME_CSV_URL,  page: 'anime.html',  label: 'Аниме',  icon: '⛩️', active: ['watching'], done: ['watched'] },
-  movies: { url: MOVIES_CSV_URL, page: 'movies.html', label: 'Фильм',  icon: '🎬', active: ['watching'], done: ['watched'] },
-  series: { url: SERIES_CSV_URL, page: 'series.html', label: 'Сериал', icon: '📺', active: ['watching'], done: ['watched'] },
-  games:  { url: GAMES_CSV_URL,  page: 'games.html',  label: 'Игра',   icon: '🎮', active: ['playing'],  done: ['completed'] },
+  anime:  { url: ANIME_CSV_URL,  page: 'anime.html',  label: 'Аниме',  icon: 'torii', active: ['watching'], done: ['watched'] },
+  movies: { url: MOVIES_CSV_URL, page: 'movies.html', label: 'Фильм',  icon: 'film', active: ['watching'], done: ['watched'] },
+  series: { url: SERIES_CSV_URL, page: 'series.html', label: 'Сериал', icon: 'tv', active: ['watching'], done: ['watched'] },
+  games:  { url: GAMES_CSV_URL,  page: 'games.html',  label: 'Игра',   icon: 'gamepad', active: ['playing'],  done: ['completed'] },
 };
 
 function statusOf(item) { return (item.status || 'pending').toLowerCase(); }
@@ -1391,6 +1223,11 @@ function relText(start, now) {
   return `через ${Math.max(1, mins)} мин`;
 }
 
+// Обложка не загрузилась — вместо неё иконка раздела
+function coverFailed(img, cat) {
+  img.parentNode.innerHTML = icon(CATS[cat].icon);
+}
+
 function renderNowItem(it, opts) {
   opts = opts || {};
   const cat = CATS[it._cat];
@@ -1404,8 +1241,8 @@ function renderNowItem(it, opts) {
     <a class="now-item${opts.big ? ' now-item--big' : ''}" href="${cat.page}">
       ${cover ? `<div class="now-item__glow" style="background-image:url('${esc(cover)}')"></div>` : ''}
       <div class="now-item__cover pcover">${cover
-        ? `${blurLayer(cover)}<img src="${esc(cover)}" alt="" referrerpolicy="no-referrer" data-alt="${esc(it.alt_cover || '')}" onload="fitCover(this)" onerror="this.replaceWith(document.createTextNode('${cat.icon}'))">`
-        : cat.icon}</div>
+        ? `${blurLayer(cover)}<img src="${esc(cover)}" alt="" referrerpolicy="no-referrer" data-alt="${esc(it.alt_cover || '')}" onload="fitCover(this)" onerror="coverFailed(this, '${it._cat}')">`
+        : icon(cat.icon)}</div>
       <div class="now-item__body">
         <span class="now-item__type">${esc(type)}</span>
         <h3 class="now-item__title">${esc(it.title || 'Без названия')}</h3>
@@ -1491,8 +1328,8 @@ function renderNow() {
 // ===== Зал Славы: лента последних побед + карточка =====
 const RANKS = {
   epic:      { label: 'Эпическая',  symbol: '◆', forms: ['эпическая', 'эпических', 'эпических'] },
-  legendary: { label: 'Легендарка', symbol: '★', forms: ['легендарка', 'легендарки', 'легендарок'] },
-  artifact:  { label: 'Артефакт',   symbol: '✦', forms: ['артефакт', 'артефакта', 'артефактов'] },
+  legendary: { label: 'Легендарка', symbol: icon('star', 'ic--fill'), forms: ['легендарка', 'легендарки', 'легендарок'] },
+  artifact:  { label: 'Артефакт',   symbol: icon('sparkles', 'ic--fill'), forms: ['артефакт', 'артефакта', 'артефактов'] },
 };
 
 function cleanQuote(q) {

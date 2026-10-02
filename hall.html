@@ -21,100 +21,10 @@
   const TWITCH_URL = "https://www.twitch.tv/pariparikai";
 </script>
 
+<link rel="stylesheet" href="site.css?v=1">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: #0a0e1a;
-    background-image:
-      radial-gradient(ellipse at top left, rgba(255, 199, 117, 0.08), transparent 50%),
-      radial-gradient(ellipse at bottom right, rgba(127, 119, 221, 0.06), transparent 50%);
-    background-attachment: fixed;
-    min-height: 100vh;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    color: #fff;
-    padding: 30px 20px;
-  }
-
-  /* ========== ОБЩЕЕ ВЕРХНЕЕ МЕНЮ ========== */
-  .site-nav {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    margin: -30px -20px 28px;
-    background: rgba(20, 25, 40, 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-  }
-  .site-nav__inner {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 12px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    flex-wrap: wrap;
-  }
-  .site-nav__brand {
-    font-size: 13px;
-    letter-spacing: 3px;
-    color: #FAC775;
-    text-decoration: none;
-    text-transform: uppercase;
-    text-shadow: 0 0 8px rgba(250,199,117,0.25);
-    flex: 0 0 auto;
-  }
-  .site-nav__links {
-    display: flex;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    gap: 24px;
-    flex-wrap: wrap;
-  }
-  .site-nav__links a {
-    color: rgba(255,255,255,0.7);
-    text-decoration: none;
-    font-size: 13px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    padding: 4px 0;
-    border-bottom: 2px solid transparent;
-    transition: color 0.2s ease, border-color 0.2s ease, text-shadow 0.2s ease;
-  }
-  .site-nav__links a:hover { color: #FAC775; }
-  .site-nav__links a.is-active {
-    color: #FAC775;
-    border-bottom-color: #FAC775;
-    text-shadow: 0 0 8px rgba(250,199,117,0.5);
-  }
-  @media (max-width: 640px) {
-    .site-nav { margin: -30px -20px 20px; }
-    .site-nav__inner { padding: 10px 16px; gap: 12px; justify-content: center; }
-    .site-nav__brand { display: none; }
-    .site-nav__links { gap: 14px; justify-content: center; }
-    .site-nav__links a { font-size: 12px; letter-spacing: 1px; }
-  }
-
-  .wrap { max-width: 1400px; margin: 0 auto; }
-  .header { text-align: center; margin-bottom: 30px; }
-
-  .title {
-    font-size: 42px;
-    font-weight: 500;
-    letter-spacing: 4px;
-    color: #FAC775;
-    text-shadow: 0 0 20px rgba(250, 199, 117, 0.4);
-    margin-bottom: 6px;
-  }
-  .subtitle {
-    font-size: 13px;
-    letter-spacing: 4px;
-    color: rgba(255,255,255,0.45);
-    text-transform: uppercase;
-  }
+  /* Общее (меню, шапка, фильтры) — в site.css. Здесь — карусель призов и карточки редкостей. */
+  .wrap { max-width: 1400px; }
 
   /* Карусель */
   .current-prizes {
@@ -122,17 +32,11 @@
     display: none;
   }
   .current-prizes-header {
-    text-align: center;
-    margin-bottom: 16px;
-    font-size: 13px;
-    letter-spacing: 3px;
-    color: rgba(255,255,255,0.6);
-    text-transform: uppercase;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    margin-bottom: 16px; font-size: 13px; letter-spacing: 3px; color: var(--gold); text-transform: uppercase;
+    text-shadow: 0 0 10px rgba(var(--gold-rgb), 0.5);
   }
-  .current-prizes-header .glow {
-    color: #FAC775;
-    text-shadow: 0 0 10px rgba(250, 199, 117, 0.5);
-  }
+  .current-prizes-header .ic { font-size: 16px; }
   .carousel-viewport {
     overflow-x: auto;
     overflow-y: hidden;
@@ -199,74 +103,16 @@
     pointer-events: none;
   }
 
-  /* Фильтры */
-  .controls {
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-    margin-bottom: 28px;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-  .f-btn {
-    background: transparent;
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 8px;
-    padding: 10px 16px;
-    cursor: pointer;
-    color: rgba(255,255,255,0.7);
-    font-family: inherit;
-    font-size: 13px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transition: all 0.15s ease;
-  }
-  .f-btn:hover { background: rgba(255,255,255,0.05); color: #fff; transform: translateY(-1px); }
-  .count-pill {
-    background: rgba(255,255,255,0.1);
-    padding: 2px 8px;
-    border-radius: 8px;
-    font-size: 12px;
-    letter-spacing: 0;
-  }
-  .f-btn.active.f-all { border-color: rgba(255,255,255,0.6); color: #fff; background: rgba(255,255,255,0.05); }
-  .f-btn.active.f-artifact { border-color: #FAC775; color: #FAC775; background: rgba(250,199,117,0.1); box-shadow: 0 0 15px rgba(250,199,117,0.2); }
-  .f-btn.active.f-artifact .count-pill { background: rgba(250,199,117,0.25); color: #FAC775; }
-  .f-btn.active.f-legendary { border-color: #F0997B; color: #F0997B; background: rgba(216,90,48,0.1); box-shadow: 0 0 15px rgba(216,90,48,0.2); }
-  .f-btn.active.f-legendary .count-pill { background: rgba(240,153,123,0.25); color: #F0997B; }
-  .f-btn.active.f-epic { border-color: #AFA9EC; color: #AFA9EC; background: rgba(127,119,221,0.12); box-shadow: 0 0 15px rgba(127,119,221,0.2); }
-  .f-btn.active.f-epic .count-pill { background: rgba(175,169,236,0.25); color: #AFA9EC; }
-  .f-btn.active.f-unique { border-color: #fff; color: #fff; background: rgba(255,255,255,0.08); box-shadow: 0 0 15px rgba(255,255,255,0.15); }
-  .f-btn.active.f-unique .count-pill { background: rgba(255,255,255,0.2); color: #fff; }
-  .search-input {
-    background: transparent;
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 8px;
-    padding: 10px 14px;
-    color: #fff;
-    font-family: inherit;
-    font-size: 13px;
-    width: 200px;
-    outline: none;
-    transition: all 0.15s ease;
-  }
-  .search-input:focus { border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.05); }
-  .search-input::placeholder { color: rgba(255,255,255,0.4); }
-  .sound-toggle {
-    background: transparent;
-    border: 1px solid rgba(151,196,89,0.4);
-    border-radius: 8px;
-    padding: 10px 14px;
-    cursor: pointer;
-    color: #97C459;
-    font-family: inherit;
-    font-size: 13px;
-    transition: all 0.15s ease;
-  }
-  .sound-toggle:hover { background: rgba(151,196,89,0.05); }
+  /* Фильтры: пилюли из site.css, активная — цветом своей редкости */
+  .controls { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
+  .chip .ic { font-size: 13px; }
+  .chip.is-active.f-artifact { border-color: var(--gold); color: var(--gold); background: rgba(var(--gold-rgb),0.1); box-shadow: 0 0 15px rgba(var(--gold-rgb),0.2); }
+  .chip.is-active.f-legendary { border-color: #F0997B; color: #F0997B; background: rgba(216,90,48,0.1); box-shadow: 0 0 15px rgba(216,90,48,0.2); }
+  .chip.is-active.f-legendary .count { color: #F0997B; }
+  .chip.is-active.f-unique { border-color: #fff; color: #fff; background: rgba(255,255,255,0.08); box-shadow: 0 0 15px rgba(255,255,255,0.15); }
+  .chip.is-active.f-unique .count { color: #fff; }
+  .search { width: 220px; }
+  .sound-toggle { color: var(--green); border-color: rgba(151,196,89,0.4); }
   .sound-toggle.off { color: rgba(255,255,255,0.5); border-color: rgba(255,255,255,0.15); }
 
   .grid {
@@ -435,6 +281,7 @@
     text-transform: uppercase;
     font-weight: 600;
     z-index: 10;
+    display: inline-flex; align-items: center; gap: 5px;
   }
 
   .rank-badge {
@@ -493,6 +340,7 @@
     position: relative; z-index: 1;
   }
   .chance {
+    display: inline-flex; align-items: center; gap: 4px;
     font-size: 11px;
     letter-spacing: 0.5px;
     padding: 3px 10px;
@@ -531,9 +379,8 @@
   .status code { background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 4px; font-family: monospace; }
 
   @media (max-width: 600px) {
-    .title { font-size: 28px; letter-spacing: 2px; }
     .grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
-    .search-input { width: 100%; }
+    .search { width: 100%; }
     .prize-banner { width: 160px; height: 320px; }
   }
 </style>
@@ -541,137 +388,28 @@
 
 <body>
 
-  <!-- ===== ОБЩЕЕ МЕНЮ: выпадающие разделы (одинаково на всех страницах) ===== -->
-  <style>
-    .site-nav__dd { position: relative; }
-    .site-nav__dd-btn {
-      background: none; border: none; cursor: pointer; font-family: inherit;
-      color: rgba(255,255,255,0.7); font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase;
-      padding: 4px 0; border-bottom: 2px solid transparent;
-      display: inline-flex; align-items: center; gap: 6px;
-      transition: color .2s ease, border-color .2s ease, text-shadow .2s ease;
-    }
-    .site-nav__dd-btn:hover,
-    .site-nav__dd.is-open > .site-nav__dd-btn { color: #FAC775; }
-    .site-nav__dd.is-active > .site-nav__dd-btn {
-      color: #FAC775; border-bottom-color: #FAC775; text-shadow: 0 0 8px rgba(250,199,117,0.5);
-    }
-    .site-nav__caret { font-size: 10px; transition: transform .2s ease; }
-    .site-nav__dd.is-open .site-nav__caret { transform: rotate(180deg); }
-    .site-nav__menu {
-      position: absolute; top: calc(100% + 10px); left: 50%; transform: translate(-50%, -6px);
-      min-width: 210px; list-style: none; margin: 0; padding: 8px;
-      background: rgba(20, 25, 40, 0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
-      box-shadow: 0 16px 40px rgba(0,0,0,0.5);
-      opacity: 0; visibility: hidden; pointer-events: none;
-      transition: opacity .18s ease, transform .18s ease, visibility .18s; z-index: 120;
-    }
-    .site-nav__menu::before { content: ''; position: absolute; top: -12px; left: 0; right: 0; height: 12px; }
-    .site-nav__dd:hover > .site-nav__menu,
-    .site-nav__dd.is-open > .site-nav__menu,
-    .site-nav__dd:focus-within > .site-nav__menu {
-      opacity: 1; visibility: visible; pointer-events: auto; transform: translate(-50%, 0);
-    }
-    .site-nav__menu li { display: block; flex: none; }
-    .site-nav__links .site-nav__menu a {
-      display: block; padding: 9px 14px; border-radius: 8px; border-bottom: none;
-      text-transform: none; letter-spacing: .3px; font-size: 14px;
-      color: rgba(255,255,255,0.8); white-space: nowrap; text-shadow: none;
-    }
-    .site-nav__links .site-nav__menu a:hover { background: rgba(255,255,255,0.06); color: #FAC775; }
-    .site-nav__links .site-nav__menu a.is-active { color: #FAC775; background: rgba(250,199,117,0.08); }
-    @media (max-width: 720px) {
-      .site-nav__dd-btn { font-size: 12px; letter-spacing: 1px; }
-      .site-nav__dd { position: static; }
-      .site-nav__menu { position: absolute; left: 16px; right: 16px; top: calc(100% + 4px); transform: none; min-width: 0; }
-      .site-nav__dd:hover > .site-nav__menu { opacity: 0; visibility: hidden; pointer-events: none; }
-      .site-nav__dd.is-open > .site-nav__menu,
-      .site-nav__dd:focus-within > .site-nav__menu { opacity: 1; visibility: visible; pointer-events: auto; transform: none; }
-    }
-  </style>
-  <nav class="site-nav">
-    <div class="site-nav__inner">
-      <a class="site-nav__brand" href="index.html">ParipariKai</a>
-      <ul class="site-nav__links">
-      <li><a href="hall.html">Зал Славы</a></li>
-      <li><a href="tickets.html">Билеты</a></li>
-      <li class="site-nav__dd">
-        <button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">Заказы зрителя <span class="site-nav__caret">▾</span></button>
-        <ul class="site-nav__menu">
-          <li><a href="anime.html">Аниме</a></li>
-          <li><a href="movies.html">Фильмы</a></li>
-          <li><a href="series.html">Сериалы</a></li>
-          <li><a href="games.html">Игры</a></li>
-          <li><a href="pain-games.html">Боль</a></li>
-          <li><a href="picker.html">Рулетка заказов</a></li>
-        </ul>
-      </li>
-      <li class="site-nav__dd">
-        <button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">Для стримера <span class="site-nav__caret">▾</span></button>
-        <ul class="site-nav__menu">
-          <li><a href="chat-wheel.html">Чат-рулетка</a></li>
-          <li><a href="pain.html">Боль стримера за шекели</a></li>
-          <li><a href="cards.html">Админка-рулетка</a></li>
-          <li><a href="cards.html?stream">Хаос-рулетка</a></li>
-        </ul>
-      </li>
-    </ul>
-    </div>
-  </nav>
-  <script>
-    // Меню: подсветка текущей страницы и открытие разделов по клику (для тач-экранов)
-    (function () {
-      const nav = document.querySelector('.site-nav');
-      if (!nav) return;
-      const here = (location.pathname.split('/').pop() || 'index.html') + location.search;
-      nav.querySelectorAll('.site-nav__links a').forEach(a => {
-        if (a.getAttribute('href') === here) {
-          a.classList.add('is-active');
-          const dd = a.closest('.site-nav__dd');
-          if (dd) dd.classList.add('is-active');
-        }
-      });
-      const closeAll = () => nav.querySelectorAll('.site-nav__dd.is-open').forEach(dd => {
-        dd.classList.remove('is-open');
-        dd.querySelector('.site-nav__dd-btn').setAttribute('aria-expanded', 'false');
-      });
-      nav.querySelectorAll('.site-nav__dd-btn').forEach(btn => {
-        btn.addEventListener('click', e => {
-          e.stopPropagation();
-          const dd = btn.parentElement;
-          const open = !dd.classList.contains('is-open');
-          closeAll();
-          if (open) {
-            dd.classList.add('is-open');
-            btn.setAttribute('aria-expanded', 'true');
-            }
-        });
-      });
-      document.addEventListener('click', closeAll);
-      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
-    })();
-  </script>
+<script src="site.js?v=1"></script>
 
   <div class="wrap">
     <div class="header">
-      <h1 class="title">⚜ ЗАЛ СЛАВЫ ⚜</h1>
+      <h1 class="title"><svg class="ic" aria-hidden="true"><use href="#i-crown"></use></svg>Зал Славы<svg class="ic" aria-hidden="true"><use href="#i-crown"></use></svg></h1>
       <p class="subtitle">Те, кому повезло сильнее всех</p>
     </div>
 
     <div class="current-prizes" id="current-prizes">
-      <div class="current-prizes-header">🎰 <span class="glow">Сейчас в рулетке</span> 🎰</div>
+      <div class="current-prizes-header"><svg class="ic" aria-hidden="true"><use href="#i-wheel"></use></svg><span>Сейчас в рулетке</span><svg class="ic" aria-hidden="true"><use href="#i-wheel"></use></svg></div>
       <div class="carousel-viewport">
         <div class="carousel-track" id="carousel-track"></div>
       </div>
     </div>
 
     <div class="controls">
-      <button class="f-btn f-all active" data-filter="all">Все <span class="count-pill" id="count-all">0</span></button>
-      <button class="f-btn f-unique" data-filter="unique">✨ Уникальный <span class="count-pill" id="count-unique">0</span></button>
-      <button class="f-btn f-artifact" data-filter="artifact">✦ Артефакт <span class="count-pill" id="count-artifact">0</span></button>
-      <button class="f-btn f-legendary" data-filter="legendary">★ Легендарка <span class="count-pill" id="count-legendary">0</span></button>
-      <input type="text" class="search-input" id="search-input" placeholder="Поиск по нику...">
-      <button class="sound-toggle" id="sound-toggle">🔊 Звук вкл.</button>
+      <button class="chip f-btn f-all is-active" data-filter="all">Все <span class="count" id="count-all">0</span></button>
+      <button class="chip f-btn f-unique" data-filter="unique"><svg class="ic" aria-hidden="true"><use href="#i-gem"></use></svg>Уникальный <span class="count" id="count-unique">0</span></button>
+      <button class="chip f-btn f-artifact" data-filter="artifact"><svg class="ic ic--fill" aria-hidden="true"><use href="#i-sparkles"></use></svg>Артефакт <span class="count" id="count-artifact">0</span></button>
+      <button class="chip f-btn f-legendary" data-filter="legendary"><svg class="ic ic--fill" aria-hidden="true"><use href="#i-star"></use></svg>Легендарка <span class="count" id="count-legendary">0</span></button>
+      <label class="search"><svg class="ic" aria-hidden="true"><use href="#i-search"></use></svg><input type="search" class="search-input" id="search-input" placeholder="Поиск по нику..." aria-label="Поиск по нику"></label>
+      <button class="chip sound-toggle" id="sound-toggle"></button>
     </div>
 
     <div id="status" class="status">Загружаю победителей...</div>
@@ -824,9 +562,9 @@ function esc(s) {
 }
 
 const RANK_INFO = {
-  epic:      { label: 'Эпическая',  symbol: '◆', chance: '7%' },
-  legendary: { label: 'Легендарка', symbol: '★', chance: '1.5%' },
-  artifact:  { label: 'Артефакт',   symbol: '✦', chance: '0.5%' },
+  epic:      { label: 'Эпическая',  symbol: icon('gem'), chance: '7%' },
+  legendary: { label: 'Легендарка', symbol: icon('star', 'ic--fill'), chance: '1.5%' },
+  artifact:  { label: 'Артефакт',   symbol: icon('sparkles', 'ic--fill'), chance: '0.5%' },
 };
 
 // Шанс из колонки chance: "2" / "0,5" -> "2%" / "0,5%"; с "%" или текстом — как вписано.
@@ -883,10 +621,10 @@ const soundBtn = document.getElementById('sound-toggle');
 function updateSoundButton() {
   if (soundOn) {
     soundBtn.classList.remove('off');
-    soundBtn.textContent = '🔊 Звук вкл.';
+    soundBtn.innerHTML = icon('volume') + 'Звук вкл.';
   } else {
     soundBtn.classList.add('off');
-    soundBtn.textContent = '🔇 Звук выкл.';
+    soundBtn.innerHTML = icon('volume-off') + 'Звук выкл.';
   }
 }
 soundBtn.addEventListener('click', () => {
@@ -917,7 +655,7 @@ function buildCard(w) {
     const backImage = w.prizeImage ? `style="background-image:url('${esc(w.prizeImage)}');"` : '';
     return `
       <div class="${cardClasses}" data-rank="${esc(w.rank)}" data-unique="1" data-nick="${esc(w.nick.toLowerCase())}">
-        <span class="unique-mark">✨ Unique ✨</span>
+        <span class="unique-mark">${icon('sparkles', 'ic--fill')}Unique${icon('sparkles', 'ic--fill')}</span>
         <div class="unique-inner">
           <div class="unique-face unique-front">${frontContent}</div>
           <div class="unique-face unique-back">
@@ -1006,8 +744,8 @@ function applyFilters() {
 }
 document.querySelectorAll('.f-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('is-active'));
+    btn.classList.add('is-active');
     currentFilter = btn.dataset.filter;
     applyFilters();
   });
@@ -1025,7 +763,7 @@ async function loadAll() {
 
   if (!CSV_URL || CSV_URL === 'PASTE_YOUR_WINNERS_CSV_URL_HERE') {
     status.classList.add('error');
-    status.innerHTML = '⚠ Не настроена ссылка <code>CSV_URL</code>';
+    status.innerHTML = icon('alert') + ' Не настроена ссылка <code>CSV_URL</code>';
     return;
   }
 
@@ -1058,7 +796,7 @@ async function loadAll() {
     const winners = rowsToWinners(parseCSV(csv), viewersMap);
 
     if (winners.length === 0) {
-      status.innerHTML = 'Пока никто не выбил Эпик / Легендарку / Артефакт. Скоро здесь будет первая карточка ✦';
+      status.innerHTML = 'Пока никто не выбил Эпик / Легендарку / Артефакт. Скоро здесь будет первая карточка.';
       return;
     }
 
@@ -1068,7 +806,7 @@ async function loadAll() {
     grid.style.display = 'grid';
   } catch (err) {
     status.classList.add('error');
-    status.innerHTML = '⚠ Ошибка: ' + esc(err.message);
+    status.innerHTML = icon('alert') + ' Ошибка: ' + esc(err.message);
   }
 }
 

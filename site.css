@@ -308,22 +308,22 @@ a.who__nick:hover { text-decoration: underline; }
 }
 
 .spotlight__title { font-size: 20px; font-weight: 700; color: var(--gold); letter-spacing: .5px; margin-bottom: 12px; }
-.now { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
-.now-item {
+.spot-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+.spot-item {
   display: flex; gap: 14px; align-items: center; min-width: 0; text-align: left; cursor: pointer;
   padding: 8px; border-radius: 14px; border: 1px solid transparent; background: rgba(255,255,255,0.025);
   color: inherit; font-family: inherit; transition: background .15s ease, border-color .15s ease;
 }
-.now-item:hover { background: rgba(255,255,255,0.05); border-color: rgba(var(--gold-rgb),0.25); }
-.now-item:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-.now-item__poster {
+.spot-item:hover { background: rgba(255,255,255,0.05); border-color: rgba(var(--gold-rgb),0.25); }
+.spot-item:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.spot-item__poster {
   flex: 0 0 auto; width: 62px; aspect-ratio: 2 / 3; border-radius: 9px; background-size: cover; background-position: center;
   border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 6px 16px rgba(0,0,0,0.45);
   display: grid; place-items: center; font-size: 24px; font-weight: 700; color: rgba(255,255,255,0.85);
 }
-.now-item__body { min-width: 0; flex: 1 1 auto; display: grid; gap: 6px; justify-items: start; }
-.now-item__body .progress { width: 100%; max-width: 220px; }
-.now-item__title { font-size: 16px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+.spot-item__body { min-width: 0; flex: 1 1 auto; display: grid; gap: 6px; justify-items: start; }
+.spot-item__body .progress { width: 100%; max-width: 220px; }
+.spot-item__title { font-size: 16px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
 
 /* ========== СОСТОЯНИЯ ========== */
 .shown-count { text-align: center; font-size: 12px; color: rgba(255,255,255,0.45); margin-bottom: 14px; letter-spacing: 1px; }

@@ -334,17 +334,17 @@ function renderNow() {
   const list = [...upcoming, ...active].slice(0, 4);
   box.hidden = !list.length;
   if (!list.length) return;
-  box.innerHTML = `<h2 class="spotlight__title">Сейчас и скоро</h2><div class="now">` + list.map((it, i) => {
+  box.innerHTML = `<h2 class="spotlight__title">Сейчас и скоро</h2><div class="spot-list">` + list.map((it, i) => {
     const cover = isHttpUrl(it.cover_url) ? it.cover_url : '';
     const poster = cover
-      ? `<span class="now-item__poster" style="background-image:${cssUrl(cover)}"></span>`
-      : `<span class="now-item__poster" style="background:linear-gradient(160deg, ${PALETTE[hashOf(it.title) % PALETTE.length]}, #10142a)">${esc([...it.title][0].toUpperCase())}</span>`;
+      ? `<span class="spot-item__poster" style="background-image:${cssUrl(cover)}"></span>`
+      : `<span class="spot-item__poster" style="background:linear-gradient(160deg, ${PALETTE[hashOf(it.title) % PALETTE.length]}, #10142a)">${esc([...it.title][0].toUpperCase())}</span>`;
     const label = upcomingTs(it) ? tag('show', icon('calendar') + esc(showTime(it.scheduled_at))) : tag('active', esc(STATUS[it.status].label));
     const prog = progressOf(it);
-    return `<button type="button" class="now-item" data-i="${i}">${poster}<span class="now-item__body">${label}` +
-      `<span class="now-item__title">${esc(it.title)}</span>${whoHtml(it, false)}${prog && prog.pct > 0 ? progressHtml(prog, false) : ''}</span></button>`;
+    return `<button type="button" class="spot-item" data-i="${i}">${poster}<span class="spot-item__body">${label}` +
+      `<span class="spot-item__title">${esc(it.title)}</span>${whoHtml(it, false)}${prog && prog.pct > 0 ? progressHtml(prog, false) : ''}</span></button>`;
   }).join('') + '</div>';
-  box.querySelectorAll('.now-item').forEach(btn => btn.addEventListener('click', () => {
+  box.querySelectorAll('.spot-item').forEach(btn => btn.addEventListener('click', () => {
     const it = list[+btn.dataset.i];
     if (!it.card.isConnected) resetFilters();
     it.card.scrollIntoView({ behavior: 'smooth', block: 'center' });
