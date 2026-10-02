@@ -15,11 +15,12 @@
 <script>
   const SHEET = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?single=true&output=csv&gid=";
 
+  // on — включён ли источник при открытии страницы
   const SOURCES = [
-    { id:'anime',  name:'Аниме',   icon:'torii', color:'#E58CC0', csv: SHEET + '627100001' },
-    { id:'movies', name:'Фильмы',  icon:'film', color:'#FAC775', csv: SHEET + '627100002' },
-    { id:'series', name:'Сериалы', icon:'tv', color:'#6FB7E8', csv: SHEET + '627100003' },
-    { id:'games',  name:'Игры',    icon:'gamepad', color:'#9B8CE8', csv: SHEET + '727100001' },
+    { id:'anime',  name:'Аниме',   icon:'torii', color:'#E58CC0', on:true,  csv: SHEET + '627100001' },
+    { id:'movies', name:'Фильмы',  icon:'film', color:'#FAC775', on:true,  csv: SHEET + '627100002' },
+    { id:'series', name:'Сериалы', icon:'tv', color:'#6FB7E8', on:true,  csv: SHEET + '627100003' },
+    { id:'games',  name:'Игры',    icon:'gamepad', color:'#9B8CE8', on:false, csv: SHEET + '727100001' },
   ];
 
   const VIEWERS_CSV_URL = SHEET + '527100001';
@@ -31,10 +32,10 @@
   const JOIN_WORDS = ['я'];
 
   // Статусы из колонки status. Всё непонятное считаем «ещё не смотрели».
-  // Просмотренное по умолчанию на колесо НЕ попадает.
+  // on — включён ли статус при открытии: по умолчанию только «ещё не смотрели».
   const STATUSES = [
     { id:'pending',  name:'Ещё не смотрели', icon:'○', on:true  },
-    { id:'watching', name:'Сейчас смотрим',  icon:'◐', on:true  },
+    { id:'watching', name:'Сейчас смотрим',  icon:'◐', on:false },
     { id:'watched',  name:'Уже посмотрели',  icon:'●', on:false },
   ];
 
@@ -722,7 +723,7 @@ function avatarOf(nick) {
 }
 
 async function loadAll() {
-  SOURCES.forEach(s => { if (!srcState[s.id]) srcState[s.id] = { on: true }; srcState[s.id].error = false; });
+  SOURCES.forEach(s => { if (!srcState[s.id]) srcState[s.id] = { on: s.on !== false }; srcState[s.id].error = false; });
   STATUSES.forEach(s => { if (!(s.id in statState)) statState[s.id] = s.on; });
 
   // Аватарки — украшение, и лежат они в отдельном листе, который
@@ -740,8 +741,9 @@ async function loadAll() {
 
   const known = new Set(allItems.map(i => i.who).filter(Boolean));
   Object.keys(whoState).forEach(k => { if (!known.has(k)) delete whoState[k]; });
-  // Во время сбора новые заказчики ждут своего «я», как и все
-  known.forEach(w => { if (!(w in whoState)) whoState[w] = !collecting; });
+  // Заказчики при открытии сняты: на колесо их добавляет сбор из чата
+  // или галочки вручную. Новые после «Перезагрузить» — тоже сняты.
+  known.forEach(w => { if (!(w in whoState)) whoState[w] = false; });
 
   renderSources();
   renderStatuses();
@@ -1090,7 +1092,15 @@ function updateStats() {
   document.getElementById('top-stats').innerHTML =
     `<b>${total}</b> ${pluralize(total,'вариант','варианта','вариантов')}${bySrc ? ' &nbsp;•&nbsp; ' + bySrc : ''}`;
   document.getElementById('elim-remaining').textContent = total;
-  document.getElementById('wheel-empty').style.display = total === 0 ? 'flex' : 'none';
+  const empty = document.getElementById('wheel-empty');
+  empty.style.display = total === 0 ? 'flex' : 'none';
+  if (total === 0) {
+    const anySrc = SOURCES.some(s => srcState[s.id] && srcState[s.id].on);
+    const anyWho = Object.keys(whoState).some(k => whoState[k]);
+    empty.innerHTML = !anySrc ? 'Выбери источники слева —<br>варианты появятся на колесе'
+      : !anyWho ? (collecting ? 'Ждём «я» в чате…' : 'Нажми «Собрать из чата»<br>или отметь заказчиков слева')
+      : 'Под эти фильтры<br>ничего не подходит';
+  }
   ['btn-single','btn-elim'].forEach(id => { document.getElementById(id).disabled = total === 0 || isSpinning || autoRunning; });
   document.getElementById('btn-auto').disabled = !autoRunning && (total === 0 || isSpinning);
 }
