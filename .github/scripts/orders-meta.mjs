@@ -10,6 +10,9 @@
 //      Картинки World Art не берём: у сайта нет https, браузер не покажет их на GitHub Pages.
 //   4. Игры: ссылка на Steam в url или поиск Steam → Wikidata → IGDB (общий с «Болью» lib/games.mjs).
 // Сайт берёт отсюда только то, чего нет в таблице: заполненные руками url / cover_url главнее.
+//
+// Ещё робот дописывает в orders-quips.json короткие смешные подписи для оборота карточек
+// (аниме, фильмы, сериалы) — только новым тайтлам и только если есть секрет ANTHROPIC_API_KEY.
 
 import fs from 'node:fs';
 import {steamSearch, wikidataSteamId, steamDetails, igdbSearch} from './lib/games.mjs';
@@ -254,6 +257,7 @@ async function findGame(entry, names, steamFromUrl, addedYear) {
 
 const prev = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : {items: {}};
 const out = {};
+const seen = []; // все тайтлы аниме/фильмов/сериалов — для подписей
 let looked = 0;
 
 for (const [list, cfg] of Object.entries(LISTS)) {
@@ -268,6 +272,7 @@ for (const [list, cfg] of Object.entries(LISTS)) {
   for (const r of rows.slice(1)) {
     const title = (r[cTitle] || '').trim().replace(/\s+/g, ' ');
     if (!title || !/\p{L}{2}/u.test(title)) continue;
+    if (cfg.kind === 'screen') seen.push({list, title, url: cUrl >= 0 ? (r[cUrl] || '').trim() : '', type: cType >= 0 ? (r[cType] || '').trim() : ''});
     if (cType >= 0 && /^youtube$/i.test((r[cType] || '').trim())) continue; // у YouTube обложку даёт сам сайт
     const url = cUrl >= 0 ? (r[cUrl] || '').trim() : '';
     const cover = cCover >= 0 ? (r[cCover] || '').trim() : '';
@@ -339,6 +344,61 @@ for (const [list, cfg] of Object.entries(LISTS)) {
     await sleep(800);
   }
 }
+
+// ---------- подписи для оборота карточек (Claude API) ----------
+
+const QUIPS = new URL('../../orders-quips.json', import.meta.url);
+const QUIP_SYSTEM = `Ты пишешь подписи к карточкам на сайте стримера: зрители заказывают ему аниме, фильмы, сериалы и видео, он смотрит их на стриме.
+
+Напиши одну короткую смешную подпись на русском (до 130 символов): о чём это, без спойлеров, и подколка в адрес стримера на «ты» в духе стрим-юмора. Без мата, без оскорблений по внешности, национальности и тому подобному, без кавычек вокруг ответа и без эмодзи. Если не знаешь, что это за тайтл, шути от названия и не выдумывай сюжет. Ответь только текстом подписи.
+
+Примеры подписей для других заказов:`;
+// Заглушки вроде «пока не решила» подписывать не нужно
+const PLACEHOLDER = /не\s*реш|не\s*придум|пу-пу-пу|^\W*$/i;
+
+async function makeQuips() {
+  const file = fs.existsSync(QUIPS) ? JSON.parse(fs.readFileSync(QUIPS, 'utf8')) : {items: {}};
+  const todo = [];
+  for (const s of seen) {
+    const k = key(s.list, s.title);
+    if (!file.items[k] && !PLACEHOLDER.test(s.title) && !todo.some(x => x.k === k)) todo.push({...s, k});
+  }
+  if (!todo.length) return;
+  const {default: Anthropic} = await import('@anthropic-ai/sdk');
+  const anthropic = new Anthropic();
+  const examples = Object.values(file.items).sort(() => Math.random() - 0.5).slice(0, 10);
+  const kinds = {anime: 'аниме', movies: 'фильм или видео', series: 'сериал или дорама'};
+  let added = 0;
+  for (const s of todo.slice(0, 30)) { // за один запуск не больше 30, остальное — в следующий раз
+    const meta = out[s.k] || {};
+    const facts = [`Список: ${kinds[s.list]}${/youtube/i.test(s.type) ? ' (YouTube)' : ''}`, `Название: ${s.title}`,
+      (s.url || meta.url) && `Ссылка: ${s.url || meta.url}`, meta.year && `Год: ${meta.year}`].filter(Boolean).join('\n');
+    try {
+      const response = await anthropic.beta.messages.create({
+        model: 'claude-opus-5-5',
+        max_tokens: 2000,
+        output_config: {effort: 'low'},
+        // При отказе фильтров запрос сам перезапускается на рекомендованной модели.
+        betas: ['server-side-fallback-2026-07-01'],
+        fallbacks: 'default',
+        system: `${QUIP_SYSTEM}\n${examples.map(q => '— ' + q).join('\n')}`,
+        messages: [{role: 'user', content: facts}],
+      });
+      if (response.stop_reason === 'refusal') { console.warn(`  ! Claude отказался подписывать «${s.title}»`); continue; }
+      const text = response.content.filter(b => b.type === 'text').map(b => b.text).join('').trim()
+        .replace(/^["«„]|["»“]$/g, '').trim();
+      if (text && text.length <= 200) { file.items[s.k] = text; added++; console.log(`  ✎ ${s.title}: ${text}`); }
+    } catch (error) {
+      console.warn(`  ! Claude API: ${error.status || ''} ${error.message}`);
+    }
+  }
+  if (added) {
+    file.items = Object.fromEntries(Object.entries(file.items).sort(([a], [b]) => a.localeCompare(b)));
+    fs.writeFileSync(QUIPS, JSON.stringify(file, null, 2) + '\n');
+    console.log(`orders-quips.json: добавлено подписей ${added}.`);
+  }
+}
+if (process.env.ANTHROPIC_API_KEY) await makeQuips();
 
 const next = {note: 'Генерируется автоматически .github/scripts/orders-meta.mjs — руками не править.', items: out};
 if (JSON.stringify(prev.items) !== JSON.stringify(out)) {

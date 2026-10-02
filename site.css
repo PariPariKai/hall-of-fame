@@ -296,6 +296,13 @@ a.who__nick:hover { text-decoration: underline; }
 .pcard__shade .progress { margin-top: 9px; }
 .pcard__shade .progress__bar { height: 4px; background: rgba(255,255,255,0.18); }
 .pcard__back-body .progress { flex: 0 0 auto; margin-top: 2px; }
+/* Заметка стримера из таблицы (колонка notes) — под подписью, своим цветом */
+.pcard__verdict {
+  flex: 0 1 auto; min-height: 0; max-height: 40%; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
+  font-size: 12px; line-height: 1.4; color: rgba(255,255,255,0.85);
+  padding: 7px 9px; border-radius: 8px; background: rgba(var(--gold-rgb),0.08); border: 1px solid rgba(var(--gold-rgb),0.2);
+}
+.pcard__verdict span { display: block; font-size: 9.5px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold); margin-bottom: 3px; }
 .pcard.is-done .pcard__front img, .pcard.is-done .pcard__placeholder { filter: grayscale(.6) brightness(.62); }
 .pcard.is-done:not(.is-flipped):hover .pcard__front img { filter: grayscale(.2) brightness(.85); }
 .pcard.is-dim .pcard__front img { filter: brightness(.8) saturate(.8); }

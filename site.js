@@ -80,7 +80,11 @@
 
   // Базовый вид иконок — и для страниц без site.css (рулетки со своими стилями).
   const ICON_CSS = '<style>.ic{width:1em;height:1em;flex:0 0 auto;display:inline-block;vertical-align:-0.14em;fill:none;stroke:currentColor;' +
-    'stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.ic--fill{fill:currentColor}</style>';
+    'stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.ic--fill{fill:currentColor}' +
+    // Последний раздел меню у правого края: выпадающий список прижимаем вправо, иначе он вылезает за экран
+    '@media (min-width:721px){.site-nav__links>li:last-child>.site-nav__menu{left:auto;right:0;transform:translateY(-6px)}' +
+    '.site-nav__links>li:last-child:hover>.site-nav__menu,.site-nav__links>li:last-child.is-open>.site-nav__menu,' +
+    '.site-nav__links>li:last-child:focus-within>.site-nav__menu{transform:translateY(0)}}</style>';
   const sprite = ICON_CSS + '<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">' +
     Object.entries(ICONS).map(([name, body]) => `<symbol id="i-${name}" viewBox="0 0 24 24">${body}</symbol>`).join('') +
     '</svg>';

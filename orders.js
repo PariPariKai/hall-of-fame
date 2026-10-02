@@ -55,6 +55,8 @@ function rowsToViewers(rows) {
   return map;
 }
 
+// Эмодзи в названиях (флаги и т.п.) на разных устройствах рисуются по-разному — убираем
+const noEmoji = s => s.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}\u{E0020}-\u{E007F}]/gu, '').replace(/\s+/g, ' ').trim();
 const num = s => { const n = parseFloat(String(s).replace(',', '.')); return isFinite(n) ? n : null; };
 
 // Колонки читаются по заголовку; каких-то нет в листе — поле просто пустое.
@@ -77,7 +79,8 @@ function rowsToItems(rows, viewers) {
       const format = get('format').toLowerCase();
       return {
         _order: i,
-        nick, title: get('title'), status, type, url: get('url'),
+        // key — название как в таблице (по нему ищем обложку и подпись), title — для показа, без эмодзи
+        nick, key: get('title'), title: noEmoji(get('title')) || get('title'), status, type, url: get('url'),
         avatar: viewer.avatar || '', twitchUrl: viewer.twitchUrl || '',
         rating: num(get('rating')),
         cover_url: get('cover_url'),
@@ -96,13 +99,17 @@ function rowsToItems(rows, viewers) {
 // Ссылка и обложка, найденные роботом (.github/scripts/orders-meta.mjs), — только если в таблице пусто.
 // У YouTube-заказов без обложки берём превью прямо из ссылки на видео.
 const ORDERS_META = fetch('orders-meta.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}).catch(() => ({}));
+// Короткие смешные подписи для оборота карточки (как у «Боли»), см. orders-quips.json
+const ORDERS_QUIPS = fetch('orders-quips.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}).catch(() => ({}));
 function metaKey(list, title) {
   return list + '|' + String(title || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('ru').replace(/ё/g, 'е');
 }
-function applyOrdersMeta(items, meta) {
+function applyOrdersMeta(items, meta, quips) {
   const found = (meta && meta.items) || {};
+  const quip = (quips && quips.items) || {};
   items.forEach(it => {
-    const m = found[metaKey(CFG.list, it.title)];
+    it.quip = quip[metaKey(CFG.list, it.key)] || '';
+    const m = found[metaKey(CFG.list, it.key)];
     if (m && m.found) {
       if (!it.url && m.url) it.url = m.url;
       if (!it.cover_url && m.cover) it.cover_url = m.cover;
@@ -278,9 +285,9 @@ function buildCard(it) {
         <div class="pcard__back-title">${esc(it.title)}</div>
         ${meta.length ? `<div class="pcard__meta">${esc(meta.join(' · '))}</div>` : ''}
         <div class="pcard__genres">${tags.join('')}</div>
-        ${whoHtml(it, true)}
         ${progressHtml(prog, false)}
-        ${it.notes ? `<p class="pcard__quip">${esc(it.notes)}</p>` : '<div class="pcard__spacer"></div>'}
+        ${it.quip ? `<p class="pcard__quip">${esc(it.quip)}</p>` : '<div class="pcard__spacer"></div>'}
+        ${it.notes ? `<p class="pcard__verdict"><span>Вердикт стримера</span>${esc(it.notes)}</p>` : ''}
         ${stats.length || link ? `<div class="pcard__stats">${stats.join('')}${link}</div>` : ''}
       </div>
     </div>`;
@@ -443,10 +450,11 @@ function resetFilters() {
 async function load() {
   const status = $('status');
   try {
-    const [csv, viewersCsv, meta] = await Promise.all([
+    const [csv, viewersCsv, meta, quips] = await Promise.all([
       fetch(CFG.csv).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status} при загрузке листа ${CFG.sheet}`); return r.text(); }),
       fetch(VIEWERS_CSV_URL).then(r => r.ok ? r.text() : '').catch(() => ''),
       ORDERS_META,
+      ORDERS_QUIPS,
     ]);
     // Каждую минуту перечитываем лист; ничего не поменялось — карточки не трогаем (перевёрнутые остаются перевёрнутыми).
     const signature = csv + '\n' + viewersCsv;
@@ -454,7 +462,7 @@ async function load() {
     state.signature = signature;
     const flipped = new Set(state.items.filter(it => it.card && it.card.classList.contains('is-flipped')).map(it => it.title + '|' + it.nick));
     state.items = rowsToItems(parseCSV(csv), rowsToViewers(parseCSV(viewersCsv)));
-    applyOrdersMeta(state.items, meta);
+    applyOrdersMeta(state.items, meta, quips);
     state.items.forEach(it => { buildCard(it); if (flipped.has(it.title + '|' + it.nick)) it.card.classList.add('is-flipped'); });
     status.className = 'empty-state';
     status.hidden = !!state.items.length;
