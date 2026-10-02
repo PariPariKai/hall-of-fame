@@ -657,14 +657,14 @@
     background: #11172a; border: 1px solid rgba(255,255,255,0.08);
     transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
   }
+  /* Ленту можно тянуть мышкой/пальцем; вертикальная прокрутка страницы на телефоне остаётся */
+  .friends__stage { touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+  .friends__stage[data-count]:not([data-count="1"]) { cursor: grab; }
+  .friends__stage.is-dragging { cursor: grabbing; }
   .friends__stage:hover { border-color: rgba(250,199,117,0.45); box-shadow: 0 14px 32px rgba(0,0,0,0.4), 0 0 24px rgba(250,199,117,0.1); }
-  .friend {
-    position: absolute; inset: 0; display: block; color: #fff; text-decoration: none;
-    opacity: 0; visibility: hidden; transition: opacity .8s ease, visibility .8s;
-  }
-  .friend.is-on { opacity: 1; visibility: visible; }
-  .friend__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(1.04); transition: transform 7s ease-out; }
-  .friend.is-on .friend__img { transform: scale(1); }
+  /* Слайды стоят в ряд; сдвиг каждого считает скрипт (лента бесконечная, по кругу) */
+  .friend { position: absolute; inset: 0; display: block; color: #fff; text-decoration: none; will-change: transform; -webkit-user-drag: none; }
+  .friend__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; -webkit-user-drag: none; }
   /* Затемнение снизу: плашка с ником и точки читаются поверх любой картинки */
   .friend::after {
     content: ''; position: absolute; inset: 0; pointer-events: none;
@@ -716,10 +716,6 @@
     .friend__tag { left: 10px; bottom: 10px; font-size: 12px; }
     .friends__dots { right: 10px; bottom: 12px; }
   }
-  @media (prefers-reduced-motion: reduce) {
-    .friend__img, .friend.is-on .friend__img { transform: none; transition: none; }
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .wins__row.is-moving { animation: none; }
     .wins__track { overflow-x: auto; }
@@ -1564,41 +1560,104 @@ function renderFriends(friends) {
     const url = isValidUrl(f.url) ? f.url : 'https://www.twitch.tv/' + encodeURIComponent(f.nick.replace(/\s+/g, ''));
     const a = document.createElement('a');
     a.className = 'friend';
-    a.href = url; a.target = '_blank'; a.rel = 'noopener';
+    a.href = url; a.target = '_blank'; a.rel = 'noopener'; a.draggable = false;
     a.setAttribute('aria-label', `${f.nick} — открыть стрим`);
     const fallback = `<div class="friend__fallback" style="background:linear-gradient(120deg, ${FRIEND_COLORS[i % FRIEND_COLORS.length]}, #10142a)">${esc(f.nick)}</div>`;
-    a.innerHTML = (isValidUrl(f.image) ? `<img class="friend__img" src="${esc(f.image)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : fallback) +
+    a.innerHTML = (isValidUrl(f.image) ? `<img class="friend__img" src="${esc(f.image)}" alt="" referrerpolicy="no-referrer" draggable="false">` : fallback) +
       `<span class="friend__tag"><span class="friend__live"></span>${esc(f.nick)}<span class="friend__go">смотреть ${icon('external')}</span></span>`;
     const img = a.querySelector('img');
     if (img) img.addEventListener('error', () => img.outerHTML = fallback);
     stage.insertBefore(a, document.getElementById('friends-dots'));
     return a;
   });
+  const n = slides.length;
   const dots = document.getElementById('friends-dots');
   dots.innerHTML = friends.map((f, i) => `<button type="button" class="friends__dot" data-i="${i}" aria-label="${esc(f.nick)}"></button>`).join('');
-  let cur = Math.floor(Math.random() * friends.length); // стартуем со случайного — каждому другу шанс быть первым
-  const show = i => {
-    cur = (i + slides.length) % slides.length;
-    slides.forEach((s, k) => { s.classList.toggle('is-on', k === cur); s.tabIndex = k === cur ? 0 : -1; });
+
+  // pos — дробный номер слайда в центре (2.3 = третий слайд, чуть сдвинутый). Лента бесконечная:
+  // каждый слайд ставится на ближайшее к центру место по кругу.
+  let pos = Math.floor(Math.random() * n); // стартуем со случайного — каждому другу шанс быть первым
+  let anim = null;
+  const mod = (x, m) => ((x % m) + m) % m;
+  const draw = () => {
+    const w = stage.clientWidth;
+    slides.forEach((s, k) => {
+      let d = mod(k - pos, n);
+      if (d > n / 2) d -= n;
+      s.style.transform = `translate3d(${(d * w).toFixed(1)}px,0,0)`;
+      s.style.visibility = Math.abs(d) < 1 ? 'visible' : 'hidden';
+    });
+    const cur = mod(Math.round(pos), n);
+    slides.forEach((s, k) => { s.tabIndex = k === cur ? 0 : -1; });
     dots.querySelectorAll('.friends__dot').forEach((d, k) => d.classList.toggle('is-on', k === cur));
+  };
+  // Плавно доехать до слайда target (целое число, можно за пределами 0..n-1 — лента по кругу)
+  const goTo = target => {
+    cancelAnimationFrame(anim);
+    const from = pos, dist = target - from;
+    if (!dist) { draw(); return; }
+    const dur = Math.min(900, 380 + Math.abs(dist) * 160);
+    const t0 = performance.now();
+    const step = now => {
+      const t = Math.min(1, (now - t0) / dur);
+      pos = from + dist * (1 - Math.pow(1 - t, 3));
+      draw();
+      if (t < 1) anim = requestAnimationFrame(step); else pos = mod(Math.round(pos), n);
+    };
+    anim = requestAnimationFrame(step);
   };
   const restart = () => {
     clearInterval(friendsTimer);
-    if (slides.length > 1) friendsTimer = setInterval(() => { if (!stage.matches(':hover')) show(cur + 1); }, 6000);
+    if (n > 1) friendsTimer = setInterval(() => { if (!stage.matches(':hover') && !drag) goTo(Math.round(pos) + 1); }, 6000);
   };
-  document.getElementById('friends-prev').onclick = () => { show(cur - 1); restart(); };
-  document.getElementById('friends-next').onclick = () => { show(cur + 1); restart(); };
-  dots.onclick = e => { const d = e.target.closest('.friends__dot'); if (d) { show(+d.dataset.i); restart(); } };
-  // Свайп на телефоне
-  let x0 = null;
-  stage.ontouchstart = e => { x0 = e.touches[0].clientX; };
-  stage.ontouchend = e => {
-    if (x0 === null) return;
-    const dx = e.changedTouches[0].clientX - x0;
-    x0 = null;
-    if (Math.abs(dx) > 40) { show(cur + (dx < 0 ? 1 : -1)); restart(); }
+  // Кратчайший путь до слайда i по кругу
+  const nearest = i => { const c = Math.round(pos); let d = mod(i - c, n); if (d > n / 2) d -= n; return c + d; };
+  document.getElementById('friends-prev').onclick = () => { goTo(Math.round(pos) - 1); restart(); };
+  document.getElementById('friends-next').onclick = () => { goTo(Math.round(pos) + 1); restart(); };
+  dots.onclick = e => { const d = e.target.closest('.friends__dot'); if (d) { goTo(nearest(+d.dataset.i)); restart(); } };
+
+  // Тянуть мышкой (зажатая ЛКМ) или пальцем; сильный бросок проматывает несколько слайдов
+  let drag = null, moved = false, noClickUntil = 0;
+  stage.onpointerdown = e => {
+    if (n < 2 || e.button !== 0 || e.target.closest('.friends__nav, .friends__dot')) return;
+    cancelAnimationFrame(anim);
+    drag = {x: e.clientX, pos, last: e.clientX, t: performance.now(), v: 0, id: e.pointerId};
+    moved = false;
   };
-  show(cur);
+  stage.onpointermove = e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const dx = e.clientX - drag.x;
+    if (!moved && Math.abs(dx) > 6) {
+      moved = true;
+      stage.classList.add('is-dragging');
+      stage.setPointerCapture(e.pointerId);
+    }
+    if (!moved) return;
+    const now = performance.now(), dt = Math.max(1, now - drag.t);
+    drag.v = 0.8 * ((e.clientX - drag.last) / dt) + 0.2 * drag.v; // px/мс, сглаженная скорость
+    drag.last = e.clientX; drag.t = now;
+    pos = drag.pos - dx / stage.clientWidth;
+    draw();
+  };
+  const release = e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    stage.classList.remove('is-dragging');
+    if (moved) {
+      // Куда «докатится» лента: текущее место плюс инерция броска
+      const fling = performance.now() - drag.t > 120 ? 0 : -drag.v * 320 / stage.clientWidth;
+      goTo(Math.round(pos + Math.max(-6, Math.min(6, fling))));
+      restart();
+      noClickUntil = performance.now() + 350;
+    }
+    drag = null;
+  };
+  stage.onpointerup = release;
+  stage.onpointercancel = release;
+  // Перетаскивание — не клик: стрим не открываем
+  stage.addEventListener('click', e => { if (performance.now() < noClickUntil) { e.preventDefault(); e.stopPropagation(); } }, true);
+  window.addEventListener('resize', draw);
+
+  draw();
   restart();
 }
 
