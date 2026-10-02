@@ -1,0 +1,41 @@
+{
+  "note": "Эксперименты для experiments.html. Новые — сверху. Поля: kind = game | mod | tool | site | other; status = done | testing | wip; links[].type = play | download | video | source | page (пустой url — кнопка «Скоро»). Необязательные поля можно не писать.",
+  "experiments": [
+    {
+      "id": "skyrim-dlss5",
+      "title": "Skyrim с DLSS 5",
+      "kind": "mod",
+      "status": "testing",
+      "date": "2026-10-03",
+      "ai": [],
+      "badge": { "value": "DLSS 5", "label": "в Skyrim" },
+      "accent": "#455f95",
+      "summary": "Патч для Skyrim: добавляет нужные элементы, bridge и включает DLSS 5 из неофициальной сборки. Хочу, чтобы кто-то ещё поставил его и увидел, какой красивой стала игра.",
+      "features": [
+        "Добавляет недостающие элементы и bridge",
+        "Включает DLSS 5 (неофициальная сборка)"
+      ],
+      "requirements": [],
+      "warning": "Неофициальная сборка. Перед установкой сделай копию сохранений и папки игры.",
+      "links": [
+        { "type": "download", "label": "Скачать патч", "url": "" }
+      ]
+    },
+    {
+      "id": "tiny-game",
+      "title": "Самая маленькая игра",
+      "kind": "game",
+      "status": "done",
+      "date": "2026-10-03",
+      "ai": ["Claude"],
+      "badge": { "value": "79 КБ", "label": "весит вся игра" },
+      "accent": "#8d4564",
+      "summary": "Эксперимент: насколько маленькой может быть целая игра, если делать её вместе с нейросетью. Вся игра весит 79 КБ — меньше одной фотографии с телефона.",
+      "features": [],
+      "requirements": [],
+      "links": [
+        { "type": "play", "label": "Играть", "url": "" }
+      ]
+    }
+  ]
+}

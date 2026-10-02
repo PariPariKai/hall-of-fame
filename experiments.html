@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<title>Эксперименты — Hall of Fame</title>
+<link rel="stylesheet" href="site.css?v=4">
+<style>
+  /* Общее (меню, шапка, шаги, фильтры, метки) — в site.css. Здесь только карточки экспериментов. */
+  .xgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: 20px; list-style: none; }
+  .xcard {
+    --accent: #555897;
+    display: flex; flex-direction: column; min-width: 0; overflow: hidden; border-radius: 18px;
+    background: var(--panel); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+    transition: border-color .2s ease, box-shadow .2s ease; scroll-margin-top: 90px;
+  }
+  .xcard:hover { border-color: rgba(var(--gold-rgb),0.35); }
+  .xcard.is-testing { border-color: rgba(var(--ember-rgb),0.5); box-shadow: 0 10px 28px rgba(0,0,0,0.45), 0 0 24px rgba(var(--ember-rgb),0.16); }
+
+  /* Обложка: картинка, если есть, иначе градиент цвета эксперимента с крупной цифрой */
+  .xcard__cover {
+    position: relative; aspect-ratio: 16 / 7; overflow: hidden; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
+    padding: 16px 18px; background: radial-gradient(ellipse at 85% 10%, rgba(255,255,255,0.16), transparent 55%), linear-gradient(140deg, var(--accent), #10142a 85%);
+  }
+  .xcard__cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .xcard__cover.has-img::after { content: ''; position: absolute; inset: 0; background: linear-gradient(transparent 35%, rgba(6,8,16,0.85)); }
+  .xcard__kind-ic {
+    position: absolute; right: -18px; top: -24px; font-size: 150px; color: rgba(255,255,255,0.08); pointer-events: none;
+  }
+  .xcard__kind-ic .ic { stroke-width: 1.3; }
+  .xcard__cover.has-img .xcard__kind-ic { display: none; }
+  .xcard__badge { position: relative; z-index: 1; min-width: 0; }
+  .xcard__badge b {
+    display: block; font-size: 44px; font-weight: 700; line-height: 1; letter-spacing: 1px; color: #fff;
+    text-shadow: 0 4px 24px rgba(0,0,0,0.45);
+  }
+  .xcard__badge span { display: block; margin-top: 6px; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.7); }
+  .xcard__tags { position: absolute; top: 14px; left: 14px; z-index: 1; display: flex; flex-wrap: wrap; gap: 6px; }
+  .xcard__tags .tag { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); background-color: rgba(10,14,26,0.6); }
+
+  .xcard__body { flex: 1 1 auto; display: flex; flex-direction: column; gap: 12px; padding: 18px 20px 20px; }
+  .xcard__head { display: grid; gap: 5px; }
+  .xcard__title { font-size: 21px; font-weight: 700; line-height: 1.25; color: var(--gold); overflow-wrap: anywhere; }
+  .xcard__meta { font-size: 12px; color: var(--dim); letter-spacing: .3px; display: flex; flex-wrap: wrap; gap: 4px 12px; }
+  .xcard__meta b { color: rgba(255,255,255,0.75); font-weight: 600; }
+  .xcard__summary { font-size: 14px; line-height: 1.55; color: rgba(255,255,255,0.8); }
+  .xcard__list { list-style: none; display: grid; gap: 6px; font-size: 13px; line-height: 1.45; color: var(--muted); }
+  .xcard__list li { display: flex; gap: 8px; }
+  .xcard__list .ic { flex: 0 0 auto; margin-top: 2px; color: var(--gold); }
+  .xcard__label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); margin-bottom: 7px; }
+  .xcard__warn {
+    display: flex; gap: 9px; font-size: 12.5px; line-height: 1.45; color: #ffd9b8;
+    padding: 9px 12px; border-radius: 10px; background: rgba(var(--ember-rgb),0.1); border: 1px solid rgba(var(--ember-rgb),0.3);
+  }
+  .xcard__warn .ic { flex: 0 0 auto; margin-top: 1px; color: #ffb27a; }
+  .xcard__story summary {
+    cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; color: var(--gold); user-select: none;
+  }
+  .xcard__story summary::-webkit-details-marker { display: none; }
+  .xcard__story summary .ic { transition: transform .2s ease; }
+  .xcard__story[open] summary .ic { transform: rotate(90deg); }
+  .xcard__story summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 4px; }
+  .xcard__story-text { display: grid; gap: 8px; margin-top: 10px; font-size: 13px; line-height: 1.55; color: var(--muted); }
+  .xcard__actions { margin-top: auto; padding-top: 4px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .xcard__actions .btn { padding: 10px 16px; font-size: 13.5px; }
+  .btn--main { background: linear-gradient(120deg, #F09F58, var(--gold)); color: #1a1208; border-color: transparent; box-shadow: 0 6px 18px rgba(var(--ember-rgb),0.25); }
+  .btn--main:hover { background: linear-gradient(120deg, #f5ab6a, #ffd391); }
+  .btn.is-off { opacity: .45; cursor: default; pointer-events: none; }
+
+  @media (max-width: 720px) {
+    .xgrid { gap: 14px; }
+    .xcard__badge b { font-size: 36px; }
+    .xcard__body { padding: 16px; }
+    .xcard__title { font-size: 19px; }
+  }
+</style>
+</head>
+
+<body>
+
+<script src="site.js?v=7"></script>
+
+<div class="wrap">
+  <div class="header">
+    <h1 class="title"><svg class="ic" aria-hidden="true"><use href="#i-flask"></use></svg>Эксперименты<svg class="ic" aria-hidden="true"><use href="#i-flask"></use></svg></h1>
+    <p class="subtitle" id="subtitle">Что я собрал вместе с нейросетями</p>
+  </div>
+
+  <section class="rules" aria-label="Что это за страница">
+    <div class="rule">
+      <div class="rule__icon"><svg class="ic" aria-hidden="true"><use href="#i-sparkles"></use></svg></div>
+      <div>
+        <div class="rule__step">Вайбкодинг</div>
+        <div class="rule__title">Идея моя, код — нейросети</div>
+        <p class="rule__text">Ставлю задачу, нейросеть пишет, я проверяю и прошу переделать. Здесь то, что получилось интересным.</p>
+      </div>
+    </div>
+    <div class="rule">
+      <div class="rule__icon"><svg class="ic" aria-hidden="true"><use href="#i-play"></use></svg></div>
+      <div>
+        <div class="rule__step">Попробуй</div>
+        <div class="rule__title">Запусти или скачай</div>
+        <p class="rule__text">Игры открываются прямо в браузере, моды и патчи — по ссылке. Что нужно для запуска, написано в карточке.</p>
+      </div>
+    </div>
+    <div class="rule">
+      <div class="rule__icon"><svg class="ic" aria-hidden="true"><use href="#i-message"></use></svg></div>
+      <div>
+        <div class="rule__step">Отзыв</div>
+        <div class="rule__title">Расскажи, как прошло</div>
+        <p class="rule__text">Напиши в чат на стриме, что понравилось и что сломалось. Особенно жду отзывов на <span class="accent">«Нужны тестеры»</span>.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="toolbar">
+    <div class="toolbar__row" id="kind-filters"></div>
+  </div>
+
+  <div id="status" class="empty-state">Загружаю эксперименты...</div>
+  <ul id="grid" class="xgrid" hidden></ul>
+</div>
+
+<script>
+'use strict';
+const KINDS = {
+  game:  {label: 'Игра',       many: 'Игры',        icon: 'gamepad'},
+  mod:   {label: 'Мод',        many: 'Моды и патчи', icon: 'wrench'},
+  tool:  {label: 'Инструмент', many: 'Инструменты', icon: 'bot'},
+  site:  {label: 'Сайт',       many: 'Сайты',       icon: 'code'},
+  other: {label: 'Другое',     many: 'Другое',      icon: 'flask'},
+};
+const STATUSES = {
+  done:    {label: 'Готово',         cls: 'tag--done'},
+  testing: {label: 'Нужны тестеры',  cls: 'tag--show'},
+  wip:     {label: 'В работе',       cls: 'tag--paused'},
+};
+const LINKS = {
+  play:     {icon: 'play',     label: 'Играть'},
+  download: {icon: 'download', label: 'Скачать'},
+  video:    {icon: 'video',    label: 'Видео'},
+  source:   {icon: 'code',     label: 'Исходники'},
+  page:     {icon: 'external', label: 'Открыть'},
+};
+const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const state = {items: [], kind: 'all'};
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+function iconEl(name) { const s = el('span'); s.innerHTML = icon(name); return s.firstChild; }
+function fmtDate(s) {
+  const m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s || '');
+  return m ? `${+m[3]} ${MONTHS[m[2] - 1]} ${m[1]}` : '';
+}
+function plural(n, one, few, many) {
+  const t = n % 100, d = n % 10;
+  if (t >= 11 && t <= 14) return many;
+  return d === 1 ? one : d >= 2 && d <= 4 ? few : many;
+}
+const kindOf = x => KINDS[x.kind] ? x.kind : 'other';
+const list = v => (Array.isArray(v) ? v : []).filter(s => typeof s === 'string' && s.trim());
+
+function buildList(label, items, iconName) {
+  const box = el('div');
+  box.append(el('div', 'xcard__label', label));
+  const ul = el('ul', 'xcard__list');
+  items.forEach(t => { const li = el('li'); li.append(iconEl(iconName), el('span', '', t)); ul.append(li); });
+  box.append(ul);
+  return box;
+}
+
+function buildCard(x) {
+  const kind = KINDS[kindOf(x)], status = STATUSES[x.status];
+  const li = el('li', 'xcard' + (x.status === 'testing' ? ' is-testing' : ''));
+  li.id = x.id || '';
+  if (/^#[0-9a-f]{3,8}$/i.test(x.accent || '')) li.style.setProperty('--accent', x.accent);
+
+  const cover = el('div', 'xcard__cover');
+  if (x.cover) {
+    const img = el('img');
+    img.alt = ''; img.loading = 'lazy'; img.decoding = 'async'; img.src = x.cover;
+    img.onerror = () => { img.remove(); cover.classList.remove('has-img'); };
+    cover.classList.add('has-img');
+    cover.append(img);
+  }
+  const big = el('div', 'xcard__kind-ic'); big.innerHTML = icon(kind.icon);
+  const tags = el('div', 'xcard__tags');
+  const kindTag = el('span', 'tag tag--queue'); kindTag.append(iconEl(kind.icon), kind.label);
+  tags.append(kindTag);
+  if (status) tags.append(el('span', 'tag ' + status.cls, status.label));
+  cover.append(big, tags);
+  if (x.badge && x.badge.value) {
+    const badge = el('div', 'xcard__badge');
+    badge.append(el('b', '', x.badge.value));
+    if (x.badge.label) badge.append(el('span', '', x.badge.label));
+    cover.append(badge);
+  }
+
+  const body = el('div', 'xcard__body');
+  const head = el('div', 'xcard__head');
+  head.append(el('h2', 'xcard__title', x.title || 'Без названия'));
+  const meta = el('div', 'xcard__meta');
+  const ai = list(x.ai);
+  if (ai.length) { const s = el('span', '', 'Сделано с: '); s.append(el('b', '', ai.join(', '))); meta.append(s); }
+  if (fmtDate(x.date)) meta.append(el('span', '', fmtDate(x.date)));
+  if (meta.childNodes.length) head.append(meta);
+  body.append(head);
+  if (x.summary) body.append(el('p', 'xcard__summary', x.summary));
+  if (list(x.features).length) body.append(buildList('Что внутри', list(x.features), 'check'));
+  if (list(x.requirements).length) body.append(buildList('Что нужно', list(x.requirements), 'chevron'));
+  if (x.warning) { const w = el('div', 'xcard__warn'); w.append(iconEl('alert'), el('span', '', x.warning)); body.append(w); }
+  if (list(x.story).length) {
+    const d = el('details', 'xcard__story');
+    const sum = el('summary'); sum.append(iconEl('chevron'), 'Как это сделано');
+    const text = el('div', 'xcard__story-text');
+    list(x.story).forEach(p => text.append(el('p', '', p)));
+    d.append(sum, text);
+    body.append(d);
+  }
+
+  const links = (Array.isArray(x.links) ? x.links : []).filter(l => l && LINKS[l.type]);
+  if (links.length) {
+    const actions = el('div', 'xcard__actions');
+    links.forEach((l, i) => {
+      const def = LINKS[l.type], ready = /^(https?:\/\/|[\w.\-\/]+$)/.test(l.url || '');
+      const a = el('a', 'btn' + (i === 0 ? ' btn--main' : '') + (ready ? '' : ' is-off'));
+      a.append(iconEl(def.icon), (l.label || def.label) + (ready ? '' : ' · скоро'));
+      if (ready) {
+        a.href = l.url;
+        if (/^https?:/.test(l.url)) { a.target = '_blank'; a.rel = 'noopener'; }
+        if (l.type === 'download' && !/^https?:/.test(l.url)) a.download = '';
+      } else a.setAttribute('aria-disabled', 'true');
+      actions.append(a);
+    });
+    body.append(actions);
+  }
+
+  li.append(cover, body);
+  return li;
+}
+
+function renderFilters() {
+  const counts = new Map();
+  state.items.forEach(x => counts.set(kindOf(x), (counts.get(kindOf(x)) || 0) + 1));
+  const box = document.getElementById('kind-filters');
+  const chips = [['all', 'Все', state.items.length], ...Object.keys(KINDS).filter(k => counts.has(k)).map(k => [k, KINDS[k].many, counts.get(k)])];
+  box.replaceChildren(...chips.map(([value, label, count]) => {
+    const b = el('button', 'chip' + (state.kind === value ? ' is-active' : ''), label + ' ');
+    b.type = 'button';
+    b.append(el('span', 'count', count));
+    b.addEventListener('click', () => { state.kind = value; renderFilters(); render(); });
+    return b;
+  }));
+  // Фильтр нужен, только когда есть из чего выбирать
+  box.parentElement.hidden = counts.size < 2;
+}
+
+function render() {
+  const shown = state.items.filter(x => state.kind === 'all' || kindOf(x) === state.kind);
+  const grid = document.getElementById('grid');
+  grid.replaceChildren(...shown.map(x => x.card));
+  grid.hidden = !shown.length;
+}
+
+async function load() {
+  const status = document.getElementById('status');
+  try {
+    const r = await fetch('experiments.json?v=' + Math.floor(Date.now() / 60000), {cache: 'no-cache'});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    state.items = (data.experiments || []).filter(x => x && x.title);
+    state.items.forEach(x => { x.card = buildCard(x); });
+    status.hidden = !!state.items.length;
+    status.textContent = 'Пока пусто. Первый эксперимент уже в работе.';
+    const n = state.items.length, testing = state.items.filter(x => x.status === 'testing').length;
+    const sub = document.getElementById('subtitle');
+    sub.replaceChildren('Что я собрал вместе с нейросетями · ', el('span', 'accent', `${n} ${plural(n, 'эксперимент', 'эксперимента', 'экспериментов')}`));
+    if (testing) sub.append(' · ждут тестеров: ', el('span', 'accent', testing));
+    renderFilters(); render();
+    // Ссылка вида experiments.html#tiny-game — сразу к нужной карточке
+    if (location.hash) document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView({block: 'start'});
+  } catch (err) {
+    console.warn('Experiments load failed:', err.message);
+    status.className = 'error-state';
+    status.textContent = 'Не удалось загрузить эксперименты. Обнови страницу чуть позже.';
+  }
+}
+load();
+</script>
+</body>
+</html>
