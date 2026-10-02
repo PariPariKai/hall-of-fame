@@ -898,7 +898,7 @@ function applyFilters() {
     const cardStatus = card.dataset.status;
     let matchesStatus;
     if (currentStatus === 'all') {
-      matchesStatus = cardStatus !== 'watched';
+      matchesStatus = true; // «Все» — действительно все, активные стоят сверху при сортировке «По статусу»
     } else {
       matchesStatus = cardStatus === currentStatus;
     }
@@ -938,8 +938,7 @@ function applyFilters() {
 function updateCounters(items) {
   const counts = { pending: 0, watching: 0, paused: 0, watched: 0 };
   items.forEach(it => { counts[it.status] = (counts[it.status] || 0) + 1; });
-  const activeCount = counts.pending + counts.watching + counts.paused;
-  document.getElementById('cnt-all').textContent       = activeCount;
+  document.getElementById('cnt-all').textContent       = items.length;
   document.getElementById('cnt-pending').textContent   = counts.pending;
   document.getElementById('cnt-watching').textContent  = counts.watching;
   document.getElementById('cnt-paused').textContent    = counts.paused;
