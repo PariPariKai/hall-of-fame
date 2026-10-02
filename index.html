@@ -24,6 +24,9 @@
   const ANIME_CSV_URL   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=627100001&single=true&output=csv";
   const MOVIES_CSV_URL  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=627100002&single=true&output=csv";
   const SERIES_CSV_URL  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=627100003&single=true&output=csv";
+  // Лист Friends (друзья-стримеры для баннера «Рекомендую»): nick, image_url, url, active.
+  // Пока пусто — баннер не показывается.
+  const FRIENDS_CSV_URL = "";
   const GAMES_CSV_URL   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=727100001&single=true&output=csv";
 </script>
 
@@ -645,6 +648,69 @@
   }
   .hall-art__last b { color: #fff; }
 
+  /* ========== РЕКОМЕНДУЮ: карусель друзей-стримеров ========== */
+  /* Размер — как у баннера Зала Славы: ширина страницы, пропорции 5:1 (1240×248) */
+  .friends { max-width: var(--page); margin: 36px auto 0; }
+  .friends[hidden] { display: none; }
+  .friends__stage {
+    position: relative; aspect-ratio: 5 / 1; border-radius: 16px; overflow: hidden;
+    background: #11172a; border: 1px solid rgba(255,255,255,0.08);
+    transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+  }
+  .friends__stage:hover { border-color: rgba(250,199,117,0.45); box-shadow: 0 14px 32px rgba(0,0,0,0.4), 0 0 24px rgba(250,199,117,0.1); }
+  .friend {
+    position: absolute; inset: 0; display: block; color: #fff; text-decoration: none;
+    opacity: 0; visibility: hidden; transition: opacity .8s ease, visibility .8s;
+  }
+  .friend.is-on { opacity: 1; visibility: visible; }
+  .friend__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(1.04); transition: transform 7s ease-out; }
+  .friend.is-on .friend__img { transform: scale(1); }
+  /* Нет картинки — красивая заглушка с ником */
+  .friend__fallback {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    font-size: clamp(28px, 6vw, 64px); font-weight: 700; letter-spacing: 4px; text-transform: uppercase;
+    color: rgba(255,255,255,0.9); text-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  }
+  .friend__tag {
+    position: absolute; left: 14px; bottom: 14px; display: inline-flex; align-items: center; gap: 8px;
+    padding: 7px 12px 7px 10px; border-radius: 999px; font-size: 13px; font-weight: 600;
+    background: rgba(10,14,26,0.72); border: 1px solid rgba(255,255,255,0.14);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  }
+  .friend__live { width: 8px; height: 8px; border-radius: 50%; background: #9147ff; box-shadow: 0 0 8px #9147ff; }
+  .friend__go { color: #FAC775; font-weight: 500; display: inline-flex; align-items: center; gap: 3px; }
+  .friend__go .ic { font-size: 11px; }
+  .friend:focus-visible { outline: 2px solid #FAC775; outline-offset: -4px; border-radius: 16px; }
+  .friends__nav {
+    position: absolute; top: 50%; width: 38px; height: 38px; margin-top: -19px; border-radius: 50%;
+    display: grid; place-items: center; cursor: pointer; color: #fff; font-size: 18px;
+    background: rgba(10,14,26,0.6); border: 1px solid rgba(255,255,255,0.18);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    opacity: 0; transition: opacity .2s ease, background .2s ease; z-index: 2;
+  }
+  .friends__nav--prev { left: 12px; }
+  .friends__nav--next { right: 12px; }
+  .friends__nav--prev .ic { transform: scaleX(-1); }
+  .friends__stage:hover .friends__nav, .friends__nav:focus-visible { opacity: 1; }
+  .friends__nav:hover { background: rgba(250,199,117,0.25); }
+  .friends__dots { position: absolute; right: 14px; bottom: 16px; display: flex; gap: 6px; z-index: 2; }
+  .friends__dot {
+    width: 8px; height: 8px; padding: 0; border-radius: 999px; border: none; cursor: pointer;
+    background: rgba(255,255,255,0.4); transition: width .3s ease, background .3s ease;
+  }
+  .friends__dot.is-on { width: 22px; background: #FAC775; }
+  .friends__stage[data-count="1"] .friends__nav, .friends__stage[data-count="1"] .friends__dots { display: none; }
+  @media (max-width: 720px) {
+    /* На телефоне 5:1 было бы слишком узко: баннер выше, картинка обрезается по бокам */
+    .friends__stage { aspect-ratio: 5 / 2; }
+    .friends__nav { opacity: 1; width: 32px; height: 32px; margin-top: -16px; font-size: 15px; }
+    .friend__tag { left: 10px; bottom: 10px; font-size: 12px; }
+    .friends__dots { right: 10px; bottom: 12px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .friend__img, .friend.is-on .friend__img { transform: none; transition: none; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .wins__row.is-moving { animation: none; }
     .wins__track { overflow-x: auto; }
@@ -677,7 +743,7 @@
 
 <body>
 
-<script src="site.js?v=5"></script>
+<script src="site.js?v=6"></script>
 
 <!-- Розыгрыш: виден, только когда в листе Config raffle_active = TRUE -->
 <section class="event" id="event" hidden aria-label="Розыгрыш">
@@ -762,6 +828,18 @@
       <p class="page-card__count" data-counter="games">…</p>
     </div>
   </a>
+</section>
+
+<!-- Рекомендую: друзья-стримеры из листа Friends. Нет листа или строк — блока не видно -->
+<section class="friends" id="friends" hidden aria-labelledby="friends-label">
+  <div class="section-head">
+    <h2 id="friends-label">Рекомендую</h2>
+  </div>
+  <div class="friends__stage" id="friends-stage" aria-roledescription="карусель">
+    <button type="button" class="friends__nav friends__nav--prev" id="friends-prev" aria-label="Предыдущий стример"><svg class="ic" aria-hidden="true"><use href="#i-chevron"></use></svg></button>
+    <button type="button" class="friends__nav friends__nav--next" id="friends-next" aria-label="Следующий стример"><svg class="ic" aria-hidden="true"><use href="#i-chevron"></use></svg></button>
+    <div class="friends__dots" id="friends-dots"></div>
+  </div>
 </section>
 
 <script>
@@ -1438,7 +1516,85 @@ async function loadAll() {
   setInterval(() => { renderNow(); renderWeek(); }, 60000);
 }
 
+// ===== Рекомендую: карусель друзей-стримеров =====
+// Лист Friends: nick, image_url (картинка 5:1, лучше 2500×500), url (страница стрима;
+// пусто — twitch.tv/ник), active (FALSE — спрятать). Порядок — как в таблице, старт — со случайного.
+const FRIEND_COLORS = ['#8d4564', '#555897', '#ad704b', '#487c87', '#754d92', '#9a5359', '#687748', '#455f95'];
+let friendsTimer = null;
+async function loadFriends() {
+  if (!FRIENDS_CSV_URL) return;
+  let rows;
+  try {
+    const res = await fetch(FRIENDS_CSV_URL + '&cache=' + Date.now());
+    if (!res.ok) return;
+    rows = parseCSV(await res.text());
+  } catch (e) { return; }
+  if (rows.length < 2) return;
+  const h = rows[0].map(x => x.trim().toLowerCase());
+  const col = n => h.indexOf(n);
+  const [cNick, cImg, cUrl, cActive] = [col('nick'), col('image_url'), col('url'), col('active')];
+  if (cNick < 0) return;
+  const friends = rows.slice(1).map(r => ({
+    nick: (r[cNick] || '').trim(),
+    image: cImg >= 0 ? (r[cImg] || '').trim() : '',
+    url: cUrl >= 0 ? (r[cUrl] || '').trim() : '',
+    active: cActive < 0 || !/^(false|нет|0|no)$/i.test((r[cActive] || '').trim()),
+  })).filter(f => f.nick && f.active);
+  renderFriends(friends);
+}
+
+function renderFriends(friends) {
+  const box = document.getElementById('friends');
+  const stage = document.getElementById('friends-stage');
+  stage.querySelectorAll('.friend').forEach(el => el.remove());
+  clearInterval(friendsTimer);
+  box.hidden = !friends.length;
+  if (!friends.length) return;
+  stage.dataset.count = friends.length;
+  const slides = friends.map((f, i) => {
+    const url = isValidUrl(f.url) ? f.url : 'https://www.twitch.tv/' + encodeURIComponent(f.nick.replace(/\s+/g, ''));
+    const a = document.createElement('a');
+    a.className = 'friend';
+    a.href = url; a.target = '_blank'; a.rel = 'noopener';
+    a.setAttribute('aria-label', `${f.nick} — открыть стрим`);
+    const fallback = `<div class="friend__fallback" style="background:linear-gradient(120deg, ${FRIEND_COLORS[i % FRIEND_COLORS.length]}, #10142a)">${esc(f.nick)}</div>`;
+    a.innerHTML = (isValidUrl(f.image) ? `<img class="friend__img" src="${esc(f.image)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : fallback) +
+      `<span class="friend__tag"><span class="friend__live"></span>${esc(f.nick)}<span class="friend__go">смотреть ${icon('external')}</span></span>`;
+    const img = a.querySelector('img');
+    if (img) img.addEventListener('error', () => img.outerHTML = fallback);
+    stage.insertBefore(a, document.getElementById('friends-dots'));
+    return a;
+  });
+  const dots = document.getElementById('friends-dots');
+  dots.innerHTML = friends.map((f, i) => `<button type="button" class="friends__dot" data-i="${i}" aria-label="${esc(f.nick)}"></button>`).join('');
+  let cur = Math.floor(Math.random() * friends.length); // стартуем со случайного — каждому другу шанс быть первым
+  const show = i => {
+    cur = (i + slides.length) % slides.length;
+    slides.forEach((s, k) => { s.classList.toggle('is-on', k === cur); s.tabIndex = k === cur ? 0 : -1; });
+    dots.querySelectorAll('.friends__dot').forEach((d, k) => d.classList.toggle('is-on', k === cur));
+  };
+  const restart = () => {
+    clearInterval(friendsTimer);
+    if (slides.length > 1) friendsTimer = setInterval(() => { if (!stage.matches(':hover')) show(cur + 1); }, 6000);
+  };
+  document.getElementById('friends-prev').onclick = () => { show(cur - 1); restart(); };
+  document.getElementById('friends-next').onclick = () => { show(cur + 1); restart(); };
+  dots.onclick = e => { const d = e.target.closest('.friends__dot'); if (d) { show(+d.dataset.i); restart(); } };
+  // Свайп на телефоне
+  let x0 = null;
+  stage.ontouchstart = e => { x0 = e.touches[0].clientX; };
+  stage.ontouchend = e => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    x0 = null;
+    if (Math.abs(dx) > 40) { show(cur + (dx < 0 ? 1 : -1)); restart(); }
+  };
+  show(cur);
+  restart();
+}
+
 loadAll();
+loadFriends();
 </script>
 
 </body>
