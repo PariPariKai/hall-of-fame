@@ -26,7 +26,7 @@
   const SERIES_CSV_URL  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=627100003&single=true&output=csv";
   // Лист Friends (друзья-стримеры для баннера «Рекомендую»): nick, image_url, url, active.
   // Пока пусто — баннер не показывается.
-  const FRIENDS_CSV_URL = "";
+  const FRIENDS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=1322308154&single=true&output=csv";
   const GAMES_CSV_URL   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=727100001&single=true&output=csv";
 </script>
 
@@ -665,6 +665,15 @@
   .friend.is-on { opacity: 1; visibility: visible; }
   .friend__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(1.04); transition: transform 7s ease-out; }
   .friend.is-on .friend__img { transform: scale(1); }
+  /* Затемнение снизу: плашка с ником и точки читаются поверх любой картинки */
+  .friend::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 34% 60% at 0% 100%, rgba(6,8,16,0.75), transparent 70%),
+      radial-gradient(ellipse 22% 55% at 100% 100%, rgba(6,8,16,0.7), transparent 70%),
+      linear-gradient(to top, rgba(6,8,16,0.55), transparent 45%);
+  }
+  .friend__tag { z-index: 1; }
   /* Нет картинки — красивая заглушка с ником */
   .friend__fallback {
     position: absolute; inset: 0; display: grid; place-items: center;
