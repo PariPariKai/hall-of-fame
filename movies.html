@@ -780,6 +780,25 @@ function upcomingTs(item) {
   return ts >= today.getTime() ? ts : 0;
 }
 
+// Ссылка и обложка, найденные роботом (.github/scripts/orders-meta.mjs), — только если в таблице пусто.
+// У YouTube-заказов без обложки берём превью прямо из ссылки на видео.
+const ORDERS_META = fetch('orders-meta.json', {cache: 'no-cache'}).then(r => r.ok ? r.json() : {}).catch(() => ({}));
+function metaKey(list, title) {
+  return list + '|' + String(title || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('ru').replace(/ё/g, 'е');
+}
+function applyOrdersMeta(items, meta, list) {
+  const found = (meta && meta.items) || {};
+  items.forEach(it => {
+    const m = found[metaKey(list, it.title)];
+    if (m && m.found) {
+      if (!it.url && m.url) it.url = m.url;
+      if (!it.cover_url && m.cover) it.cover_url = m.cover;
+    }
+    const yt = (it.url || '').match(/(?:youtu\.be\/|[?&]v=|\/shorts\/|\/embed\/)([\w-]{11})/);
+    if (!it.cover_url && yt) it.cover_url = `https://i.ytimg.com/vi/${yt[1]}/hqdefault.jpg`;
+  });
+}
+
 const STATUS_LABEL = {
   pending:  'В очереди',
   watching: 'Смотрим',
@@ -1013,6 +1032,7 @@ async function loadAll() {
 
     const csv = await moviesRes.text();
     allItems = rowsToMovies(parseCSV(csv), viewersMap);
+    applyOrdersMeta(allItems, await ORDERS_META, 'movies');
 
     if (allItems.length === 0) {
       status.style.display = 'block';

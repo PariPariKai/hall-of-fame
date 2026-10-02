@@ -1132,6 +1132,25 @@ function setupRaffle(config) {
     });
 }
 
+// Ссылка и обложка, найденные роботом (.github/scripts/orders-meta.mjs), — только если в таблице пусто.
+// У YouTube-заказов без обложки берём превью прямо из ссылки на видео.
+const ORDERS_META = fetch('orders-meta.json', {cache: 'no-cache'}).then(r => r.ok ? r.json() : {}).catch(() => ({}));
+function metaKey(list, title) {
+  return list + '|' + String(title || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('ru').replace(/ё/g, 'е');
+}
+function applyOrdersMeta(items, meta, list) {
+  const found = (meta && meta.items) || {};
+  items.forEach(it => {
+    const m = found[metaKey(list, it.title)];
+    if (m && m.found) {
+      if (!it.url && m.url) it.url = m.url;
+      if (!it.cover_url && m.cover) it.cover_url = m.cover;
+    }
+    const yt = (it.url || '').match(/(?:youtu\.be\/|[?&]v=|\/shorts\/|\/embed\/)([\w-]{11})/);
+    if (!it.cover_url && yt) it.cover_url = `https://i.ytimg.com/vi/${yt[1]}/hqdefault.jpg`;
+  });
+}
+
 // ===== Списки заказов =====
 const CATS = {
   anime:  { url: ANIME_CSV_URL,  page: 'anime.html',  label: 'Аниме',  icon: '⛩️', active: ['watching'], done: ['watched'] },
@@ -1542,8 +1561,9 @@ async function loadAll() {
   const keys = Object.keys(CATS);
   const results = await Promise.all(keys.map(key =>
     fetchRows(CATS[key].url)
-      .then(rows => {
+      .then(async rows => {
         const items = rowsToObjects(rows);
+        applyOrdersMeta(items, await ORDERS_META, key);
         setCounter(key, countText(key, items));
         renderFan(key, items);
         return items;

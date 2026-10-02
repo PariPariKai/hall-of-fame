@@ -1,0 +1,96 @@
+{
+  "note": "Генерируется автоматически .github/scripts/orders-meta.mjs — руками не править.",
+  "items": {
+    "anime|\"я не смотрю аниме, пу-пу-пу\"": {
+      "list": "anime",
+      "title": "\"я не смотрю аниме, пу-пу-пу\"",
+      "checked": "2026-10-02T10:06:48.151Z",
+      "found": false
+    },
+    "anime|магистр дьяволського культа": {
+      "list": "anime",
+      "title": "Магистр дьяволського культа",
+      "checked": "2026-10-02T10:06:53.142Z",
+      "found": true,
+      "cover": "https://shikimori.one/system/animes/original/37208.jpg",
+      "url": "https://shikimori.one/animes/37208-mo-dao-zu-shi",
+      "source": "shikimori"
+    },
+    "anime|магистр дьяволського культа 2": {
+      "list": "anime",
+      "title": "Магистр дьяволського культа 2",
+      "checked": "2026-10-02T10:06:57.963Z",
+      "found": true,
+      "cover": "https://shikimori.one/system/animes/original/38450.jpg",
+      "url": "https://shikimori.one/animes/38450-mo-dao-zu-shi-xian-yun-pian",
+      "source": "shikimori"
+    },
+    "anime|магистр дьяволського культа 3": {
+      "list": "anime",
+      "title": "Магистр дьяволського культа 3",
+      "checked": "2026-10-02T10:07:02.694Z",
+      "found": true,
+      "cover": "https://shikimori.one/system/animes/original/40434.jpg",
+      "url": "https://shikimori.one/animes/40434-mo-dao-zu-shi-wanjie-pian",
+      "source": "shikimori"
+    },
+    "movies|я пока не придумала": {
+      "list": "movies",
+      "title": "я пока не придумала",
+      "checked": "2026-10-02T10:07:08.611Z",
+      "found": false
+    },
+    "movies|notre dame de paris full musical 1998": {
+      "list": "movies",
+      "title": "Notre Dame de Paris full musical 1998",
+      "checked": "2026-10-02T10:07:11.886Z",
+      "found": false,
+      "year": 1998
+    },
+    "movies|летняя зоо-олимпиада + зимняя зоо-олимпиада": {
+      "list": "movies",
+      "title": "Летняя Зоо-Олимпиада + Зимняя Зоо-Олимпиада",
+      "checked": "2026-10-02T10:07:14.988Z",
+      "found": false
+    },
+    "movies|пока не решила что": {
+      "list": "movies",
+      "title": "Пока не решила что",
+      "checked": "2026-10-02T10:07:18.124Z",
+      "found": false
+    },
+    "movies|пока не решил что": {
+      "list": "movies",
+      "title": "Пока не решил что",
+      "checked": "2026-10-02T10:07:21.220Z",
+      "found": false
+    },
+    "series|неукротимый: повелитель чэньцин (сериал 2019)": {
+      "list": "series",
+      "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
+      "checked": "2026-10-02T10:07:25.318Z",
+      "found": true,
+      "year": 2019,
+      "kp": "1282758",
+      "url": "https://www.kinopoisk.ru/series/1282758/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1946459/4e9be66f-f93c-4e2d-a25e-9127043b5fde/600x900",
+      "source": "kinopoisk"
+    },
+    "series|пока не решила ^_~": {
+      "list": "series",
+      "title": "пока не решила ^_~",
+      "checked": "2026-10-02T10:07:29.831Z",
+      "found": false
+    },
+    "series|шерлок": {
+      "list": "series",
+      "title": "Шерлок",
+      "checked": "2026-10-02T10:07:32.929Z",
+      "found": true,
+      "kp": "502838",
+      "url": "https://www.kinopoisk.ru/series/502838/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1629390/f28c1ea2-47b0-49d5-b11c-9608744f0233/600x900",
+      "source": "kinopoisk"
+    }
+  }
+}

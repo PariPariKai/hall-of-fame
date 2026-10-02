@@ -1,0 +1,35 @@
+# Подтягивает ссылки и обложки для заказов (аниме, фильмы, сериалы), которых нет в таблице, и коммитит orders-meta.json.
+# Запуск: каждый час и вручную (Actions → «Заказы: ссылки и обложки» → Run workflow).
+name: "Заказы: ссылки и обложки"
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: orders-meta
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node .github/scripts/orders-meta.mjs
+      - name: Коммит, если что-то изменилось
+        run: |
+          if [ -z "$(git status --porcelain -- orders-meta.json)" ]; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898341+github-actions[bot]@users.noreply.github.com"
+          git add orders-meta.json
+          git commit -m "Заказы: обновлены ссылки и обложки"
+          git pull --rebase
+          git push
