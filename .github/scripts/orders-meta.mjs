@@ -12,7 +12,7 @@
 // Сайт берёт отсюда только то, чего нет в таблице: заполненные руками url / cover_url главнее.
 //
 // Ещё робот дописывает в orders-quips.json короткие смешные подписи для оборота карточек
-// (аниме, фильмы, сериалы) — только новым тайтлам и только если есть секрет ANTHROPIC_API_KEY.
+// (аниме, фильмы, сериалы, игры) — только новым тайтлам и только если есть секрет ANTHROPIC_API_KEY.
 
 import fs from 'node:fs';
 import {steamSearch, wikidataSteamId, steamDetails, igdbSearch} from './lib/games.mjs';
@@ -257,7 +257,7 @@ async function findGame(entry, names, steamFromUrl, addedYear) {
 
 const prev = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : {items: {}};
 const out = {};
-const seen = []; // все тайтлы аниме/фильмов/сериалов — для подписей
+const seen = []; // все тайтлы всех списков — для подписей
 let looked = 0;
 
 for (const [list, cfg] of Object.entries(LISTS)) {
@@ -272,7 +272,7 @@ for (const [list, cfg] of Object.entries(LISTS)) {
   for (const r of rows.slice(1)) {
     const title = (r[cTitle] || '').trim().replace(/\s+/g, ' ');
     if (!title || !/\p{L}{2}/u.test(title)) continue;
-    if (cfg.kind === 'screen') seen.push({list, title, url: cUrl >= 0 ? (r[cUrl] || '').trim() : '', type: cType >= 0 ? (r[cType] || '').trim() : ''});
+    seen.push({list, title, url: cUrl >= 0 ? (r[cUrl] || '').trim() : '', type: cType >= 0 ? (r[cType] || '').trim() : ''});
     if (cType >= 0 && /^youtube$/i.test((r[cType] || '').trim())) continue; // у YouTube обложку даёт сам сайт
     const url = cUrl >= 0 ? (r[cUrl] || '').trim() : '';
     const cover = cCover >= 0 ? (r[cCover] || '').trim() : '';
@@ -348,7 +348,7 @@ for (const [list, cfg] of Object.entries(LISTS)) {
 // ---------- подписи для оборота карточек (Claude API) ----------
 
 const QUIPS = new URL('../../orders-quips.json', import.meta.url);
-const QUIP_SYSTEM = `Ты пишешь подписи к карточкам на сайте стримера: зрители заказывают ему аниме, фильмы, сериалы и видео, он смотрит их на стриме.
+const QUIP_SYSTEM = `Ты пишешь подписи к карточкам на сайте стримера: зрители заказывают ему аниме, фильмы, сериалы, видео и игры, он смотрит и играет в них на стриме.
 
 Напиши одну короткую смешную подпись на русском (до 130 символов): о чём это, без спойлеров, и подколка в адрес стримера на «ты» в духе стрим-юмора. Без мата, без оскорблений по внешности, национальности и тому подобному, без кавычек вокруг ответа и без эмодзи. Если не знаешь, что это за тайтл, шути от названия и не выдумывай сюжет. Ответь только текстом подписи.
 
@@ -367,7 +367,7 @@ async function makeQuips() {
   const {default: Anthropic} = await import('@anthropic-ai/sdk');
   const anthropic = new Anthropic();
   const examples = Object.values(file.items).sort(() => Math.random() - 0.5).slice(0, 10);
-  const kinds = {anime: 'аниме', movies: 'фильм или видео', series: 'сериал или дорама'};
+  const kinds = {anime: 'аниме', movies: 'фильм или видео', series: 'сериал или дорама', games: 'игра'};
   let added = 0;
   for (const s of todo.slice(0, 30)) { // за один запуск не больше 30, остальное — в следующий раз
     const meta = out[s.k] || {};
