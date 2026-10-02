@@ -25,7 +25,15 @@
     padding: 16px 18px; background: radial-gradient(ellipse at 85% 10%, rgba(255,255,255,0.16), transparent 55%), linear-gradient(140deg, var(--accent), #10142a 85%);
   }
   .xcard__cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .xcard__cover.has-img::after { content: ''; position: absolute; inset: 0; background: linear-gradient(transparent 35%, rgba(6,8,16,0.85)); }
+  /* С картинкой обложка в её пропорциях (3:2), а цифра — компактной плашкой в углу, чтобы не закрывать арт */
+  .xcard__cover.has-img { aspect-ratio: 3 / 2; justify-content: flex-end; }
+  .xcard__cover.has-img::before { content: ''; position: absolute; inset: 0 0 auto; height: 60px; background: linear-gradient(rgba(6,8,16,0.5), transparent); }
+  .xcard__cover.has-img .xcard__badge {
+    text-align: right; padding: 8px 12px; border-radius: 12px;
+    background: rgba(6,8,16,0.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.12);
+  }
+  .xcard__cover.has-img .xcard__badge b { font-size: 26px; }
+  .xcard__cover.has-img .xcard__badge span { margin-top: 3px; font-size: 10px; }
   .xcard__kind-ic {
     position: absolute; right: -18px; top: -24px; font-size: 150px; color: rgba(255,255,255,0.08); pointer-events: none;
   }
