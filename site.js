@@ -81,6 +81,8 @@
   // Базовый вид иконок — и для страниц без site.css (рулетки со своими стилями).
   const ICON_CSS = '<style>.ic{width:1em;height:1em;flex:0 0 auto;display:inline-block;vertical-align:-0.14em;fill:none;stroke:currentColor;' +
     'stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.ic--fill{fill:currentColor}' +
+    // Ссылки и кнопки-разделы меню — на одной линии (иначе кнопки сидят на пару пикселей ниже ссылок)
+    '.site-nav__links{align-items:center}.site-nav__links>li>a,.site-nav__links>li>.site-nav__dd-btn{display:inline-flex;align-items:center;line-height:1.2;padding:5px 0 3px}' +
     // Последний раздел меню у правого края: выпадающий список прижимаем вправо, иначе он вылезает за экран
     '@media (min-width:721px){.site-nav__links>li:last-child>.site-nav__menu{left:auto;right:0;transform:translateY(-6px)}' +
     '.site-nav__links>li:last-child:hover>.site-nav__menu,.site-nav__links>li:last-child.is-open>.site-nav__menu,' +
