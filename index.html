@@ -27,7 +27,7 @@
   const GAMES_CSV_URL   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=727100001&single=true&output=csv";
 </script>
 
-<link rel="stylesheet" href="site.css?v=3">
+<link rel="stylesheet" href="site.css?v=4">
 <style>
   /* Меню и иконки — общие (site.css / site.js). Остальное — своё у главной. */
 
@@ -37,7 +37,7 @@
       radial-gradient(ellipse at top center, rgba(250, 199, 117, 0.10), transparent 55%),
       radial-gradient(ellipse at bottom right, rgba(127, 119, 221, 0.08), transparent 55%);
     background-attachment: fixed;
-    min-height: 100vh;
+    min-height: calc(100vh / var(--zoom, 1));
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     color: #fff;
     padding: 0 20px 60px;
@@ -47,7 +47,7 @@
 
   /* ========== РОЗЫГРЫШ (баннер, только когда raffle_active) ========== */
   .event {
-    max-width: 1080px;
+    max-width: var(--page);
     margin: 22px auto 0;
   }
   .event[hidden] { display: none; }
@@ -111,7 +111,7 @@
 
   /* ========== HERO ========== */
   .hero {
-    max-width: 1080px;
+    max-width: var(--page);
     margin: 0 auto;
     padding: 56px 0 44px;
     display: grid;
@@ -417,7 +417,7 @@
 
   /* ========== ЛЕНТА ПОБЕД ========== */
   .wins {
-    max-width: 1080px;
+    max-width: var(--page);
     margin: 0 auto 36px;
   }
   .wins[hidden] { display: none; }
@@ -502,7 +502,7 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 16px;
-    max-width: 1080px;
+    max-width: var(--page);
     margin: 0 auto;
   }
   /* Сколько маленьких карточек видно (data-n) зависит от розыгрыша и сериалов —
