@@ -84,7 +84,8 @@
     // Ссылки и кнопки-разделы меню — на одной линии (иначе кнопки сидят на пару пикселей ниже ссылок)
     '.site-nav__links{align-items:center}.site-nav__links>li>a,.site-nav__links>li>.site-nav__dd-btn{display:inline-flex;align-items:center;line-height:1.2;padding:5px 0 3px}' +
     // Последний раздел меню у правого края: выпадающий список прижимаем вправо, иначе он вылезает за экран
-    '@media (min-width:721px){.site-nav__links>li:last-child>.site-nav__menu{left:auto;right:0;transform:translateY(-6px)}' +
+    // Заглавные буквы визуально сидят ниже центра строки — на компьютере поднимаем содержимое панели на 2px
+    '@media (min-width:721px){.site-nav__inner{padding-top:10px;padding-bottom:14px}.site-nav__links>li:last-child>.site-nav__menu{left:auto;right:0;transform:translateY(-6px)}' +
     '.site-nav__links>li:last-child:hover>.site-nav__menu,.site-nav__links>li:last-child.is-open>.site-nav__menu,' +
     '.site-nav__links>li:last-child:focus-within>.site-nav__menu{transform:translateY(0)}}</style>';
   const sprite = ICON_CSS + '<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">' +
