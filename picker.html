@@ -24,6 +24,12 @@
 
   const VIEWERS_CSV_URL = SHEET + '527100001';
 
+  // Сбор участников из чата: заказчик пишет одно из этих слов —
+  // и его заказы попадают на колесо. Слово должно стоять первым
+  // («я», «Я!», «я хочу» — да; «ясно» — нет).
+  const TWITCH_CHANNEL = 'pariparikai';
+  const JOIN_WORDS = ['я'];
+
   // Статусы из колонки status. Всё непонятное считаем «ещё не смотрели».
   // Просмотренное по умолчанию на колесо НЕ попадает.
   const STATUSES = [
@@ -181,6 +187,37 @@
   .people-search:focus { border-color: #FAC775; }
   .people-search::placeholder { color: rgba(255,255,255,0.3); }
   .empty-note { font-size: 12px; color: rgba(255,255,255,0.35); padding: 9px 7px; line-height: 1.5; }
+  @keyframes rowJoin { from { background: rgba(151,196,89,0.35); } to { background: transparent; } }
+  .row.joined { animation: rowJoin 2.5s ease-out; }
+
+  /* ========== СБОР ИЗ ЧАТА ========== */
+  .collect-btn { width: 100%; }
+  .collect-btn.running { background: rgba(151,196,89,0.14); border-color: #97C459; color: #97C459; }
+  .conn-status {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 9px; font-size: 11.5px; color: rgba(255,255,255,0.5);
+  }
+  .conn-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto;
+    background: rgba(255,255,255,0.25);
+  }
+  .conn-dot.connecting { background: #FAC775; box-shadow: 0 0 8px rgba(250,199,117,0.6); }
+  .conn-dot.online { background: #97C459; box-shadow: 0 0 8px rgba(151,196,89,0.6); }
+  .conn-dot.error { background: #F09595; box-shadow: 0 0 8px rgba(240,149,149,0.6); }
+  .collect-hint { font-size: 11.5px; color: rgba(255,255,255,0.38); line-height: 1.5; margin-top: 8px; }
+  .collect-hint b { color: #FAC775; font-weight: 600; }
+  .collect-feed { margin-top: 8px; max-height: 190px; overflow-y: auto; }
+  .collect-line {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 12px; padding: 4px 2px; color: rgba(255,255,255,0.4);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .collect-line:last-child { border-bottom: none; }
+  .collect-line .ic { flex: 0 0 auto; }
+  .collect-line .nick { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .collect-line .why { font-size: 10.5px; flex: 0 0 auto; }
+  .collect-line.in { color: #97C459; }
+  .collect-line.in .nick { color: #fff; }
 
   /* ========== КОЛЕСО ========== */
   .wheel-col { display: flex; flex-direction: column; align-items: center; min-width: 0; }
@@ -419,6 +456,14 @@
 
     <!-- ===== Фильтры ===== -->
     <div class="side-left">
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">Сбор из чата</div></div>
+        <button class="ctrl-btn primary collect-btn" id="btn-collect"></button>
+        <div class="conn-status"><span class="conn-dot" id="conn-dot"></span><span id="conn-text">Чат не подключён</span></div>
+        <div class="collect-hint" id="collect-hint"></div>
+        <div class="collect-feed" id="collect-feed"></div>
+      </div>
+
       <div class="panel">
         <div class="panel-head"><div class="panel-title">Источники</div></div>
         <div id="sources-list"></div>
@@ -695,7 +740,8 @@ async function loadAll() {
 
   const known = new Set(allItems.map(i => i.who).filter(Boolean));
   Object.keys(whoState).forEach(k => { if (!known.has(k)) delete whoState[k]; });
-  known.forEach(w => { if (!(w in whoState)) whoState[w] = true; });
+  // Во время сбора новые заказчики ждут своего «я», как и все
+  known.forEach(w => { if (!(w in whoState)) whoState[w] = !collecting; });
 
   renderSources();
   renderStatuses();
@@ -823,7 +869,9 @@ function renderPeople() {
     if (typeState[it.type] === false) return;
     counts[it.who] = (counts[it.who] || 0) + 1;
   });
-  let names = Object.keys(counts).sort((a, b) => counts[b] - counts[a] || a.localeCompare(b, 'ru'));
+  // Во время сбора записавшиеся поднимаются наверх — сразу видно, кто в игре
+  const onFirst = (a, b) => collecting ? (whoState[b] !== false) - (whoState[a] !== false) : 0;
+  let names = Object.keys(counts).sort((a, b) => onFirst(a, b) || counts[b] - counts[a] || a.localeCompare(b, 'ru'));
   if (whoQuery) names = names.filter(n => n.toLowerCase().indexOf(whoQuery) >= 0);
 
   const list = document.getElementById('people-list');
@@ -834,7 +882,7 @@ function renderPeople() {
   list.innerHTML = names.map(n => {
     const ava = avatarOf(n);
     return `
-      <div class="row ${whoState[n] !== false ? 'on' : 'off'}" data-who="${esc(n)}">
+      <div class="row ${whoState[n] !== false ? 'on' : 'off'}${justJoined.has(n.toLowerCase()) ? ' joined' : ''}" data-who="${esc(n)}">
         <span class="box"></span>
         <span class="row-ava" ${ava ? `style="background-image:url('${esc(ava)}')"` : ''}></span>
         <span class="row-label">${esc(n)}</span>
@@ -850,6 +898,144 @@ function renderPeople() {
     });
   });
 }
+
+// ============================================================
+// Сбор участников из чата Twitch
+//
+// Анонимное подключение к IRC-чату (только чтение, без логина).
+// «Собрать» снимает всех заказчиков, дальше каждый, кто написал
+// «я», включается сам. Первая крутка закрывает сбор — иначе
+// пересборка колеса посреди выбывания сбросила бы его.
+// ============================================================
+let collecting = false;
+let chatWs = null, chatReconnect = null, chatDelay = 1000;
+const justJoined = new Set();        // подсветка только что записавшихся (lowercase)
+const chatSeen = new Set();          // кто уже писал «я» в этом сборе (login)
+
+function setConnStatus(state, text) {
+  document.getElementById('conn-dot').className = 'conn-dot' + (state ? ' ' + state : '');
+  document.getElementById('conn-text').textContent = text;
+}
+
+function updateCollectUi() {
+  const btn = document.getElementById('btn-collect');
+  btn.classList.toggle('running', collecting);
+  btn.innerHTML = collecting ? icon('stop') + ' Закрыть сбор' : icon('message') + ' Собрать из чата';
+  const words = JOIN_WORDS.map(w => `<b>«${esc(w)}»</b>`).join(' или ');
+  document.getElementById('collect-hint').innerHTML = collecting
+    ? `Заказчики пишут ${words} в чат — и их заказы появляются на колесе. Первая крутка закроет сбор.`
+    : `Снимет всех заказчиков и будет добавлять тех, кто напишет ${words} в чат #${esc(TWITCH_CHANNEL)}.`;
+}
+
+function addCollectLine(name, ok, why) {
+  const feed = document.getElementById('collect-feed');
+  const line = document.createElement('div');
+  line.className = 'collect-line' + (ok ? ' in' : '');
+  line.innerHTML = `${icon(ok ? 'check' : 'x')}<span class="nick">${esc(name)}</span><span class="why">${esc(why)}</span>`;
+  feed.prepend(line);
+}
+
+function closeChat() {
+  if (chatReconnect) { clearTimeout(chatReconnect); chatReconnect = null; }
+  if (!chatWs) return;
+  chatWs.onopen = chatWs.onmessage = chatWs.onclose = chatWs.onerror = null;
+  try { chatWs.close(); } catch (e) {}
+  chatWs = null;
+}
+
+function openChat() {
+  closeChat();
+  setConnStatus('connecting', 'Подключение к чату…');
+  const ws = chatWs = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
+  ws.onopen = () => {
+    ws.send('CAP REQ :twitch.tv/tags');
+    ws.send('NICK justinfan' + Math.floor(10000 + Math.random() * 80000));
+    ws.send('JOIN #' + TWITCH_CHANNEL);
+  };
+  ws.onmessage = ev => ev.data.split('\r\n').forEach(line => { if (line) handleChatLine(line); });
+  ws.onclose = () => {
+    if (!collecting) return;
+    setConnStatus('connecting', 'Переподключение…');
+    chatReconnect = setTimeout(openChat, chatDelay);
+    chatDelay = Math.min(chatDelay * 2, 15000);
+  };
+  ws.onerror = () => { try { ws.close(); } catch (e) {} };
+}
+
+function handleChatLine(line) {
+  if (line.startsWith('PING')) { chatWs.send('PONG :tmi.twitch.tv'); return; }
+  let tags = '', rest = line;
+  if (rest[0] === '@') { const sp = rest.indexOf(' '); tags = rest.slice(1, sp); rest = rest.slice(sp + 1); }
+  let prefix = '';
+  if (rest[0] === ':') { const sp = rest.indexOf(' '); prefix = rest.slice(1, sp); rest = rest.slice(sp + 1); }
+  const sp = rest.indexOf(' ');
+  const command = sp < 0 ? rest : rest.slice(0, sp);
+  const params = sp < 0 ? '' : rest.slice(sp + 1);
+
+  if (command === 'JOIN') {
+    chatDelay = 1000;
+    setConnStatus('online', 'Слушаю чат #' + TWITCH_CHANNEL);
+  } else if (command === 'RECONNECT') {
+    try { chatWs.close(); } catch (e) {}
+  } else if (command === 'PRIVMSG') {
+    const login = prefix.split('!')[0].toLowerCase();
+    const m = /(?:^|;)display-name=([^;]*)/.exec(tags);
+    const name = (m && m[1].replace(/\\s/g, ' ')) || login;
+    const i = params.indexOf(' :');
+    onChatMessage(login, name, i < 0 ? '' : params.slice(i + 2));
+  }
+}
+
+function isJoinMessage(text) {
+  // ACTION (/me) приходит обёрнутым в \x01 — снимаем обёртку
+  const t = text.replace(/^\x01ACTION |\x01$/g, '').trim().toLowerCase();
+  const first = (t.split(/\s+/)[0] || '').replace(/[!?.,:;)+]+$/, '');
+  return JOIN_WORDS.some(w => first === w.toLowerCase());
+}
+
+function onChatMessage(login, name, text) {
+  if (!collecting || !isJoinMessage(text) || chatSeen.has(login)) return;
+  chatSeen.add(login);
+
+  // Ник в таблицах записан как придётся (SI_ve / Si_ve) — сравниваем без регистра
+  const keys = Object.keys(whoState).filter(k => k.toLowerCase().replace(/^@/, '') === login);
+  if (!keys.length) { addCollectLine(name, false, 'нет заказов'); return; }
+
+  keys.forEach(k => whoState[k] = true);
+  const n = visibleItems().filter(it => it.who && it.who.toLowerCase() === login).length;
+  addCollectLine(name, n > 0, n > 0 ? n + ' ' + pluralize(n, 'заказ', 'заказа', 'заказов') : 'нет заказов в фильтре');
+
+  justJoined.add(login);
+  setTimeout(() => justJoined.delete(login), 2500);
+  renderPeople(); rebuildWheel();
+}
+
+function startCollect() {
+  collecting = true;
+  chatSeen.clear();
+  document.getElementById('collect-feed').innerHTML = '';
+  hideWinner();
+  Object.keys(whoState).forEach(k => whoState[k] = false);
+  renderPeople(); rebuildWheel();
+  updateCollectUi();
+  chatDelay = 1000;
+  openChat();
+}
+
+function stopCollect(reason) {
+  if (!collecting) return;
+  collecting = false;
+  closeChat();
+  const n = document.querySelectorAll('#collect-feed .collect-line.in').length;
+  setConnStatus('', (reason || 'Сбор закрыт') + ` · записались: ${n}`);
+  updateCollectUi();
+  renderPeople();
+}
+
+document.getElementById('btn-collect').addEventListener('click', () => {
+  if (collecting) stopCollect(); else startCollect();
+});
+updateCollectUi();
 
 document.getElementById('who-search').addEventListener('input', e => {
   whoQuery = e.target.value.trim().toLowerCase();
@@ -1126,6 +1312,7 @@ function setControlsDisabled(d) {
 
 async function spin(callback, dur = duration) {
   if (isSpinning || activeItems.length === 0) return;
+  if (collecting) stopCollect('Сбор закрыт: крутим');
   if (activeItems.length === 1) { if (callback) callback(0); return; }
 
   isSpinning = true;
