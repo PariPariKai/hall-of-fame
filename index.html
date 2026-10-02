@@ -321,8 +321,21 @@
     justify-content: center;
     font-size: 34px;
   }
-  .now-item--wide .now-item__cover { width: 148px; height: 69px; align-self: center; }
   .now-item__cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* Обложка любой формы в вертикальной рамке: горизонтальную (Steam header и т.п.)
+     не режем, а вписываем целиком поверх её же размытой копии */
+  .pcover__blur {
+    position: absolute;
+    inset: -12px;
+    background-size: cover;
+    background-position: center;
+    filter: blur(12px) brightness(.55);
+    display: none;
+  }
+  .pcover.is-landscape .pcover__blur { display: block; }
+  .pcover img { position: relative; }
+  .pcover.is-landscape img { object-fit: contain; }
   .now-item__body {
     position: relative;
     min-width: 0;
@@ -554,7 +567,10 @@
     max-width: 1080px;
     margin: 0 auto;
   }
-  .cards:not(.has-tickets) .page-card--hall { grid-column: span 2; }
+  /* Сколько маленьких карточек видно (data-n) зависит от розыгрыша и сериалов —
+     Зал Славы растягивается так, чтобы сетка закрывалась без дыр */
+  .cards[data-n="3"] .page-card--hall { grid-column: 1 / -1; }
+  .cards[data-n="4"] .page-card--hall { grid-column: span 2; }
   .page-card[hidden] { display: none; }
   .page-card {
     background: rgba(255,255,255,0.04);
@@ -615,20 +631,18 @@
     border: 1px solid rgba(255,255,255,0.12);
     transition: transform .3s cubic-bezier(.2,.8,.2,1);
   }
-  .fan--wide .fan__item { width: 150px; height: 70px; margin: -35px 0 0 -75px; }
   .fan__item img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .fan__item:nth-child(1) { transform: translateX(-62px) rotate(-11deg); z-index: 1; }
-  .fan__item:nth-child(2) { transform: translateX(62px) rotate(11deg); z-index: 1; }
-  .fan__item:nth-child(3) { transform: translateY(-4px); z-index: 2; }
-  .page-card:hover .fan__item:nth-child(1) { transform: translateX(-78px) rotate(-15deg); }
-  .page-card:hover .fan__item:nth-child(2) { transform: translateX(78px) rotate(15deg); }
-  .page-card:hover .fan__item:nth-child(3) { transform: translateY(-10px) scale(1.05); }
-  .fan--wide .fan__item:nth-child(1) { transform: translate(-50px, -26px) rotate(-6deg); }
-  .fan--wide .fan__item:nth-child(2) { transform: translate(50px, 26px) rotate(6deg); }
-  .fan--wide .fan__item:nth-child(3) { transform: translateY(0); }
-  .page-card:hover .fan--wide .fan__item:nth-child(1) { transform: translate(-64px, -30px) rotate(-8deg); }
-  .page-card:hover .fan--wide .fan__item:nth-child(2) { transform: translate(64px, 30px) rotate(8deg); }
-  .page-card:hover .fan--wide .fan__item:nth-child(3) { transform: scale(1.06); }
+  /* Позиции в веере ставит layoutFan(): 3 обложки — l/r/c, 2 — l2/r2, 1 — c */
+  .fan__item--l  { transform: translateX(-62px) rotate(-11deg); z-index: 1; }
+  .fan__item--r  { transform: translateX(62px) rotate(11deg); z-index: 1; }
+  .fan__item--c  { transform: translateY(-4px); z-index: 2; }
+  .fan__item--l2 { transform: translateX(-36px) rotate(-7deg); z-index: 1; }
+  .fan__item--r2 { transform: translateX(36px) rotate(7deg); z-index: 2; }
+  .page-card:hover .fan__item--l  { transform: translateX(-78px) rotate(-15deg); }
+  .page-card:hover .fan__item--r  { transform: translateX(78px) rotate(15deg); }
+  .page-card:hover .fan__item--c  { transform: translateY(-10px) scale(1.05); }
+  .page-card:hover .fan__item--l2 { transform: translateX(-50px) rotate(-10deg); }
+  .page-card:hover .fan__item--r2 { transform: translateX(50px) rotate(10deg); }
   .page-card__body {
     padding: 16px 18px 18px;
     display: flex;
@@ -689,8 +703,6 @@
     white-space: nowrap;
   }
   .hall-art__last b { color: #fff; }
-  .cards.has-tickets .hall-art__last { display: none; }
-  .cards.has-tickets .hall-art__num { font-size: 56px; }
 
   @media (prefers-reduced-motion: reduce) {
     .wins__row.is-moving { animation: none; }
@@ -707,12 +719,14 @@
     .hero__name { font-size: 32px; letter-spacing: 3px; }
     .hero__avatar-wrap { width: 96px; height: 96px; font-size: 32px; }
     .cards { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .cards[data-n="3"] .page-card--hall,
+    .cards[data-n="5"] .page-card--hall { grid-column: auto; }
+    .cards[data-n="4"] .page-card--hall { grid-column: 1 / -1; }
     .page-card__art { height: 150px; }
     .event__cta { margin-left: 0; }
   }
   @media (max-width: 480px) {
     .cards { grid-template-columns: 1fr; }
-    .cards:not(.has-tickets) .page-card--hall { grid-column: auto; }
     .now-item__cover { width: 76px; height: 114px; }
     .now-item__title { font-size: 16px; }
     .win { width: 230px; }
@@ -872,7 +886,7 @@
   <div class="wins__track"><div class="wins__row" id="wins-row"></div></div>
 </section>
 
-<section class="cards" id="cards" aria-label="Разделы сайта">
+<section class="cards" id="cards" data-n="3" aria-label="Разделы сайта">
   <a class="page-card page-card--hall" href="hall.html">
     <div class="page-card__art" id="art-hall"><span class="page-card__icon">🏆</span></div>
     <div class="page-card__body">
@@ -901,7 +915,8 @@
       <p class="page-card__count" data-counter="movies">…</p>
     </div>
   </a>
-  <a class="page-card" href="series.html">
+  <!-- Сериалы смотрим редко: карточка появляется, только когда сериал назначен или идёт -->
+  <a class="page-card" id="card-series" href="series.html" hidden>
     <div class="page-card__art" id="art-series"><span class="page-card__icon">📺</span></div>
     <div class="page-card__body">
       <h2 class="page-card__title">Сериалы</h2>
@@ -1074,7 +1089,7 @@ function setupRaffle(config) {
 
   document.getElementById('event').hidden = false;
   document.getElementById('card-tickets').hidden = false;
-  document.getElementById('cards').classList.add('has-tickets');
+  layoutCards();
   if (config.raffle_title) document.getElementById('event-title').textContent = config.raffle_title;
 
   const date = parseSheetDate(config.raffle_date);
@@ -1122,10 +1137,30 @@ const CATS = {
   anime:  { url: ANIME_CSV_URL,  page: 'anime.html',  label: 'Аниме',  icon: '⛩️', active: ['watching'], done: ['watched'] },
   movies: { url: MOVIES_CSV_URL, page: 'movies.html', label: 'Фильм',  icon: '🎬', active: ['watching'], done: ['watched'] },
   series: { url: SERIES_CSV_URL, page: 'series.html', label: 'Сериал', icon: '📺', active: ['watching'], done: ['watched'] },
-  games:  { url: GAMES_CSV_URL,  page: 'games.html',  label: 'Игра',   icon: '🎮', active: ['playing'],  done: ['completed'], wide: true },
+  games:  { url: GAMES_CSV_URL,  page: 'games.html',  label: 'Игра',   icon: '🎮', active: ['playing'],  done: ['completed'] },
 };
 
 function statusOf(item) { return (item.status || 'pending').toLowerCase(); }
+
+// Обложки бывают и вертикальные, и горизонтальные: горизонтальную вписываем целиком (см. .pcover)
+function blurLayer(url) {
+  return `<div class="pcover__blur" style="background-image:url('${esc(url)}')"></div>`;
+}
+function fitCover(img) {
+  if (img.naturalWidth > img.naturalHeight * 0.85) img.parentNode.classList.add('is-landscape');
+}
+
+function layoutCards() {
+  const cards = document.getElementById('cards');
+  cards.dataset.n = cards.querySelectorAll('.page-card:not(.page-card--hall):not([hidden])').length;
+}
+
+// Назначен на сегодня или позже (и не досмотрен, не на паузе)
+function isScheduled(it) {
+  if (!it.scheduled_at || ['watched', 'paused'].includes(statusOf(it))) return false;
+  const d = parseSheetDate(it.scheduled_at);
+  return !!d && !isNaN(d.getTime()) && d >= startOfDay(new Date());
+}
 
 function countText(key, items) {
   if (items.length === 0) return 'пока пусто';
@@ -1147,20 +1182,43 @@ function renderFan(key, items) {
     .filter(i => statusOf(i) === 'pending' && isNiceCover(i.cover_url))
     .map((i, idx) => ({ i, idx }))
     .sort((a, b) => (dateTs(b.i.date_added) - dateTs(a.i.date_added)) || (b.idx - a.idx))
-    .slice(0, 3)
-    .map(x => x.i);
+    .map(x => x.i.cover_url);
   if (covers.length === 0) return;
   // Порядок в DOM: левая, правая, центральная (центральная — самая свежая, рисуется сверху)
-  const order = covers.length === 3 ? [covers[1], covers[2], covers[0]]
-              : covers.length === 2 ? [covers[1], covers[0]]
-              : [covers[0]];
-  const fanItems = order.map((c, n) => {
-    const pos = order.length === 1 ? ' style="transform:none"' : (order.length === 2 && n === 1 ? ' style="z-index:2"' : '');
-    return `<div class="fan__item"${pos}><img src="${esc(c.cover_url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.remove()"></div>`;
-  }).join('');
+  const shown = covers.slice(0, 3);
+  const order = shown.length === 3 ? [shown[1], shown[2], shown[0]] : shown.slice().reverse();
+  const fanItems = order.map(url =>
+    `<div class="fan__item pcover">${blurLayer(url)}<img src="${esc(url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onload="fitCover(this)" onerror="fanImgError(this)"></div>`
+  ).join('');
   art.innerHTML = `
-    <div class="page-card__bg" style="background-image:url('${esc(covers[0].cover_url)}')"></div>
-    <div class="fan${CATS[key].wide ? ' fan--wide' : ''}">${fanItems}</div>`;
+    <div class="page-card__bg" style="background-image:url('${esc(covers[0])}')"></div>
+    <div class="fan">${fanItems}</div>`;
+  const fan = art.querySelector('.fan');
+  fan._spare = covers.slice(3, 8);   // запас на случай битых ссылок
+  layoutFan(fan);
+}
+
+function layoutFan(fan) {
+  const items = [...fan.children];
+  const pos = items.length === 3 ? ['l', 'r', 'c'] : items.length === 2 ? ['l2', 'r2'] : ['c'];
+  items.forEach((el, i) => {
+    el.className = el.className.replace(/\s*fan__item--\w+/g, '') + ' fan__item--' + pos[i];
+  });
+}
+
+// Битая обложка: подставляем следующую из запаса, а если запаса нет — убираем и перекладываем веер
+function fanImgError(img) {
+  const item = img.parentNode;
+  const fan = item.parentNode;
+  const spare = fan._spare && fan._spare.shift();
+  if (spare) {
+    item.classList.remove('is-landscape');
+    item.querySelector('.pcover__blur').style.backgroundImage = `url("${spare.replace(/"/g, '%22')}")`;
+    img.src = spare;
+    return;
+  }
+  item.remove();
+  layoutFan(fan);
 }
 
 function progressOf(key, it) {
@@ -1309,10 +1367,10 @@ function renderNowItem(it, opts) {
   if (fmt) type += ' · ' + fmt;
   const meta = opts.meta != null ? opts.meta : prog.text;
   return `
-    <a class="now-item${cat.wide ? ' now-item--wide' : ''}${opts.big ? ' now-item--big' : ''}" href="${cat.page}">
+    <a class="now-item${opts.big ? ' now-item--big' : ''}" href="${cat.page}">
       ${cover ? `<div class="now-item__glow" style="background-image:url('${esc(cover)}')"></div>` : ''}
-      <div class="now-item__cover">${cover
-        ? `<img src="${esc(cover)}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith(document.createTextNode('${cat.icon}'))">`
+      <div class="now-item__cover pcover">${cover
+        ? `${blurLayer(cover)}<img src="${esc(cover)}" alt="" referrerpolicy="no-referrer" onload="fitCover(this)" onerror="this.replaceWith(document.createTextNode('${cat.icon}'))">`
         : cat.icon}</div>
       <div class="now-item__body">
         <span class="now-item__type">${esc(type)}</span>
@@ -1498,6 +1556,9 @@ async function loadAll() {
   ));
   afishaLists = {};
   keys.forEach((k, i) => { afishaLists[k] = results[i]; });
+  document.getElementById('card-series').hidden = !afishaLists.series.some(it =>
+    isScheduled(it) || CATS.series.active.includes(statusOf(it)));
+  layoutCards();
   await configReady;   // афише нужно расписание (конец стрима, время рулетки)
   renderNow();
   // Раз в минуту: «через 2 ч» → «через 1 ч», анонс сам переключается на «идёт сейчас»
