@@ -298,6 +298,9 @@
   .badge--playing   { background: rgba(250,199,117,0.15); color: #FAC775; border-color: rgba(250,199,117,0.4); }
   .badge--completed { background: rgba(151,196,89,0.15); color: #97C459; border-color: rgba(151,196,89,0.4); }
   .badge--dropped   { background: rgba(240,80,80,0.15);  color: #F38787; border-color: rgba(240,80,80,0.4); }
+  .badge--played    { background: rgba(136,180,245,0.15); color: #88B4F5; border-color: rgba(136,180,245,0.4); }
+  .gcard.is-played { opacity: 0.8; }
+  .gcard.is-played:hover { opacity: 0.95; }
   .badge--rating    { background: rgba(250,199,117,0.15); color: #FAC775; border-color: rgba(250,199,117,0.4); font-weight: 600; }
 
   .gcard__date {
@@ -524,7 +527,7 @@
 <div class="wrap">
   <div class="header">
     <h1 class="title">🎮 Заказы игр 🎮</h1>
-    <p class="subtitle"><span class="accent" id="counter-completed">—</span> пройдено · <span class="accent" id="counter-dropped">—</span> дропнуто · всего <span class="accent" id="counter-total">—</span></p>
+    <p class="subtitle"><span class="accent" id="counter-completed">—</span> пройдено · <span class="accent" id="counter-played">—</span> сыграно · <span class="accent" id="counter-dropped">—</span> дропнуто · всего <span class="accent" id="counter-total">—</span></p>
   </div>
 
   <div class="controls-panel">
@@ -535,6 +538,7 @@
       <button class="f-btn" data-status="pending">В очереди <span class="count" id="cnt-pending">0</span></button>
       <button class="f-btn" data-status="playing">Играем <span class="count" id="cnt-playing">0</span></button>
       <button class="f-btn" data-status="completed">Пройдено <span class="count" id="cnt-completed">0</span></button>
+      <button class="f-btn" data-status="played">Сыграно <span class="count" id="cnt-played">0</span></button>
       <button class="f-btn" data-status="dropped">Дропнуто <span class="count" id="cnt-dropped">0</span></button>
     </div>
   </div>
@@ -626,9 +630,10 @@ function rowsToGames(rows, viewersMap) {
       const nick = get(idx.nick);
       const viewer = viewersMap[nick.toLowerCase()] || {};
       const rawStatus = get(idx.status).toLowerCase();
-      const status = ['pending', 'playing', 'completed', 'dropped'].includes(rawStatus) ? rawStatus : 'pending';
+      const status = ['pending', 'playing', 'played', 'completed', 'dropped'].includes(rawStatus) ? rawStatus : 'pending';
+      // Пустой прогресс = у игры нет концовки (R.E.P.O, No Man's Sky, онлайн) — шкалу не рисуем
       const progressRaw = get(idx.progress_percent).replace(',', '.');
-      const progressNum = progressRaw ? parseFloat(progressRaw) : 0;
+      const progressNum = progressRaw ? parseFloat(progressRaw) : NaN;
       const hoursRaw = get(idx.hours_played).replace(',', '.');
       const hoursNum = hoursRaw ? parseFloat(hoursRaw) : 0;
       const ratingRaw = get(idx.rating).replace(',', '.');
@@ -639,7 +644,7 @@ function rowsToGames(rows, viewersMap) {
         avatar:    viewer.avatar || '',
         twitchUrl: viewer.twitchUrl || '',
         title: get(idx.title),
-        progress_percent: isFinite(progressNum) ? progressNum : 0,
+        progress_percent: isFinite(progressNum) ? progressNum : null,
         hours_played: isFinite(hoursNum) ? hoursNum : 0,
         status: status,
         rating: isFinite(ratingNum) ? ratingNum : null,
@@ -652,7 +657,9 @@ function rowsToGames(rows, viewersMap) {
     });
 }
 
-const STATUS_WEIGHT = { playing: 0, pending: 1, completed: 2, dropped: 3 };
+const STATUS_WEIGHT = { playing: 0, pending: 1, played: 2, completed: 3, dropped: 4 };
+// Статусы «закончили играть»: в «Все» не входят, сортируются по date_completed
+const DONE_STATUSES = ['played', 'completed', 'dropped'];
 // Google Sheets (EU locale) exports dates as DD.MM.YYYY.
 // native Date("12.04.2026") wrongly reads that as Dec 4 — parse day-first explicitly.
 function parseSheetDate(str) {
@@ -678,7 +685,7 @@ function parseDateTs(d) {
 
 function itemDateTs(item, statusFilter) {
   // In "watched/completed" views use completion date; otherwise date added.
-  if (['completed', 'dropped'].includes(statusFilter) && item.date_completed) return parseDateTs(item.date_completed);
+  if (DONE_STATUSES.includes(statusFilter) && item.date_completed) return parseDateTs(item.date_completed);
   return parseDateTs(item.date_added) || parseDateTs(item.date_completed);
 }
 
@@ -691,7 +698,7 @@ function sortItems(items, statusFilter, sortMode) {
       return a._order - b._order;
     }
     // default: by status weight, then date
-    if (statusFilter === 'completed' || statusFilter === 'dropped') {
+    if (DONE_STATUSES.includes(statusFilter)) {
       const da = parseDateTs(a.date_completed);
       const db = parseDateTs(b.date_completed);
       if (da !== db) return db - da;
@@ -759,6 +766,7 @@ function formatShortDate(iso) {
 const STATUS_LABEL = {
   pending:   'В очереди',
   playing:   'Играем',
+  played:    'Сыграно',
   completed: 'Пройдено',
   dropped:   'Дропнуто',
 };
@@ -784,15 +792,18 @@ function buildBadgesHtml(item) {
   const ratingTxt = formatRating(item.rating);
   if (ratingTxt) badges.push(`<span class="badge badge--rating">★ ${esc(ratingTxt)}</span>`);
   if (item.date_completed) {
-    const verb = item.status === 'dropped' ? 'дропнуто' : 'пройдено';
+    const verb = { dropped: 'дропнуто', played: 'сыграно' }[item.status] || 'пройдено';
     badges.push(`<span class="gcard__date">${verb} ${esc(formatShortDate(item.date_completed))}</span>`);
-  } else if (item.date_added && item.status !== 'completed' && item.status !== 'dropped') {
+  } else if (item.date_added && !DONE_STATUSES.includes(item.status)) {
     badges.push(`<span class="gcard__date">добавлено ${esc(formatShortDate(item.date_added))}</span>`);
   }
   return `<div class="gcard__badges">${badges.join('')}</div>`;
 }
 
 function buildProgressHtml(item) {
+  // «Сыграно» и игры без концовки (пустой прогресс) — без шкалы, остаются только часы
+  if (item.status === 'played') return '';
+  if (item.progress_percent === null && item.status !== 'completed') return '';
   let pct = Math.max(0, Math.min(100, Math.round(item.progress_percent || 0)));
   if (item.status === 'completed') pct = 100;
   const fillClass = `progress__fill--${item.status}`;
@@ -831,6 +842,7 @@ function buildCard(item) {
   const cover = buildCoverHtml(item);
   let stateClasses = '';
   if (item.status === 'completed' || item.status === 'dropped') stateClasses += ' is-done';
+  if (item.status === 'played')    stateClasses += ' is-played';
   if (item.status === 'completed') stateClasses += ' is-completed';
   if (item.status === 'dropped')   stateClasses += ' is-dropped';
   const noCoverClass = cover ? '' : ' no-cover';
@@ -866,7 +878,7 @@ function applyFilters() {
     const cardStatus = card.dataset.status;
     let matchesStatus;
     if (currentStatus === 'all') {
-      matchesStatus = cardStatus !== 'completed' && cardStatus !== 'dropped';
+      matchesStatus = !DONE_STATUSES.includes(cardStatus);
     } else {
       matchesStatus = cardStatus === currentStatus;
     }
@@ -904,16 +916,18 @@ function applyFilters() {
 }
 
 function updateCounters(items) {
-  const counts = { pending: 0, playing: 0, completed: 0, dropped: 0 };
+  const counts = { pending: 0, playing: 0, played: 0, completed: 0, dropped: 0 };
   items.forEach(it => { counts[it.status] = (counts[it.status] || 0) + 1; });
   const activeCount = counts.pending + counts.playing;
   document.getElementById('cnt-all').textContent       = activeCount;
   document.getElementById('cnt-pending').textContent   = counts.pending;
   document.getElementById('cnt-playing').textContent   = counts.playing;
+  document.getElementById('cnt-played').textContent    = counts.played;
   document.getElementById('cnt-completed').textContent = counts.completed;
   document.getElementById('cnt-dropped').textContent   = counts.dropped;
   document.getElementById('counter-completed').textContent = counts.completed;
   document.getElementById('counter-dropped').textContent   = counts.dropped;
+  document.getElementById('counter-played').textContent    = counts.played;
   document.getElementById('counter-total').textContent     = items.length;
 }
 

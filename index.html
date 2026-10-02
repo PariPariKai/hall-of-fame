@@ -1190,6 +1190,9 @@ function countText(key, items) {
   const parts = [`<span class="accent">${queued}</span> в очереди`];
   if (active > 0) parts.push(`<span class="accent">${active}</span> ${key === 'games' ? 'играем' : 'смотрим'}`);
   parts.push(`<span class="accent">${done}</span> ${key === 'games' ? 'пройдено' : 'просмотрено'}`);
+  // Игры без концовки (R.E.P.O, No Man's Sky…) — статус played, «сыграно»
+  const played = key === 'games' ? items.filter(i => statusOf(i) === 'played').length : 0;
+  if (played > 0) parts.push(`<span class="accent">${played}</span> сыграно`);
   return parts.join(' · ');
 }
 
@@ -1562,7 +1565,8 @@ async function loadAll() {
   const results = await Promise.all(keys.map(key =>
     fetchRows(CATS[key].url)
       .then(async rows => {
-        const items = rowsToObjects(rows);
+        // Как на страницах списков: строка без ника или названия — не заказ (заготовки в таблице)
+        const items = rowsToObjects(rows).filter(i => i.nick && i.title);
         applyOrdersMeta(items, await ORDERS_META, key);
         setCounter(key, countText(key, items));
         renderFan(key, items);
