@@ -688,67 +688,7 @@
       .site-nav__dd:focus-within > .site-nav__menu { opacity: 1; visibility: visible; pointer-events: auto; transform: none; }
     }
   </style>
-  <nav class="site-nav">
-    <div class="site-nav__inner">
-      <ul class="site-nav__links">
-      <li><a href="hall.html">Зал Славы</a></li>
-      <li><a href="tickets.html">Билеты</a></li>
-      <li class="site-nav__dd">
-        <button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">Заказы зрителя <span class="site-nav__caret">▾</span></button>
-        <ul class="site-nav__menu">
-          <li><a href="anime.html">Аниме</a></li>
-          <li><a href="movies.html">Фильмы</a></li>
-          <li><a href="series.html">Сериалы</a></li>
-          <li><a href="games.html">Игры</a></li>
-          <li><a href="pain-games.html">Боль</a></li>
-          <li><a href="picker.html">Рулетка заказов</a></li>
-        </ul>
-      </li>
-      <li class="site-nav__dd">
-        <button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">Для стримера <span class="site-nav__caret">▾</span></button>
-        <ul class="site-nav__menu">
-          <li><a href="chat-wheel.html">Чат-рулетка</a></li>
-          <li><a href="pain.html">Боль стримера за шекели</a></li>
-          <li><a href="cards.html">Админка-рулетка</a></li>
-          <li><a href="cards.html?stream">Хаос-рулетка</a></li>
-        </ul>
-      </li>
-    </ul>
-    </div>
-  </nav>
-  <script>
-    // Меню: подсветка текущей страницы и открытие разделов по клику (для тач-экранов)
-    (function () {
-      const nav = document.querySelector('.site-nav');
-      if (!nav) return;
-      const here = (location.pathname.split('/').pop() || 'index.html') + location.search;
-      nav.querySelectorAll('.site-nav__links a').forEach(a => {
-        if (a.getAttribute('href') === here) {
-          a.classList.add('is-active');
-          const dd = a.closest('.site-nav__dd');
-          if (dd) dd.classList.add('is-active');
-        }
-      });
-      const closeAll = () => nav.querySelectorAll('.site-nav__dd.is-open').forEach(dd => {
-        dd.classList.remove('is-open');
-        dd.querySelector('.site-nav__dd-btn').setAttribute('aria-expanded', 'false');
-      });
-      nav.querySelectorAll('.site-nav__dd-btn').forEach(btn => {
-        btn.addEventListener('click', e => {
-          e.stopPropagation();
-          const dd = btn.parentElement;
-          const open = !dd.classList.contains('is-open');
-          closeAll();
-          if (open) {
-            dd.classList.add('is-open');
-            btn.setAttribute('aria-expanded', 'true');
-            }
-        });
-      });
-      document.addEventListener('click', closeAll);
-      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
-    })();
-  </script>
+  <script src="site.js?v=2"></script>
 
   <!-- Экран входа -->
   <div class="gate" id="gate">
@@ -766,7 +706,7 @@
     <!-- ===== Левая колонка: колесо ===== -->
     <div class="wheel-col">
       <div class="app-header">
-        <div class="app-title">🎡 Чат-рулетка</div>
+        <div class="app-title"><svg class="ic" aria-hidden="true"><use href="#i-wheel"></use></svg> Чат-рулетка</div>
         <div class="app-stats" id="app-stats">Не подключено</div>
       </div>
 
@@ -786,18 +726,18 @@
 
       <div class="controls">
         <div class="duration-group">
-          <span class="duration-label">⏱ Длительность</span>
+          <span class="duration-label"><svg class="ic" aria-hidden="true"><use href="#i-timer"></use></svg> Длительность</span>
           <button class="duration-btn" data-dur="3">3с</button>
           <button class="duration-btn active" data-dur="5">5с</button>
           <button class="duration-btn" data-dur="10">10с</button>
           <button class="duration-btn" data-dur="60">60с</button>
         </div>
-        <button class="sound-toggle" id="sound-toggle">🔊 Звук вкл.</button>
+        <button class="sound-toggle" id="sound-toggle"><svg class="ic" aria-hidden="true"><use href="#i-volume"></use></svg> Звук вкл.</button>
       </div>
 
       <div class="controls">
-        <button class="ctrl-btn primary" id="btn-single">🎯 Один победитель</button>
-        <button class="ctrl-btn primary" id="btn-elim">⚔ Режим выбывания</button>
+        <button class="ctrl-btn primary" id="btn-single"><svg class="ic" aria-hidden="true"><use href="#i-target"></use></svg> Один победитель</button>
+        <button class="ctrl-btn primary" id="btn-elim"><svg class="ic" aria-hidden="true"><use href="#i-swords"></use></svg> Режим выбывания</button>
         <button class="ctrl-btn danger" id="btn-reset">↺ Сброс</button>
       </div>
 
@@ -810,7 +750,7 @@
       <div class="card history-card" id="log">
         <div class="card-title">
           <span>История розыгрыша</span>
-          <button class="feed-toggle" id="history-toggle">⚙ показать настройки</button>
+          <button class="feed-toggle" id="history-toggle"><svg class="ic" aria-hidden="true"><use href="#i-sliders"></use></svg> показать настройки</button>
         </div>
         <div class="log-entries" id="log-entries">
           <div class="p-empty">Крути колесо — выбывшие появятся здесь</div>
@@ -865,7 +805,7 @@
             Колесо собираешь сам: в окне видно всех, кто хоть раз писал в чат при открытой
             странице — даже если ушёл афк полчаса назад.
           </div>
-          <button class="ctrl-btn small primary" id="btn-manual-open" style="width:100%;">👆 Выбрать участников</button>
+          <button class="ctrl-btn small primary" id="btn-manual-open" style="width:100%;"><svg class="ic" aria-hidden="true"><use href="#i-hand"></use></svg> Выбрать участников</button>
           <div class="manual-summary" id="manual-summary">Пока никого не выбрано</div>
         </div>
 
@@ -1261,10 +1201,10 @@ setInterval(() => { if (!isSpinning) refreshAll(); }, 5000);
 // ============================================================
 function badgeStr(u) {
   let s = '';
-  if (u.isBroadcaster) s += '🎥';
-  if (u.isMod) s += '🛡️';
-  if (u.isVip) s += '💎';
-  if (u.isSub) s += '⭐';
+  if (u.isBroadcaster) s += `<span title="Стример" style="color:#F38787">${icon('video')}</span>`;
+  if (u.isMod) s += `<span title="Модератор" style="color:#97C459">${icon('shield')}</span>`;
+  if (u.isVip) s += `<span title="VIP" style="color:#E58CC0">${icon('gem')}</span>`;
+  if (u.isSub) s += `<span title="Подписчик" style="color:#C5A9F8">${icon('star', 'ic--fill')}</span>`;
   return s;
 }
 
@@ -1811,8 +1751,8 @@ function showWinner(user) {
   const avatar = document.getElementById('winner-avatar');
   avatar.textContent = initials(user.name);
   document.getElementById('winner-nick').textContent = user.name;
-  document.getElementById('winner-sub').textContent =
-    user.isSub ? '⭐ С подпиской' : 'Без подписки';
+  document.getElementById('winner-sub').innerHTML =
+    user.isSub ? icon('star', 'ic--fill') + ' С подпиской' : 'Без подписки';
   document.getElementById('winner-overlay').classList.add('show');
   launchConfetti();
   playFanfare();
@@ -1885,7 +1825,7 @@ function renderLog() {
   // Новые записи сверху
   entries.innerHTML = logEntries.map(e => `
     <div class="log-entry${e.isWinner ? ' winner' : ''}">
-      <span class="num">${e.isWinner ? '🏆' : '#' + e.place}</span>${esc(e.text)}
+      <span class="num">${e.isWinner ? icon('trophy') : '#' + e.place}</span>${esc(e.text)}
     </div>
   `).reverse().join('');
   logEl.classList.add('has-entries');
@@ -1897,8 +1837,8 @@ function renderLog() {
 function setSidePanel(mode) {
   const inHistory = mode === 'history';
   document.getElementById('layout').classList.toggle('history-view', inHistory);
-  document.getElementById('history-toggle').textContent =
-    inHistory ? '⚙ показать настройки' : '⚔ скрыть настройки';
+  document.getElementById('history-toggle').innerHTML =
+    icon('sliders') + (inHistory ? ' показать настройки' : ' скрыть настройки');
 }
 document.getElementById('history-toggle').addEventListener('click', () => {
   const inHistory = document.getElementById('layout').classList.contains('history-view');
@@ -2032,10 +1972,10 @@ const soundBtn = document.getElementById('sound-toggle');
 function updateSoundButton() {
   if (soundOn) {
     soundBtn.classList.remove('off');
-    soundBtn.textContent = '🔊 Звук вкл.';
+    soundBtn.innerHTML = icon('volume') + ' Звук вкл.';
   } else {
     soundBtn.classList.add('off');
-    soundBtn.textContent = '🔇 Звук выкл.';
+    soundBtn.innerHTML = icon('volume-off') + ' Звук выкл.';
   }
 }
 soundBtn.addEventListener('click', () => {
@@ -2049,7 +1989,7 @@ document.addEventListener('click', () => { if (soundOn) ensureAudio(); }, { once
 function exitElimination() {
   eliminationMode = false;
   document.getElementById('elimination-status').classList.remove('active');
-  document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+  document.getElementById('btn-elim').innerHTML = icon('swords') + ' Режим выбывания';
   document.getElementById('layout').classList.remove('elim-active');
 }
 
@@ -2065,7 +2005,7 @@ document.getElementById('btn-single').addEventListener('click', () => {
   if (wheelList.length === 0) return;
   spin(winnerIdx => {
     const winner = wheelList[winnerIdx];
-    addLogEntry(winner.name + (winner.isSub ? ' ⭐' : ''), true);
+    addLogEntry(winner.name + (winner.isSub ? ' · саб' : ''), true);
     showWinner(winner);
   });
 });
@@ -2081,14 +2021,14 @@ document.getElementById('btn-elim').addEventListener('click', () => {
     updateStats();
     document.getElementById('elimination-status').classList.add('active');
     document.getElementById('layout').classList.add('elim-active');
-    document.getElementById('btn-elim').textContent = '⚔ Крутить (выбывание)';
+    document.getElementById('btn-elim').innerHTML = icon('swords') + ' Крутить (выбывание)';
   }
   // На время прокрутки настройки не нужны — справа история выбывших
   setSidePanel('history');
   spin(idx => {
     if (wheelList.length === 1) {
       const winner = wheelList[0];
-      addLogEntry('ПОБЕДИТЕЛЬ: ' + winner.name + (winner.isSub ? ' ⭐' : ''), true);
+      addLogEntry('ПОБЕДИТЕЛЬ: ' + winner.name + (winner.isSub ? ' · саб' : ''), true);
       exitElimination();
       showWinner(winner);
       return;
@@ -2105,7 +2045,7 @@ document.getElementById('btn-elim').addEventListener('click', () => {
       setTimeout(() => {
         setControlsDisabled(false);
         const winner = wheelList[0];
-        addLogEntry('ПОБЕДИТЕЛЬ: ' + winner.name + (winner.isSub ? ' ⭐' : ''), true);
+        addLogEntry('ПОБЕДИТЕЛЬ: ' + winner.name + (winner.isSub ? ' · саб' : ''), true);
         exitElimination();
         showWinner(winner);
       }, 700);

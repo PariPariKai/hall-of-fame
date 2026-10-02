@@ -1,5 +1,5 @@
 // Общее для страниц сайта: верхнее меню и набор иконок.
-// Подключается синхронно первой строкой <body>: <script src="site.js?v=1"></script> — меню появляется сразу, без мигания.
+// Подключается синхронно первой строкой <body>: <script src="site.js?v=2"></script> — меню появляется сразу, без мигания.
 // Иконки — SVG вместо эмодзи: эмодзи на каждом устройстве рисуются по-своему и ломают дизайн.
 // В разметке: <svg class="ic"><use href="#i-film"></use></svg>, в скриптах: icon('film').
 (function () {
@@ -78,7 +78,10 @@
       </ul>
     </li>`;
 
-  const sprite = '<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">' +
+  // Базовый вид иконок — и для страниц без site.css (рулетки со своими стилями).
+  const ICON_CSS = '<style>.ic{width:1em;height:1em;flex:0 0 auto;display:inline-block;vertical-align:-0.14em;fill:none;stroke:currentColor;' +
+    'stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.ic--fill{fill:currentColor}</style>';
+  const sprite = ICON_CSS + '<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">' +
     Object.entries(ICONS).map(([name, body]) => `<symbol id="i-${name}" viewBox="0 0 24 24">${body}</symbol>`).join('') +
     '</svg>';
 

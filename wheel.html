@@ -492,68 +492,7 @@
       .site-nav__dd:focus-within > .site-nav__menu { opacity: 1; visibility: visible; pointer-events: auto; transform: none; }
     }
   </style>
-  <nav class="site-nav">
-    <div class="site-nav__inner">
-      <a class="site-nav__brand" href="index.html">ParipariKai</a>
-      <ul class="site-nav__links">
-      <li><a href="hall.html">Зал Славы</a></li>
-      <li><a href="tickets.html">Билеты</a></li>
-      <li class="site-nav__dd">
-        <button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">Заказы зрителя <span class="site-nav__caret">▾</span></button>
-        <ul class="site-nav__menu">
-          <li><a href="anime.html">Аниме</a></li>
-          <li><a href="movies.html">Фильмы</a></li>
-          <li><a href="series.html">Сериалы</a></li>
-          <li><a href="games.html">Игры</a></li>
-          <li><a href="pain-games.html">Боль</a></li>
-          <li><a href="picker.html">Рулетка заказов</a></li>
-        </ul>
-      </li>
-      <li class="site-nav__dd">
-        <button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">Для стримера <span class="site-nav__caret">▾</span></button>
-        <ul class="site-nav__menu">
-          <li><a href="chat-wheel.html">Чат-рулетка</a></li>
-          <li><a href="pain.html">Боль стримера за шекели</a></li>
-          <li><a href="cards.html">Админка-рулетка</a></li>
-          <li><a href="cards.html?stream">Хаос-рулетка</a></li>
-        </ul>
-      </li>
-    </ul>
-    </div>
-  </nav>
-  <script>
-    // Меню: подсветка текущей страницы и открытие разделов по клику (для тач-экранов)
-    (function () {
-      const nav = document.querySelector('.site-nav');
-      if (!nav) return;
-      const here = (location.pathname.split('/').pop() || 'index.html') + location.search;
-      nav.querySelectorAll('.site-nav__links a').forEach(a => {
-        if (a.getAttribute('href') === here) {
-          a.classList.add('is-active');
-          const dd = a.closest('.site-nav__dd');
-          if (dd) dd.classList.add('is-active');
-        }
-      });
-      const closeAll = () => nav.querySelectorAll('.site-nav__dd.is-open').forEach(dd => {
-        dd.classList.remove('is-open');
-        dd.querySelector('.site-nav__dd-btn').setAttribute('aria-expanded', 'false');
-      });
-      nav.querySelectorAll('.site-nav__dd-btn').forEach(btn => {
-        btn.addEventListener('click', e => {
-          e.stopPropagation();
-          const dd = btn.parentElement;
-          const open = !dd.classList.contains('is-open');
-          closeAll();
-          if (open) {
-            dd.classList.add('is-open');
-            btn.setAttribute('aria-expanded', 'true');
-            }
-        });
-      });
-      document.addEventListener('click', closeAll);
-      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
-    })();
-  </script>
+  <script src="site.js?v=2"></script>
 
   <!-- Экран входа -->
   <div class="gate" id="gate">
@@ -569,7 +508,7 @@
   <!-- Основной интерфейс -->
   <div class="app" id="app">
     <div class="app-header">
-      <div class="app-title">🎰 Рулетка билетов</div>
+      <div class="app-title"><svg class="ic" aria-hidden="true"><use href="#i-wheel"></use></svg> Рулетка билетов</div>
       <div class="app-stats" id="app-stats">Загрузка...</div>
     </div>
 
@@ -589,19 +528,19 @@
 
     <div class="controls">
       <div class="duration-group">
-        <span class="duration-label">⏱ Длительность</span>
+        <span class="duration-label"><svg class="ic" aria-hidden="true"><use href="#i-timer"></use></svg> Длительность</span>
         <button class="duration-btn" data-dur="3">3с</button>
         <button class="duration-btn active" data-dur="5">5с</button>
         <button class="duration-btn" data-dur="10">10с</button>
       </div>
-      <button class="sound-toggle" id="sound-toggle">🔊 Звук вкл.</button>
+      <button class="sound-toggle" id="sound-toggle"><svg class="ic" aria-hidden="true"><use href="#i-volume"></use></svg> Звук вкл.</button>
     </div>
 
     <div class="controls">
-      <button class="ctrl-btn primary" id="btn-single">🎯 Один победитель</button>
-      <button class="ctrl-btn primary" id="btn-elim">⚔ Режим выбывания</button>
+      <button class="ctrl-btn primary" id="btn-single"><svg class="ic" aria-hidden="true"><use href="#i-target"></use></svg> Один победитель</button>
+      <button class="ctrl-btn primary" id="btn-elim"><svg class="ic" aria-hidden="true"><use href="#i-swords"></use></svg> Режим выбывания</button>
       <button class="ctrl-btn danger" id="btn-reset">↺ Сброс</button>
-      <button class="ctrl-btn" id="btn-reload">🔄 Перезагрузить билеты</button>
+      <button class="ctrl-btn" id="btn-reload"><svg class="ic" aria-hidden="true"><use href="#i-refresh"></use></svg> Перезагрузить билеты</button>
     </div>
 
     <div class="log" id="log">
@@ -824,10 +763,10 @@ const soundBtn = document.getElementById('sound-toggle');
 function updateSoundButton() {
   if (soundOn) {
     soundBtn.classList.remove('off');
-    soundBtn.textContent = '🔊 Звук вкл.';
+    soundBtn.innerHTML = icon('volume') + ' Звук вкл.';
   } else {
     soundBtn.classList.add('off');
-    soundBtn.textContent = '🔇 Звук выкл.';
+    soundBtn.innerHTML = icon('volume-off') + ' Звук выкл.';
   }
 }
 soundBtn.addEventListener('click', () => {
@@ -1191,9 +1130,9 @@ function showWinner(ticket) {
   }
   document.getElementById('winner-nick').textContent = ticket.nick;
   const parts = [];
-  if (ticket.silver > 0) parts.push(`🥈 ${ticket.silver}`);
-  if (ticket.gold > 0) parts.push(`🥇 ${ticket.gold}`);
-  document.getElementById('winner-tickets').textContent = parts.join('     ');
+  if (ticket.silver > 0) parts.push(`<span style="color:#D8D8E0">${icon('ticket')} ${ticket.silver}</span>`);
+  if (ticket.gold > 0) parts.push(`<span style="color:#FAC775">${icon('ticket')} ${ticket.gold}</span>`);
+  document.getElementById('winner-tickets').innerHTML = parts.join('&emsp;');
   overlay.classList.add('show');
 
   // Конфетти + фанфары
@@ -1265,7 +1204,7 @@ function addLogEntry(text, isWinner) {
   const entries = document.getElementById('log-entries');
   entries.innerHTML = log.map((e, i) => `
     <div class="log-entry${e.isWinner ? ' winner' : ''}">
-      <span class="num">${e.isWinner ? '🏆' : '#' + (i + 1)}</span>${esc(e.text)}
+      <span class="num">${e.isWinner ? icon('trophy') : '#' + (i + 1)}</span>${esc(e.text)}
     </div>
   `).join('');
   logEl.classList.add('has-entries');
@@ -1296,7 +1235,7 @@ document.getElementById('btn-single').addEventListener('click', () => {
     if (!confirm('Активен режим выбывания. Прервать его и крутить одиночный розыгрыш?')) return;
     eliminationMode = false;
     document.getElementById('elimination-status').classList.remove('active');
-    document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+    document.getElementById('btn-elim').innerHTML = icon('swords') + ' Режим выбывания';
   }
   spin((winnerIdx) => {
     const winner = activeTickets[winnerIdx];
@@ -1309,7 +1248,7 @@ document.getElementById('btn-elim').addEventListener('click', () => {
   if (!eliminationMode) {
     eliminationMode = true;
     document.getElementById('elimination-status').classList.add('active');
-    document.getElementById('btn-elim').textContent = '⚔ Крутить (выбывание)';
+    document.getElementById('btn-elim').innerHTML = icon('swords') + ' Крутить (выбывание)';
   }
   spin((eliminatedIdx) => {
     const eliminated = activeTickets[eliminatedIdx];
@@ -1319,7 +1258,7 @@ document.getElementById('btn-elim').addEventListener('click', () => {
       showWinner(winner);
       eliminationMode = false;
       document.getElementById('elimination-status').classList.remove('active');
-      document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+      document.getElementById('btn-elim').innerHTML = icon('swords') + ' Режим выбывания';
       return;
     }
     addLogEntry('Выбыл: ' + eliminated.nick + ' (' + eliminated.score + ' билетов)', false);
@@ -1333,7 +1272,7 @@ document.getElementById('btn-elim').addEventListener('click', () => {
         showWinner(winner);
         eliminationMode = false;
         document.getElementById('elimination-status').classList.remove('active');
-        document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+        document.getElementById('btn-elim').innerHTML = icon('swords') + ' Режим выбывания';
       }, 700);
     }
   });
@@ -1347,7 +1286,7 @@ document.getElementById('btn-reset').addEventListener('click', () => {
   document.getElementById('log').classList.remove('has-entries');
   eliminationMode = false;
   document.getElementById('elimination-status').classList.remove('active');
-  document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+  document.getElementById('btn-elim').innerHTML = icon('swords') + ' Режим выбывания';
   currentRotation = 0;
   const group = document.getElementById('wheel').querySelector('#wheel-group');
   if (group) {
@@ -1362,7 +1301,7 @@ document.getElementById('btn-reset').addEventListener('click', () => {
 document.getElementById('btn-reload').addEventListener('click', async () => {
   const btn = document.getElementById('btn-reload');
   btn.disabled = true;
-  btn.textContent = '⏳ Загрузка...';
+  btn.innerHTML = icon('hourglass') + ' Загрузка...';
   const ok = await loadData();
   if (ok) {
     activeTickets = [...allTickets];
@@ -1371,7 +1310,7 @@ document.getElementById('btn-reload').addEventListener('click', async () => {
     document.getElementById('log').classList.remove('has-entries');
     eliminationMode = false;
     document.getElementById('elimination-status').classList.remove('active');
-    document.getElementById('btn-elim').textContent = '⚔ Режим выбывания';
+    document.getElementById('btn-elim').innerHTML = icon('swords') + ' Режим выбывания';
     currentRotation = 0;
     const group = document.getElementById('wheel').querySelector('#wheel-group');
     if (group) {
@@ -1382,7 +1321,7 @@ document.getElementById('btn-reload').addEventListener('click', async () => {
     updateStats();
   }
   btn.disabled = false;
-  btn.textContent = '🔄 Перезагрузить билеты';
+  btn.innerHTML = icon('refresh') + ' Перезагрузить билеты';
 });
 
 document.getElementById('gate-input').focus();

@@ -558,68 +558,7 @@
     .site-nav__dd:focus-within > .site-nav__menu { opacity: 1; visibility: visible; pointer-events: auto; transform: none; }
   }
 </style>
-<nav class="site-nav">
-  <div class="site-nav__inner">
-    <a class="site-nav__brand" href="index.html">ParipariKai</a>
-    <ul class="site-nav__links">
-      <li><a href="hall.html">Зал Славы</a></li>
-      <li><a href="tickets.html">Билеты</a></li>
-      <li class="site-nav__dd">
-        <button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">Заказы зрителя <span class="site-nav__caret">▾</span></button>
-        <ul class="site-nav__menu">
-          <li><a href="anime.html">Аниме</a></li>
-          <li><a href="movies.html">Фильмы</a></li>
-          <li><a href="series.html">Сериалы</a></li>
-          <li><a href="games.html">Игры</a></li>
-          <li><a href="pain-games.html">Боль</a></li>
-          <li><a href="picker.html">Рулетка заказов</a></li>
-        </ul>
-      </li>
-      <li class="site-nav__dd">
-        <button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">Для стримера <span class="site-nav__caret">▾</span></button>
-        <ul class="site-nav__menu">
-          <li><a href="chat-wheel.html">Чат-рулетка</a></li>
-          <li><a href="pain.html">Боль стримера за шекели</a></li>
-          <li><a href="cards.html">Админка-рулетка</a></li>
-          <li><a href="cards.html?stream">Хаос-рулетка</a></li>
-        </ul>
-      </li>
-    </ul>
-  </div>
-</nav>
-<script>
-  // Меню: подсветка текущей страницы и открытие разделов по клику (для тач-экранов)
-  (function () {
-    const nav = document.querySelector('.site-nav');
-    if (!nav) return;
-    const here = (location.pathname.split('/').pop() || 'index.html') + location.search;
-    nav.querySelectorAll('.site-nav__links a').forEach(a => {
-      if (a.getAttribute('href') === here) {
-        a.classList.add('is-active');
-        const dd = a.closest('.site-nav__dd');
-        if (dd) dd.classList.add('is-active');
-      }
-    });
-    const closeAll = () => nav.querySelectorAll('.site-nav__dd.is-open').forEach(dd => {
-      dd.classList.remove('is-open');
-      dd.querySelector('.site-nav__dd-btn').setAttribute('aria-expanded', 'false');
-    });
-    nav.querySelectorAll('.site-nav__dd-btn').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        const dd = btn.parentElement;
-        const open = !dd.classList.contains('is-open');
-        closeAll();
-        if (open) {
-          dd.classList.add('is-open');
-          btn.setAttribute('aria-expanded', 'true');
-        }
-      });
-    });
-    document.addEventListener('click', closeAll);
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
-  })();
-</script>
+<script src="site.js?v=2"></script>
 
 <!-- ===== ВХОД ПО КОДУ ===== -->
 <div class="gate" id="gate">
@@ -634,8 +573,8 @@
 <!-- ===== СТРИМ-РЕЖИМ: ЛОТОТРОН (cards.html?stream) ===== -->
 <div class="stream" id="stream" style="display:none">
   <div class="stream__tools">
-    <button class="btn btn--sm" id="s-full" title="На весь экран (F)">⛶</button>
-    <a class="btn btn--sm" href="cards.html" title="Открыть менеджер">⚙</a>
+    <button class="btn btn--sm" id="s-full" title="На весь экран (F)"><svg class="ic" aria-hidden="true"><use href="#i-maximize"></use></svg></button>
+    <a class="btn btn--sm" href="cards.html" title="Открыть менеджер"><svg class="ic" aria-hidden="true"><use href="#i-sliders"></use></svg></a>
   </div>
   <div class="lotto" id="lotto">
     <canvas id="s-canvas"></canvas>
@@ -677,7 +616,7 @@
   </div>
 
   <div class="tabs" id="tabs">
-    <button class="tab tab--big" data-tab="spin">🎲 Крутка</button>
+    <button class="tab tab--big" data-tab="spin"><svg class="ic" aria-hidden="true"><use href="#i-dice"></use></svg> Крутка</button>
     <button class="tab is-active" data-tab="board">Состав</button>
     <button class="tab" data-tab="balance">Баланс</button>
     <button class="tab" data-tab="data">Данные</button>
@@ -713,7 +652,7 @@
       <button class="btn btn--gold" id="btn-add">+ Карточка</button>
       <button class="btn" id="btn-bulk">Массовое добавление</button>
       <button class="btn" id="btn-rotate">⇅ Ротация</button>
-      <button class="btn" id="btn-pause">⏸ Категории</button>
+      <button class="btn" id="btn-pause"><svg class="ic" aria-hidden="true"><use href="#i-pause"></use></svg> Категории</button>
       <button class="btn" id="btn-dupes">Найти дубли</button>
     </div>
 
@@ -1743,7 +1682,7 @@ function pauseGroups(groups, on) {
 function updatePauseButton() {
   const n = new Set(state.groups.filter(g => g.paused).map(g => normText(g.name))).size;
   const btn = $('#btn-pause');
-  btn.textContent = n ? `⏸ Категории (${n} на паузе)` : '⏸ Категории';
+  btn.innerHTML = icon('pause') + (n ? ` Категории (${n} на паузе)` : ' Категории');
   btn.classList.toggle('btn--gold', n > 0);
 }
 
@@ -1765,7 +1704,7 @@ function openPause() {
         <div style="font-size:15px">${esc(name)} ${paused ? '<span class="chip" style="background:rgba(240,185,95,0.18);color:#F0B95F">на паузе</span>' : ''}</div>
         <div style="font-size:12px;color:rgba(255,255,255,0.45);margin-top:3px">${rars} · ${act} в рулетке, ${items.length - act} на скамейке</div>
       </div>
-      <button class="btn ${paused ? 'btn--gold' : ''}" data-pause="${esc(normText(name))}">${paused ? '▶ Вернуть' : '⏸ На скамейку'}</button>
+      <button class="btn ${paused ? 'btn--gold' : ''}" data-pause="${esc(normText(name))}">${paused ? icon('play') + ' Вернуть' : icon('pause') + ' На скамейку'}</button>
     </div>`;
   }).join('');
 

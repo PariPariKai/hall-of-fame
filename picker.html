@@ -16,10 +16,10 @@
   const SHEET = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?single=true&output=csv&gid=";
 
   const SOURCES = [
-    { id:'anime',  name:'Аниме',   icon:'🌸', color:'#E58CC0', csv: SHEET + '627100001' },
-    { id:'movies', name:'Фильмы',  icon:'🎬', color:'#FAC775', csv: SHEET + '627100002' },
-    { id:'series', name:'Сериалы', icon:'📺', color:'#6FB7E8', csv: SHEET + '627100003' },
-    { id:'games',  name:'Игры',    icon:'🎮', color:'#9B8CE8', csv: SHEET + '727100001' },
+    { id:'anime',  name:'Аниме',   icon:'torii', color:'#E58CC0', csv: SHEET + '627100001' },
+    { id:'movies', name:'Фильмы',  icon:'film', color:'#FAC775', csv: SHEET + '627100002' },
+    { id:'series', name:'Сериалы', icon:'tv', color:'#6FB7E8', csv: SHEET + '627100003' },
+    { id:'games',  name:'Игры',    icon:'gamepad', color:'#9B8CE8', csv: SHEET + '727100001' },
   ];
 
   const VIEWERS_CSV_URL = SHEET + '527100001';
@@ -36,12 +36,13 @@
   // или format (аниме: sub/dub). Список строится по тому, что реально
   // есть в таблицах, — незнакомое значение просто покажется как есть.
   const TYPE_LABELS = {
-    movie:   { name:'Фильм',    icon:'🎬' },
-    youtube: { name:'YouTube',  icon:'▶️' },
-    other:   { name:'Другое',   icon:'▫️' },
-    sub:     { name:'Субтитры', icon:'💬' },
-    dub:     { name:'Озвучка',  icon:'🔊' },
-    '':      { name:'Без типа', icon:'—'  },
+    // icon — имя SVG-иконки из site.js
+    movie:   { name:'Фильм',    icon:'film' },
+    youtube: { name:'YouTube',  icon:'play' },
+    other:   { name:'Другое',   icon:'square' },
+    sub:     { name:'Субтитры', icon:'message' },
+    dub:     { name:'Озвучка',  icon:'mic' },
+    '':      { name:'Без типа', icon:'x' },
   };
 </script>
 
@@ -405,73 +406,12 @@
     .site-nav__dd:focus-within > .site-nav__menu { opacity: 1; visibility: visible; pointer-events: auto; transform: none; }
   }
 </style>
-<nav class="site-nav">
-  <div class="site-nav__inner">
-    <a class="site-nav__brand" href="index.html">ParipariKai</a>
-    <ul class="site-nav__links">
-      <li><a href="hall.html">Зал Славы</a></li>
-      <li><a href="tickets.html">Билеты</a></li>
-      <li class="site-nav__dd">
-        <button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">Заказы зрителя <span class="site-nav__caret">▾</span></button>
-        <ul class="site-nav__menu">
-          <li><a href="anime.html">Аниме</a></li>
-          <li><a href="movies.html">Фильмы</a></li>
-          <li><a href="series.html">Сериалы</a></li>
-          <li><a href="games.html">Игры</a></li>
-          <li><a href="pain-games.html">Боль</a></li>
-          <li><a href="picker.html">Рулетка заказов</a></li>
-        </ul>
-      </li>
-      <li class="site-nav__dd">
-        <button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">Для стримера <span class="site-nav__caret">▾</span></button>
-        <ul class="site-nav__menu">
-          <li><a href="pain.html">Боль стримера за шекели</a></li>
-          <li><a href="chat-wheel.html">Чат-рулетка</a></li>
-          <li><a href="cards.html">Админка-рулетка</a></li>
-          <li><a href="cards.html?stream">Хаос-рулетка</a></li>
-        </ul>
-      </li>
-    </ul>
-  </div>
-</nav>
-<script>
-  // Меню: подсветка текущей страницы и открытие разделов по клику (для тач-экранов)
-  (function () {
-    const nav = document.querySelector('.site-nav');
-    if (!nav) return;
-    const here = (location.pathname.split('/').pop() || 'index.html') + location.search;
-    nav.querySelectorAll('.site-nav__links a').forEach(a => {
-      if (a.getAttribute('href') === here) {
-        a.classList.add('is-active');
-        const dd = a.closest('.site-nav__dd');
-        if (dd) dd.classList.add('is-active');
-      }
-    });
-    const closeAll = () => nav.querySelectorAll('.site-nav__dd.is-open').forEach(dd => {
-      dd.classList.remove('is-open');
-      dd.querySelector('.site-nav__dd-btn').setAttribute('aria-expanded', 'false');
-    });
-    nav.querySelectorAll('.site-nav__dd-btn').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        const dd = btn.parentElement;
-        const open = !dd.classList.contains('is-open');
-        closeAll();
-        if (open) {
-          dd.classList.add('is-open');
-          btn.setAttribute('aria-expanded', 'true');
-        }
-      });
-    });
-    document.addEventListener('click', closeAll);
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
-  })();
-</script>
+<script src="site.js?v=2"></script>
 
 <div class="wrap">
 
   <div class="header">
-    <h1 class="title">🎲 Рулетка выбора</h1>
+    <h1 class="title"><svg class="ic" aria-hidden="true"><use href="#i-dice"></use></svg> Рулетка выбора</h1>
     <p class="subtitle" id="top-stats">Загрузка…</p>
   </div>
 
@@ -527,14 +467,14 @@
 
       <div class="controls">
         <div class="duration-group">
-          <span class="duration-label">⏱</span>
+          <span class="duration-label"><svg class="ic" aria-hidden="true"><use href="#i-timer"></use></svg></span>
           <button class="duration-btn" data-dur="3">3с</button>
           <button class="duration-btn active" data-dur="5">5с</button>
           <button class="duration-btn" data-dur="10">10с</button>
           <button class="duration-btn" data-dur="60">60с</button>
         </div>
         <div class="duration-group sound-group" title="Звук щелчка стрелки (нажми — услышишь)">
-          <span class="duration-label">🔊</span>
+          <span class="duration-label"><svg class="ic" aria-hidden="true"><use href="#i-volume"></use></svg></span>
           <button class="duration-btn" data-sound="wood">Дерево</button>
           <button class="duration-btn" data-sound="soft">Мягкий</button>
           <button class="duration-btn" data-sound="ball">Шарик</button>
@@ -543,11 +483,11 @@
       </div>
 
       <div class="controls">
-        <button class="ctrl-btn primary" id="btn-single">🎯 Один победитель</button>
-        <button class="ctrl-btn primary" id="btn-elim">⚔ Режим выбывания</button>
-        <button class="ctrl-btn auto" id="btn-auto">🤖 Авто-выбывание</button>
+        <button class="ctrl-btn primary" id="btn-single"><svg class="ic" aria-hidden="true"><use href="#i-target"></use></svg> Один победитель</button>
+        <button class="ctrl-btn primary" id="btn-elim"><svg class="ic" aria-hidden="true"><use href="#i-swords"></use></svg> Режим выбывания</button>
+        <button class="ctrl-btn auto" id="btn-auto"><svg class="ic" aria-hidden="true"><use href="#i-bot"></use></svg> Авто-выбывание</button>
         <button class="ctrl-btn danger" id="btn-reset">↺ Сброс</button>
-        <button class="ctrl-btn" id="btn-reload">🔄 Перезагрузить</button>
+        <button class="ctrl-btn" id="btn-reload"><svg class="ic" aria-hidden="true"><use href="#i-refresh"></use></svg> Перезагрузить</button>
       </div>
     </div>
 
@@ -782,7 +722,7 @@ function visibleItems() {
 }
 
 function typeLabel(t) {
-  return TYPE_LABELS[t] || { name: t, icon: '▫️' };
+  return TYPE_LABELS[t] || { name: t, icon: 'square' };
 }
 
 function srcById(id) { return SOURCES.find(s => s.id === id); }
@@ -804,7 +744,7 @@ function renderSources() {
     return `
       <div class="row ${st.on ? 'on' : 'off'}" data-src="${s.id}" style="--sw:${s.color}">
         <span class="box"></span>
-        <span class="row-label" style="color:${s.color}">${s.icon} ${esc(s.name)}</span>
+        <span class="row-label" style="color:${s.color}">${icon(s.icon)} ${esc(s.name)}</span>
         <span class="row-count">${st.count != null ? st.count : '—'}</span>
       </div>${note}`;
   }).join('');
@@ -860,7 +800,7 @@ function renderTypes() {
     return `
       <div class="row ${typeState[t] !== false ? 'on' : 'off'}" data-type="${esc(t)}">
         <span class="box"></span>
-        <span class="row-label">${L.icon} ${esc(L.name)}</span>
+        <span class="row-label">${icon(L.icon)} ${esc(L.name)}</span>
         <span class="row-count">${counts[t]}</span>
       </div>`;
   }).join('');
@@ -960,7 +900,7 @@ function rebuildWheel() {
 function updateStats() {
   const total = activeItems.length;
   const bySrc = SOURCES.filter(s => srcState[s.id] && srcState[s.id].on)
-    .map(s => `${s.icon} ${activeItems.filter(i => i.source === s.id).length}`).join(' · ');
+    .map(s => `${icon(s.icon)} ${activeItems.filter(i => i.source === s.id).length}`).join(' · ');
   document.getElementById('top-stats').innerHTML =
     `<b>${total}</b> ${pluralize(total,'вариант','варианта','вариантов')}${bySrc ? ' &nbsp;•&nbsp; ' + bySrc : ''}`;
   document.getElementById('elim-remaining').textContent = total;
@@ -1364,7 +1304,7 @@ document.addEventListener('click', () => { if (soundOn()) { ensureAudio(); loadB
 function showWinner(item) {
   const s = srcById(item.source);
   const cat = document.getElementById('winner-cat');
-  cat.textContent = s ? `${s.icon} ${s.name}` : '';
+  cat.innerHTML = s ? `${icon(s.icon)} ${esc(s.name)}` : '';
   cat.style.color = s ? s.color : '#fff';
 
   document.getElementById('winner-title').textContent = item.title;
@@ -1434,7 +1374,7 @@ function addLogEntry(item, isWinner) {
   log.push({ item, isWinner });
   document.getElementById('log-entries').innerHTML = log.map((e, i) => `
     <div class="log-entry${e.isWinner ? ' winner' : ''}${i === log.length - 1 ? ' fresh' : ''}">
-      <span class="num">${e.isWinner ? '🏆' : '#' + (i + 1)}</span>${e.isWinner ? '' : 'Выбыл: '}${esc(e.item.title)}
+      <span class="num">${e.isWinner ? icon('trophy') : '#' + (i + 1)}</span>${e.isWinner ? '' : 'Выбыл: '}${esc(e.item.title)}
       ${e.item.who ? `<div class="log-who">заказ: ${esc(e.item.who)}</div>` : ''}
     </div>`).reverse().join('');
   const l = document.getElementById('log');
@@ -1462,7 +1402,7 @@ document.querySelectorAll('.duration-btn[data-dur]').forEach(btn => {
 function setEliminationUi(on) {
   eliminationMode = on;
   document.getElementById('elimination-status').classList.toggle('active', on);
-  document.getElementById('btn-elim').textContent = on ? '⚔ Крутить (выбывание)' : '⚔ Режим выбывания';
+  document.getElementById('btn-elim').innerHTML = icon('swords') + (on ? ' Крутить (выбывание)' : ' Режим выбывания');
 }
 
 function finishElimination() {
@@ -1514,7 +1454,7 @@ const autoPhase = n => AUTO_PHASES.find(p => n <= p.upTo);
 let autoWake = null;          // прерывает паузу между крутками при «Стоп»
 let manualDuration = duration;
 
-function setAutoInfo(text) { document.getElementById('elim-auto').textContent = text; }
+function setAutoInfo(text) { document.getElementById('elim-auto').innerHTML = text ? icon('bot') + ' ' + esc(text) : ''; }
 
 function pause(sec, onTick) {
   return new Promise(resolve => {
@@ -1537,7 +1477,7 @@ async function runAuto() {
   manualDuration = duration;
   const btn = document.getElementById('btn-auto');
   btn.classList.add('running');
-  btn.textContent = '⏹ Стоп авто';
+  btn.innerHTML = icon('stop') + ' Стоп авто';
   setEliminationUi(true);
   setControlsDisabled(false);
   updateStats();
@@ -1548,19 +1488,19 @@ async function runAuto() {
     const n = activeItems.length;
     const ph = autoPhase(n);
     if (!first) {
-      await pause(ph.pause, left => setAutoInfo(`🤖 Следующая крутка (${ph.spin}с) через ${left}…`));
+      await pause(ph.pause, left => setAutoInfo(`Следующая крутка (${ph.spin}с) через ${left}…`));
       if (!autoRunning || gen !== wheelGen) break;
     }
     first = false;
     highlightDuration(ph.spin);
-    setAutoInfo(n === 2 ? `🤖 Финальная крутка — ${ph.spin}с` : `🤖 Крутим ${ph.spin}с`);
+    setAutoInfo(n === 2 ? `Финальная крутка — ${ph.spin}с` : `Крутим ${ph.spin}с`);
     await spin(eliminateAt, ph.spin);
   }
 
   autoRunning = false;
   autoWake = null;
   btn.classList.remove('running');
-  btn.textContent = '🤖 Авто-выбывание';
+  btn.innerHTML = icon('bot') + ' Авто-выбывание';
   setAutoInfo('');
   duration = manualDuration;
   highlightDuration(duration);
@@ -1572,7 +1512,7 @@ document.getElementById('btn-auto').addEventListener('click', () => {
   if (autoRunning) {
     // Идущая крутка доедет и выкинет свой вариант, дальше — ручной режим
     stopAuto();
-    setAutoInfo(isSpinning ? '⏹ Остановится после этой крутки' : '');
+    setAutoInfo(isSpinning ? 'Остановится после этой крутки' : '');
     return;
   }
   if (activeItems.length === 0 || isSpinning) return;
@@ -1588,9 +1528,9 @@ document.getElementById('btn-reset').addEventListener('click', () => {
 
 document.getElementById('btn-reload').addEventListener('click', async () => {
   const b = document.getElementById('btn-reload');
-  b.disabled = true; b.textContent = '⏳ Загрузка…';
+  b.disabled = true; b.innerHTML = icon('hourglass') + ' Загрузка…';
   await loadAll();
-  b.disabled = false; b.textContent = '🔄 Перезагрузить';
+  b.disabled = false; b.innerHTML = icon('refresh') + ' Перезагрузить';
 });
 
 loadAll();
