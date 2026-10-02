@@ -1,11 +1,12 @@
 {
-  "note": "Эксперименты для experiments.html. Новые — сверху. Поля: kind = game | mod | tool | site | other; status = done | testing | wip; summary — коротко на карточке; story (абзацы) + storyTitle + storyLabel — полное пояснение под кнопкой «Развернуть»; links[].type = play | download | video | source | page (пустой url — кнопка «Скоро»). cover — картинка (лучше 3:2, файлы эксперимента — в experiments/<id>/). Необязательные поля можно не писать.",
+  "note": "Эксперименты для experiments.html. Новые — сверху. Поля: kind = game | mod | tool | site | other; status = done | testing | wip; summary — коротко на карточке; story (абзацы) + storyTitle + storyLabel — полное пояснение под кнопкой «Развернуть»; links[].type = play | download | video | source | page (пустой url — кнопка «Скоро»), links[].host = gdrive | yadisk (логотип облака), links[].size — размер на кнопке; version — версия в шапке карточки. gallery — список скриншотов (16:9, листаются в обложке); cover — одна картинка (лучше 3:2, файлы эксперимента — в experiments/<id>/). Необязательные поля можно не писать.",
   "experiments": [
     {
       "id": "skyrim-dlss5",
       "title": "Skyrim с DLSS 5",
       "kind": "mod",
       "status": "testing",
+      "version": "Версия r2 от 28 сентября",
       "date": "2026-10-03",
       "ai": [],
       "badge": {
@@ -13,6 +14,16 @@
         "label": "в Skyrim · 15 ГБ"
       },
       "accent": "#455f95",
+      "gallery": [
+        "experiments/skyrim-dlss5/shot-01.webp",
+        "experiments/skyrim-dlss5/shot-02.webp",
+        "experiments/skyrim-dlss5/shot-03.webp",
+        "experiments/skyrim-dlss5/shot-04.webp",
+        "experiments/skyrim-dlss5/shot-05.webp",
+        "experiments/skyrim-dlss5/shot-06.webp",
+        "experiments/skyrim-dlss5/shot-07.webp",
+        "experiments/skyrim-dlss5/shot-08.webp"
+      ],
       "summary": "Графическая сборка Skyrim с нейрорендерингом DLSS 5 через сторонние Bridge и RenoDX. Около 30 компонентов и установщик, который ставит всё сам. Картинка реалистичнее, прохождение — прежнее.",
       "features": [
         "Только графика: без новых квестов, оружия и боевых систем",
@@ -21,7 +32,8 @@
       ],
       "requirements": [
         "Около 15 ГБ на загрузку — в основном текстуры и модели",
-        "Проверено на RTX 4070 Ti SUPER: стабильные 60 FPS в 2К. На других картах ещё не проверялось"
+        "Проверено на RTX 4070 Ti SUPER: стабильные 60 FPS в 2К. На других картах ещё не проверялось",
+        "Google Диск предупредит, что не может проверить файл на вирусы, — так он пишет про любой файл больше 100 МБ"
       ],
       "storyLabel": "Развернуть: что внутри и почему 15 ГБ",
       "storyTitle": "Что я «навайбкодил» для Skyrim и почему оно весит 15 ГБ",
@@ -37,8 +49,10 @@
       "links": [
         {
           "type": "download",
-          "label": "Скачать сборку · 15 ГБ",
-          "url": ""
+          "host": "gdrive",
+          "label": "Скачать с Google Диска",
+          "size": "15 ГБ",
+          "url": "https://drive.google.com/file/d/1uK1H083Iwn7rgAiTnoBZXwRdWIJkiQFO/view?usp=sharing"
         }
       ]
     },

@@ -27,9 +27,9 @@
   .xcard__cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   /* С картинкой обложка в её пропорциях (3:2), а цифра — компактной плашкой в углу, чтобы не закрывать арт */
   .xcard__cover.has-img { aspect-ratio: 3 / 2; justify-content: flex-end; }
-  .xcard__cover.has-img::before { content: ''; position: absolute; inset: 0 0 auto; height: 60px; background: linear-gradient(rgba(6,8,16,0.5), transparent); }
+  .xcard__cover.has-img::before { content: ''; position: absolute; z-index: 1; inset: 0 0 auto; height: 60px; background: linear-gradient(rgba(6,8,16,0.5), transparent); pointer-events: none; }
   .xcard__cover.has-img .xcard__badge {
-    text-align: right; padding: 8px 12px; border-radius: 12px;
+    position: absolute; top: 12px; right: 12px; text-align: right; padding: 8px 12px; border-radius: 12px;
     background: rgba(6,8,16,0.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.12);
   }
   .xcard__cover.has-img .xcard__badge b { font-size: 26px; }
@@ -39,14 +39,58 @@
   }
   .xcard__kind-ic .ic { stroke-width: 1.3; }
   .xcard__cover.has-img .xcard__kind-ic { display: none; }
-  .xcard__badge { position: relative; z-index: 1; min-width: 0; }
+  .xcard__badge { position: relative; z-index: 2; min-width: 0; }
   .xcard__badge b {
     display: block; font-size: 44px; font-weight: 700; line-height: 1; letter-spacing: 1px; color: #fff;
     text-shadow: 0 4px 24px rgba(0,0,0,0.45);
   }
   .xcard__badge span { display: block; margin-top: 6px; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.7); }
-  .xcard__tags { position: absolute; top: 14px; left: 14px; z-index: 1; display: flex; flex-wrap: wrap; gap: 6px; }
+  .xcard__tags { position: absolute; top: 14px; left: 14px; z-index: 2; display: flex; flex-wrap: wrap; gap: 6px; }
   .xcard__tags .tag { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); background-color: rgba(10,14,26,0.6); }
+
+  /* Галерея скриншотов в обложке: стрелки, точки, свайп, сама листается; клик — на весь экран */
+  .xcard__cover.has-gallery { aspect-ratio: 16 / 9; }
+  .xcard__cover.has-gallery::after { content: ''; position: absolute; z-index: 1; inset: auto 0 0; height: 80px; background: linear-gradient(transparent, rgba(6,8,16,0.6)); pointer-events: none; }
+  .xgal { position: absolute; inset: 0; cursor: zoom-in; touch-action: pan-y; }
+  .xgal img { opacity: 0; transition: opacity .5s ease; -webkit-user-drag: none; user-select: none; }
+  .xgal img.is-on { opacity: 1; }
+  .xgal__nav {
+    position: absolute; top: 50%; z-index: 2; transform: translateY(-50%); width: 40px; height: 40px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 18px; color: #fff; cursor: pointer; opacity: 0;
+    background: rgba(6,8,16,0.55); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    transition: opacity .2s ease, background .15s ease;
+  }
+  .xgal__nav--prev { left: 10px; }
+  .xgal__nav--prev .ic { transform: scaleX(-1); }
+  .xgal__nav--next { right: 10px; }
+  .xcard__cover:hover .xgal__nav, .xgal__nav:focus-visible { opacity: 1; }
+  .xgal__nav:hover { background: rgba(6,8,16,0.85); }
+  .xgal__nav:focus-visible, .xgal__dot:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  @media (hover: none) { .xgal__nav { opacity: .8; } }
+  .xgal__dots { position: absolute; left: 16px; bottom: 18px; z-index: 2; display: flex; align-items: center; gap: 6px; }
+  .xgal__dot {
+    width: 8px; height: 8px; padding: 0; border: 0; border-radius: 999px; cursor: pointer;
+    background: rgba(255,255,255,0.5); box-shadow: 0 1px 4px rgba(0,0,0,0.6); transition: width .25s ease, background .25s ease;
+  }
+  .xgal__dot.is-on { width: 22px; background: var(--gold); }
+
+  /* Просмотр скриншота на весь экран */
+  .lightbox {
+    position: fixed; inset: 0; z-index: 500; display: grid; place-items: center; padding: 56px 72px;
+    background: rgba(4,6,12,0.95); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  }
+  .lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+  .lightbox__btn {
+    position: absolute; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; cursor: pointer;
+    color: #fff; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); transition: background .15s ease;
+  }
+  .lightbox__btn:hover { background: rgba(255,255,255,0.16); }
+  .lightbox__btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .lightbox__close { top: 12px; right: 14px; }
+  .lightbox__prev { left: 14px; top: 50%; transform: translateY(-50%); }
+  .lightbox__prev .ic { transform: scaleX(-1); }
+  .lightbox__next { right: 14px; top: 50%; transform: translateY(-50%); }
+  .lightbox__count { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); font-size: 13px; letter-spacing: 1px; color: rgba(255,255,255,0.6); }
 
   .xcard__body { flex: 1 1 auto; display: flex; flex-direction: column; gap: 12px; padding: 18px 20px 20px; }
   .xcard__head { display: grid; gap: 5px; }
@@ -85,12 +129,19 @@
   .btn--main { background: linear-gradient(120deg, #F09F58, var(--gold)); color: #1a1208; border-color: transparent; box-shadow: 0 6px 18px rgba(var(--ember-rgb),0.25); }
   .btn--main:hover { background: linear-gradient(120deg, #f5ab6a, #ffd391); }
   .btn.is-off { opacity: .45; cursor: default; pointer-events: none; }
+  /* Логотип облака на кнопке скачивания — на белой плашке, чтобы его цвета не спорили с кнопкой */
+  .btn__logo { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; background: #fff; }
+  .btn__logo svg { width: 15px; height: 15px; display: block; }
+  .btn__size { font-weight: 500; opacity: .7; }
 
   @media (max-width: 720px) {
     .xgrid { gap: 14px; }
     .xcard__badge b { font-size: 36px; }
     .xcard__body { padding: 16px; }
     .xcard__title { font-size: 19px; }
+    .lightbox { padding: 60px 8px 76px; }
+    .lightbox__prev, .lightbox__next { top: auto; bottom: 12px; transform: none; }
+    .lightbox__count { bottom: 26px; }
   }
 </style>
 </head>
@@ -161,6 +212,11 @@ const LINKS = {
   source:   {icon: 'code',     label: 'Исходники'},
   page:     {icon: 'external', label: 'Открыть'},
 };
+// Облака для кнопок скачивания: логотип + название. host в experiments.json: gdrive | yadisk
+const HOSTS = {
+  gdrive: {name: 'Google Диск', logo: '<svg viewBox="0 0 87.3 78" aria-hidden="true"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0-1.2 4.5h27.5z" fill="#00ac47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.5l5.85 11.5z" fill="#ea4335"/><path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg>'},
+  yadisk: {name: 'Яндекс Диск', logo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.5 19H8a6 6 0 1 1 1.1-11.9A6.5 6.5 0 0 1 21 10.5a4.3 4.3 0 0 1-3.5 8.5z" fill="#ffcc00" stroke="#d99a00" stroke-width="1.2"/></svg>'},
+};
 const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 const state = {items: [], kind: 'all'};
 
@@ -199,7 +255,11 @@ function buildCard(x) {
   if (/^#[0-9a-f]{3,8}$/i.test(x.accent || '')) li.style.setProperty('--accent', x.accent);
 
   const cover = el('div', 'xcard__cover');
-  if (x.cover) {
+  const shots = list(x.gallery);
+  if (shots.length) {
+    cover.classList.add('has-img', 'has-gallery');
+    cover.append(...buildGallery(shots, x.title || ''));
+  } else if (x.cover) {
     const img = el('img');
     img.alt = ''; img.loading = 'lazy'; img.decoding = 'async'; img.src = x.cover;
     img.onerror = () => { img.remove(); cover.classList.remove('has-img'); };
@@ -225,6 +285,7 @@ function buildCard(x) {
   const meta = el('div', 'xcard__meta');
   const ai = list(x.ai);
   if (ai.length) { const s = el('span', '', 'Сделано с: '); s.append(el('b', '', ai.join(', '))); meta.append(s); }
+  if (x.version) meta.append(el('span', '', x.version));
   if (fmtDate(x.date)) meta.append(el('span', '', fmtDate(x.date)));
   if (meta.childNodes.length) head.append(meta);
   body.append(head);
@@ -251,7 +312,11 @@ function buildCard(x) {
     links.forEach((l, i) => {
       const def = LINKS[l.type], ready = /^(https?:\/\/|[\w.\-\/]+$)/.test(l.url || '');
       const a = el('a', 'btn' + (i === 0 ? ' btn--main' : '') + (ready ? '' : ' is-off'));
-      a.append(iconEl(def.icon), (l.label || def.label) + (ready ? '' : ' · скоро'));
+      const host = HOSTS[l.host];
+      if (host) { const logo = el('span', 'btn__logo'); logo.innerHTML = host.logo; a.append(logo); }
+      else a.append(iconEl(def.icon));
+      a.append((l.label || (host ? `${def.label} · ${host.name}` : def.label)) + (ready ? '' : ' · скоро'));
+      if (l.size) a.append(el('span', 'btn__size', '· ' + l.size));
       if (ready) {
         a.href = l.url;
         if (/^https?:/.test(l.url)) { a.target = '_blank'; a.rel = 'noopener'; }
@@ -264,6 +329,115 @@ function buildCard(x) {
 
   li.append(cover, body);
   return li;
+}
+
+// Обложка-галерея. Картинки грузятся по мере листания (текущая и следующая), а не все сразу.
+function buildGallery(shots, title) {
+  const n = shots.length, box = el('div', 'xgal');
+  const imgs = shots.map((src, i) => {
+    const img = el('img');
+    img.alt = `${title}: скриншот ${i + 1} из ${n}`; img.decoding = 'async'; img.draggable = false; img.dataset.src = src;
+    box.append(img);
+    return img;
+  });
+  imgs[0].loading = 'lazy';
+  const load = i => { if (!imgs[i].src) imgs[i].src = imgs[i].dataset.src; };
+  const parts = [box], dots = [];
+  let cur = 0;
+  const show = i => {
+    cur = (i + n) % n;
+    load(cur);
+    if (n > 1) load((cur + 1) % n);
+    imgs.forEach((im, k) => im.classList.toggle('is-on', k === cur));
+    dots.forEach((d, k) => { d.classList.toggle('is-on', k === cur); d.setAttribute('aria-current', k === cur ? 'true' : 'false'); });
+  };
+  // Сама листается раз в 6 секунд, пока зритель её не трогал; при наведении — пауза
+  let auto = n > 1 && !matchMedia('(prefers-reduced-motion: reduce)').matches, hover = false;
+  const go = i => { auto = false; show(i); };
+  if (n > 1) {
+    const nav = (cls, label, step) => {
+      const b = el('button', 'xgal__nav ' + cls);
+      b.type = 'button'; b.setAttribute('aria-label', label); b.innerHTML = icon('chevron');
+      b.addEventListener('click', e => { e.stopPropagation(); go(cur + step); });
+      return b;
+    };
+    const dotsBox = el('div', 'xgal__dots');
+    shots.forEach((_, i) => {
+      const d = el('button', 'xgal__dot');
+      d.type = 'button'; d.setAttribute('aria-label', `Скриншот ${i + 1}`);
+      d.addEventListener('click', e => { e.stopPropagation(); go(i); });
+      dots.push(d); dotsBox.append(d);
+    });
+    parts.push(nav('xgal__nav--prev', 'Предыдущий скриншот', -1), nav('xgal__nav--next', 'Следующий скриншот', 1), dotsBox);
+    // Свайп пальцем или мышью
+    let x0 = null, swiped = false;
+    box.addEventListener('pointerdown', e => { x0 = e.clientX; swiped = false; });
+    box.addEventListener('pointerup', e => {
+      if (x0 === null) return;
+      const dx = e.clientX - x0; x0 = null;
+      if (Math.abs(dx) > 40) { swiped = true; go(cur + (dx < 0 ? 1 : -1)); }
+    });
+    box.addEventListener('click', () => { if (!swiped) { auto = false; openLightbox(shots, cur, title, show); } });
+    box.addEventListener('pointerenter', () => { hover = true; });
+    box.addEventListener('pointerleave', () => { hover = false; });
+    setInterval(() => { if (auto && !hover && !document.hidden && box.isConnected) show(cur + 1); }, 6000);
+  } else box.addEventListener('click', () => openLightbox(shots, 0, title, show));
+  show(0);
+  return parts;
+}
+
+// Просмотр на весь экран. onChange — чтобы обложка карточки догнала листание в просмотрщике.
+function openLightbox(shots, start, title, onChange) {
+  const n = shots.length, back = document.activeElement;
+  let cur = start, swiped = false;
+  const lb = el('div', 'lightbox');
+  lb.setAttribute('role', 'dialog'); lb.setAttribute('aria-modal', 'true'); lb.setAttribute('aria-label', title);
+  const img = el('img'), count = el('div', 'lightbox__count');
+  const btn = (cls, label, ic) => { const b = el('button', 'lightbox__btn ' + cls); b.type = 'button'; b.setAttribute('aria-label', label); b.innerHTML = icon(ic); return b; };
+  const close = btn('lightbox__close', 'Закрыть', 'x');
+  const show = i => {
+    cur = (i + n) % n;
+    img.src = shots[cur]; img.alt = `${title}: скриншот ${cur + 1} из ${n}`;
+    count.textContent = `${cur + 1} / ${n}`;
+    if (n > 1) new Image().src = shots[(cur + 1) % n];
+    if (onChange) onChange(cur);
+  };
+  const onKey = e => {
+    if (e.key === 'Escape') shut();
+    else if (e.key === 'ArrowRight' && n > 1) show(cur + 1);
+    else if (e.key === 'ArrowLeft' && n > 1) show(cur - 1);
+  };
+  const shut = () => {
+    lb.remove(); document.removeEventListener('keydown', onKey);
+    document.documentElement.style.overflow = '';
+    if (back && back.focus) back.focus({preventScroll: true});
+  };
+  lb.append(img, close);
+  if (n > 1) {
+    const prev = btn('lightbox__prev', 'Предыдущий скриншот', 'chevron'), next = btn('lightbox__next', 'Следующий скриншот', 'chevron');
+    prev.addEventListener('click', e => { e.stopPropagation(); show(cur - 1); });
+    next.addEventListener('click', e => { e.stopPropagation(); show(cur + 1); });
+    lb.append(prev, next, count);
+    let x0 = null;
+    lb.addEventListener('pointerdown', e => { x0 = e.clientX; swiped = false; });
+    lb.addEventListener('pointerup', e => {
+      if (x0 === null) return;
+      const dx = e.clientX - x0; x0 = null;
+      if (Math.abs(dx) > 40) { swiped = true; show(cur + (dx < 0 ? 1 : -1)); }
+    });
+  }
+  close.addEventListener('click', shut);
+  // Клик по картинке — следующая, мимо картинки — закрыть
+  lb.addEventListener('click', e => {
+    if (swiped) return;
+    if (e.target === img && n > 1) show(cur + 1);
+    else if (e.target === lb) shut();
+  });
+  document.addEventListener('keydown', onKey);
+  document.documentElement.style.overflow = 'hidden';
+  document.body.append(lb);
+  show(start);
+  close.focus();
 }
 
 function renderFilters() {
