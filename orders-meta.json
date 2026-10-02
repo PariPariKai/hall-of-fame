@@ -4,13 +4,13 @@
     "anime|\"я не смотрю аниме, пу-пу-пу\"": {
       "list": "anime",
       "title": "\"я не смотрю аниме, пу-пу-пу\"",
-      "checked": "2026-10-02T10:06:48.151Z",
+      "checked": "2026-10-02T11:18:34.368Z",
       "found": false
     },
     "anime|магистр дьяволського культа": {
       "list": "anime",
       "title": "Магистр дьяволського культа",
-      "checked": "2026-10-02T10:06:53.142Z",
+      "checked": "2026-10-02T11:18:39.177Z",
       "found": true,
       "cover": "https://shikimori.one/system/animes/original/37208.jpg",
       "url": "https://shikimori.one/animes/37208-mo-dao-zu-shi",
@@ -19,7 +19,7 @@
     "anime|магистр дьяволського культа 2": {
       "list": "anime",
       "title": "Магистр дьяволського культа 2",
-      "checked": "2026-10-02T10:06:57.963Z",
+      "checked": "2026-10-02T11:18:44.416Z",
       "found": true,
       "cover": "https://shikimori.one/system/animes/original/38450.jpg",
       "url": "https://shikimori.one/animes/38450-mo-dao-zu-shi-xian-yun-pian",
@@ -28,7 +28,7 @@
     "anime|магистр дьяволського культа 3": {
       "list": "anime",
       "title": "Магистр дьяволського культа 3",
-      "checked": "2026-10-02T10:07:02.694Z",
+      "checked": "2026-10-02T11:18:49.518Z",
       "found": true,
       "cover": "https://shikimori.one/system/animes/original/40434.jpg",
       "url": "https://shikimori.one/animes/40434-mo-dao-zu-shi-wanjie-pian",
@@ -37,38 +37,37 @@
     "movies|я пока не придумала": {
       "list": "movies",
       "title": "я пока не придумала",
-      "checked": "2026-10-02T10:07:08.611Z",
+      "checked": "2026-10-02T11:18:55.276Z",
       "found": false
     },
-    "movies|notre dame de paris full musical 1998": {
+    "movies|notre dame de paris full musical": {
       "list": "movies",
-      "title": "Notre Dame de Paris full musical 1998",
-      "checked": "2026-10-02T10:07:11.886Z",
-      "found": false,
-      "year": 1998
+      "title": "Notre Dame de Paris full musical",
+      "checked": "2026-10-02T11:18:58.564Z",
+      "found": false
     },
     "movies|летняя зоо-олимпиада + зимняя зоо-олимпиада": {
       "list": "movies",
       "title": "Летняя Зоо-Олимпиада + Зимняя Зоо-Олимпиада",
-      "checked": "2026-10-02T10:07:14.988Z",
+      "checked": "2026-10-02T11:19:01.671Z",
       "found": false
     },
     "movies|пока не решила что": {
       "list": "movies",
       "title": "Пока не решила что",
-      "checked": "2026-10-02T10:07:18.124Z",
+      "checked": "2026-10-02T11:19:04.794Z",
       "found": false
     },
     "movies|пока не решил что": {
       "list": "movies",
       "title": "Пока не решил что",
-      "checked": "2026-10-02T10:07:21.220Z",
+      "checked": "2026-10-02T11:19:07.859Z",
       "found": false
     },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
       "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
-      "checked": "2026-10-02T10:07:25.318Z",
+      "checked": "2026-10-02T11:19:11.764Z",
       "found": true,
       "year": 2019,
       "kp": "1282758",
@@ -79,18 +78,556 @@
     "series|пока не решила ^_~": {
       "list": "series",
       "title": "пока не решила ^_~",
-      "checked": "2026-10-02T10:07:29.831Z",
+      "checked": "2026-10-02T11:19:16.102Z",
       "found": false
     },
     "series|шерлок": {
       "list": "series",
       "title": "Шерлок",
-      "checked": "2026-10-02T10:07:32.929Z",
+      "checked": "2026-10-02T11:19:19.260Z",
       "found": true,
       "kp": "502838",
       "url": "https://www.kinopoisk.ru/series/502838/",
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1629390/f28c1ea2-47b0-49d5-b11c-9608744f0233/600x900",
       "source": "kinopoisk"
+    },
+    "games|half life alyx": {
+      "list": "games",
+      "title": "Half life alyx",
+      "checked": "2026-10-02T11:50:16.119Z",
+      "found": true,
+      "appid": 546560,
+      "url": "https://store.steampowered.com/app/546560/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/546560/library_600x900.jpg?t=1790202165",
+      "source": "steam"
+    },
+    "games|seeds of chaos": {
+      "list": "games",
+      "title": "Seeds of Chaos",
+      "checked": "2026-10-02T11:50:20.381Z",
+      "found": true,
+      "appid": 1205950,
+      "url": "https://store.steampowered.com/app/1205950/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/1205950/3ccf90bdc53008f29e3e6d1d8041894fa093b427/library_capsule.jpg?t=1786719852",
+      "source": "steam"
+    },
+    "games|веселая ферма": {
+      "list": "games",
+      "title": "Веселая Ферма",
+      "checked": "2026-10-02T11:50:24.322Z",
+      "found": true,
+      "appid": 38120,
+      "url": "https://store.steampowered.com/app/38120/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/38120/portrait.png?t=1696532649",
+      "source": "steam"
+    },
+    "games|maeve's academy": {
+      "list": "games",
+      "title": "Maeve's academy",
+      "checked": "2026-10-02T11:50:32.191Z",
+      "found": false
+    },
+    "games|species: unknown (спец стрим)": {
+      "list": "games",
+      "title": "Species: Unknown (спец стрим)",
+      "checked": "2026-10-02T11:50:37.809Z",
+      "found": true,
+      "appid": 2747330,
+      "url": "https://store.steampowered.com/app/2747330/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/2747330/037b0dabbfc6909a0c09c7d75801be8eea3ae4a9/library_600x900.jpg?t=1790005206",
+      "source": "steam"
+    },
+    "games|the witcher 3: wild hunt": {
+      "list": "games",
+      "title": "The Witcher 3: Wild Hunt",
+      "checked": "2026-10-02T11:50:42.153Z",
+      "found": true,
+      "appid": 292030,
+      "url": "https://store.steampowered.com/app/292030/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/292030/dd1c19c4e41b120ddfa35734cc31f79254c25082/library_capsule.jpg?t=1790845156",
+      "source": "steam"
+    },
+    "games|icarus": {
+      "list": "games",
+      "title": "Icarus",
+      "checked": "2026-10-02T11:50:52.284Z",
+      "found": true,
+      "appid": 1149460,
+      "url": "https://store.steampowered.com/app/1149460/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/1149460/library_600x900.jpg?t=1784744651",
+      "source": "steam"
+    },
+    "games|under the waves": {
+      "list": "games",
+      "title": "Under the waves",
+      "checked": "2026-10-02T11:50:56.200Z",
+      "found": true,
+      "appid": 1975440,
+      "url": "https://store.steampowered.com/app/1975440/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/1975440/library_600x900.jpg?t=1725963350",
+      "source": "steam"
+    },
+    "games|rv there yet?": {
+      "list": "games",
+      "title": "RV THERE YET?",
+      "checked": "2026-10-02T11:51:00.040Z",
+      "found": true,
+      "appid": 3949040,
+      "url": "https://store.steampowered.com/app/3949040/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/3949040/701632e4a84f8378c23fdf18ae127cb6a0f3f904/library_capsule.jpg?t=1789134289",
+      "source": "steam"
+    },
+    "games|no man's sky": {
+      "list": "games",
+      "title": "No Man's Sky",
+      "checked": "2026-10-02T11:51:04.124Z",
+      "found": true,
+      "appid": 275850,
+      "url": "https://store.steampowered.com/app/275850/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/275850/2012c0098b08cdff7665a6a808e218b1ab1c6399/library_capsule.jpg?t=1789479023",
+      "source": "steam"
+    },
+    "games|kenshi": {
+      "list": "games",
+      "title": "Kenshi",
+      "checked": "2026-10-02T11:51:07.988Z",
+      "found": true,
+      "appid": 233860,
+      "url": "https://store.steampowered.com/app/233860/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/233860/589fd26c9c30421a7472a1b9934098c9affd439b/library_capsule.jpg?t=1779293333",
+      "source": "steam"
+    },
+    "games|valheim": {
+      "list": "games",
+      "title": "Valheim",
+      "checked": "2026-10-02T11:51:11.857Z",
+      "found": true,
+      "appid": 892970,
+      "url": "https://store.steampowered.com/app/892970/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/892970/3dee2eb67bca0660c5ca3c9e1cfbdfc1063333ba/library_capsule.jpg?t=1790220314",
+      "source": "steam"
+    },
+    "games|kerbal space program": {
+      "list": "games",
+      "title": "Kerbal Space Program",
+      "checked": "2026-10-02T11:51:15.700Z",
+      "found": true,
+      "appid": 220200,
+      "url": "https://store.steampowered.com/app/220200/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/220200/library_600x900.jpg?t=1738037585",
+      "source": "steam"
+    },
+    "games|american truck simulator": {
+      "list": "games",
+      "title": "American Truck Simulator",
+      "checked": "2026-10-02T11:51:19.540Z",
+      "found": true,
+      "appid": 270880,
+      "url": "https://store.steampowered.com/app/270880/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/270880/library_600x900.jpg?t=1790759835",
+      "source": "steam"
+    },
+    "games|satisfactory": {
+      "list": "games",
+      "title": "Satisfactory",
+      "checked": "2026-10-02T11:51:23.433Z",
+      "found": true,
+      "appid": 526870,
+      "url": "https://store.steampowered.com/app/526870/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/526870/8968499686cff74b539c70ca1b44d671562d63dc/library_capsule.jpg?t=1788349095",
+      "source": "steam"
+    },
+    "games|gamble with your friends": {
+      "list": "games",
+      "title": "Gamble with your friends",
+      "checked": "2026-10-02T11:51:27.301Z",
+      "found": true,
+      "appid": 3892270,
+      "url": "https://store.steampowered.com/app/3892270/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/3892270/aae0d37eb09a4e20706805e0db735fbbe04ecd15/library_capsule.jpg?t=1790878645",
+      "source": "steam"
+    },
+    "games|stone simulator": {
+      "list": "games",
+      "title": "Stone Simulator",
+      "checked": "2026-10-02T11:51:34.646Z",
+      "found": true,
+      "appid": 1425980,
+      "url": "https://store.steampowered.com/app/1425980/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/1425980/75502fa17998ec2bf364f10fdd70163726f0fa7c/library_capsule.jpg?t=1790629737",
+      "source": "steam"
+    },
+    "games|iron nest": {
+      "list": "games",
+      "title": "Iron Nest",
+      "checked": "2026-10-02T11:51:38.439Z",
+      "found": true,
+      "appid": 2950790,
+      "url": "https://store.steampowered.com/app/2950790/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/2950790/91a172cd9ff7cc855eb8dd21bdcf41a39c0e4d75/library_capsule.jpg?t=1789499918",
+      "source": "steam"
+    },
+    "games|peak": {
+      "list": "games",
+      "title": "PEAK",
+      "checked": "2026-10-02T11:51:42.254Z",
+      "found": true,
+      "appid": 3527290,
+      "url": "https://store.steampowered.com/app/3527290/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/3527290/480bd879ac737921bfa2529a6fea15961267ad21/library_600x900.jpg?t=1790591892",
+      "source": "steam"
+    },
+    "games|frostpunk": {
+      "list": "games",
+      "title": "FrostPunk",
+      "checked": "2026-10-02T11:51:46.022Z",
+      "found": true,
+      "appid": 323190,
+      "url": "https://store.steampowered.com/app/323190/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/323190/library_600x900.jpg?t=1784897899",
+      "source": "steam"
+    },
+    "games|the alters": {
+      "list": "games",
+      "title": "The Alters",
+      "checked": "2026-10-02T11:51:49.801Z",
+      "found": true,
+      "appid": 1601570,
+      "url": "https://store.steampowered.com/app/1601570/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/1601570/d30e4e6a4f274b201a48011933460364e7a3b0a4/library_600x900.jpg?t=1789118254",
+      "source": "steam"
+    },
+    "games|quantum break": {
+      "list": "games",
+      "title": "Quantum Break",
+      "checked": "2026-10-02T11:51:53.698Z",
+      "found": true,
+      "appid": 474960,
+      "url": "https://store.steampowered.com/app/474960/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/474960/library_600x900.jpg?t=1773351175",
+      "source": "steam"
+    },
+    "games|the invincible": {
+      "list": "games",
+      "title": "The Invincible",
+      "checked": "2026-10-02T11:51:59.134Z",
+      "found": true,
+      "appid": 731040,
+      "url": "https://store.steampowered.com/app/731040/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/731040/library_600x900.jpg?t=1782459751",
+      "source": "steam"
+    },
+    "games|karma: the dark world": {
+      "list": "games",
+      "title": "Karma: The Dark World",
+      "checked": "2026-10-02T11:52:02.995Z",
+      "found": true,
+      "appid": 1376200,
+      "url": "https://store.steampowered.com/app/1376200/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/1376200/8e43df7111ef5d8fcc99136700084106a303b60c/library_600x900.jpg?t=1790779028",
+      "source": "steam"
+    },
+    "games|trans-siberian railway simulator": {
+      "list": "games",
+      "title": "Trans-Siberian Railway Simulator",
+      "checked": "2026-10-02T11:52:06.775Z",
+      "found": true,
+      "appid": 998400,
+      "url": "https://store.steampowered.com/app/998400/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/998400/8e69eb5a77077e412fb14f9c961ff888e84f9f87/library_capsule.jpg?t=1790673510",
+      "source": "steam"
+    },
+    "games|split fiction": {
+      "list": "games",
+      "title": "Split Fiction",
+      "checked": "2026-10-02T11:52:10.598Z",
+      "found": true,
+      "appid": 2001120,
+      "url": "https://store.steampowered.com/app/2001120/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/2001120/f9b802097eff97ac7edcc92f864d4b9a91516b67/library_600x900.jpg?t=1763484567",
+      "source": "steam"
+    },
+    "games|meccha chameleion": {
+      "list": "games",
+      "title": "Meccha Chameleion",
+      "checked": "2026-10-02T11:52:16.067Z",
+      "found": false
+    },
+    "games|detroit: become human": {
+      "list": "games",
+      "title": "Detroit: Become Human",
+      "checked": "2026-10-02T11:52:19.714Z",
+      "found": true,
+      "appid": 1222140,
+      "url": "https://store.steampowered.com/app/1222140/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/1222140/library_600x900.jpg?t=1667468479",
+      "source": "steam"
+    },
+    "games|the stanley parable": {
+      "list": "games",
+      "title": "The Stanley Parable",
+      "checked": "2026-10-02T11:52:23.805Z",
+      "found": true,
+      "appid": 221910,
+      "url": "https://store.steampowered.com/app/221910/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/221910/library_600x900.jpg?t=1790897497",
+      "source": "steam"
+    },
+    "games|dark pals: the 1st floor": {
+      "list": "games",
+      "title": "Dark Pals: The 1st Floor",
+      "checked": "2026-10-02T11:52:27.611Z",
+      "found": true,
+      "appid": 4157130,
+      "url": "https://store.steampowered.com/app/4157130/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/4157130/2f150cee79d187fc019b73e20fde21b0907f42c2/library_capsule.jpg?t=1790881958",
+      "source": "steam"
+    },
+    "games|dead by daylight": {
+      "list": "games",
+      "title": "Dead by daylight",
+      "checked": "2026-10-02T11:52:31.483Z",
+      "found": true,
+      "appid": 381210,
+      "url": "https://store.steampowered.com/app/381210/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/381210/bba19ed59423684b0ea9f584a11e7234c8ebf327/library_capsule.jpg?t=1787769494",
+      "source": "steam"
+    },
+    "games|burglin' gnomes": {
+      "list": "games",
+      "title": "Burglin' Gnomes",
+      "checked": "2026-10-02T11:52:37.041Z",
+      "found": true,
+      "appid": 3844970,
+      "url": "https://store.steampowered.com/app/3844970/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/3844970/2e00cddea88afadd2083a1580af93b4eee40a267/library_capsule.jpg?t=1787427131",
+      "source": "steam"
+    },
+    "games|boobs": {
+      "list": "games",
+      "title": "BOOBS",
+      "checked": "2026-10-02T11:52:40.838Z",
+      "found": true,
+      "appid": 3442220,
+      "url": "https://store.steampowered.com/app/3442220/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/3442220/609fdb7aee38f1e4e6cba5e11156e0fd3579e315/library_600x900.jpg?t=1786557433",
+      "source": "steam"
+    },
+    "games|goose goose duck": {
+      "list": "games",
+      "title": "Goose Goose Duck",
+      "checked": "2026-10-02T11:52:44.681Z",
+      "found": true,
+      "appid": 1258090,
+      "url": "https://store.steampowered.com/app/1258090/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/1258090/library_600x900.jpg?t=1588208865",
+      "source": "steam"
+    },
+    "games|pratfall": {
+      "list": "games",
+      "title": "Pratfall",
+      "checked": "2026-10-02T11:52:48.432Z",
+      "found": true,
+      "appid": 4244510,
+      "url": "https://store.steampowered.com/app/4244510/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/4244510/950ae75b1ca46cc617891a4dbd582e7a2f378166/library_capsule.jpg?t=1789643460",
+      "source": "steam"
+    },
+    "games|skyrim": {
+      "list": "games",
+      "title": "Skyrim",
+      "checked": "2026-10-02T11:52:52.240Z",
+      "found": true,
+      "appid": 489830,
+      "url": "https://store.steampowered.com/app/489830/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/489830/library_600x900.jpg?t=1786648247",
+      "source": "steam"
+    },
+    "games|helldivers 2": {
+      "list": "games",
+      "title": "Helldivers 2",
+      "checked": "2026-10-02T11:52:57.787Z",
+      "found": true,
+      "appid": 553850,
+      "url": "https://store.steampowered.com/app/553850/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/553850/a79b4d13ce2b1e1379116085b4f97b45c14548ab/library_capsule.jpg?t=1789585784",
+      "source": "steam"
+    },
+    "games|atomic heart": {
+      "list": "games",
+      "title": "Atomic Heart",
+      "checked": "2026-10-02T11:53:03.468Z",
+      "found": true,
+      "appid": 668580,
+      "url": "https://store.steampowered.com/app/668580/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/668580/library_600x900.jpg?t=1786632138",
+      "source": "steam"
+    },
+    "games|deliver us the moon": {
+      "list": "games",
+      "title": "Deliver us the moon",
+      "checked": "2026-10-02T11:53:07.321Z",
+      "found": true,
+      "appid": 428660,
+      "url": "https://store.steampowered.com/app/428660/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/428660/31ff218f831b55349df070ca440c155cbab10ced/library_capsule.jpg?t=1782220662",
+      "source": "steam"
+    },
+    "games|lizards must die": {
+      "list": "games",
+      "title": "Lizards must die",
+      "checked": "2026-10-02T11:53:11.303Z",
+      "found": true,
+      "appid": 2532550,
+      "url": "https://store.steampowered.com/app/2532550/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/2532550/library_600x900.jpg?t=1781545012",
+      "source": "steam"
+    },
+    "games|motorslice": {
+      "list": "games",
+      "title": "Motorslice",
+      "checked": "2026-10-02T11:53:18.823Z",
+      "found": true,
+      "appid": 2830030,
+      "url": "https://store.steampowered.com/app/2830030/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/2830030/library_600x900.jpg?t=1778341635",
+      "source": "steam"
+    },
+    "games|pragmata": {
+      "list": "games",
+      "title": "Pragmata",
+      "checked": "2026-10-02T11:53:22.614Z",
+      "found": true,
+      "appid": 3357650,
+      "url": "https://store.steampowered.com/app/3357650/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/3357650/2c65f388cb3ac6631c8a38ff1a59903263fc70e9/library_capsule.jpg?t=1789603448",
+      "source": "steam"
+    },
+    "games|breathedge": {
+      "list": "games",
+      "title": "Breathedge",
+      "checked": "2026-10-02T11:53:28.168Z",
+      "found": true,
+      "appid": 738520,
+      "url": "https://store.steampowered.com/app/738520/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/738520/library_600x900.jpg?t=1788188445",
+      "source": "steam"
+    },
+    "games|miside": {
+      "list": "games",
+      "title": "Miside",
+      "checked": "2026-10-02T11:53:31.976Z",
+      "found": true,
+      "appid": 2527500,
+      "url": "https://store.steampowered.com/app/2527500/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/2527500/library_600x900.jpg?t=1781766453",
+      "source": "steam"
+    },
+    "games|mimesis": {
+      "list": "games",
+      "title": "Mimesis",
+      "checked": "2026-10-02T11:53:35.953Z",
+      "found": true,
+      "appid": 2827200,
+      "url": "https://store.steampowered.com/app/2827200/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/2827200/27bdb3b9c486d83667a65848b2aeaf36c44b5197/library_capsule.jpg?t=1789724731",
+      "source": "steam"
+    },
+    "games|pubg: battlegrounds": {
+      "list": "games",
+      "title": "PUBG: BATTLEGROUNDS",
+      "checked": "2026-10-02T11:53:39.760Z",
+      "found": true,
+      "appid": 578080,
+      "url": "https://store.steampowered.com/app/578080/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/578080/36a1a274b3a7870e475ea1e110e58db8a0803c41/library_600x900.jpg?t=1786493086",
+      "source": "steam"
+    },
+    "games|euro truck simulator 2": {
+      "list": "games",
+      "title": "Euro Truck Simulator 2",
+      "checked": "2026-10-02T11:53:43.580Z",
+      "found": true,
+      "appid": 227300,
+      "url": "https://store.steampowered.com/app/227300/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/227300/library_600x900.jpg?t=1790001194",
+      "source": "steam"
+    },
+    "games|the headlines": {
+      "list": "games",
+      "title": "The Headlines",
+      "checked": "2026-10-02T11:53:47.477Z",
+      "found": false
+    },
+    "games|stray": {
+      "list": "games",
+      "title": "Stray",
+      "checked": "2026-10-02T11:53:53.071Z",
+      "found": true,
+      "appid": 1332010,
+      "url": "https://store.steampowered.com/app/1332010/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/1332010/9c1bae81b2603c25ccf2a8f4944b3b58227005d7/library_capsule.jpg?t=1785424330",
+      "source": "steam"
+    },
+    "games|dark hours": {
+      "list": "games",
+      "title": "Dark Hours",
+      "checked": "2026-10-02T11:53:57.383Z",
+      "found": true,
+      "appid": 2208570,
+      "url": "https://store.steampowered.com/app/2208570/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/2208570/bdb25a6f3333f5d2ce6638ca5960d69dc8b955bf/library_capsule.jpg?t=1790841458",
+      "source": "steam"
+    },
+    "games|we happy few": {
+      "list": "games",
+      "title": "We Happy Few",
+      "checked": "2026-10-02T11:54:01.465Z",
+      "found": true,
+      "appid": 320240,
+      "url": "https://store.steampowered.com/app/320240/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/320240/library_600x900.jpg?t=1786471522",
+      "source": "steam"
+    },
+    "games|machinarium": {
+      "list": "games",
+      "title": "Machinarium",
+      "checked": "2026-10-02T11:54:07.173Z",
+      "found": true,
+      "appid": 40700,
+      "url": "https://store.steampowered.com/app/40700/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/40700/library_600x900.jpg?t=1779498950",
+      "source": "steam"
+    },
+    "games|poppy playtime": {
+      "list": "games",
+      "title": "Poppy Playtime",
+      "checked": "2026-10-02T11:54:10.999Z",
+      "found": true,
+      "appid": 1721470,
+      "url": "https://store.steampowered.com/app/1721470/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/1721470/1d1b5696c34969a75adcbc85b96530c222b47617/library_capsule.jpg?t=1789515320",
+      "source": "steam"
+    },
+    "games|reanimal": {
+      "list": "games",
+      "title": "Reanimal",
+      "checked": "2026-10-02T11:54:14.861Z",
+      "found": true,
+      "appid": 2129530,
+      "url": "https://store.steampowered.com/app/2129530/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/2129530/d4453d651e8e438e5d376a6455694bf79fa63419/library_capsule.jpg?t=1789656473",
+      "source": "steam"
+    },
+    "games|it takes two": {
+      "list": "games",
+      "title": "It takes two",
+      "checked": "2026-10-02T11:54:18.823Z",
+      "found": true,
+      "appid": 1426210,
+      "url": "https://store.steampowered.com/app/1426210/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/1426210/library_600x900.jpg?t=1777395376",
+      "source": "steam"
     }
   }
 }

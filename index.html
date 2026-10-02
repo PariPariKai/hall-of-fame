@@ -1145,6 +1145,8 @@ function applyOrdersMeta(items, meta, list) {
     if (m && m.found) {
       if (!it.url && m.url) it.url = m.url;
       if (!it.cover_url && m.cover) it.cover_url = m.cover;
+      // Обложка в таблице есть — запоминаем робота как запасную вертикальную (см. fitCover)
+      else if (m.cover && m.cover !== it.cover_url) it.alt_cover = m.cover;
     }
     const yt = (it.url || '').match(/(?:youtu\.be\/|[?&]v=|\/shorts\/|\/embed\/)([\w-]{11})/);
     if (!it.cover_url && yt) it.cover_url = `https://i.ytimg.com/vi/${yt[1]}/hqdefault.jpg`;
@@ -1166,7 +1168,17 @@ function blurLayer(url) {
   return `<div class="pcover__blur" style="background-image:url('${esc(url)}')"></div>`;
 }
 function fitCover(img) {
-  if (img.naturalWidth > img.naturalHeight * 0.85) img.parentNode.classList.add('is-landscape');
+  if (img.naturalWidth <= img.naturalHeight * 0.85) return;
+  // Горизонтальная картинка из таблицы, а у робота есть вертикальная обложка — показываем её
+  const alt = img.dataset.alt;
+  if (alt) {
+    img.dataset.alt = '';
+    const blur = img.parentNode.querySelector('.pcover__blur');
+    if (blur) blur.style.backgroundImage = `url("${alt.replace(/"/g, '%22')}")`;
+    img.src = alt;
+    return;
+  }
+  img.parentNode.classList.add('is-landscape');
 }
 
 function layoutCards() {
@@ -1204,19 +1216,19 @@ function renderFan(key, items) {
     .filter(i => statusOf(i) === 'pending' && isNiceCover(i.cover_url))
     .map((i, idx) => ({ i, idx }))
     .sort((a, b) => (dateTs(b.i.date_added) - dateTs(a.i.date_added)) || (b.idx - a.idx))
-    .map(x => x.i.cover_url);
+    .map(x => ({url: x.i.cover_url, alt: x.i.alt_cover || ''}));
   if (covers.length === 0) return;
   // Порядок в DOM: левая, правая, центральная (центральная — самая свежая, рисуется сверху)
   const shown = covers.slice(0, 3);
   const order = shown.length === 3 ? [shown[1], shown[2], shown[0]] : shown.slice().reverse();
-  const fanItems = order.map(url =>
-    `<div class="fan__item pcover">${blurLayer(url)}<img src="${esc(url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onload="fitCover(this)" onerror="fanImgError(this)"></div>`
+  const fanItems = order.map(c =>
+    `<div class="fan__item pcover">${blurLayer(c.url)}<img src="${esc(c.url)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-alt="${esc(c.alt)}" onload="fitCover(this)" onerror="fanImgError(this)"></div>`
   ).join('');
   art.innerHTML = `
-    <div class="page-card__bg" style="background-image:url('${esc(covers[0])}')"></div>
+    <div class="page-card__bg" style="background-image:url('${esc(covers[0].alt || covers[0].url)}')"></div>
     <div class="fan">${fanItems}</div>`;
   const fan = art.querySelector('.fan');
-  fan._spare = covers.slice(3, 8);   // запас на случай битых ссылок
+  fan._spare = covers.slice(3, 8).map(c => c.url);   // запас на случай битых ссылок
   layoutFan(fan);
 }
 
@@ -1392,7 +1404,7 @@ function renderNowItem(it, opts) {
     <a class="now-item${opts.big ? ' now-item--big' : ''}" href="${cat.page}">
       ${cover ? `<div class="now-item__glow" style="background-image:url('${esc(cover)}')"></div>` : ''}
       <div class="now-item__cover pcover">${cover
-        ? `${blurLayer(cover)}<img src="${esc(cover)}" alt="" referrerpolicy="no-referrer" onload="fitCover(this)" onerror="this.replaceWith(document.createTextNode('${cat.icon}'))">`
+        ? `${blurLayer(cover)}<img src="${esc(cover)}" alt="" referrerpolicy="no-referrer" data-alt="${esc(it.alt_cover || '')}" onload="fitCover(this)" onerror="this.replaceWith(document.createTextNode('${cat.icon}'))">`
         : cat.icon}</div>
       <div class="now-item__body">
         <span class="now-item__type">${esc(type)}</span>

@@ -1,4 +1,4 @@
-# Подтягивает ссылки и обложки для заказов (аниме, фильмы, сериалы), которых нет в таблице, и коммитит orders-meta.json.
+# Подтягивает ссылки и обложки для заказов (аниме, фильмы, сериалы, игры), которых нет в таблице, и коммитит orders-meta.json.
 # Запуск: каждый час и вручную (Actions → «Заказы: ссылки и обложки» → Run workflow).
 name: "Заказы: ссылки и обложки"
 
@@ -24,6 +24,10 @@ jobs:
         with:
           node-version: 22
       - run: node .github/scripts/orders-meta.mjs
+        env:
+          # Необязательно: ключи приложения Twitch для запасного поиска игр в IGDB (те же, что у «Боли»).
+          TWITCH_CLIENT_ID: ${{ secrets.TWITCH_CLIENT_ID }}
+          TWITCH_CLIENT_SECRET: ${{ secrets.TWITCH_CLIENT_SECRET }}
       - name: Коммит, если что-то изменилось
         run: |
           if [ -z "$(git status --porcelain -- orders-meta.json)" ]; then exit 0; fi

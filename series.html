@@ -360,6 +360,20 @@
     object-fit: cover;
     display: block;
   }
+  /* Обложка любой формы в вертикальной рамке: горизонтальную не режем,
+     а вписываем целиком поверх её же размытой копии */
+  .acard__cover { position: relative; }
+  .pcover__blur {
+    position: absolute;
+    inset: -8px;
+    background-size: cover;
+    background-position: center;
+    filter: blur(8px) brightness(.55);
+    display: none;
+  }
+  .pcover.is-landscape .pcover__blur { display: block; }
+  .pcover img { position: relative; }
+  .pcover.is-landscape img { object-fit: contain; }
 
   .empty-state, .error-state {
     text-align: center;
@@ -783,6 +797,8 @@ function applyOrdersMeta(items, meta, list) {
     if (m && m.found) {
       if (!it.url && m.url) it.url = m.url;
       if (!it.cover_url && m.cover) it.cover_url = m.cover;
+      // Обложка в таблице есть — запоминаем робота как запасную вертикальную (см. fitCover)
+      else if (m.cover && m.cover !== it.cover_url) it.alt_cover = m.cover;
     }
     const yt = (it.url || '').match(/(?:youtu\.be\/|[?&]v=|\/shorts\/|\/embed\/)([\w-]{11})/);
     if (!it.cover_url && yt) it.cover_url = `https://i.ytimg.com/vi/${yt[1]}/hqdefault.jpg`;
@@ -849,13 +865,29 @@ function buildBadgesHtml(item) {
   return `<div class="acard__badges">${badges.join('')}</div>`;
 }
 
+// Горизонтальную обложку (шапка Steam, превью YouTube…) вписываем целиком, см. .pcover
+function fitCover(img) {
+  if (img.naturalWidth <= img.naturalHeight * 0.85) return;
+  // Горизонтальная картинка из таблицы, а у робота есть вертикальная обложка — показываем её
+  const alt = img.dataset.alt;
+  if (alt) {
+    img.dataset.alt = '';
+    const blur = img.parentNode.querySelector('.pcover__blur');
+    if (blur) blur.style.backgroundImage = `url("${alt.replace(/"/g, '%22')}")`;
+    img.src = alt;
+    return;
+  }
+  img.parentNode.classList.add('is-landscape');
+}
+
 function buildCoverHtml(item) {
   if (!item.cover_url || !isHttpUrl(item.cover_url)) return '';
-  const inner = `<img src="${esc(item.cover_url)}" alt="${esc(item.title)}" loading="lazy" onerror="this.parentNode.style.display='none';">`;
+  const inner = `<div class="pcover__blur" style="background-image:url('${esc(item.cover_url)}')"></div>` +
+    `<img src="${esc(item.cover_url)}" alt="${esc(item.title)}" loading="lazy" data-alt="${esc(item.alt_cover || '')}" onload="fitCover(this)" onerror="this.parentNode.style.display='none';">`;
   if (item.url && isHttpUrl(item.url)) {
-    return `<a class="acard__cover" href="${esc(item.url)}" target="_blank" rel="noopener" aria-label="Открыть страницу тайтла">${inner}</a>`;
+    return `<a class="acard__cover pcover" href="${esc(item.url)}" target="_blank" rel="noopener" aria-label="Открыть страницу тайтла">${inner}</a>`;
   }
-  return `<div class="acard__cover">${inner}</div>`;
+  return `<div class="acard__cover pcover">${inner}</div>`;
 }
 
 function buildCard(item) {

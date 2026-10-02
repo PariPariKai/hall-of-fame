@@ -1,4 +1,4 @@
-// Собирает orders-meta.json: ссылка и обложка для заказов (аниме, фильмы, сериалы), когда их нет в таблице.
+// Собирает orders-meta.json: ссылка и обложка для заказов (аниме, фильмы, сериалы, игры), когда их нет в таблице.
 // Запускается GitHub Actions по расписанию (см. .github/workflows/orders-meta.yml) или вручную:
 //   node .github/scripts/orders-meta.mjs
 // Ищет только новые тайтлы: уже найденные берутся из прошлого orders-meta.json.
@@ -8,9 +8,11 @@
 //   2. Wikidata: ID Кинопоиска по названию → ссылка kinopoisk.ru и постер с CDN Кинопоиска.
 //   3. Только для аниме, если Кинопоиск не нашёлся: обложка с Shikimori, ссылка на World Art (иначе на Shikimori).
 //      Картинки World Art не берём: у сайта нет https, браузер не покажет их на GitHub Pages.
+//   4. Игры: ссылка на Steam в url или поиск Steam → Wikidata → IGDB (общий с «Болью» lib/games.mjs).
 // Сайт берёт отсюда только то, чего нет в таблице: заполненные руками url / cover_url главнее.
 
 import fs from 'node:fs';
+import {steamSearch, wikidataSteamId, steamDetails, igdbSearch} from './lib/games.mjs';
 
 const CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?single=true&output=csv&gid=';
 const OUT = new URL('../../orders-meta.json', import.meta.url);
@@ -19,12 +21,14 @@ const RETRY_MISSING_DAYS = 7; // ненайденное перепроверяе
 
 // want/avoid — подсказки по описанию в Wikidata, чтобы «Врата»-аниме не путались с «Вратами»-фильмом.
 // avoid смотрит только на начало описания («японская манга», «2009 video game»): «фильм по мотивам романа» — не роман.
-const NOT_SCREEN = String.raw`роман|novel|манга|manga|ранобэ|light novel|видеоигр|video game|компьютернS* игр|игра|game|album|альбом|song|песня|комикс|comic`;
-const lead = words => new RegExp(String.raw`^(?:[p{L}p{N}-]+s+){0,3}(?:${words})`, 'iu');
+const NOT_SCREEN = String.raw`роман|novel|манга|manga|ранобэ|light novel|видеоигр|video game|компьютерн\S* игр|игра|game|album|альбом|song|песня|комикс|comic`;
+const lead = words => new RegExp(String.raw`^(?:[\p{L}\p{N}-]+\s+){0,3}(?:${words})`, 'iu');
+// kind: 'screen' — Кинопоиск/Shikimori, 'game' — Steam (общий поиск с «Болью», lib/games.mjs)
 const LISTS = {
-  anime:  {gid: '627100001', want: /аниме|anime|мульт|animat/i, avoid: lead(NOT_SCREEN), requireWant: true, kpPath: 'film'},
-  movies: {gid: '627100002', want: /фильм|film|мульт|movie/i, avoid: lead(NOT_SCREEN + '|телесериал|сериал|television series|tv series|web series'), kpPath: 'film'},
-  series: {gid: '627100003', want: /сериал|series|дорам|drama/i, avoid: lead(NOT_SCREEN + '|фильм|film'), kpPath: 'series'},
+  anime:  {gid: '627100001', kind: 'screen', want: /аниме|anime|мульт|animat/i, avoid: lead(NOT_SCREEN), requireWant: true, kpPath: 'film'},
+  movies: {gid: '627100002', kind: 'screen', want: /фильм|film|мульт|movie/i, avoid: lead(NOT_SCREEN + '|телесериал|сериал|television series|tv series|web series'), kpPath: 'film'},
+  series: {gid: '627100003', kind: 'screen', want: /сериал|series|дорам|drama/i, avoid: lead(NOT_SCREEN + '|фильм|film'), kpPath: 'series'},
+  games:  {gid: '727100001', kind: 'game'},
 };
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -207,6 +211,45 @@ async function worldArt(name, year) {
   return best && best.s >= 0.9 ? `http://www.world-art.ru/animation/animation.php?id=${best.id}` : null;
 }
 
+// ---------- игры: Steam → Wikidata → IGDB (как у «Боли») ----------
+
+// Обложка — вертикальная 600x900, а если у игры её нет — шапка магазина (сайт впишет её без обрезки)
+// addedYear — год из date_added: неточно совпавшая игра не может выйти позже, чем её добавили в таблицу
+// (так «Stone Simulator» 2025 года не путается с «SSO: Stone Simulator Online» 2026-го).
+// Точные совпадения не проверяем: у вышедших из раннего доступа (Valheim) Steam пишет дату релиза 1.0.
+const saveSteam = (entry, appid, d) => Object.assign(entry, {appid, url: `https://store.steampowered.com/app/${appid}/`,
+  cover: d.cover || d.header, found: true, source: 'steam'});
+
+async function findGame(entry, names, steamFromUrl, addedYear) {
+  if (steamFromUrl) { saveSteam(entry, Number(steamFromUrl), await steamDetails(Number(steamFromUrl))); return; }
+  for (const n of names) {
+    const exclude = new Set();
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const hit = await steamSearch(n, {strict: true, exclude});
+      await sleep(1000);
+      if (!hit) break;
+      console.log(`  Steam: ${hit.name} (${hit.id}, ${hit.s.toFixed(2)})`);
+      const d = await steamDetails(hit.id);
+      if (hit.s < 1 && addedYear && d.year && d.year > addedYear) {
+        console.log(`  отброшено: вышла в ${d.year}, а добавлена в ${addedYear}`);
+        exclude.add(hit.id);
+        continue;
+      }
+      saveSteam(entry, hit.id, d);
+      return;
+    }
+  }
+  const wd = await wikidataSteamId(names[0]);
+  if (wd) {
+    console.log(`  Wikidata → Steam ${wd}`);
+    await sleep(1000);
+    saveSteam(entry, wd, await steamDetails(wd));
+    return;
+  }
+  const hit = await igdbSearch(names[0]); // только если в репозитории есть ключи Twitch
+  if (hit) Object.assign(entry, {url: hit.igdbUrl, cover: hit.cover, found: true, source: 'igdb'});
+}
+
 // ---------- главный проход ----------
 
 const prev = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : {items: {}};
@@ -219,7 +262,7 @@ for (const [list, cfg] of Object.entries(LISTS)) {
   const rows = parseCSV(await res.text());
   const header = rows[0].map(h => h.trim().toLowerCase());
   const col = n => header.indexOf(n);
-  const [cTitle, cUrl, cCover, cType, cYear] = [col('title'), col('url'), col('cover_url'), col('type'), col('year')];
+  const [cTitle, cUrl, cCover, cType, cYear, cAdded] = [col('title'), col('url'), col('cover_url'), col('type'), col('year'), col('date_added')];
   if (cTitle < 0) throw new Error(`В листе ${list} нет колонки title`);
 
   for (const r of rows.slice(1)) {
@@ -232,25 +275,38 @@ for (const [list, cfg] of Object.entries(LISTS)) {
     const k = key(list, title);
     if (out[k]) continue;
 
-    const kpFromUrl = url.match(/kinopoisk\.ru\/(?:film|series)\/(\d+)/)?.[1] || '';
+    // ID из ссылки в url (Кинопоиск или Steam) — по нему ищем обложку вместо поиска по названию
+    const fromUrl = (cfg.kind === 'game'
+      ? url.match(/store\.steampowered\.com\/app\/(\d+)/)
+      : url.match(/kinopoisk\.ru\/(?:film|series)\/(\d+)/))?.[1] || '';
     // Год из колонки year главнее года в названии; поменяли год или ссылку — ищем заново
     const parsed = parseTitle(title);
     if (!parsed.names.length) continue;
     const year = Number(((cYear >= 0 ? r[cYear] : '') || '').match(/(?:19|20)\d{2}/)?.[0]) || parsed.year;
     const old = prev.items[k];
-    const fresh = old && (old.kpFromUrl || '') === kpFromUrl && (old.year || null) === year &&
+    const fresh = old && (old.fromUrl || '') === fromUrl && (old.year || null) === year &&
       (old.found || Date.now() - Date.parse(old.checked) < RETRY_MISSING_DAYS * 864e5);
     if (fresh) { out[k] = old; continue; }
 
     looked++;
     console.log(`→ [${list}] ${title}`);
     const entry = {list, title, checked: new Date().toISOString(), found: false};
-    if (kpFromUrl) entry.kpFromUrl = kpFromUrl;
+    if (fromUrl) entry.fromUrl = fromUrl;
     if (year) entry.year = year;
     const {names} = parsed;
     const name = names[0];
 
-    let kp = kpFromUrl;
+    if (cfg.kind === 'game') {
+      const addedYear = Number(((cAdded >= 0 ? r[cAdded] : '') || '').match(/(?:19|20)\d{2}/)?.[0]) || null;
+      await findGame(entry, names, fromUrl, addedYear);
+      if (!entry.found) console.log('  не найдено');
+      else console.log(`  ${entry.url}${entry.cover ? '' : ' (без обложки)'}`);
+      out[k] = entry;
+      await sleep(1000);
+      continue;
+    }
+
+    let kp = fromUrl;
     if (!kp) {
       const hit = await wikidataKp(names, year, cfg);
       if (hit) { kp = hit.kp; console.log(`  Wikidata: ${hit.label} — ${hit.desc} (${hit.s.toFixed(2)})`); }
