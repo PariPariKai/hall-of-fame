@@ -154,6 +154,62 @@
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1773646/aa8eae01-509c-4c92-ae66-589ca4b7d8dc/600x900",
       "source": "kinopoisk"
     },
+    "movies|бизнес по казахски": {
+      "list": "movies",
+      "title": "Бизнес по Казахски",
+      "checked": "2026-10-04T23:08:57.142Z",
+      "found": true,
+      "kp": "1045811",
+      "url": "https://www.kinopoisk.ru/film/1045811/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/4774061/9f6aa116-490f-442a-9c77-b7037303c211/600x900",
+      "source": "kinopoisk"
+    },
+    "movies|бишарашки": {
+      "list": "movies",
+      "title": "Бишарашки",
+      "checked": "2026-10-04T23:09:02.227Z",
+      "found": false
+    },
+    "movies|брат или брак": {
+      "list": "movies",
+      "title": "Брат или Брак",
+      "checked": "2026-10-04T23:09:05.055Z",
+      "found": true,
+      "kp": "1045812",
+      "url": "https://www.kinopoisk.ru/film/1045812/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/4716873/514b141f-8330-452b-b1df-ef1cb0d6e8f0/600x900",
+      "source": "kinopoisk"
+    },
+    "movies|каникулы": {
+      "list": "movies",
+      "title": "Каникулы",
+      "checked": "2026-10-04T23:09:08.939Z",
+      "found": true,
+      "kp": "5140",
+      "url": "https://www.kinopoisk.ru/film/5140/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1777765/e2d152ac-f79a-4b8c-bfe0-3cf71cb7cc43/600x900",
+      "source": "kinopoisk"
+    },
+    "movies|не шутите с зоханом": {
+      "list": "movies",
+      "title": "Не шутите с Зоханом",
+      "checked": "2026-10-04T23:09:13.030Z",
+      "found": true,
+      "kp": "280826",
+      "url": "https://www.kinopoisk.ru/film/280826/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/6201401/371697bc-44ac-4ab1-bbb2-921fe68038f7/600x900",
+      "source": "kinopoisk"
+    },
+    "movies|minecraft в кино": {
+      "list": "movies",
+      "title": "Minecraft в кино",
+      "checked": "2026-10-04T23:09:16.958Z",
+      "found": true,
+      "kp": "838574",
+      "url": "https://www.kinopoisk.ru/film/838574/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/10812607/7ae661a4-8d36-4fad-9278-9b63655c7eb3/600x900",
+      "source": "kinopoisk"
+    },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
       "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
