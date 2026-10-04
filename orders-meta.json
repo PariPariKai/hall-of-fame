@@ -64,6 +64,96 @@
       "checked": "2026-10-02T11:19:07.859Z",
       "found": false
     },
+    "movies|they live": {
+      "list": "movies",
+      "title": "They Live",
+      "checked": "2026-10-04T15:22:25.703Z",
+      "found": true,
+      "kp": "12340",
+      "url": "https://www.kinopoisk.ru/film/12340/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/9784475/c31a1e57-ce19-452a-8282-a378d90d1acb/600x900",
+      "source": "kinopoisk"
+    },
+    "movies|the purge": {
+      "list": "movies",
+      "title": "The Purge",
+      "checked": "2026-10-04T15:22:30.565Z",
+      "found": true,
+      "kp": "661022",
+      "url": "https://www.kinopoisk.ru/film/661022/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1777765/f1f68363-0826-4305-8cf2-e0abeab06dea/600x900",
+      "source": "kinopoisk"
+    },
+    "movies|awake": {
+      "list": "movies",
+      "title": "Awake",
+      "checked": "2026-10-04T15:22:34.500Z",
+      "found": true,
+      "kp": "37547",
+      "url": "https://www.kinopoisk.ru/film/37547/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1777765/02596015-c9e4-4f92-a6ff-e679e16de77a/600x900",
+      "source": "kinopoisk"
+    },
+    "movies|каратэ-пацан": {
+      "list": "movies",
+      "title": "Каратэ-пацан",
+      "checked": "2026-10-04T15:22:38.531Z",
+      "found": true,
+      "kp": "412162",
+      "url": "https://www.kinopoisk.ru/film/412162/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1600647/15763697-bedb-486c-a112-1a41cd39019f/600x900",
+      "source": "kinopoisk"
+    },
+    "movies|поворот не туда 6": {
+      "list": "movies",
+      "title": "Поворот не туда 6",
+      "checked": "2026-10-04T15:22:42.323Z",
+      "found": true,
+      "kp": "839992",
+      "url": "https://www.kinopoisk.ru/film/839992/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1773646/e9d93b69-7c99-4665-ac1e-f039444dfac6/600x900",
+      "source": "kinopoisk"
+    },
+    "movies|суперфорсаж": {
+      "list": "movies",
+      "title": "Суперфорсаж",
+      "checked": "2026-10-04T15:22:46.136Z",
+      "found": true,
+      "kp": "764347",
+      "url": "https://www.kinopoisk.ru/film/764347/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1599028/21760dca-839f-416b-a7e5-31fc179dbaf6/600x900",
+      "source": "kinopoisk"
+    },
+    "movies|поворот не туда 4": {
+      "list": "movies",
+      "title": "Поворот не туда 4",
+      "checked": "2026-10-04T15:22:49.903Z",
+      "found": true,
+      "kp": "586138",
+      "url": "https://www.kinopoisk.ru/film/586138/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1600647/a912c595-931b-4530-adc1-a93af1826c02/600x900",
+      "source": "kinopoisk"
+    },
+    "movies|убрать из друзей": {
+      "list": "movies",
+      "title": "Убрать из друзей",
+      "checked": "2026-10-04T15:22:53.792Z",
+      "found": true,
+      "kp": "839972",
+      "url": "https://www.kinopoisk.ru/film/839972/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1898899/99af46cc-4365-43b6-b750-35ebd9f593bb/600x900",
+      "source": "kinopoisk"
+    },
+    "movies|host": {
+      "list": "movies",
+      "title": "Host",
+      "checked": "2026-10-04T15:22:57.760Z",
+      "found": true,
+      "kp": "477647",
+      "url": "https://www.kinopoisk.ru/film/477647/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1773646/aa8eae01-509c-4c92-ae66-589ca4b7d8dc/600x900",
+      "source": "kinopoisk"
+    },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
       "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
@@ -654,6 +744,16 @@
       "title": "Pathfinder: Wrath of the Ringhteous",
       "checked": "2026-10-02T11:55:32.105Z",
       "found": false
+    },
+    "games|aion 2": {
+      "list": "games",
+      "title": "AION 2",
+      "checked": "2026-10-04T15:23:03.607Z",
+      "found": true,
+      "appid": 3393110,
+      "url": "https://store.steampowered.com/app/3393110/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/3393110/145d58f9f8ffa48e6333b1dc3dd2ad7e9bf2b2b4/library_capsule.jpg?t=1790806400",
+      "source": "steam"
     }
   }
 }
