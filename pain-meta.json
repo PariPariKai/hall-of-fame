@@ -257,6 +257,41 @@
       "found": true,
       "cover": "https://i.ibb.co/5XyCsFxD/Screenshot-2026-10-02-004617.png",
       "source": "таблица"
+    },
+    "doom": {
+      "name": "Doom",
+      "override": "",
+      "checked": "2026-10-04T22:26:53.343Z",
+      "found": true,
+      "appid": 379720,
+      "title": "DOOM",
+      "year": 2016,
+      "genres": [
+        "Экшены"
+      ],
+      "description": "Включает все 3 дополнения (Unto the Evil, Hell Followed и Bloodfall), карты, режимы и оружие, а также все нововведения, включая аркадный режим, и последнее обновление 6.66, затрагивающее сетевую игру.",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/379720/library_600x900.jpg?t=1750784856",
+      "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/379720/header.jpg?t=1750784856",
+      "source": "steam",
+      "steamUrl": "https://store.steampowered.com/app/379720/"
+    },
+    "war thunder": {
+      "name": "War Thunder",
+      "override": "",
+      "checked": "2026-10-04T22:26:58.435Z",
+      "found": true,
+      "appid": 236390,
+      "title": "War Thunder",
+      "year": 2013,
+      "genres": [
+        "Экшены",
+        "Симуляторы"
+      ],
+      "description": "War Thunder – самая масштабная бесплатная кроссплатформенная многопользовательская онлайн-игра, посвященная боевой технике самых разных войн и конфликтов – с начала XX века и до наших дней. Авиация, наземные силы и флот сражаются вместе в одном бою.",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/236390/44a7800c8a2e665325739b15d6be13ff4fcd68d6/library_capsule.jpg?t=1790873564",
+      "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/236390/38881c549e623fe432af4e7b4bc3952b443906f5/header.jpg?t=1790873564",
+      "source": "steam",
+      "steamUrl": "https://store.steampowered.com/app/236390/"
     }
   }
 }
