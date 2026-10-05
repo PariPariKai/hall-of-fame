@@ -292,6 +292,25 @@
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/236390/38881c549e623fe432af4e7b4bc3952b443906f5/header.jpg?t=1790873564",
       "source": "steam",
       "steamUrl": "https://store.steampowered.com/app/236390/"
+    },
+    "stellar blade": {
+      "name": "Stellar Blade",
+      "override": "",
+      "checked": "2026-10-05T23:06:23.131Z",
+      "found": true,
+      "appid": 3489700,
+      "title": "Stellar Blade™",
+      "year": 2025,
+      "genres": [
+        "Экшены",
+        "Приключенческие игры",
+        "Ролевые игры"
+      ],
+      "description": "Спасите человечество от гибели в постапокалиптическом приключенческом боевике Stellar Blade™. Наслаждайтесь захватывающими боями и неожиданными поворотами сюжета, разгадывая тайны постигшей Землю катастрофы.",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/3489700/6f2bbe8f34fc283f42acbe4ab184e9a40f76ad51/library_600x900.jpg?t=1776466244",
+      "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3489700/header.jpg?t=1776466244",
+      "source": "steam",
+      "steamUrl": "https://store.steampowered.com/app/3489700/"
     }
   }
 }
