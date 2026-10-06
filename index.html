@@ -382,13 +382,49 @@
 
   /* ----- Расписание недели ----- */
   .week { margin-top: 32px; max-width: 520px; }
+  .week__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
   .week__label {
     font-size: 11px;
     letter-spacing: 2.5px;
     text-transform: uppercase;
     color: rgba(255,255,255,0.45);
-    margin-bottom: 10px;
   }
+  .week__time .tz { display: block; }
+  .week__zone { margin-top: 4px; font-size: 12px; color: rgba(255,255,255,0.4); }
+
+  /* «Моё время»: кнопка и всё время на главной, пересчитанное в пояс зрителя, — зелёные */
+  .tz-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.75);
+    font: inherit;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color .18s ease, color .18s ease, background .18s ease;
+  }
+  .tz-toggle:hover { border-color: var(--green); color: var(--green); }
+  .tz-toggle.is-on {
+    border-color: var(--green);
+    color: var(--green);
+    background: rgba(151,196,89,0.12);
+    box-shadow: 0 0 14px rgba(151,196,89,0.18);
+  }
+  .my-time .tz { color: var(--green); }
+  .my-time .week__day.is-today { border-color: rgba(151,196,89,0.55); background: rgba(151,196,89,0.08); box-shadow: 0 0 16px rgba(151,196,89,0.12); }
+  .my-time .week__day.is-today .week__name { color: var(--green); }
   .week__days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
   .week__day {
     display: flex;
@@ -934,17 +970,67 @@ function plural(n, forms) {
   return forms[2];
 }
 
-// Google Sheets (EU locale) отдаёт даты как DD.MM.YYYY — Date() прочитал бы их как MM.DD
+// ===== Часовые пояса =====
+// Время в таблице — по часам стримера (ключ streamer_timezone в Config, по умолчанию Израиль).
+// Сайт переводит его в настоящие моменты времени, поэтому отсчёты («через 2 ч», «смотрим прямо сейчас»)
+// верны в любом поясе, а показывает — по часам стримера или, кнопкой «Моё время», по часам зрителя.
+const isTimeZone = tz => { try { new Intl.DateTimeFormat('en-US', { timeZone: tz }); return true; } catch (e) { return false; } };
+let STREAMER_TZ = 'Asia/Jerusalem';
+// ?tz=America/New_York — посмотреть сайт глазами зрителя из другого пояса
+const VIEWER_TZ = (() => {
+  const forced = new URLSearchParams(location.search).get('tz');
+  if (forced && isTimeZone(forced)) return forced;
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (e) { return 'UTC'; }
+})();
+let myTime = false;
+try { myTime = localStorage.getItem('hof-my-time') === '1'; } catch (e) { /* без хранилища — по часам стримера */ }
+const showTZ = () => myTime ? VIEWER_TZ : STREAMER_TZ;
+const tzFormats = {};
+const WEEKDAY_NO = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+// Части даты по часам пояса tz: { y, mo (0–11), d, h, mi, wd (0 = вс) }
+function zparts(date, tz) {
+  const f = tzFormats[tz] || (tzFormats[tz] = new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23',
+    year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', weekday: 'short' }));
+  const p = {};
+  f.formatToParts(date).forEach(x => { p[x.type] = x.value; });
+  return { y: +p.year, mo: +p.month - 1, d: +p.day, h: +p.hour % 24, mi: +p.minute, wd: WEEKDAY_NO[p.weekday] };
+}
+// Момент «y-mo-d h:mi по часам tz» (переход на летнее время учтён; d может выходить за пределы месяца)
+function zdate(y, mo, d, h, mi, tz) {
+  tz = tz || STREAMER_TZ;
+  const want = Date.UTC(y, mo, d, h, mi);
+  let ts = want;
+  for (let i = 0; i < 3; i++) {
+    const p = zparts(new Date(ts), tz);
+    const diff = Date.UTC(p.y, p.mo, p.d, p.h, p.mi) - want;
+    if (!diff) break;
+    ts -= diff;
+  }
+  return new Date(ts);
+}
+// Смещение пояса от UTC в минутах сейчас и его подпись: «UTC+3», «UTC−5», «UTC+5:30»
+function tzOffset(tz) {
+  const now = new Date(Math.floor(Date.now() / 60000) * 60000);
+  const p = zparts(now, tz);
+  return Math.round((Date.UTC(p.y, p.mo, p.d, p.h, p.mi) - now.getTime()) / 60000);
+}
+function fmtOffset(min) {
+  const a = Math.abs(min);
+  return `UTC${min < 0 ? '−' : '+'}${Math.floor(a / 60)}${a % 60 ? ':' + String(a % 60).padStart(2, '0') : ''}`;
+}
+
+// Дата/время из таблицы (по часам стримера). Google Sheets (EU) отдаёт DD.MM.YYYY — Date() прочитал бы как MM.DD
 function parseSheetDate(str) {
   if (!str) return null;
   const s = String(str).trim();
   let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-  if (m) return new Date(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0));
+  if (m) return zdate(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0));
   m = s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-  if (m) return new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0));
+  if (m) return zdate(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0));
   const t = Date.parse(s);
   return isNaN(t) ? null : new Date(t);
 }
+const hasSheetTime = str => /\d{1,2}:\d{2}/.test(String(str || ''));
 function dateTs(str) {
   const d = parseSheetDate(str);
   return d && !isNaN(d.getTime()) ? d.getTime() : 0;
@@ -957,6 +1043,9 @@ function setCounter(key, html) {
 
 // ===== Конфиг: имя, интро, аватар, Twitch, розыгрыш =====
 function applyConfig(config) {
+  // Пояс стримера — до всего, что читает даты из таблицы (розыгрыш, афиша)
+  const tz = (config.streamer_timezone || '').trim();
+  if (tz && isTimeZone(tz)) STREAMER_TZ = tz;
   const name = (config.streamer_name || '').trim();
   const intro = (config.streamer_intro || '').trim();
   const avatar = (config.streamer_avatar_url || '').trim();
@@ -1219,68 +1308,104 @@ function parseRange(s) {
   const m = String(s || '').match(/(\d{1,2})[:.](\d{2})\s*[-–—]\s*(\d{1,2})[:.](\d{2})/);
   return m ? { start: { h: +m[1], m: +m[2] }, end: { h: +m[3], m: +m[4] } } : null;
 }
+// Дни считаем по календарю стримера (расписание и таблица — по его часам), а время показываем
+// в выбранном поясе (showTZ). Время, пересчитанное кнопкой «Моё время», помечено классом tz — оно зелёное.
 function atTime(day, hm) {
-  const d = new Date(day);
-  d.setHours(hm.h, hm.m, 0, 0);
-  return d;
+  const p = zparts(day, STREAMER_TZ);
+  return zdate(p.y, p.mo, p.d, hm.h, hm.m);
 }
 function startOfDay(d) {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
-function addDays(d, n) {
-  const x = new Date(d);
-  x.setDate(x.getDate() + n);
-  return x;
+  const p = zparts(d, STREAMER_TZ);
+  return zdate(p.y, p.mo, p.d, 0, 0);
 }
 const pad2 = n => String(n).padStart(2, '0');
-const fmtHM = d => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+const fmtHM = d => { const p = zparts(d, showTZ()); return `${pad2(p.h)}:${pad2(p.mi)}`; };
+// Номер дня по календарю пояса — для «сегодня / завтра / через N дней»
+const dayNo = (d, tz) => { const p = zparts(d, tz); return Date.UTC(p.y, p.mo, p.d) / 86400000; };
 
-// Окно стрима в этот день: { start, end } или null (выходной)
+// Окно стрима в этот день (по календарю стримера): { start, end } или null (выходной)
 function streamWindow(day) {
-  const r = parseRange(SCHEDULE.days[DAY_KEYS[day.getDay()]]);
+  const p = zparts(day, STREAMER_TZ);
+  const r = parseRange(SCHEDULE.days[DAY_KEYS[p.wd]]);
   if (!r) return null;
-  return { start: atTime(day, r.start), end: atTime(day, r.end) };
+  return { start: zdate(p.y, p.mo, p.d, r.start.h, r.start.m), end: zdate(p.y, p.mo, p.d, r.end.h, r.end.m) };
 }
 
-// Ближайший стрим (начиная с from), в окно которого попадает время hm
+// Ближайший стрим (начиная с from), в окно которого попадает время hm.
+// includeFrom = false — не раньше следующего дня после from.
 function nextStreamAt(from, hm, includeFrom) {
+  const p0 = zparts(from, STREAMER_TZ);
+  const nextDay = zdate(p0.y, p0.mo, p0.d + 1, 0, 0);
   for (let i = 0; i < 14; i++) {
-    const day = addDays(startOfDay(from), i);
+    const day = zdate(p0.y, p0.mo, p0.d + i, 12, 0); // полдень — подальше от перевода часов
     const w = streamWindow(day);
     if (!w) continue;
     const t = atTime(day, hm);
-    if (t >= w.start && t < w.end && (includeFrom ? t > from : t >= addDays(startOfDay(from), 1))) return t;
+    if (t >= w.start && t < w.end && (includeFrom ? t > from : t >= nextDay)) return t;
   }
   return null;
 }
 
 function dayPhrase(d, now) {
-  const diff = Math.round((startOfDay(d) - startOfDay(now)) / 86400000);
+  const diff = dayNo(d, showTZ()) - dayNo(now, showTZ());
   if (diff === 0) return 'сегодня';
   if (diff === 1) return 'завтра';
-  return DAY_IN[d.getDay()];
+  return DAY_IN[zparts(d, showTZ()).wd];
 }
 
 function renderWeek() {
   const now = new Date();
-  const order = [1, 2, 3, 4, 5, 6, 0];
-  const short = hm => hm.m ? `${hm.h}:${pad2(hm.m)}` : String(hm.h);
-  const days = order.map(i => {
-    const r = parseRange(SCHEDULE.days[DAY_KEYS[i]]);
+  const tz = showTZ();
+  const short = p => p.mi ? `${p.h}:${pad2(p.mi)}` : String(p.h);
+  // Стримы этой недели (по календарю стримера), разложенные по дням недели показываемого пояса:
+  // у зрителя далеко на востоке четверговый стрим может оказаться уже в пятницу.
+  const p0 = zparts(now, STREAMER_TZ);
+  const monday = p0.d - ((p0.wd + 6) % 7);
+  const byDay = [[], [], [], [], [], [], []]; // 0 = вс
+  for (let k = 0; k < 7; k++) {
+    const w = streamWindow(zdate(p0.y, p0.mo, monday + k, 12, 0));
+    if (!w) continue;
+    const s = zparts(w.start, tz), e = zparts(w.end, tz);
+    byDay[s.wd].push(`${short(s)}–${short(e)}`);
+  }
+  const today = zparts(now, tz).wd;
+  const days = [1, 2, 3, 4, 5, 6, 0].map(i => {
     const cls = ['week__day'];
-    if (!r) cls.push('is-off');
-    if (i === now.getDay()) cls.push('is-today');
-    const time = r ? `${short(r.start)}–${short(r.end)}` : 'отдых';
-    return `<div class="${cls.join(' ')}"${i === now.getDay() ? ' aria-current="date"' : ''}>
+    if (!byDay[i].length) cls.push('is-off');
+    if (i === today) cls.push('is-today');
+    const time = byDay[i].length ? byDay[i].map(t => `<span class="tz">${t}</span>`).join('') : 'отдых';
+    return `<div class="${cls.join(' ')}"${i === today ? ' aria-current="date"' : ''}>
       <span class="week__name">${DAY_SHORT[i]}</span><span class="week__time">${time}</span></div>`;
   }).join('');
+  const picker = fmtHM(atTime(now, parseHM(SCHEDULE.picker)));
+  const movie = fmtHM(atTime(now, parseHM(SCHEDULE.movie)));
+  const diffH = (tzOffset(VIEWER_TZ) - tzOffset(STREAMER_TZ)) / 60;
+  const diffTxt = diffH ? ` · у вас ${diffH > 0 ? '+' : '−'}${String(Math.abs(diffH)).replace('.', ',')} ч` : '';
   document.getElementById('week').innerHTML = `
-    <div class="week__label">Расписание стримов</div>
+    <div class="week__head">
+      <span class="week__label">Расписание стримов</span>
+      <button type="button" class="tz-toggle${myTime ? ' is-on' : ''}" id="tz-toggle" aria-pressed="${myTime}"
+        title="${myTime ? 'Показать время стримера' : 'Пересчитать время на сайте в ваш часовой пояс'}">${icon('clock')}Моё время</button>
+    </div>
     <div class="week__days">${days}</div>
-    <p class="week__note">По вечерам: <b>${esc(SCHEDULE.picker)}</b> рулетка заказов · <b>${esc(SCHEDULE.movie)}</b> кино-вечер. Иногда начинаю раньше.</p>`;
+    <p class="week__note">На вечерних стримах: <b class="tz">${picker}</b> рулетка заказов · <b class="tz">${movie}</b> кино-вечер. Иногда начинаю раньше.</p>
+    <p class="week__zone">${myTime
+      ? `<span class="tz">Ваше время (${fmtOffset(tzOffset(VIEWER_TZ))})</span>`
+      : `Время стримера (${fmtOffset(tzOffset(STREAMER_TZ))})${diffTxt}`}</p>`;
 }
+
+// «Моё время»: всё время на главной — в поясе зрителя. Выбор запоминается в этом браузере.
+function setMyTime(on) {
+  myTime = on;
+  try { localStorage.setItem('hof-my-time', on ? '1' : '0'); } catch (e) { /* не запомнится — не страшно */ }
+  document.body.classList.toggle('my-time', on);
+  renderWeek();
+  renderNow();
+}
+document.body.classList.toggle('my-time', myTime);
+document.getElementById('week').addEventListener('click', e => {
+  if (e.target.closest('#tz-toggle')) setMyTime(!myTime);
+});
 
 // ===== Афиша: анонсы из колонки scheduled_at + то, что смотрим/играем сейчас =====
 const SHOW_CATS = ['anime', 'movies', 'series'];
@@ -1296,7 +1421,7 @@ function showEnd(start) {
 
 function relText(start, now) {
   const mins = Math.round((start - now) / 60000);
-  const days = Math.round((startOfDay(start) - startOfDay(now)) / 86400000);
+  const days = dayNo(start, showTZ()) - dayNo(now, showTZ());
   if (days >= 2) return `через ${days} ${plural(days, ['день', 'дня', 'дней'])}`;
   if (days === 1) return 'завтра';
   if (mins >= 60) {
@@ -1329,11 +1454,11 @@ function renderNowItem(it, opts) {
       <div class="now-item__body">
         <span class="now-item__type">${esc(type)}</span>
         <h3 class="now-item__title">${esc(it.title || 'Без названия')}</h3>
-        ${opts.when ? `<div class="now-item__when">${esc(opts.when)}</div>` : ''}
+        ${opts.when ? `<div class="now-item__when tz">${esc(opts.when)}</div>` : ''}
         ${opts.rel ? `<span class="now-item__rel${opts.live ? ' now-item__rel--live' : ''}">${esc(opts.rel)}</span>` : ''}
         ${it.nick ? `<p class="now-item__by">заказ от <b>${esc(it.nick)}</b></p>` : ''}
         ${prog.pct != null ? `<div class="now-item__bar"><span style="width:${prog.pct.toFixed(1)}%"></span></div>` : ''}
-        ${meta ? `<p class="now-item__meta">${esc(meta)}</p>` : ''}
+        ${meta ? `<p class="now-item__meta${opts.metaTz ? ' tz' : ''}">${esc(meta)}</p>` : ''}
       </div>
     </a>`;
 }
@@ -1343,13 +1468,13 @@ function renderRitual(now) {
   const movie = picker ? nextStreamAt(picker, parseHM(SCHEDULE.movie), false) : null;
   let next = '';
   if (picker) {
-    next = `Ближайшая рулетка — <b>${dayPhrase(picker, now)} в ${fmtHM(picker)}</b>.`;
-    if (movie) next += ` Что выпадет, смотрим <b>${dayPhrase(movie, now)} в ${fmtHM(movie)}</b>.`;
+    next = `Ближайшая рулетка — <b class="tz">${dayPhrase(picker, now)} в ${fmtHM(picker)}</b>.`;
+    if (movie) next += ` Что выпадет, смотрим <b class="tz">${dayPhrase(movie, now)} в ${fmtHM(movie)}</b>.`;
   }
   return `
     <div class="ritual">
-      <div class="ritual__row"><span class="ritual__time">${esc(SCHEDULE.picker)}</span><span>Рулетка заказов: зрители решают, что смотрим дальше</span></div>
-      <div class="ritual__row"><span class="ritual__time">${esc(SCHEDULE.movie)}</span><span>Кино-вечер: смотрим победителя прошлой рулетки</span></div>
+      <div class="ritual__row"><span class="ritual__time tz">${fmtHM(atTime(now, parseHM(SCHEDULE.picker)))}</span><span>Рулетка заказов: зрители решают, что смотрим дальше</span></div>
+      <div class="ritual__row"><span class="ritual__time tz">${fmtHM(atTime(now, parseHM(SCHEDULE.movie)))}</span><span>Кино-вечер: смотрим победителя прошлой рулетки</span></div>
       ${next ? `<p class="ritual__next">${next}</p>` : ''}
       <a href="picker.html">Рулетка заказов →</a>
     </div>`;
@@ -1369,7 +1494,7 @@ function renderNow() {
       let start = parseSheetDate(it.scheduled_at);
       if (!start || isNaN(start.getTime())) return null;
       // Только дата без времени — значит в обычное время кино-вечера
-      if (start.getHours() === 0 && start.getMinutes() === 0) start = atTime(start, parseHM(SCHEDULE.movie));
+      if (!hasSheetTime(it.scheduled_at)) start = atTime(start, parseHM(SCHEDULE.movie));
       return { ...it, _start: start, _end: showEnd(start) };
     })
     .filter(it => it && it._end > now)
@@ -1386,17 +1511,22 @@ function renderNow() {
   const parts = [];
   if (shows.length > 0) {
     const s = shows[0];
+    const sp = zparts(s._start, showTZ());
     parts.push(renderNowItem(s, {
       big: true,
       noProgress: s._cat === 'movies',
-      when: `${DAY_SHORT[s._start.getDay()]}, ${s._start.getDate()} ${MONTHS_GEN[s._start.getMonth()]} · ${fmtHM(s._start)}`,
+      when: `${DAY_SHORT[sp.wd]}, ${sp.d} ${MONTHS_GEN[sp.mo]} · ${fmtHM(s._start)}`,
       rel: live ? 'идёт сейчас' : relText(s._start, now),
       live,
     }));
-    shows.slice(1, 3).forEach(n => parts.push(renderNowItem(n, {
-      noProgress: true,
-      meta: `${dayPhrase(n._start, now)}, ${n._start.getDate()} ${MONTHS_GEN[n._start.getMonth()]} в ${fmtHM(n._start)}`,
-    })));
+    shows.slice(1, 3).forEach(n => {
+      const np = zparts(n._start, showTZ());
+      parts.push(renderNowItem(n, {
+        noProgress: true,
+        meta: `${dayPhrase(n._start, now)}, ${np.d} ${MONTHS_GEN[np.mo]} в ${fmtHM(n._start)}`,
+        metaTz: true,
+      }));
+    });
   } else {
     parts.push(renderRitual(now));
   }
@@ -1453,7 +1583,8 @@ function renderWins(rows) {
     const r = RANKS[w.rank] || RANKS.epic;
     const quote = cleanQuote(w.quote);
     const d = parseSheetDate(w.date);
-    const dd = d && !isNaN(d.getTime()) ? `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}` : '';
+    const dp = d && !isNaN(d.getTime()) ? zparts(d, STREAMER_TZ) : null; // дата победы — по календарю стримера
+    const dd = dp ? `${String(dp.d).padStart(2, '0')}.${String(dp.mo + 1).padStart(2, '0')}` : '';
     return `
       <a class="win win--${esc(w.rank)}" href="hall.html" title="${esc(r.label)}: ${esc(w.prize)}">
         <span class="win__top"><span class="win__rank">${r.symbol}</span><span class="win__nick">${esc(w.nick)}</span><span class="win__date">${dd}</span></span>
