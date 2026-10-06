@@ -7,6 +7,16 @@
       "checked": "2026-10-02T11:18:34.368Z",
       "found": false
     },
+    "anime|sengoku basara": {
+      "list": "anime",
+      "title": "Sengoku Basara",
+      "checked": "2026-10-06T20:18:47.795Z",
+      "found": true,
+      "kp": "455433",
+      "url": "https://www.kinopoisk.ru/film/455433/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/4774061/be8116f1-f020-4a1b-a706-a5b6bb4e7dad/600x900",
+      "source": "kinopoisk"
+    },
     "anime|магистр дьяволського культа": {
       "list": "anime",
       "title": "Магистр дьяволського культа",
@@ -34,16 +44,26 @@
       "url": "https://shikimori.one/animes/40434-mo-dao-zu-shi-wanjie-pian",
       "source": "shikimori"
     },
-    "movies|я пока не придумала": {
+    "movies|суперфорсаж": {
       "list": "movies",
-      "title": "я пока не придумала",
-      "checked": "2026-10-02T11:18:55.276Z",
-      "found": false
+      "title": "Суперфорсаж",
+      "checked": "2026-10-04T15:22:46.136Z",
+      "found": true,
+      "kp": "764347",
+      "url": "https://www.kinopoisk.ru/film/764347/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1599028/21760dca-839f-416b-a7e5-31fc179dbaf6/600x900",
+      "source": "kinopoisk"
     },
     "movies|notre dame de paris full musical": {
       "list": "movies",
       "title": "Notre Dame de Paris full musical",
       "checked": "2026-10-02T11:18:58.564Z",
+      "found": false
+    },
+    "movies|я пока не придумала": {
+      "list": "movies",
+      "title": "я пока не придумала",
+      "checked": "2026-10-02T11:18:55.276Z",
       "found": false
     },
     "movies|летняя зоо-олимпиада + зимняя зоо-олимпиада": {
@@ -112,16 +132,6 @@
       "kp": "839992",
       "url": "https://www.kinopoisk.ru/film/839992/",
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1773646/e9d93b69-7c99-4665-ac1e-f039444dfac6/600x900",
-      "source": "kinopoisk"
-    },
-    "movies|суперфорсаж": {
-      "list": "movies",
-      "title": "Суперфорсаж",
-      "checked": "2026-10-04T15:22:46.136Z",
-      "found": true,
-      "kp": "764347",
-      "url": "https://www.kinopoisk.ru/film/764347/",
-      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1599028/21760dca-839f-416b-a7e5-31fc179dbaf6/600x900",
       "source": "kinopoisk"
     },
     "movies|поворот не туда 4": {
