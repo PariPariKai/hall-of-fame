@@ -311,6 +311,30 @@
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3489700/header.jpg?t=1776466244",
       "source": "steam",
       "steamUrl": "https://store.steampowered.com/app/3489700/"
+    },
+    "enshrauded": {
+      "name": "Enshrauded",
+      "override": "",
+      "checked": "2026-10-06T17:04:37.786Z",
+      "found": false
+    },
+    "watch_dogs 2": {
+      "name": "Watch_Dogs 2",
+      "override": "",
+      "checked": "2026-10-06T17:04:41.836Z",
+      "found": true,
+      "appid": 447040,
+      "title": "Watch_Dogs® 2",
+      "year": 2016,
+      "genres": [
+        "Экшены",
+        "Приключенческие игры"
+      ],
+      "description": "Сан-Франциско ждет! Вы - Маркус, блестящий хакер, объединяетесь с DedSec, чтобы противостоять ctOS 2.0. Ваша цель - взлом века!",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/447040/library_600x900.jpg?t=1751986887",
+      "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/447040/header.jpg?t=1751986887",
+      "source": "steam",
+      "steamUrl": "https://store.steampowered.com/app/447040/"
     }
   }
 }
