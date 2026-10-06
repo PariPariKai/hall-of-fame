@@ -140,3 +140,100 @@
   document.addEventListener('click', closeAll);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
 })();
+
+// ===== Время: часовой пояс стримера и кнопка «Моё время» =====
+// Всё время в таблице — по часам стримера (STREAMER). Сайт переводит его в настоящие моменты времени,
+// поэтому отсчёты верны в любом поясе, а показывает — по часам стримера или, кнопкой «Моё время»,
+// по часам зрителя. Выбор общий для всех страниц и запоминается в браузере.
+// В разметке: siteTime.toggle() — кнопка; время, которое пересчитывается, — с классом tz (зелёное в «моём времени»).
+// ?tz=America/New_York в адресе — посмотреть сайт глазами зрителя из другого пояса.
+(function () {
+  'use strict';
+  const STREAMER = 'Asia/Jerusalem'; // переехали — поменять здесь
+  const isZone = tz => { try { new Intl.DateTimeFormat('en-US', { timeZone: tz }); return true; } catch (e) { return false; } };
+  const forced = new URLSearchParams(location.search).get('tz');
+  const VIEWER = forced && isZone(forced) ? forced
+    : (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (e) { return 'UTC'; } })();
+  let mine = false;
+  try { mine = localStorage.getItem('hof-my-time') === '1'; } catch (e) { /* без хранилища — по часам стримера */ }
+
+  const formats = {};
+  const WD = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  // Части даты по часам пояса tz: { y, mo (0–11), d, h, mi, wd (0 = вс) }
+  function parts(date, tz) {
+    tz = tz || STREAMER;
+    const f = formats[tz] || (formats[tz] = new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23',
+      year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', weekday: 'short' }));
+    const p = {};
+    f.formatToParts(date).forEach(x => { p[x.type] = x.value; });
+    return { y: +p.year, mo: +p.month - 1, d: +p.day, h: +p.hour % 24, mi: +p.minute, wd: WD[p.weekday] };
+  }
+  // Момент «y-mo-d h:mi по часам tz» (переход на летнее время учтён; d может выходить за пределы месяца)
+  function at(y, mo, d, h, mi, tz) {
+    tz = tz || STREAMER;
+    const want = Date.UTC(y, mo, d, h || 0, mi || 0);
+    let t = want;
+    for (let i = 0; i < 3; i++) {
+      const p = parts(new Date(t), tz);
+      const diff = Date.UTC(p.y, p.mo, p.d, p.h, p.mi) - want;
+      if (!diff) break;
+      t -= diff;
+    }
+    return new Date(t);
+  }
+  // Дата/время из таблицы (по часам стримера). Google Sheets (EU) отдаёт DD.MM.YYYY — Date() прочитал бы как MM.DD
+  function parse(str) {
+    if (!str) return null;
+    const s = String(str).trim();
+    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+    if (m) return at(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0));
+    m = s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+    if (m) return at(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0));
+    const t = Date.parse(s);
+    return isNaN(t) ? null : new Date(t);
+  }
+  // Смещение пояса от UTC в минутах сейчас и подпись: «UTC+3», «UTC−5», «UTC+5:30»
+  function offset(tz) {
+    const now = new Date(Math.floor(Date.now() / 60000) * 60000);
+    const p = parts(now, tz);
+    return Math.round((Date.UTC(p.y, p.mo, p.d, p.h, p.mi) - now.getTime()) / 60000);
+  }
+  function offsetLabel(min) {
+    const a = Math.abs(min);
+    return `UTC${min < 0 ? '−' : '+'}${Math.floor(a / 60)}${a % 60 ? ':' + String(a % 60).padStart(2, '0') : ''}`;
+  }
+
+  const listeners = [];
+  const toggleHTML = () => `<button type="button" class="tz-toggle${mine ? ' is-on' : ''}" aria-pressed="${mine}"
+    title="${mine ? 'Показать время стримера' : 'Пересчитать время в ваш часовой пояс'}">${window.icon ? icon('clock') : ''}Моё время</button>`;
+  function setMine(on) {
+    mine = !!on;
+    try { localStorage.setItem('hof-my-time', mine ? '1' : '0'); } catch (e) { /* не запомнится — не страшно */ }
+    document.body.classList.toggle('my-time', mine);
+    document.querySelectorAll('.tz-toggle').forEach(b => { b.outerHTML = toggleHTML(); });
+    listeners.forEach(fn => fn(mine));
+  }
+  document.body.classList.toggle('my-time', mine);
+  document.addEventListener('click', e => { if (e.target.closest('.tz-toggle')) setMine(!mine); });
+
+  window.siteTime = {
+    streamer: STREAMER,
+    viewer: VIEWER,
+    isMine: () => mine,
+    show: () => (mine ? VIEWER : STREAMER), // пояс, в котором показываем время
+    parts, at, parse, offset, offsetLabel,
+    hasTime: str => /\d{1,2}:\d{2}/.test(String(str || '')),
+    // Разница «у вас +5 ч» (пусто, если пояса совпадают)
+    diffLabel() {
+      const h = (offset(VIEWER) - offset(STREAMER)) / 60;
+      return h ? `у вас ${h > 0 ? '+' : '−'}${String(Math.abs(h)).replace('.', ',')} ч` : '';
+    },
+    // Подпись под временем: «Время стримера (UTC+3) · у вас −7 ч» или «Ваше время (UTC−4)»
+    zoneLabel() {
+      return mine ? `<span class="tz">Ваше время (${offsetLabel(offset(VIEWER))})</span>`
+        : `Время стримера (${offsetLabel(offset(STREAMER))})${this.diffLabel() ? ' · ' + this.diffLabel() : ''}`;
+    },
+    toggle: toggleHTML,
+    onChange: fn => listeners.push(fn),
+  };
+})();

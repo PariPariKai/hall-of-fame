@@ -30,7 +30,7 @@
   const GAMES_CSV_URL   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=727100001&single=true&output=csv";
 </script>
 
-<link rel="stylesheet" href="site.css?v=4">
+<link rel="stylesheet" href="site.css?v=5">
 <style>
   /* Меню и иконки — общие (site.css / site.js). Остальное — своё у главной. */
 
@@ -396,33 +396,8 @@
     color: rgba(255,255,255,0.45);
   }
   .week__time .tz { display: block; }
-  .week__zone { margin-top: 4px; font-size: 12px; color: rgba(255,255,255,0.4); }
-
-  /* «Моё время»: кнопка и всё время на главной, пересчитанное в пояс зрителя, — зелёные */
-  .tz-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
-    border-radius: 999px;
-    border: 1px solid rgba(255,255,255,0.18);
-    background: rgba(255,255,255,0.04);
-    color: rgba(255,255,255,0.75);
-    font: inherit;
-    font-size: 12px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: border-color .18s ease, color .18s ease, background .18s ease;
-  }
-  .tz-toggle:hover { border-color: var(--green); color: var(--green); }
-  .tz-toggle.is-on {
-    border-color: var(--green);
-    color: var(--green);
-    background: rgba(151,196,89,0.12);
-    box-shadow: 0 0 14px rgba(151,196,89,0.18);
-  }
-  .my-time .tz { color: var(--green); }
+  .week__zone { margin-top: 4px; }
+  /* «Моё время» — кнопка и зелёный цвет в site.css; здесь только подсветка «сегодня» */
   .my-time .week__day.is-today { border-color: rgba(151,196,89,0.55); background: rgba(151,196,89,0.08); box-shadow: 0 0 16px rgba(151,196,89,0.12); }
   .my-time .week__day.is-today .week__name { color: var(--green); }
   .week__days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
@@ -437,7 +412,7 @@
     border: 1px solid rgba(255,255,255,0.06);
   }
   .week__name { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.5); }
-  .week__time { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .week__time { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; text-align: center; line-height: 1.3; }
   .week__day.is-off .week__time { color: rgba(255,255,255,0.35); font-weight: 400; font-size: 12px; }
   .week__day.is-today {
     border-color: rgba(250,199,117,0.55);
@@ -784,7 +759,7 @@
 
 <body>
 
-<script src="site.js?v=7"></script>
+<script src="site.js?v=8"></script>
 
 <!-- Розыгрыш: виден, только когда в листе Config raffle_active = TRUE -->
 <section class="event" id="event" hidden aria-label="Розыгрыш">
@@ -970,67 +945,12 @@ function plural(n, forms) {
   return forms[2];
 }
 
-// ===== Часовые пояса =====
-// Время в таблице — по часам стримера (ключ streamer_timezone в Config, по умолчанию Израиль).
-// Сайт переводит его в настоящие моменты времени, поэтому отсчёты («через 2 ч», «смотрим прямо сейчас»)
-// верны в любом поясе, а показывает — по часам стримера или, кнопкой «Моё время», по часам зрителя.
-const isTimeZone = tz => { try { new Intl.DateTimeFormat('en-US', { timeZone: tz }); return true; } catch (e) { return false; } };
-let STREAMER_TZ = 'Asia/Jerusalem';
-// ?tz=America/New_York — посмотреть сайт глазами зрителя из другого пояса
-const VIEWER_TZ = (() => {
-  const forced = new URLSearchParams(location.search).get('tz');
-  if (forced && isTimeZone(forced)) return forced;
-  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (e) { return 'UTC'; }
-})();
-let myTime = false;
-try { myTime = localStorage.getItem('hof-my-time') === '1'; } catch (e) { /* без хранилища — по часам стримера */ }
-const showTZ = () => myTime ? VIEWER_TZ : STREAMER_TZ;
-const tzFormats = {};
-const WEEKDAY_NO = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
-// Части даты по часам пояса tz: { y, mo (0–11), d, h, mi, wd (0 = вс) }
-function zparts(date, tz) {
-  const f = tzFormats[tz] || (tzFormats[tz] = new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23',
-    year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', weekday: 'short' }));
-  const p = {};
-  f.formatToParts(date).forEach(x => { p[x.type] = x.value; });
-  return { y: +p.year, mo: +p.month - 1, d: +p.day, h: +p.hour % 24, mi: +p.minute, wd: WEEKDAY_NO[p.weekday] };
-}
-// Момент «y-mo-d h:mi по часам tz» (переход на летнее время учтён; d может выходить за пределы месяца)
-function zdate(y, mo, d, h, mi, tz) {
-  tz = tz || STREAMER_TZ;
-  const want = Date.UTC(y, mo, d, h, mi);
-  let ts = want;
-  for (let i = 0; i < 3; i++) {
-    const p = zparts(new Date(ts), tz);
-    const diff = Date.UTC(p.y, p.mo, p.d, p.h, p.mi) - want;
-    if (!diff) break;
-    ts -= diff;
-  }
-  return new Date(ts);
-}
-// Смещение пояса от UTC в минутах сейчас и его подпись: «UTC+3», «UTC−5», «UTC+5:30»
-function tzOffset(tz) {
-  const now = new Date(Math.floor(Date.now() / 60000) * 60000);
-  const p = zparts(now, tz);
-  return Math.round((Date.UTC(p.y, p.mo, p.d, p.h, p.mi) - now.getTime()) / 60000);
-}
-function fmtOffset(min) {
-  const a = Math.abs(min);
-  return `UTC${min < 0 ? '−' : '+'}${Math.floor(a / 60)}${a % 60 ? ':' + String(a % 60).padStart(2, '0') : ''}`;
-}
-
-// Дата/время из таблицы (по часам стримера). Google Sheets (EU) отдаёт DD.MM.YYYY — Date() прочитал бы как MM.DD
-function parseSheetDate(str) {
-  if (!str) return null;
-  const s = String(str).trim();
-  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-  if (m) return zdate(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0));
-  m = s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-  if (m) return zdate(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0));
-  const t = Date.parse(s);
-  return isNaN(t) ? null : new Date(t);
-}
-const hasSheetTime = str => /\d{1,2}:\d{2}/.test(String(str || ''));
+// ===== Часовые пояса — общие из site.js (siteTime) =====
+// Время в таблице — по часам стримера; кнопка «Моё время» показывает его в поясе зрителя.
+const STREAMER_TZ = siteTime.streamer;
+const showTZ = siteTime.show;
+const zparts = siteTime.parts, zdate = siteTime.at;
+const parseSheetDate = siteTime.parse, hasSheetTime = siteTime.hasTime;
 function dateTs(str) {
   const d = parseSheetDate(str);
   return d && !isNaN(d.getTime()) ? d.getTime() : 0;
@@ -1043,9 +963,6 @@ function setCounter(key, html) {
 
 // ===== Конфиг: имя, интро, аватар, Twitch, розыгрыш =====
 function applyConfig(config) {
-  // Пояс стримера — до всего, что читает даты из таблицы (розыгрыш, афиша)
-  const tz = (config.streamer_timezone || '').trim();
-  if (tz && isTimeZone(tz)) STREAMER_TZ = tz;
   const name = (config.streamer_name || '').trim();
   const intro = (config.streamer_intro || '').trim();
   const avatar = (config.streamer_avatar_url || '').trim();
@@ -1356,7 +1273,8 @@ function dayPhrase(d, now) {
 function renderWeek() {
   const now = new Date();
   const tz = showTZ();
-  const short = p => p.mi ? `${p.h}:${pad2(p.mi)}` : String(p.h);
+  // Полное время «17:00–22:00»: короткое «0–4» у зрителей из других поясов читалось как «ноль минус четыре»
+  const short = p => `${pad2(p.h)}:${pad2(p.mi)}`;
   // Стримы этой недели (по календарю стримера), разложенные по дням недели показываемого пояса:
   // у зрителя далеко на востоке четверговый стрим может оказаться уже в пятницу.
   const p0 = zparts(now, STREAMER_TZ);
@@ -1366,7 +1284,7 @@ function renderWeek() {
     const w = streamWindow(zdate(p0.y, p0.mo, monday + k, 12, 0));
     if (!w) continue;
     const s = zparts(w.start, tz), e = zparts(w.end, tz);
-    byDay[s.wd].push(`${short(s)}–${short(e)}`);
+    byDay[s.wd].push(`${short(s)}–<wbr>${short(e)}`); // в узкой колонке переносится после тире
   }
   const today = zparts(now, tz).wd;
   const days = [1, 2, 3, 4, 5, 6, 0].map(i => {
@@ -1379,33 +1297,18 @@ function renderWeek() {
   }).join('');
   const picker = fmtHM(atTime(now, parseHM(SCHEDULE.picker)));
   const movie = fmtHM(atTime(now, parseHM(SCHEDULE.movie)));
-  const diffH = (tzOffset(VIEWER_TZ) - tzOffset(STREAMER_TZ)) / 60;
-  const diffTxt = diffH ? ` · у вас ${diffH > 0 ? '+' : '−'}${String(Math.abs(diffH)).replace('.', ',')} ч` : '';
   document.getElementById('week').innerHTML = `
     <div class="week__head">
       <span class="week__label">Расписание стримов</span>
-      <button type="button" class="tz-toggle${myTime ? ' is-on' : ''}" id="tz-toggle" aria-pressed="${myTime}"
-        title="${myTime ? 'Показать время стримера' : 'Пересчитать время на сайте в ваш часовой пояс'}">${icon('clock')}Моё время</button>
+      ${siteTime.toggle()}
     </div>
     <div class="week__days">${days}</div>
     <p class="week__note">На вечерних стримах: <b class="tz">${picker}</b> рулетка заказов · <b class="tz">${movie}</b> кино-вечер. Иногда начинаю раньше.</p>
-    <p class="week__zone">${myTime
-      ? `<span class="tz">Ваше время (${fmtOffset(tzOffset(VIEWER_TZ))})</span>`
-      : `Время стримера (${fmtOffset(tzOffset(STREAMER_TZ))})${diffTxt}`}</p>`;
+    <p class="week__zone tz-zone">${siteTime.zoneLabel()}</p>`;
 }
 
-// «Моё время»: всё время на главной — в поясе зрителя. Выбор запоминается в этом браузере.
-function setMyTime(on) {
-  myTime = on;
-  try { localStorage.setItem('hof-my-time', on ? '1' : '0'); } catch (e) { /* не запомнится — не страшно */ }
-  document.body.classList.toggle('my-time', on);
-  renderWeek();
-  renderNow();
-}
-document.body.classList.toggle('my-time', myTime);
-document.getElementById('week').addEventListener('click', e => {
-  if (e.target.closest('#tz-toggle')) setMyTime(!myTime);
-});
+// «Моё время» (кнопка из site.js): перерисовываем всё, где есть время
+siteTime.onChange(() => { renderWeek(); renderNow(); });
 
 // ===== Афиша: анонсы из колонки scheduled_at + то, что смотрим/играем сейчас =====
 const SHOW_CATS = ['anime', 'movies', 'series'];

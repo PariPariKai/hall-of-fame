@@ -122,40 +122,40 @@ function applyOrdersMeta(items, meta, quips) {
 }
 
 // ---------- даты ----------
-// Google Sheets (EU locale) отдаёт DD.MM.YYYY; new Date("12.04.2026") прочитал бы это как 4 декабря.
-function parseSheetDate(str) {
-  if (!str) return null;
-  const s = String(str).trim();
-  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-  if (m) return new Date(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0));
-  m = s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-  if (m) return new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0));
-  const t = Date.parse(s);
-  return isNaN(t) ? null : new Date(t);
-}
+// Время в таблице — по часам стримера (siteTime из site.js: DD.MM.YYYY, пояс, летнее время).
+// Кнопка «Моё время» показывает время показа в поясе зрителя.
+const parseSheetDate = siteTime.parse;
 const ts = s => { const d = parseSheetDate(s); return d ? d.getTime() : 0; };
+const dayNo = (d, tz) => { const p = siteTime.parts(d, tz); return Date.UTC(p.y, p.mo, p.d) / 86400000; };
+// Дата без времени (добавлено, досмотрено) — по календарю стримера
 function shortDate(s) {
   const d = parseSheetDate(s);
-  return d ? `${d.getDate()} ${MONTHS_RU[d.getMonth()]} ${d.getFullYear()}` : s;
+  if (!d) return s;
+  const p = siteTime.parts(d);
+  return `${p.d} ${MONTHS_RU[p.mo]} ${p.y}`;
 }
-// Дата показа из scheduled_at: «сегодня в 20:00», «завтра в 18:00», «вс, 4 окт в 18:00»
+// Дата показа из scheduled_at: «сегодня в 20:00», «завтра в 18:00», «вс, 4 окт в 18:00».
+// Только дата без времени — всегда по календарю стримера (иначе у зрителя на западе съехала бы на день).
 function showTime(s) {
   const d = parseSheetDate(s);
   if (!d) return s;
-  const hm = d.getHours() || d.getMinutes() ? ` в ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : '';
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const day = new Date(d); day.setHours(0, 0, 0, 0);
-  const diff = Math.round((day - today) / 86400000);
+  const timed = siteTime.hasTime(s);
+  const tz = timed ? siteTime.show() : siteTime.streamer;
+  const p = siteTime.parts(d, tz);
+  const hm = timed ? ` в ${String(p.h).padStart(2, '0')}:${String(p.mi).padStart(2, '0')}` : '';
+  const diff = dayNo(d, tz) - dayNo(new Date(), tz);
   if (diff === 0) return 'сегодня' + hm;
   if (diff === 1) return 'завтра' + hm;
-  return `${WEEKDAYS_RU[d.getDay()]}, ${d.getDate()} ${MONTHS_RU[d.getMonth()]}${hm}`;
+  return `${WEEKDAYS_RU[p.wd]}, ${p.d} ${MONTHS_RU[p.mo]}${hm}`;
 }
-// Время назначенного показа (сегодня или позже), иначе 0. Досмотренное и паузу не анонсируем.
+// Бейдж даты показа: data-show — чтобы при «Моё время» обновить текст, не пересобирая карточки
+const showTag = s => tag('show', icon('calendar') + `<span class="tz" data-show="${esc(s)}">${esc(showTime(s))}</span>`);
+// Время назначенного показа (сегодня или позже по календарю стримера), иначе 0. Досмотренное и паузу не анонсируем.
 function upcomingTs(it) {
   if (!it.scheduled_at || isDone(it.status) || it.status === 'paused') return 0;
   const t = ts(it.scheduled_at);
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  return t >= today.getTime() ? t : 0;
+  const p = siteTime.parts(new Date());
+  return t >= siteTime.at(p.y, p.mo, p.d, 0, 0).getTime() ? t : 0;
 }
 
 // ---------- мелочи ----------
@@ -236,7 +236,7 @@ function statusTags(it) {
   const st = STATUS[it.status];
   const show = upcomingTs(it);
   const tags = [];
-  if (show) tags.push(tag('show', icon('calendar') + esc(showTime(it.scheduled_at))));
+  if (show) tags.push(showTag(it.scheduled_at));
   if (!show || it.status !== CFG.statuses[0].id) tags.push(tag(st.tone, esc(st.label)));
   return tags;
 }
@@ -333,6 +333,12 @@ function fitCover(img, it) {
   img.parentNode.classList.add('is-landscape');
 }
 
+// «Моё время»: пересчитать бейджи дат показа на карточках и витрину
+siteTime.onChange(() => {
+  document.querySelectorAll('[data-show]').forEach(el => { el.textContent = showTime(el.dataset.show); });
+  renderNow();
+});
+
 // ---------- витрина «Сейчас и скоро» ----------
 function renderNow() {
   const box = $('now');
@@ -341,12 +347,15 @@ function renderNow() {
   const list = [...upcoming, ...active].slice(0, 4);
   box.hidden = !list.length;
   if (!list.length) return;
-  box.innerHTML = `<h2 class="spotlight__title">Сейчас и скоро</h2><div class="spot-list">` + list.map((it, i) => {
+  // Есть анонсы с временем — рядом кнопка «Моё время» и подпись пояса
+  const timed = upcoming.some(it => siteTime.hasTime(it.scheduled_at));
+  box.innerHTML = `<div class="spotlight__head"><h2 class="spotlight__title">Сейчас и скоро</h2>${timed ? siteTime.toggle() : ''}</div>` +
+    (timed ? `<p class="spotlight__zone tz-zone">${siteTime.zoneLabel()}</p>` : '') + `<div class="spot-list">` + list.map((it, i) => {
     const cover = isHttpUrl(it.cover_url) ? it.cover_url : '';
     const poster = cover
       ? `<span class="spot-item__poster" style="background-image:${cssUrl(cover)}"></span>`
       : `<span class="spot-item__poster" style="background:linear-gradient(160deg, ${PALETTE[hashOf(it.title) % PALETTE.length]}, #10142a)">${esc([...it.title][0].toUpperCase())}</span>`;
-    const label = upcomingTs(it) ? tag('show', icon('calendar') + esc(showTime(it.scheduled_at))) : tag('active', esc(STATUS[it.status].label));
+    const label = upcomingTs(it) ? showTag(it.scheduled_at) : tag('active', esc(STATUS[it.status].label));
     const prog = progressOf(it);
     return `<button type="button" class="spot-item" data-i="${i}">${poster}<span class="spot-item__body">${label}` +
       `<span class="spot-item__title">${esc(it.title)}</span>${whoHtml(it, false)}${prog && prog.pct > 0 ? progressHtml(prog, false) : ''}</span></button>`;

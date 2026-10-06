@@ -21,7 +21,7 @@
   const HOME_URL = "./";
 </script>
 
-<link rel="stylesheet" href="site.css?v=4">
+<link rel="stylesheet" href="site.css?v=5">
 <style>
   /* Общее (меню, шапка, поиск) — в site.css. Здесь — таймер, подиум и карточки билетов. */
 
@@ -112,6 +112,13 @@
     margin-top: 6px;
   }
 
+  /* Когда розыгрыш: дата по часам стримера или (кнопка «Моё время») зрителя */
+  .timer-when {
+    display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px 14px;
+    margin-top: 14px; text-shadow: 0 2px 6px rgba(0,0,0,0.8);
+  }
+  .timer-when__date { font-size: 16px; font-weight: 600; color: #FAC775; letter-spacing: .5px; }
+  .timer-when__zone { flex-basis: 100%; text-align: center; }
   .timer-finished {
     display: inline-flex; align-items: center; gap: 8px;
     font-size: 20px;
@@ -319,7 +326,7 @@
 
 <body>
 
-<script src="site.js?v=7"></script>
+<script src="site.js?v=8"></script>
 
   <div class="wrap">
     <div class="header">
@@ -337,6 +344,7 @@
           <div class="timer-unit"><div class="timer-num" id="t-mins">0</div><div class="timer-label">минут</div></div>
           <div class="timer-unit"><div class="timer-num" id="t-secs">0</div><div class="timer-label">секунд</div></div>
         </div>
+        <div class="timer-when" id="timer-when"></div>
         <div id="timer-finished" class="timer-finished" style="display:none;"><svg class="ic ic--fill" aria-hidden="true"><use href="#i-zap"></use></svg>Розыгрыш уже идёт или завершён</div>
       </div>
     </div>
@@ -463,24 +471,20 @@ function esc(s) {
 let raffleDate = null;
 let timerInterval = null;
 
-// Google Sheets (EU locale) exports dates as DD.MM.YYYY.
-// native Date("12.04.2026") wrongly reads that as Dec 4 — parse day-first explicitly.
-function parseSheetDate(str) {
-  if (!str) return null;
-  const s = String(str).trim();
-  // ISO: YYYY-MM-DD[ T| ]HH:MM[:SS]
-  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-  if (m) {
-    return new Date(+m[1], +m[2] - 1, +m[3], m[4] != null ? +m[4] : 0, m[5] != null ? +m[5] : 0, m[6] != null ? +m[6] : 0);
-  }
-  // European: DD.MM.YYYY / DD/MM/YYYY / DD-MM-YYYY (+ optional time)
-  m = s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-  if (m) {
-    return new Date(+m[3], +m[2] - 1, +m[1], m[4] != null ? +m[4] : 0, m[5] != null ? +m[5] : 0, m[6] != null ? +m[6] : 0);
-  }
-  const t = Date.parse(s);
-  return isNaN(t) ? null : new Date(t);
+// Дата розыгрыша — по часам стримера (siteTime из site.js), поэтому отсчёт верен в любом поясе
+const parseSheetDate = siteTime.parse;
+const WHEN_DAYS = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+const WHEN_MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+// Под отсчётом: «вс, 15 ноября · 20:00» + кнопка «Моё время» и подпись пояса
+function renderTimerWhen() {
+  const box = document.getElementById('timer-when');
+  if (!raffleDate) { box.innerHTML = ''; return; }
+  const p = siteTime.parts(raffleDate, siteTime.show());
+  const pad = n => String(n).padStart(2, '0');
+  box.innerHTML = `<span class="timer-when__date tz">${WHEN_DAYS[p.wd]}, ${p.d} ${WHEN_MONTHS[p.mo]} · ${pad(p.h)}:${pad(p.mi)}</span>` +
+    siteTime.toggle() + `<span class="timer-when__zone tz-zone">${siteTime.zoneLabel()}</span>`;
 }
+siteTime.onChange(renderTimerWhen);
 function setupTimer(config) {
   const box = document.getElementById('timer-box');
   const bg = document.getElementById('timer-bg');
@@ -495,7 +499,8 @@ function setupTimer(config) {
   }
 
   raffleDate = parseSheetDate(config.raffle_date);
-  if (isNaN(raffleDate.getTime())) {
+  if (!raffleDate || isNaN(raffleDate.getTime())) {
+    raffleDate = null;
     box.style.display = 'none';
     return;
   }
@@ -515,6 +520,7 @@ function setupTimer(config) {
 
   box.style.display = 'block';
   if (timerInterval) clearInterval(timerInterval);
+  renderTimerWhen();
   updateTimer();
   timerInterval = setInterval(updateTimer, 1000);
 }

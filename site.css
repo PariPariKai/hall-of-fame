@@ -364,3 +364,21 @@ a.who__nick:hover { text-decoration: underline; }
   .search { width: 100%; }
   .spotlight { padding: 16px; }
 }
+
+/* ===== «Моё время» (site.js → siteTime): кнопка и время, пересчитанное в пояс зрителя, — зелёные ===== */
+.tz-toggle {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.75);
+  font: inherit; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; cursor: pointer;
+  transition: border-color .18s ease, color .18s ease, background .18s ease;
+}
+.tz-toggle:hover { border-color: var(--green); color: var(--green); }
+.tz-toggle.is-on {
+  border-color: var(--green); color: var(--green); background: rgba(151,196,89,0.12);
+  box-shadow: 0 0 14px rgba(151,196,89,0.18);
+}
+.my-time .tz { color: var(--green); }
+.tz-zone { font-size: 12px; color: rgba(255,255,255,0.4); }
+.spotlight__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.spotlight__head .spotlight__title { margin-bottom: 0; }
+.spotlight__zone { margin: -6px 0 12px; }
