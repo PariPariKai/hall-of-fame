@@ -154,14 +154,14 @@
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1898899/99af46cc-4365-43b6-b750-35ebd9f593bb/600x900",
       "source": "kinopoisk"
     },
-    "movies|host": {
+    "movies|астрал. онлайн": {
       "list": "movies",
-      "title": "Host",
-      "checked": "2026-10-04T15:22:57.760Z",
+      "title": "Астрал. Онлайн",
+      "checked": "2026-10-16T19:57:19.767Z",
       "found": true,
-      "kp": "477647",
-      "url": "https://www.kinopoisk.ru/film/477647/",
-      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1773646/aa8eae01-509c-4c92-ae66-589ca4b7d8dc/600x900",
+      "kp": "1398864",
+      "url": "https://www.kinopoisk.ru/film/1398864/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1773646/11808f89-4ed5-45f1-a554-3a9f24c44469/600x900",
       "source": "kinopoisk"
     },
     "movies|бизнес по казахски": {
