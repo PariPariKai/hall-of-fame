@@ -349,6 +349,24 @@
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/447040/header.jpg?t=1751986887",
       "source": "steam",
       "steamUrl": "https://store.steampowered.com/app/447040/"
+    },
+    "kerbal space program": {
+      "name": "Kerbal Space Program",
+      "override": "",
+      "checked": "2026-10-20T19:54:31.831Z",
+      "found": true,
+      "appid": 220200,
+      "title": "Kerbal Space Program",
+      "year": 2015,
+      "genres": [
+        "Инди",
+        "Симуляторы"
+      ],
+      "description": "В Kerbal Space Program вам предстоит руководить космической программой инопланетной расы кербалов. Создавайте собственные космические суда, основываясь на своих знаниях (или их отсутствии) законов аэродинамики и физики движения тел на орбите.",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/220200/library_600x900.jpg?t=1738037585",
+      "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/220200/header.jpg?t=1738037585",
+      "source": "steam",
+      "steamUrl": "https://store.steampowered.com/app/220200/"
     }
   }
 }
