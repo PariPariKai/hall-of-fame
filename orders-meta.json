@@ -47,8 +47,9 @@
     "movies|суперфорсаж": {
       "list": "movies",
       "title": "Суперфорсаж",
-      "checked": "2026-10-04T15:22:46.136Z",
+      "checked": "2026-10-21T10:48:23.568Z",
       "found": true,
+      "year": 2015,
       "kp": "764347",
       "url": "https://www.kinopoisk.ru/film/764347/",
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1599028/21760dca-839f-416b-a7e5-31fc179dbaf6/600x900",
@@ -57,8 +58,9 @@
     "movies|notre dame de paris full musical": {
       "list": "movies",
       "title": "Notre Dame de Paris full musical",
-      "checked": "2026-10-16T16:38:29.170Z",
-      "found": false
+      "checked": "2026-10-21T10:48:28.907Z",
+      "found": false,
+      "year": 1998
     },
     "movies|я пока не придумала": {
       "list": "movies",
@@ -87,8 +89,9 @@
     "movies|they live": {
       "list": "movies",
       "title": "They Live",
-      "checked": "2026-10-04T15:22:25.703Z",
+      "checked": "2026-10-21T10:48:31.782Z",
       "found": true,
+      "year": 1988,
       "kp": "12340",
       "url": "https://www.kinopoisk.ru/film/12340/",
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/9784475/c31a1e57-ce19-452a-8282-a378d90d1acb/600x900",
@@ -97,8 +100,9 @@
     "movies|the purge": {
       "list": "movies",
       "title": "The Purge",
-      "checked": "2026-10-04T15:22:30.565Z",
+      "checked": "2026-10-21T10:48:36.472Z",
       "found": true,
+      "year": 2013,
       "kp": "661022",
       "url": "https://www.kinopoisk.ru/film/661022/",
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1777765/f1f68363-0826-4305-8cf2-e0abeab06dea/600x900",
@@ -107,8 +111,9 @@
     "movies|наркоз": {
       "list": "movies",
       "title": "Наркоз",
-      "checked": "2026-10-18T17:22:12.005Z",
+      "checked": "2026-10-21T10:48:41.140Z",
       "found": true,
+      "year": 2007,
       "kp": "37547",
       "url": "https://www.kinopoisk.ru/film/37547/",
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1777765/02596015-c9e4-4f92-a6ff-e679e16de77a/600x900",
@@ -117,8 +122,9 @@
     "movies|каратэ-пацан": {
       "list": "movies",
       "title": "Каратэ-пацан",
-      "checked": "2026-10-04T15:22:38.531Z",
+      "checked": "2026-10-21T10:48:45.460Z",
       "found": true,
+      "year": 2010,
       "kp": "412162",
       "url": "https://www.kinopoisk.ru/film/412162/",
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1600647/15763697-bedb-486c-a112-1a41cd39019f/600x900",
@@ -127,8 +133,9 @@
     "movies|поворот не туда 6": {
       "list": "movies",
       "title": "Поворот не туда 6",
-      "checked": "2026-10-04T15:22:42.323Z",
+      "checked": "2026-10-21T10:48:49.780Z",
       "found": true,
+      "year": 2014,
       "kp": "839992",
       "url": "https://www.kinopoisk.ru/film/839992/",
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1773646/e9d93b69-7c99-4665-ac1e-f039444dfac6/600x900",
@@ -137,8 +144,9 @@
     "movies|поворот не туда 4": {
       "list": "movies",
       "title": "Поворот не туда 4",
-      "checked": "2026-10-04T15:22:49.903Z",
+      "checked": "2026-10-21T10:48:54.239Z",
       "found": true,
+      "year": 2011,
       "kp": "586138",
       "url": "https://www.kinopoisk.ru/film/586138/",
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1600647/a912c595-931b-4530-adc1-a93af1826c02/600x900",
@@ -147,8 +155,9 @@
     "movies|убрать из друзей": {
       "list": "movies",
       "title": "Убрать из друзей",
-      "checked": "2026-10-04T15:22:53.792Z",
+      "checked": "2026-10-21T10:48:58.728Z",
       "found": true,
+      "year": 2015,
       "kp": "839972",
       "url": "https://www.kinopoisk.ru/film/839972/",
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1898899/99af46cc-4365-43b6-b750-35ebd9f593bb/600x900",
@@ -157,8 +166,9 @@
     "movies|астрал. онлайн": {
       "list": "movies",
       "title": "Астрал. Онлайн",
-      "checked": "2026-10-16T19:57:19.767Z",
+      "checked": "2026-10-21T10:49:03.295Z",
       "found": true,
+      "year": 2020,
       "kp": "1398864",
       "url": "https://www.kinopoisk.ru/film/1398864/",
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1773646/11808f89-4ed5-45f1-a554-3a9f24c44469/600x900",
@@ -167,8 +177,9 @@
     "movies|бизнес по казахски": {
       "list": "movies",
       "title": "Бизнес по Казахски",
-      "checked": "2026-10-04T23:08:57.142Z",
+      "checked": "2026-10-21T10:49:07.606Z",
       "found": true,
+      "year": 2016,
       "kp": "1045811",
       "url": "https://www.kinopoisk.ru/film/1045811/",
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/4774061/9f6aa116-490f-442a-9c77-b7037303c211/600x900",
@@ -177,14 +188,16 @@
     "movies|бишарашки": {
       "list": "movies",
       "title": "Бишарашки",
-      "checked": "2026-10-19T01:15:50.374Z",
-      "found": false
+      "checked": "2026-10-21T10:49:11.946Z",
+      "found": false,
+      "year": 2022
     },
     "movies|брат или брак": {
       "list": "movies",
       "title": "Брат или Брак",
-      "checked": "2026-10-04T23:09:05.055Z",
+      "checked": "2026-10-21T10:49:14.838Z",
       "found": true,
+      "year": 2017,
       "kp": "1045812",
       "url": "https://www.kinopoisk.ru/film/1045812/",
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/4716873/514b141f-8330-452b-b1df-ef1cb0d6e8f0/600x900",
@@ -193,18 +206,20 @@
     "movies|каникулы": {
       "list": "movies",
       "title": "Каникулы",
-      "checked": "2026-10-04T23:09:08.939Z",
+      "checked": "2026-10-21T10:49:19.210Z",
       "found": true,
-      "kp": "5140",
-      "url": "https://www.kinopoisk.ru/film/5140/",
-      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1777765/e2d152ac-f79a-4b8c-bfe0-3cf71cb7cc43/600x900",
+      "year": 2016,
+      "kp": "484426",
+      "url": "https://www.kinopoisk.ru/film/484426/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1946459/a52b9720-18fb-40f1-88e4-e3e04bbdc272/600x900",
       "source": "kinopoisk"
     },
     "movies|не шутите с зоханом": {
       "list": "movies",
       "title": "Не шутите с Зоханом",
-      "checked": "2026-10-04T23:09:13.030Z",
+      "checked": "2026-10-21T10:49:23.883Z",
       "found": true,
+      "year": 2008,
       "kp": "280826",
       "url": "https://www.kinopoisk.ru/film/280826/",
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/6201401/371697bc-44ac-4ab1-bbb2-921fe68038f7/600x900",
@@ -213,8 +228,9 @@
     "movies|minecraft в кино": {
       "list": "movies",
       "title": "Minecraft в кино",
-      "checked": "2026-10-04T23:09:16.958Z",
+      "checked": "2026-10-21T10:49:28.620Z",
       "found": true,
+      "year": 2025,
       "kp": "838574",
       "url": "https://www.kinopoisk.ru/film/838574/",
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/10812607/7ae661a4-8d36-4fad-9278-9b63655c7eb3/600x900",
