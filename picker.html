@@ -18,7 +18,7 @@
   // on — включён ли источник при открытии страницы
   const SOURCES = [
     { id:'anime',  name:'Аниме',   icon:'torii', color:'#E58CC0', on:true,  csv: SHEET + '627100001' },
-    { id:'movies', name:'Фильмы',  icon:'film', color:'#FAC775', on:true,  csv: SHEET + '627100002' },
+    { id:'movies', name:'Фильмы',  icon:'film', color:'#FAC775', on:true,  csv: 'data/movies.json' },
     { id:'series', name:'Сериалы', icon:'tv', color:'#6FB7E8', on:true,  csv: SHEET + '627100003' },
     { id:'games',  name:'Игры',    icon:'gamepad', color:'#9B8CE8', on:false, csv: SHEET + '727100001' },
   ];
@@ -444,7 +444,7 @@
     .site-nav__dd:focus-within > .site-nav__menu { opacity: 1; visibility: visible; pointer-events: auto; transform: none; }
   }
 </style>
-<script src="site.js?v=8"></script>
+<script src="site.js?v=9"></script>
 
 <div class="wrap">
 
@@ -686,9 +686,7 @@ async function fetchWithTimeout(url, ms) {
 async function loadSource(source) {
   const st = srcState[source.id];
   try {
-    const res = await fetchWithTimeout(source.csv, 20000);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const items = rowsToItems(parseCSV(await res.text()), source);
+    const items = rowsToItems(parseCSV(await siteData.text(source.csv, { signal: AbortSignal.timeout(20000) })), source);
     st.note = '';
     return items;
   } catch (e) {

@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Админка — Hall of Fame</title>
+<link rel="stylesheet" href="site.css?v=5">
+<!--
+  Админка сайта: правит data/*.json прямо в репозитории через GitHub API (каждое сохранение — коммит в main,
+  GitHub Pages обновляет сайт примерно за минуту, робот orders-meta сразу ищет обложки новым заказам).
+  Вход — личный токен GitHub (fine-grained, только репозиторий hall-of-fame, Contents: Read and write).
+  Токен хранится только в этом браузере (localStorage), на сайт и в репозиторий не попадает.
+-->
+<style>
+  .panel {
+    background: rgba(20,25,41,0.85); border: 1px solid var(--line); border-radius: 18px; padding: 20px 22px; margin-bottom: 22px;
+  }
+  .panel__title {
+    display: flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--gold); margin-bottom: 14px;
+  }
+  .panel__title .ic { font-size: 15px; }
+  .panel__note { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .panel__note a { color: var(--gold); }
+  .panel__note ol { margin: 8px 0 0 20px; }
+  .panel__note b { color: #fff; }
+
+  /* поля ввода — в стиле поиска сайта */
+  .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .field > span { font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--dim); }
+  .inp {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
+    padding: 10px 12px; color: #fff; font-family: inherit; font-size: 14px; width: 100%; outline: none;
+    transition: border-color .15s ease, background .15s ease; color-scheme: dark;
+  }
+  .inp:focus { border-color: rgba(var(--gold-rgb),0.5); background: rgba(255,255,255,0.05); }
+  .inp::placeholder { color: rgba(255,255,255,0.35); }
+  textarea.inp { resize: vertical; min-height: 74px; line-height: 1.5; }
+  select.inp option { background: var(--panel); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .row > .field { flex: 1 1 140px; }
+
+  .btn--solid { background: var(--gold); color: #1a1206; border-color: var(--gold); }
+  .btn--solid:hover { background: #ffd690; }
+  .btn--ghost { background: transparent; border-color: rgba(255,255,255,0.18); color: rgba(255,255,255,0.8); }
+  .btn--ghost:hover { background: rgba(255,255,255,0.06); }
+  .btn--danger { background: transparent; border-color: rgba(240,80,80,0.45); color: var(--red); }
+  .btn--danger:hover { background: rgba(240,80,80,0.1); }
+  .btn[disabled] { opacity: .5; cursor: wait; transform: none; }
+  .btn--sm { padding: 6px 11px; font-size: 12px; }
+
+  /* ---------- вкладки разделов ---------- */
+  .tabs { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 22px; }
+  .chip[disabled] { opacity: .4; cursor: default; }
+  .chip[disabled]:hover { background: transparent; color: rgba(255,255,255,0.72); }
+
+  /* ---------- вечер кино ---------- */
+  .tonight { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .slot {
+    border: 1px solid var(--line); border-radius: 14px; padding: 16px; background: rgba(255,255,255,0.02);
+    display: flex; flex-direction: column; gap: 14px; min-width: 0;
+  }
+  .slot__head { font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--dim); display: flex; align-items: center; gap: 7px; }
+  .film { display: flex; gap: 14px; align-items: flex-start; min-width: 0; }
+  .film__poster {
+    flex: 0 0 auto; width: 74px; aspect-ratio: 2/3; border-radius: 9px; overflow: hidden;
+    background: #222838 center/cover no-repeat; display: grid; place-items: center; color: var(--dim); font-size: 24px;
+  }
+  .film__body { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .film__title { font-size: 18px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+  .film__meta { font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+  .film__meta .ic { color: var(--dim); }
+  .empty-slot { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+  .stars { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 5px; }
+  .star-btn {
+    height: 38px; padding: 0; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: transparent;
+    color: rgba(255,255,255,0.75); font: 600 14px var(--font); cursor: pointer; transition: all .12s ease;
+  }
+  .star-btn:hover { border-color: rgba(var(--gold-rgb),0.6); color: var(--gold); }
+  .star-btn.is-on { background: rgba(var(--gold-rgb),0.18); border-color: rgba(var(--gold-rgb),0.7); color: var(--gold); }
+  .star-btn--half { font-size: 13px; }
+  .rating-out { font-size: 15px; font-weight: 700; color: var(--gold); letter-spacing: .5px; text-transform: none; margin-left: 6px; }
+
+  .pick { position: relative; }
+  .pick__list {
+    position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 20; max-height: 300px; overflow: auto;
+    background: #171c2c; border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; box-shadow: 0 14px 40px rgba(0,0,0,0.5);
+    list-style: none; padding: 5px;
+  }
+  .pick__list li { padding: 8px 10px; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; gap: 10px; font-size: 14px; }
+  .pick__list li:hover, .pick__list li.is-hl { background: rgba(var(--gold-rgb),0.12); }
+  .pick__list li small { color: var(--dim); white-space: nowrap; }
+  .pick__list .pick__none { color: var(--dim); cursor: default; }
+  .pick__list .pick__none:hover { background: none; }
+
+  /* ---------- список ---------- */
+  .list-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .list-tools .search { width: 300px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .items { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .item {
+    display: grid; grid-template-columns: 40px minmax(0, 1fr) 150px 120px 56px 120px; gap: 14px; align-items: center;
+    padding: 8px 12px 8px 8px; border-radius: 12px; border: 1px solid transparent; background: rgba(255,255,255,0.025);
+    cursor: pointer; transition: background .12s ease, border-color .12s ease;
+  }
+  .item:hover { background: rgba(255,255,255,0.05); border-color: var(--line); }
+  .item__poster { width: 40px; aspect-ratio: 2/3; border-radius: 6px; background: #222838 center/cover no-repeat; }
+  .item__title { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item__title small { font-weight: 400; color: var(--dim); margin-left: 6px; }
+  .item__sub { font-size: 12px; color: var(--dim); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item__nick { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item__rating { font-weight: 700; color: var(--gold); font-size: 14px; text-align: center; }
+  .item__date { font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap; }
+  .item--blank .item__title { color: var(--dim); font-style: italic; font-weight: 400; }
+  .count-line { font-size: 12px; color: var(--dim); margin: 0 0 10px 4px; letter-spacing: .4px; }
+
+  /* ---------- редактор ---------- */
+  dialog.editor {
+    margin: auto; width: min(720px, calc(100vw - 24px)); max-height: calc(100vh - 24px); border-radius: 18px; padding: 0;
+    background: #121726; color: var(--text); border: 1px solid rgba(var(--gold-rgb),0.25); box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+  }
+  dialog.editor::backdrop { background: rgba(4,6,12,0.7); backdrop-filter: blur(3px); }
+  .editor__form { padding: 22px; display: flex; flex-direction: column; gap: 14px; }
+  .editor__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .editor__head h2 { font-size: 16px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold); font-weight: 600; }
+  .editor__x { background: none; border: 0; color: var(--muted); font-size: 20px; cursor: pointer; padding: 4px; }
+  .editor__cover { display: flex; gap: 12px; align-items: flex-end; }
+  .editor__cover .item__poster { width: 52px; flex: 0 0 auto; }
+  .editor__cover .field { flex: 1; }
+  .editor__foot { display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap; padding-top: 4px; }
+  .editor__foot div { display: flex; gap: 10px; }
+  .hint-inline { font-size: 12px; color: var(--dim); }
+
+  /* ---------- уведомление ---------- */
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; z-index: 200;
+    background: #1b2133; border: 1px solid rgba(var(--gold-rgb),0.4); color: #fff; border-radius: 12px; padding: 12px 18px;
+    font-size: 14px; box-shadow: 0 14px 40px rgba(0,0,0,0.5); transition: all .25s ease; max-width: calc(100vw - 32px);
+    display: flex; gap: 9px; align-items: center;
+  }
+  .toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+  .toast--err { border-color: rgba(240,80,80,0.6); }
+  .toast--err .ic { color: var(--red); }
+  .toast .ic { color: var(--green); }
+
+  .foot { text-align: center; font-size: 12px; color: var(--dim); margin-top: 26px; }
+  .foot button { background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font: inherit; }
+
+  @media (max-width: 900px) {
+    .tonight { grid-template-columns: 1fr; }
+    .item { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 4px 12px; }
+    .item__poster { grid-row: span 3; }
+    .item__nick, .item__date { grid-column: 2; text-align: left; }
+    .item__status { grid-column: 3; grid-row: 1; }
+    .item__rating { grid-column: 3; grid-row: 2; }
+    .list-tools .search { width: 100%; }
+  }
+  @media (max-width: 520px) {
+    .panel { padding: 16px 14px; }
+    .editor__form { padding: 16px; }
+    .stars { gap: 3px; }
+    .star-btn { height: 34px; font-size: 13px; border-radius: 8px; }
+  }
+</style>
+</head>
+<body>
+<script src="site.js?v=9"></script>
+
+<div class="wrap">
+  <header class="header">
+    <h1 class="title"><svg class="ic" aria-hidden="true"><use href="#i-wrench"></use></svg>Админка<svg class="ic" aria-hidden="true"><use href="#i-wrench"></use></svg></h1>
+    <p class="subtitle">Данные сайта без таблиц · изменения на сайте примерно через минуту</p>
+  </header>
+
+  <!-- Вход: токен GitHub -->
+  <section class="panel" id="auth" hidden>
+    <h2 class="panel__title"><svg class="ic"><use href="#i-shield"></use></svg>Подключить GitHub</h2>
+    <div class="panel__note">
+      Админка сохраняет данные прямо в репозиторий сайта. Для этого нужен личный токен GitHub — один раз на каждом устройстве.
+      <ol>
+        <li>Открой <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">создание токена</a> (Fine-grained token).</li>
+        <li>Token name: <b>Админка сайта</b>, Expiration — сколько не жалко (можно год).</li>
+        <li>Repository access: <b>Only select repositories</b> → <b>hall-of-fame</b>.</li>
+        <li>Permissions → Repository permissions → <b>Contents: Read and write</b>. Больше ничего не нужно.</li>
+        <li>Generate token, скопируй и вставь сюда. Токен хранится только в этом браузере.</li>
+      </ol>
+    </div>
+    <form class="row" id="auth-form" style="margin-top:16px">
+      <label class="field"><span>Токен</span><input class="inp" id="auth-token" type="password" autocomplete="off" placeholder="github_pat_..." required></label>
+      <button class="btn btn--solid" type="submit" id="auth-btn"><svg class="ic"><use href="#i-check"></use></svg>Подключить</button>
+    </form>
+    <p class="panel__note" id="auth-error" style="color:var(--red);margin-top:10px" hidden></p>
+  </section>
+
+  <div id="app" hidden>
+    <nav class="tabs" aria-label="Разделы">
+      <button type="button" class="chip is-active"><svg class="ic"><use href="#i-film"></use></svg>Фильмы</button>
+      <button type="button" class="chip" disabled title="Скоро переедет из таблицы"><svg class="ic"><use href="#i-torii"></use></svg>Аниме</button>
+      <button type="button" class="chip" disabled title="Скоро переедет из таблицы"><svg class="ic"><use href="#i-tv"></use></svg>Сериалы</button>
+      <button type="button" class="chip" disabled title="Скоро переедет из таблицы"><svg class="ic"><use href="#i-gamepad"></use></svg>Игры</button>
+      <button type="button" class="chip" disabled title="Скоро переедет из таблицы"><svg class="ic"><use href="#i-flame"></use></svg>Боль</button>
+      <button type="button" class="chip" disabled title="Скоро переедет из таблицы"><svg class="ic"><use href="#i-ticket"></use></svg>Билеты</button>
+    </nav>
+
+    <section class="panel" aria-label="Вечер кино">
+      <h2 class="panel__title"><svg class="ic"><use href="#i-film"></use></svg>Вечер кино</h2>
+      <div class="tonight">
+        <div class="slot" id="slot-now"></div>
+        <div class="slot" id="slot-next"></div>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="Все фильмы">
+      <div class="list-tools">
+        <label class="search"><svg class="ic" aria-hidden="true"><use href="#i-search"></use></svg><input type="search" class="search-input" id="q" placeholder="Название или заказчик..."></label>
+        <button type="button" class="btn" id="add"><svg class="ic"><use href="#i-plus"></use></svg>Новый заказ</button>
+      </div>
+      <div class="list-tools">
+        <div class="chips" id="f-status"></div>
+        <div class="chips" id="f-sort"></div>
+      </div>
+      <p class="count-line" id="count"></p>
+      <ul class="items" id="items"></ul>
+    </section>
+
+    <p class="foot"><span id="who"></span> · <a href="movies.html" style="color:inherit">Фильмы на сайте</a> · <button type="button" id="logout">Отключить токен на этом устройстве</button></p>
+  </div>
+
+  <p class="empty-state" id="loading">Загружаю...</p>
+</div>
+
+<dialog class="editor" id="editor">
+  <form class="editor__form" id="ed-form" method="dialog">
+    <div class="editor__head"><h2 id="ed-title">Заказ</h2><button type="button" class="editor__x" id="ed-close" aria-label="Закрыть">✕</button></div>
+    <div class="row">
+      <label class="field" style="flex:3 1 260px"><span>Название</span><input class="inp" name="title" required></label>
+      <label class="field" style="flex:1 1 90px"><span>Год</span><input class="inp" name="year" inputmode="numeric" placeholder="2024"></label>
+    </div>
+    <div class="row">
+      <label class="field"><span>Заказчик</span><input class="inp" name="nick" list="nicks" required></label>
+      <label class="field"><span>Тип</span><select class="inp" name="type"><option value="movie">Фильм</option><option value="youtube">YouTube</option><option value="other">Другое</option></select></label>
+      <label class="field"><span>Статус</span><select class="inp" name="status"></select></label>
+    </div>
+    <label class="field"><span>Ссылка <em class="hint-inline">— пусто: робот сам найдёт Кинопоиск</em></span><input class="inp" name="url" type="url" placeholder="https://www.kinopoisk.ru/film/..."></label>
+    <div class="editor__cover">
+      <div class="item__poster" id="ed-cover"></div>
+      <label class="field"><span>Обложка <em class="hint-inline">— пусто: робот подберёт</em></span><input class="inp" name="cover_url" type="url"></label>
+    </div>
+    <div class="row">
+      <label class="field"><span>Показ — дата</span><input class="inp" name="show_date" type="date"></label>
+      <label class="field"><span>Показ — время</span><input class="inp" name="show_time" type="time"></label>
+      <label class="field"><span>Оценка (0–10)</span><input class="inp" name="rating" type="number" min="0" max="10" step="0.1"></label>
+    </div>
+    <label class="field"><span>Вердикт стримера</span><textarea class="inp" name="notes" rows="3"></textarea></label>
+    <div class="row">
+      <label class="field"><span>Заказан</span><input class="inp" name="date_added" type="date"></label>
+      <label class="field"><span>Досмотрен</span><input class="inp" name="date_completed" type="date"></label>
+      <label class="field"><span>Озвучка</span><select class="inp" name="format"><option value="">—</option><option value="dub">Озвучка (dub)</option><option value="sub">Субтитры (sub)</option></select></label>
+    </div>
+    <div class="editor__foot">
+      <button type="button" class="btn btn--danger" id="ed-delete"><svg class="ic"><use href="#i-x"></use></svg>Удалить</button>
+      <div>
+        <button type="button" class="btn btn--ghost" id="ed-cancel">Отмена</button>
+        <button type="submit" class="btn btn--solid" id="ed-save"><svg class="ic"><use href="#i-check"></use></svg>Сохранить</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+<datalist id="nicks"></datalist>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+'use strict';
+// ===================== GitHub: чтение и запись файлов репозитория =====================
+const REPO = 'PariPariKai/hall-of-fame';
+const BRANCH = 'main';
+const TOKEN_KEY = 'hof-gh-token';
+let token = '';
+try { token = localStorage.getItem(TOKEN_KEY) || ''; } catch (e) { /* без хранилища — спросим токен заново */ }
+
+async function gh(path, opts) {
+  const res = await fetch('https://api.github.com/repos/' + REPO + path, Object.assign({ cache: 'no-store' }, opts, {
+    headers: Object.assign({ Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
+      opts && opts.headers),
+  }));
+  if (!res.ok) {
+    let msg = '';
+    try { msg = (await res.json()).message || ''; } catch (e) { /* пустой ответ */ }
+    const err = new Error(res.status === 401 ? 'GitHub не принял токен — возможно, он истёк. Подключи новый.'
+      : res.status === 403 || res.status === 404 ? 'У токена нет доступа к репозиторию hall-of-fame (нужно Contents: Read and write).'
+      : `GitHub: ${res.status} ${msg}`);
+    err.status = res.status;
+    throw err;
+  }
+  return res.json();
+}
+const b64encode = str => {
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+};
+const b64decode = b64 => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\s/g, '')), c => c.charCodeAt(0)));
+// Один заказ — одна строка: в истории git видно, что именно поменялось
+const stringify = data => '{\n  "columns": ' + JSON.stringify(data.columns) + ',\n  "items": [\n' +
+  data.items.map(o => '    ' + JSON.stringify(o)).join(',\n') + '\n  ]\n}\n';
+
+async function readFile(path) {
+  const f = await gh('/contents/' + path + '?ref=' + BRANCH);
+  return { sha: f.sha, data: JSON.parse(b64decode(f.content)) };
+}
+// Правка = функция над свежими данными. Если файл успели поменять с другого устройства (sha устарел),
+// перечитываем и применяем правку заново — ничего чужого не затираем.
+async function writeFile(path, file, mutate, message) {
+  let cur = file;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const data = structuredClone(cur.data);
+    mutate(data);
+    try {
+      const res = await gh('/contents/' + path, { method: 'PUT', body: JSON.stringify({
+        message, branch: BRANCH, sha: cur.sha, content: b64encode(stringify(data)),
+      }) });
+      return { sha: res.content.sha, data };
+    } catch (err) {
+      if (err.status !== 409 && err.status !== 422) throw err;
+      cur = await readFile(path);
+    }
+  }
+  throw new Error('Файл одновременно меняют с другого устройства. Обнови страницу и повтори.');
+}
+
+// ===================== мелочи =====================
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = n => String(n).padStart(2, '0');
+const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+const WEEKDAYS = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+let toastTimer = 0;
+function toast(text, err) {
+  const t = $('toast');
+  t.className = 'toast is-on' + (err ? ' toast--err' : '');
+  t.innerHTML = icon(err ? 'alert' : 'check') + '<span>' + esc(text) + '</span>';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('is-on'), err ? 7000 : 3500);
+}
+
+// Даты в данных — как было в таблице, по часам стримера: «DD.MM.YYYY» и «DD.MM.YYYY HH:MM»
+const today = () => { const p = siteTime.parts(new Date()); return { y: p.y, mo: p.mo, d: p.d, wd: p.wd }; };
+const fmtDay = (y, mo, d) => `${pad(d)}.${pad(mo + 1)}.${y}`;
+const todayStr = () => { const t = today(); return fmtDay(t.y, t.mo, t.d); };
+function splitDate(s) { // → {date: 'YYYY-MM-DD', time: 'HH:MM'} для полей ввода
+  const m = String(s || '').match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  return m ? { date: `${m[3]}-${pad(m[2])}-${pad(m[1])}`, time: m[4] ? `${pad(m[4])}:${m[5]}` : '' } : { date: '', time: '' };
+}
+function joinDate(date, time) {
+  const m = String(date || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}.${m[2]}.${m[1]}` + (time ? ' ' + time : '') : '';
+}
+const dayNo = s => { const d = siteTime.parse(s); if (!d) return null; const p = siteTime.parts(d); return Date.UTC(p.y, p.mo, p.d) / 864e5; };
+const todayNo = () => { const t = today(); return Date.UTC(t.y, t.mo, t.d) / 864e5; };
+function human(s) { // «сегодня в 20:00», «завтра в 20:00», «пт, 24 окт в 20:00»
+  const d = siteTime.parse(s);
+  if (!d) return s || '';
+  const p = siteTime.parts(d);
+  const hm = siteTime.hasTime(s) ? ` в ${pad(p.h)}:${pad(p.mi)}` : '';
+  const diff = dayNo(s) - todayNo();
+  if (diff === 0) return 'сегодня' + hm;
+  if (diff === 1) return 'завтра' + hm;
+  if (diff === -1) return 'вчера' + hm;
+  return `${WEEKDAYS[p.wd]}, ${p.d} ${MONTHS[p.mo]}${p.y !== today().y ? ' ' + p.y : ''}${hm}`;
+}
+const shortDay = s => { const d = siteTime.parse(s); if (!d) return s || ''; const p = siteTime.parts(d); return `${p.d} ${MONTHS[p.mo]} ${p.y}`; };
+
+// ===================== расписание (пока в листе Config таблицы) =====================
+const CONFIG_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=427100002&single=true&output=csv';
+const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+const schedule = { days: { sun: '1', mon: '1', tue: '1', wed: '1', thu: '1', fri: '1', sat: '' }, movie: '20:00' };
+async function loadSchedule() {
+  try {
+    const text = await siteData.text(CONFIG_CSV);
+    text.split('\n').forEach(line => {
+      const m = line.match(/^([a-z_]+),"?([^"\r]*)"?/);
+      if (!m) return;
+      const k = m[1], v = m[2].trim();
+      if (k.startsWith('schedule_')) schedule.days[k.slice(9)] = v;
+      if (k === 'movie_time' && /^\d{1,2}:\d{2}$/.test(v)) schedule.movie = v.padStart(5, '0');
+    });
+  } catch (e) { /* нет таблицы — обычное расписание */ }
+}
+// Ближайший стримовый день начиная с сегодняшнего, на который ещё не назначен (и не был просмотрен) фильм
+function nextStreamDay() {
+  const from = todayNo(), taken = new Set();
+  movies().forEach(it => {
+    if (it.scheduled_at && statusOf(it) !== 'paused') taken.add(dayNo(it.scheduled_at));
+    if (it.date_completed) taken.add(dayNo(it.date_completed));
+  });
+  for (let n = from; n < from + 15; n++) {
+    const d = new Date(n * 864e5);
+    if (schedule.days[DAY_KEYS[d.getUTCDay()]] && !taken.has(n)) return d.toISOString().slice(0, 10);
+  }
+  return new Date((from + 1) * 864e5).toISOString().slice(0, 10);
+}
+
+// ===================== данные фильмов =====================
+const PATH = 'data/movies.json';
+const STATUSES = [
+  { id: 'watching', label: 'Смотрим', tone: 'active' },
+  { id: 'pending', label: 'В очереди', tone: 'queue' },
+  { id: 'paused', label: 'На паузе', tone: 'paused' },
+  { id: 'watched', label: 'Просмотрено', tone: 'done' },
+];
+const STATUS = Object.fromEntries(STATUSES.map(s => [s.id, s]));
+const TYPES = { movie: 'Фильм', youtube: 'YouTube', other: 'Другое' };
+let file = null;          // { sha, data: {columns, items} }
+let meta = {};            // обложки и ссылки от робота (orders-meta.json)
+const statusOf = it => STATUS[(it.status || '').toLowerCase()] ? it.status.toLowerCase() : 'pending';
+const movies = () => file ? file.data.items : [];
+const isUpcoming = it => it.scheduled_at && !['watched', 'paused'].includes(statusOf(it)) && dayNo(it.scheduled_at) >= todayNo();
+const metaKey = title => 'movies|' + String(title || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('ru').replace(/ё/g, 'е');
+function coverOf(it) {
+  if (it.cover_url) return it.cover_url;
+  const m = meta[metaKey(it.title)];
+  if (m && m.found && m.cover) return m.cover;
+  const yt = (it.url || '').match(/(?:youtu\.be\/|[?&]v=|\/shorts\/|\/embed\/)([\w-]{11})/);
+  return yt ? `https://i.ytimg.com/vi/${yt[1]}/hqdefault.jpg` : '';
+}
+const posterStyle = it => { const c = coverOf(it); return c ? ` style="background-image:url(&quot;${esc(c.replace(/"/g, '%22'))}&quot;)"` : ''; };
+const titleOf = it => it.title || 'Без названия';
+const newId = () => Array.from(crypto.getRandomValues(new Uint8Array(4)), b => b.toString(16).padStart(2, '0')).join('');
+
+// Правка одного заказа по id → коммит → перерисовка
+async function save(message, mutate, btn) {
+  const btns = btn ? [].concat(btn) : [];
+  btns.forEach(b => { b.disabled = true; });
+  try {
+    file = await writeFile(PATH, file, mutate, message);
+    renderAll();
+    toast('Сохранено. На сайте — примерно через минуту.');
+    return true;
+  } catch (err) {
+    console.error(err);
+    toast(err.message, true);
+    return false;
+  } finally {
+    btns.forEach(b => { b.disabled = false; });
+  }
+}
+const byId = (data, id) => {
+  const it = data.items.find(x => x.id === id);
+  if (!it) throw new Error('Заказ не найден — возможно, его удалили с другого устройства. Обнови страницу.');
+  return it;
+};
+
+// ===================== вечер кино =====================
+// Сейчас: то, что смотрим, иначе назначенное на сегодня (или просроченное и не отмеченное)
+function currentFilm() {
+  const all = movies();
+  const watching = all.find(it => statusOf(it) === 'watching');
+  if (watching) return watching;
+  return all.filter(it => it.scheduled_at && statusOf(it) === 'pending' && dayNo(it.scheduled_at) <= todayNo())
+    .sort((a, b) => siteTime.parse(b.scheduled_at) - siteTime.parse(a.scheduled_at))[0] || null;
+}
+function nextFilm(cur) {
+  return movies().filter(it => it !== cur && isUpcoming(it) && statusOf(it) !== 'watching')
+    .sort((a, b) => siteTime.parse(a.scheduled_at) - siteTime.parse(b.scheduled_at))[0] || null;
+}
+function filmBlock(it, extra) {
+  return `<div class="film"><div class="film__poster"${posterStyle(it)}>${coverOf(it) ? '' : icon('film')}</div>
+    <div class="film__body"><div class="film__title">${esc(titleOf(it))}${it.year ? ` <small style="color:var(--dim);font-weight:400">${esc(it.year)}</small>` : ''}</div>
+    <div class="film__meta"><span>${icon('user')} ${esc(it.nick)}</span>${extra || ''}</div></div></div>`;
+}
+
+let rating = null;
+function renderNow() {
+  const box = $('slot-now');
+  const cur = currentFilm();
+  if (!cur) {
+    // Уже посмотрели сегодня — показываем итог вечера
+    const seen = movies().filter(it => statusOf(it) === 'watched' && it.date_completed && dayNo(it.date_completed) === todayNo()).pop();
+    box.innerHTML = `<div class="slot__head">${icon('play')}Сегодня</div>` + (seen
+      ? filmBlock(seen, `<span class="tag tag--done">Просмотрено</span>${seen.rating ? `<span class="tag tag--rating">${icon('star')} ${esc(String(seen.rating).replace('.', ','))}</span>` : ''}`) +
+        (seen.notes ? `<p class="empty-slot">«${esc(seen.notes)}»</p>` : '') +
+        `<div class="row"><button type="button" class="btn btn--ghost" id="seen-edit">${icon('pencil')}Изменить</button></div>`
+      : `<p class="empty-slot">На сегодня ничего не назначено. Назначь фильм справа — он появится в афише на главной.</p>`);
+    if (seen) $('seen-edit').addEventListener('click', () => openEditor(seen));
+    return;
+  }
+  const st = statusOf(cur);
+  const when = cur.scheduled_at ? `<span>${icon('calendar')} ${esc(human(cur.scheduled_at))}</span>` : '';
+  const stars = Array.from({ length: 10 }, (_, i) => `<button type="button" class="star-btn" data-r="${i + 1}">${i + 1}</button>`).join('');
+  box.innerHTML = `<div class="slot__head">${icon('play')}${st === 'watching' ? 'Смотрим сейчас' : 'Сегодня'}</div>
+    ${filmBlock(cur, when + `<span class="tag tag--${STATUS[st].tone}">${STATUS[st].label}</span>`)}
+    <div class="field"><span>Оценка <b class="rating-out" id="rating-out">—</b></span>
+      <div class="stars" id="stars">${stars}<button type="button" class="star-btn star-btn--half" data-half title="Добавить половинку">+½</button></div></div>
+    <label class="field"><span>Вердикт <em class="hint-inline">— зрители видят на обороте карточки</em></span>
+      <textarea class="inp" id="verdict" rows="3" placeholder="Пара слов о фильме...">${esc(cur.notes)}</textarea></label>
+    <div class="row">
+      <button type="button" class="btn btn--solid" id="done-btn">${icon('check')}Посмотрели</button>
+      ${st !== 'watching' ? `<button type="button" class="btn btn--ghost" id="start-btn">${icon('play')}Начали смотреть</button>` : ''}
+      <button type="button" class="btn btn--ghost" id="cur-edit">${icon('pencil')}Изменить</button>
+    </div>`;
+  rating = cur.rating ? parseFloat(cur.rating) : null;
+  const paint = () => {
+    $('rating-out').textContent = rating == null ? '—' : String(rating).replace('.', ',') + ' / 10';
+    box.querySelectorAll('.star-btn[data-r]').forEach(b => b.classList.toggle('is-on', rating != null && +b.dataset.r <= Math.floor(rating)));
+    box.querySelector('[data-half]').classList.toggle('is-on', rating != null && rating % 1 !== 0);
+  };
+  paint();
+  $('stars').addEventListener('click', e => {
+    const b = e.target.closest('.star-btn');
+    if (!b) return;
+    if ('half' in b.dataset) { if (rating != null && rating < 10) rating = rating % 1 ? Math.floor(rating) : rating + 0.5; }
+    else rating = +b.dataset.r === rating ? null : +b.dataset.r;
+    paint();
+  });
+  $('done-btn').addEventListener('click', e => {
+    if (rating == null && !confirm('Отметить без оценки?')) return;
+    const notes = $('verdict').value.trim(), r = rating, id = cur.id;
+    save(`Фильмы: «${titleOf(cur)}» просмотрен${r != null ? ', ' + r + '/10' : ''}`, data => {
+      const it = byId(data, id);
+      it.status = 'watched';
+      it.rating = r == null ? '' : String(r);
+      it.notes = notes;
+      it.date_completed = todayStr();
+    }, e.currentTarget);
+  });
+  if ($('start-btn')) $('start-btn').addEventListener('click', e => {
+    save(`Фильмы: смотрим «${titleOf(cur)}»`, data => { byId(data, cur.id).status = 'watching'; }, e.currentTarget);
+  });
+  $('cur-edit').addEventListener('click', () => openEditor(cur));
+}
+
+function renderNext() {
+  const box = $('slot-next');
+  const cur = currentFilm();
+  const next = nextFilm(cur);
+  const head = `<div class="slot__head">${icon('calendar')}Следующий фильм</div>`;
+  if (next) {
+    box.innerHTML = head + filmBlock(next, `<span>${icon('calendar')} ${esc(human(next.scheduled_at))}</span>`) +
+      `<div class="row"><button type="button" class="btn btn--ghost" id="next-edit">${icon('pencil')}Изменить</button>
+       <button type="button" class="btn btn--ghost" id="next-more">${icon('plus')}Назначить ещё один</button></div>`;
+    $('next-edit').addEventListener('click', () => openEditor(next));
+    $('next-more').addEventListener('click', () => { box.innerHTML = head + scheduler(); bindScheduler(); });
+    return;
+  }
+  box.innerHTML = head + scheduler();
+  bindScheduler();
+}
+// Форма «назначить»: поиск по очереди + дата (ближайший стримовый день) + время показа фильмов
+function scheduler() {
+  return `<div class="field pick"><span>Фильм из очереди</span>
+      <input class="inp" id="pick-q" placeholder="Начни вводить название или ник..." autocomplete="off">
+      <ul class="pick__list" id="pick-list" hidden></ul></div>
+    <div class="row">
+      <label class="field"><span>Дата</span><input class="inp" id="pick-date" type="date" value="${nextStreamDay()}"></label>
+      <label class="field"><span>Время</span><input class="inp" id="pick-time" type="time" value="${schedule.movie}"></label>
+    </div>
+    <div class="row"><button type="button" class="btn btn--solid" id="pick-btn" disabled>${icon('calendar')}Назначить</button>
+      <span class="hint-inline" id="pick-hint">Выбери фильм — он появится в афише на главной</span></div>`;
+}
+function bindScheduler() {
+  let chosen = null, hl = 0, shown = [];
+  const q = $('pick-q'), list = $('pick-list');
+  const queue = () => movies().filter(it => it.title && ['pending', 'paused'].includes(statusOf(it)) && !isUpcoming(it));
+  const draw = () => {
+    const s = q.value.trim().toLowerCase();
+    shown = queue().filter(it => !s || it.title.toLowerCase().includes(s) || it.nick.toLowerCase().includes(s)).slice(0, 40);
+    hl = Math.min(hl, Math.max(shown.length - 1, 0));
+    list.innerHTML = shown.length
+      ? shown.map((it, i) => `<li data-i="${i}" class="${i === hl ? 'is-hl' : ''}"><span>${esc(it.title)}</span><small>${esc(it.nick)}${statusOf(it) === 'paused' ? ' · на паузе' : ''}</small></li>`).join('')
+      : '<li class="pick__none">В очереди ничего не нашлось</li>';
+    list.hidden = false;
+  };
+  const choose = it => {
+    chosen = it; q.value = it.title; list.hidden = true;
+    $('pick-btn').disabled = false;
+    $('pick-hint').textContent = 'Заказал ' + it.nick;
+  };
+  q.addEventListener('focus', draw);
+  q.addEventListener('input', () => { chosen = null; $('pick-btn').disabled = true; hl = 0; draw(); });
+  q.addEventListener('keydown', e => {
+    if (list.hidden) return;
+    if (e.key === 'ArrowDown') { hl = Math.min(hl + 1, shown.length - 1); draw(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { hl = Math.max(hl - 1, 0); draw(); e.preventDefault(); }
+    else if (e.key === 'Enter' && shown[hl]) { choose(shown[hl]); e.preventDefault(); }
+    else if (e.key === 'Escape') list.hidden = true;
+  });
+  list.addEventListener('mousedown', e => { const li = e.target.closest('li[data-i]'); if (li) { e.preventDefault(); choose(shown[+li.dataset.i]); } });
+  q.addEventListener('blur', () => { list.hidden = true; });
+  $('pick-btn').addEventListener('click', e => {
+    const when = joinDate($('pick-date').value, $('pick-time').value);
+    if (!chosen || !when) return toast('Выбери фильм и дату', true);
+    const id = chosen.id;
+    save(`Фильмы: «${chosen.title}» на ${when}`, data => {
+      const it = byId(data, id);
+      it.scheduled_at = when;
+      if (statusOf(it) === 'paused') it.status = 'pending';
+    }, e.currentTarget);
+  });
+}
+
+// ===================== список =====================
+const view = { status: 'all', sort: 'smart', q: '' };
+const FILTERS = [
+  { id: 'all', label: 'Все' }, { id: 'queue', label: 'В очереди' }, { id: 'scheduled', label: 'Назначены' },
+  { id: 'paused', label: 'На паузе' }, { id: 'watched', label: 'Просмотрено' }, { id: 'blank', label: 'Без названия' },
+];
+const SORTS = [{ id: 'smart', label: 'По делу' }, { id: 'added', label: 'Новые' }, { id: 'rating', label: 'Оценка' }, { id: 'title', label: 'А–Я' }];
+const match = {
+  all: () => true,
+  queue: it => it.title && ['pending', 'watching'].includes(statusOf(it)) && !isUpcoming(it),
+  scheduled: it => isUpcoming(it) || statusOf(it) === 'watching',
+  paused: it => statusOf(it) === 'paused',
+  watched: it => statusOf(it) === 'watched',
+  blank: it => !it.title,
+};
+const added = it => { const d = siteTime.parse(it.date_added); return d ? d.getTime() : 0; };
+const completed = it => { const d = siteTime.parse(it.date_completed || it.scheduled_at); return d ? d.getTime() : 0; };
+const smartRank = it => statusOf(it) === 'watching' ? 0 : isUpcoming(it) ? 1 : statusOf(it) === 'pending' ? (it.title ? 2 : 3) : statusOf(it) === 'paused' ? 4 : 5;
+const SORT_FN = {
+  // Сначала то, что смотрим и назначено, потом очередь по давности заказа, внизу — просмотренное (свежие сверху)
+  smart: (a, b) => smartRank(a) - smartRank(b) ||
+    (smartRank(a) === 1 ? siteTime.parse(a.scheduled_at) - siteTime.parse(b.scheduled_at)
+      : smartRank(a) === 5 ? completed(b) - completed(a) : added(a) - added(b)),
+  added: (a, b) => added(b) - added(a),
+  rating: (a, b) => (parseFloat(b.rating) || -1) - (parseFloat(a.rating) || -1),
+  title: (a, b) => titleOf(a).localeCompare(titleOf(b), 'ru'),
+};
+function chips(box, list, key, counts) {
+  $(box).innerHTML = list.map(f => `<button type="button" class="chip${view[key] === f.id ? ' is-active' : ''}" data-v="${f.id}">${esc(f.label)}${counts ? ` <span class="count">${counts[f.id]}</span>` : ''}</button>`).join('');
+}
+function renderList() {
+  const all = movies();
+  const counts = Object.fromEntries(FILTERS.map(f => [f.id, all.filter(match[f.id]).length]));
+  chips('f-status', FILTERS, 'status', counts);
+  chips('f-sort', SORTS, 'sort');
+  const q = view.q;
+  const items = all.filter(match[view.status])
+    .filter(it => !q || (it.title || '').toLowerCase().includes(q) || (it.nick || '').toLowerCase().includes(q))
+    .sort(SORT_FN[view.sort]);
+  $('count').textContent = `Показано ${items.length} из ${all.length}`;
+  $('items').innerHTML = items.map(it => {
+    const st = statusOf(it);
+    const date = isUpcoming(it) ? `${icon('calendar')} ${esc(human(it.scheduled_at))}`
+      : st === 'watched' && (it.date_completed || it.scheduled_at) ? esc(shortDay(it.date_completed || it.scheduled_at))
+      : it.date_added ? 'заказан ' + esc(shortDay(it.date_added)) : '';
+    const sub = [TYPES[it.type] || '', it.notes ? '«' + it.notes + '»' : ''].filter(Boolean).join(' · ');
+    return `<li class="item${it.title ? '' : ' item--blank'}" data-id="${esc(it.id)}" tabindex="0">
+      <div class="item__poster"${posterStyle(it)}></div>
+      <div><div class="item__title">${esc(titleOf(it))}${it.year ? `<small>${esc(it.year)}</small>` : ''}</div><div class="item__sub">${esc(sub)}</div></div>
+      <div class="item__nick">${esc(it.nick)}</div>
+      <div class="item__status"><span class="tag tag--${isUpcoming(it) && st === 'pending' ? 'show' : STATUS[st].tone}">${isUpcoming(it) && st === 'pending' ? 'Назначен' : STATUS[st].label}</span></div>
+      <div class="item__rating">${it.rating ? esc(String(it.rating).replace('.', ',')) : ''}</div>
+      <div class="item__date">${date}</div></li>`;
+  }).join('') || '<li class="empty-state" style="padding:20px">Ничего не нашлось</li>';
+  $('nicks').innerHTML = [...new Set(all.map(it => it.nick).filter(Boolean))].sort((a, b) => a.localeCompare(b)).map(n => `<option value="${esc(n)}">`).join('');
+}
+$('f-status').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) { view.status = b.dataset.v; renderList(); } });
+$('f-sort').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) { view.sort = b.dataset.v; renderList(); } });
+$('q').addEventListener('input', e => { view.q = e.target.value.trim().toLowerCase(); renderList(); });
+const openFromList = e => {
+  const li = e.target.closest('.item');
+  if (li && (e.type === 'click' || e.key === 'Enter')) openEditor(movies().find(it => it.id === li.dataset.id));
+};
+$('items').addEventListener('click', openFromList);
+$('items').addEventListener('keydown', openFromList);
+
+// ===================== редактор =====================
+const ed = $('editor'), form = $('ed-form');
+form.elements.status.innerHTML = STATUSES.map(s => `<option value="${s.id}">${s.label}</option>`).join('');
+let editing = null; // null — новый заказ
+function openEditor(it) {
+  editing = it || null;
+  const v = it || { status: 'pending', type: 'movie', date_added: todayStr() };
+  $('ed-title').textContent = it ? 'Заказ' : 'Новый заказ';
+  ['title', 'year', 'nick', 'url', 'cover_url', 'notes', 'rating', 'format'].forEach(k => { form.elements[k].value = v[k] || ''; });
+  form.elements.type.value = TYPES[v.type] ? v.type : 'other';
+  form.elements.status.value = statusOf(v);
+  const show = splitDate(v.scheduled_at);
+  form.elements.show_date.value = show.date;
+  form.elements.show_time.value = show.time;
+  form.elements.date_added.value = splitDate(v.date_added).date;
+  form.elements.date_completed.value = splitDate(v.date_completed).date;
+  $('ed-delete').hidden = !it;
+  paintCover();
+  ed.showModal();
+  if (!it) form.elements.title.focus();
+}
+function paintCover() {
+  const fake = { cover_url: form.elements.cover_url.value.trim(), title: form.elements.title.value, url: form.elements.url.value };
+  $('ed-cover').outerHTML = `<div class="item__poster" id="ed-cover"${posterStyle(fake)}></div>`;
+}
+form.elements.cover_url.addEventListener('input', paintCover);
+form.elements.url.addEventListener('change', paintCover);
+form.elements.status.addEventListener('change', () => {
+  if (form.elements.status.value === 'watched' && !form.elements.date_completed.value) form.elements.date_completed.value = splitDate(todayStr()).date;
+});
+form.elements.show_date.addEventListener('change', () => {
+  if (form.elements.show_date.value && !form.elements.show_time.value) form.elements.show_time.value = schedule.movie;
+});
+const closeEditor = () => ed.close();
+$('ed-close').addEventListener('click', closeEditor);
+$('ed-cancel').addEventListener('click', closeEditor);
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = form.elements;
+  const r = f.rating.value === '' ? '' : String(Math.min(10, Math.max(0, parseFloat(f.rating.value))));
+  const fields = {
+    title: f.title.value.trim(), year: f.year.value.trim(), nick: f.nick.value.trim(), type: f.type.value,
+    url: f.url.value.trim(), status: f.status.value, rating: r, cover_url: f.cover_url.value.trim(),
+    date_added: joinDate(f.date_added.value), date_completed: joinDate(f.date_completed.value),
+    notes: f.notes.value.trim(), scheduled_at: joinDate(f.show_date.value, f.show_time.value), format: f.format.value,
+  };
+  const id = editing ? editing.id : newId();
+  const ok = await save(editing ? `Фильмы: правка «${fields.title}»` : `Фильмы: новый заказ «${fields.title}» от ${fields.nick}`, data => {
+    if (editing) Object.assign(byId(data, id), fields);
+    else {
+      const it = Object.fromEntries(data.columns.map(c => [c, '']));
+      data.items.push(Object.assign(it, { id }, fields));
+    }
+  }, [$('ed-save'), $('ed-delete')]);
+  if (ok) closeEditor();
+});
+$('ed-delete').addEventListener('click', async () => {
+  if (!editing || !confirm(`Удалить «${titleOf(editing)}» (${editing.nick}) насовсем?\nВернуть можно будет только через историю git.`)) return;
+  const id = editing.id;
+  const ok = await save(`Фильмы: удалён «${titleOf(editing)}»`, data => {
+    byId(data, id);
+    data.items = data.items.filter(x => x.id !== id);
+  }, [$('ed-save'), $('ed-delete')]);
+  if (ok) closeEditor();
+});
+$('add').addEventListener('click', () => openEditor(null));
+
+// ===================== запуск =====================
+function renderAll() { renderNow(); renderNext(); renderList(); }
+
+async function start() {
+  $('loading').hidden = false;
+  $('loading').textContent = 'Загружаю...';
+  $('auth').hidden = true;
+  $('app').hidden = true;
+  try {
+    const [f, m, , user] = await Promise.all([
+      readFile(PATH),
+      fetch('orders-meta.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+      loadSchedule(),
+      fetch('https://api.github.com/user', { headers: { Authorization: 'Bearer ' + token } }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+    ]);
+    file = f;
+    meta = (m && m.items) || {};
+    $('who').textContent = user.login ? 'Вход: ' + user.login : 'Токен подключён';
+    $('loading').hidden = true;
+    $('app').hidden = false;
+    renderAll();
+  } catch (err) {
+    console.error(err);
+    $('loading').hidden = true;
+    showAuth(err.message);
+  }
+}
+function showAuth(error) {
+  $('auth').hidden = false;
+  $('app').hidden = true;
+  $('auth-error').hidden = !error;
+  $('auth-error').textContent = error || '';
+}
+$('auth-form').addEventListener('submit', e => {
+  e.preventDefault();
+  token = $('auth-token').value.trim();
+  try { localStorage.setItem(TOKEN_KEY, token); } catch (err) { /* только на эту вкладку */ }
+  $('auth-token').value = '';
+  start();
+});
+$('logout').addEventListener('click', () => {
+  if (!confirm('Убрать токен из этого браузера? Чтобы снова править, понадобится вставить его заново.')) return;
+  try { localStorage.removeItem(TOKEN_KEY); } catch (e) { /* нечего убирать */ }
+  token = '';
+  showAuth();
+});
+// Дата «сегодня» меняется в полночь — раз в несколько минут перерисовываем вечер кино (если не печатаем)
+setInterval(() => {
+  if (!file || ed.open || document.activeElement && document.activeElement.closest('.slot')) return;
+  renderNow(); renderNext();
+}, 5 * 60000);
+
+if (token) start(); else { $('loading').hidden = true; showAuth(); }
+})();
+</script>
+</body>
+</html>

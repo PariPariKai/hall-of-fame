@@ -8,12 +8,12 @@
 <title>Заказы фильмов — Hall of Fame</title>
 <link rel="stylesheet" href="site.css?v=5">
 <script>
-  // Лист Movies. Карточки, фильтры и загрузка — общие для всех заказов, см. orders.js.
+  // Фильмы — data/movies.json (правится на admin.html). Карточки, фильтры и загрузка — общие для всех заказов, см. orders.js.
   window.ORDERS_PAGE = {
     list: 'movies',
     sheet: 'Movies',
     noun: 'фильмов',
-    csv: "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=627100002&single=true&output=csv",
+    src: 'data/movies.json',
     // weight — порядок в сортировке «По статусу»; done — заказ закрыт
     statuses: [
       { id: 'pending',  label: 'В очереди',   tone: 'queue',  weight: 1 },
@@ -31,7 +31,7 @@
 </script>
 </head>
 <body>
-<script src="site.js?v=8"></script>
+<script src="site.js?v=9"></script>
 
 <div class="wrap">
   <header class="header">
@@ -58,6 +58,6 @@
   <p id="no-results" class="empty-state" hidden></p>
 </div>
 
-<script src="orders.js?v=3"></script>
+<script src="orders.js?v=4"></script>
 </body>
 </html>

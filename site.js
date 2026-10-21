@@ -77,6 +77,7 @@
     <li class="site-nav__dd">
       <button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">Для стримера <span class="site-nav__caret">▾</span></button>
       <ul class="site-nav__menu">
+        <li><a href="admin.html">Админка сайта</a></li>
         <li><a href="chat-wheel.html">Чат-рулетка</a></li>
         <li><a href="pain.html">Боль стримера за шекели</a></li>
         <li><a href="cards.html">Админка-рулетка</a></li>
@@ -236,4 +237,28 @@
     toggle: toggleHTML,
     onChange: fn => listeners.push(fn),
   };
+})();
+
+// ===== Данные сайта: data/*.json вместо листов Google =====
+// Разделы переезжают из таблицы в data/<раздел>.json (правятся на admin.html).
+// siteData.text(src) отдаёт текст в формате CSV и для JSON, и для старой ссылки на лист —
+// так страницы переходят на JSON заменой одной ссылки, а их разбор CSV остаётся прежним.
+// Формат файла: { "columns": [...], "items": [{колонка: "строка"}, ...] }.
+(function () {
+  'use strict';
+  const cell = v => {
+    const s = v == null ? '' : String(v);
+    return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  function toCSV(data) {
+    const cols = data.columns || [...new Set((data.items || []).flatMap(Object.keys))];
+    return [cols, ...(data.items || []).map(o => cols.map(c => o[c]))].map(r => r.map(cell).join(',')).join('\n') + '\n';
+  }
+  async function text(src, opts) {
+    const isJson = /\.json(\?|$)/.test(src);
+    const res = await fetch(src, Object.assign(isJson ? { cache: 'no-cache' } : {}, opts));
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return isJson ? toCSV(await res.json()) : res.text();
+  }
+  window.siteData = { text, toCSV };
 })();

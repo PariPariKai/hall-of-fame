@@ -460,7 +460,8 @@ async function load() {
   const status = $('status');
   try {
     const [csv, viewersCsv, meta, quips] = await Promise.all([
-      fetch(CFG.csv).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status} при загрузке листа ${CFG.sheet}`); return r.text(); }),
+      // src — data/*.json (раздел уже переехал из таблицы) или старая ссылка csv на лист
+      siteData.text(CFG.src || CFG.csv).catch(e => { throw new Error(`${e.message} при загрузке списка ${CFG.sheet}`); }),
       fetch(VIEWERS_CSV_URL).then(r => r.ok ? r.text() : '').catch(() => ''),
       ORDERS_META,
       ORDERS_QUIPS,

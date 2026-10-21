@@ -26,10 +26,11 @@ const RETRY_MISSING_DAYS = 7; // ненайденное перепроверяе
 // avoid смотрит только на начало описания («японская манга», «2009 video game»): «фильм по мотивам романа» — не роман.
 const NOT_SCREEN = String.raw`роман|novel|манга|manga|ранобэ|light novel|видеоигр|video game|компьютерн\S* игр|игра|game|album|альбом|song|песня|комикс|comic`;
 const lead = words => new RegExp(String.raw`^(?:[\p{L}\p{N}-]+\s+){0,3}(?:${words})`, 'iu');
+// gid — лист Google; file — раздел, переехавший в data/*.json (правится на admin.html)
 // kind: 'screen' — Кинопоиск/Shikimori, 'game' — Steam (общий поиск с «Болью», lib/games.mjs)
 const LISTS = {
   anime:  {gid: '627100001', kind: 'screen', want: /аниме|anime|мульт|animat/i, avoid: lead(NOT_SCREEN), requireWant: true, kpPath: 'film'},
-  movies: {gid: '627100002', kind: 'screen', want: /фильм|film|мульт|movie/i, avoid: lead(NOT_SCREEN + '|телесериал|сериал|television series|tv series|web series'), kpPath: 'film'},
+  movies: {file: 'data/movies.json', kind: 'screen', want: /фильм|film|мульт|movie/i, avoid: lead(NOT_SCREEN + '|телесериал|сериал|television series|tv series|web series'), kpPath: 'film'},
   series: {gid: '627100003', kind: 'screen', want: /сериал|series|дорам|drama/i, avoid: lead(NOT_SCREEN + '|фильм|film'), kpPath: 'series'},
   games:  {gid: '727100001', kind: 'game'},
 };
@@ -261,9 +262,15 @@ const seen = []; // все тайтлы всех списков — для по�
 let looked = 0;
 
 for (const [list, cfg] of Object.entries(LISTS)) {
-  const res = await fetch(CSV + cfg.gid + '&cache=' + Date.now(), {headers: UA});
-  if (!res.ok) throw new Error(`Лист ${list} недоступен: HTTP ${res.status}`);
-  const rows = parseCSV(await res.text());
+  let rows;
+  if (cfg.file) {
+    const data = JSON.parse(fs.readFileSync(new URL('../../' + cfg.file, import.meta.url), 'utf8'));
+    rows = [data.columns, ...data.items.map(o => data.columns.map(c => o[c] ?? ''))];
+  } else {
+    const res = await fetch(CSV + cfg.gid + '&cache=' + Date.now(), {headers: UA});
+    if (!res.ok) throw new Error(`Лист ${list} недоступен: HTTP ${res.status}`);
+    rows = parseCSV(await res.text());
+  }
   const header = rows[0].map(h => h.trim().toLowerCase());
   const col = n => header.indexOf(n);
   const [cTitle, cUrl, cCover, cType, cYear, cAdded] = [col('title'), col('url'), col('cover_url'), col('type'), col('year'), col('date_added')];
