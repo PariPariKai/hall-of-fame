@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex">
 <title>Админка — Hall of Fame</title>
-<link rel="stylesheet" href="site.css?v=5">
+<link rel="stylesheet" href="site.css?v=6">
 <!--
   Админка сайта: правит data/*.json прямо в репозитории через GitHub API (каждое сохранение — коммит в main,
   GitHub Pages обновляет сайт примерно за минуту, робот orders-meta сразу ищет обложки новым заказам).
@@ -13,42 +13,7 @@
   Токен хранится только в этом браузере (localStorage), на сайт и в репозиторий не попадает.
 -->
 <style>
-  .panel {
-    background: rgba(20,25,41,0.85); border: 1px solid var(--line); border-radius: 18px; padding: 20px 22px; margin-bottom: 22px;
-  }
-  .panel__title {
-    display: flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 700; letter-spacing: 2px;
-    text-transform: uppercase; color: var(--gold); margin-bottom: 14px;
-  }
-  .panel__title .ic { font-size: 15px; }
-  .panel__note { font-size: 13px; color: var(--muted); line-height: 1.6; }
-  .panel__note a { color: var(--gold); }
-  .panel__note ol { margin: 8px 0 0 20px; }
-  .panel__note b { color: #fff; }
-
-  /* поля ввода — в стиле поиска сайта */
-  .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-  .field > span { font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--dim); }
-  .inp {
-    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
-    padding: 10px 12px; color: #fff; font-family: inherit; font-size: 14px; width: 100%; outline: none;
-    transition: border-color .15s ease, background .15s ease; color-scheme: dark;
-  }
-  .inp:focus { border-color: rgba(var(--gold-rgb),0.5); background: rgba(255,255,255,0.05); }
-  .inp::placeholder { color: rgba(255,255,255,0.35); }
-  textarea.inp { resize: vertical; min-height: 74px; line-height: 1.5; }
-  select.inp option { background: var(--panel); }
-  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
-  .row > .field { flex: 1 1 140px; }
-
-  .btn--solid { background: var(--gold); color: #1a1206; border-color: var(--gold); }
-  .btn--solid:hover { background: #ffd690; }
-  .btn--ghost { background: transparent; border-color: rgba(255,255,255,0.18); color: rgba(255,255,255,0.8); }
-  .btn--ghost:hover { background: rgba(255,255,255,0.06); }
-  .btn--danger { background: transparent; border-color: rgba(240,80,80,0.45); color: var(--red); }
-  .btn--danger:hover { background: rgba(240,80,80,0.1); }
-  .btn[disabled] { opacity: .5; cursor: wait; transform: none; }
-  .btn--sm { padding: 6px 11px; font-size: 12px; }
+  /* Панели, поля, кнопки и уведомление — общие, в site.css */
 
   /* ---------- вкладки разделов ---------- */
   .tabs { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 22px; }
@@ -131,19 +96,6 @@
   .editor__cover .field { flex: 1; }
   .editor__foot { display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap; padding-top: 4px; }
   .editor__foot div { display: flex; gap: 10px; }
-  .hint-inline { font-size: 12px; color: var(--dim); }
-
-  /* ---------- уведомление ---------- */
-  .toast {
-    position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; z-index: 200;
-    background: #1b2133; border: 1px solid rgba(var(--gold-rgb),0.4); color: #fff; border-radius: 12px; padding: 12px 18px;
-    font-size: 14px; box-shadow: 0 14px 40px rgba(0,0,0,0.5); transition: all .25s ease; max-width: calc(100vw - 32px);
-    display: flex; gap: 9px; align-items: center;
-  }
-  .toast.is-on { opacity: 1; transform: translate(-50%, 0); }
-  .toast--err { border-color: rgba(240,80,80,0.6); }
-  .toast--err .ic { color: var(--red); }
-  .toast .ic { color: var(--green); }
 
   .foot { text-align: center; font-size: 12px; color: var(--dim); margin-top: 26px; }
   .foot button { background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font: inherit; }
@@ -158,7 +110,6 @@
     .list-tools .search { width: 100%; }
   }
   @media (max-width: 520px) {
-    .panel { padding: 16px 14px; }
     .editor__form { padding: 16px; }
     .stars { gap: 3px; }
     .star-btn { height: 34px; font-size: 13px; border-radius: 8px; }
@@ -166,7 +117,7 @@
 </style>
 </head>
 <body>
-<script src="site.js?v=9"></script>
+<script src="site.js?v=10"></script>
 
 <div class="wrap">
   <header class="header">
@@ -272,66 +223,12 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="github.js?v=1"></script>
 <script>
 (function () {
 'use strict';
-// ===================== GitHub: чтение и запись файлов репозитория =====================
-const REPO = 'PariPariKai/hall-of-fame';
-const BRANCH = 'main';
-const TOKEN_KEY = 'hof-gh-token';
-let token = '';
-try { token = localStorage.getItem(TOKEN_KEY) || ''; } catch (e) { /* без хранилища — спросим токен заново */ }
-
-async function gh(path, opts) {
-  const res = await fetch('https://api.github.com/repos/' + REPO + path, Object.assign({ cache: 'no-store' }, opts, {
-    headers: Object.assign({ Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
-      opts && opts.headers),
-  }));
-  if (!res.ok) {
-    let msg = '';
-    try { msg = (await res.json()).message || ''; } catch (e) { /* пустой ответ */ }
-    const err = new Error(res.status === 401 ? 'GitHub не принял токен — возможно, он истёк. Подключи новый.'
-      : res.status === 403 || res.status === 404 ? 'У токена нет доступа к репозиторию hall-of-fame (нужно Contents: Read and write).'
-      : `GitHub: ${res.status} ${msg}`);
-    err.status = res.status;
-    throw err;
-  }
-  return res.json();
-}
-const b64encode = str => {
-  const bytes = new TextEncoder().encode(str);
-  let bin = '';
-  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
-  return btoa(bin);
-};
-const b64decode = b64 => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\s/g, '')), c => c.charCodeAt(0)));
-// Один заказ — одна строка: в истории git видно, что именно поменялось
-const stringify = data => '{\n  "columns": ' + JSON.stringify(data.columns) + ',\n  "items": [\n' +
-  data.items.map(o => '    ' + JSON.stringify(o)).join(',\n') + '\n  ]\n}\n';
-
-async function readFile(path) {
-  const f = await gh('/contents/' + path + '?ref=' + BRANCH);
-  return { sha: f.sha, data: JSON.parse(b64decode(f.content)) };
-}
-// Правка = функция над свежими данными. Если файл успели поменять с другого устройства (sha устарел),
-// перечитываем и применяем правку заново — ничего чужого не затираем.
-async function writeFile(path, file, mutate, message) {
-  let cur = file;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const data = structuredClone(cur.data);
-    mutate(data);
-    try {
-      const res = await gh('/contents/' + path, { method: 'PUT', body: JSON.stringify({
-        message, branch: BRANCH, sha: cur.sha, content: b64encode(stringify(data)),
-      }) });
-      return { sha: res.content.sha, data };
-    } catch (err) {
-      if (err.status !== 409 && err.status !== 422) throw err;
-      cur = await readFile(path);
-    }
-  }
-  throw new Error('Файл одновременно меняют с другого устройства. Обнови страницу и повтори.');
-}
+// GitHub: чтение и запись файлов репозитория, токен — github.js
+const { readFile, writeFile } = siteGit;
 
 // ===================== мелочи =====================
 const $ = id => document.getElementById(id);
@@ -749,7 +646,7 @@ async function start() {
       readFile(PATH),
       fetch('orders-meta.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
       loadSchedule(),
-      fetch('https://api.github.com/user', { headers: { Authorization: 'Bearer ' + token } }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+      siteGit.user(),
     ]);
     file = f;
     meta = (m && m.items) || {};
@@ -771,15 +668,13 @@ function showAuth(error) {
 }
 $('auth-form').addEventListener('submit', e => {
   e.preventDefault();
-  token = $('auth-token').value.trim();
-  try { localStorage.setItem(TOKEN_KEY, token); } catch (err) { /* только на эту вкладку */ }
+  siteGit.setToken($('auth-token').value.trim());
   $('auth-token').value = '';
   start();
 });
 $('logout').addEventListener('click', () => {
   if (!confirm('Убрать токен из этого браузера? Чтобы снова править, понадобится вставить его заново.')) return;
-  try { localStorage.removeItem(TOKEN_KEY); } catch (e) { /* нечего убирать */ }
-  token = '';
+  siteGit.setToken('');
   showAuth();
 });
 // Дата «сегодня» меняется в полночь — раз в несколько минут перерисовываем вечер кино (если не печатаем)
@@ -788,7 +683,7 @@ setInterval(() => {
   renderNow(); renderNext();
 }, 5 * 60000);
 
-if (token) start(); else { $('loading').hidden = true; showAuth(); }
+if (siteGit.token) start(); else { $('loading').hidden = true; showAuth(); }
 })();
 </script>
 </body>

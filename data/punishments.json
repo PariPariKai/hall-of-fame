@@ -1,0 +1,5 @@
+{
+  "columns": ["id","at","nick","rule","rule_title","level","repeat","outcome","until","status","lifted_at","note"],
+  "items": [
+  ]
+}

@@ -1,0 +1,56 @@
+/* «Преступление и наказание» — общее для rules.html и court.html (поверх site.css). */
+
+/* ---------- ступени тяжести: цвет задаёт класс .lvl--N ---------- */
+.lvl--1 { --lvl: #97C459; --lvl-rgb: 151, 196, 89; }
+.lvl--2 { --lvl: #88B4F5; --lvl-rgb: 136, 180, 245; }
+.lvl--3 { --lvl: #FAC775; --lvl-rgb: 250, 199, 117; }
+.lvl--4 { --lvl: #ff9f6a; --lvl-rgb: 255, 140, 80; }
+.lvl--5 { --lvl: #F38787; --lvl-rgb: 240, 80, 80; }
+.lvl-badge {
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 999px; color: var(--lvl);
+  background: rgba(var(--lvl-rgb), 0.12); border: 1px solid rgba(var(--lvl-rgb), 0.45);
+}
+.lvl-dots { display: inline-flex; gap: 3px; }
+.lvl-dots i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: .25; }
+.lvl-dots i.on { opacity: 1; }
+
+/* ---------- шансы ступени: полоса из 20 делений и подписи ---------- */
+.odds { display: grid; gap: 8px; }
+.odds__bar { display: flex; height: 10px; border-radius: 6px; overflow: hidden; gap: 2px; }
+.odds__bar span { flex: var(--n) 1 0; background: var(--ink); opacity: .85; }
+.odds__list { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); }
+.odds__list span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.odds__list i { width: 8px; height: 8px; border-radius: 2px; background: var(--ink); flex: 0 0 auto; }
+.odds__list b { color: #fff; font-weight: 600; }
+
+/* ---------- приговор в тексте ---------- */
+.sentence { color: var(--ink); font-weight: 700; white-space: nowrap; }
+
+/* ---------- история приговоров ---------- */
+.cases { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.case {
+  display: grid; grid-template-columns: 118px minmax(120px, 1fr) minmax(0, 1.6fr) 150px 150px; gap: 14px; align-items: center;
+  padding: 10px 14px; border-radius: 12px; background: rgba(255,255,255,0.025); border: 1px solid transparent;
+}
+.case:hover { background: rgba(255,255,255,0.045); border-color: var(--line); }
+.case__date { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.case__nick { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.case__rule { min-width: 0; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.case__rule-title { font-size: 13px; color: rgba(255,255,255,0.85); overflow-wrap: anywhere; }
+.case__rule-title small { color: var(--red); font-size: 11px; letter-spacing: .5px; margin-left: 6px; white-space: nowrap; }
+.case__note { font-size: 12px; color: var(--dim); font-style: italic; overflow-wrap: anywhere; }
+.case__sentence { font-size: 13px; }
+.case__state { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; font-size: 11.5px; color: var(--dim); }
+.case.is-old { opacity: .6; }
+.case.is-old:hover { opacity: 1; }
+
+@media (max-width: 900px) {
+  .case { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; }
+  .case__nick { grid-column: 1; grid-row: 1; }
+  .case__date { grid-column: 2; grid-row: 1; text-align: right; }
+  .case__rule { grid-column: 1 / -1; }
+  .case__sentence { grid-column: 1; }
+  .case__state { grid-column: 2; align-items: flex-end; }
+}

@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Рулетка наказаний — Hall of Fame</title>
+<link rel="stylesheet" href="site.css?v=6">
+<link rel="stylesheet" href="court.css?v=1">
+<!--
+  Суд: стример выбирает нарушителя (ник подхватывается из чата Twitch — в том числе сам, когда ему дают мут)
+  и статью из data/rules.json. Тяжесть статьи задаёт колесо из 20 делений (court.js), приговор сразу
+  записывается в data/punishments.json — его видно на rules.html. Пишет через github.js тем же токеном, что и admin.html.
+  Мут и бан в Twitch выдаются руками: страница готовит команду для чата и копирует её.
+-->
+<style>
+  .court { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 540px); gap: 22px; align-items: start; }
+  .court .panel { margin-bottom: 0; }
+  .court__side { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+
+  /* ---------- подсудимый и чат ---------- */
+  .chat-line { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 12px; }
+  .conn { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--dim); margin-right: 6px; }
+  .conn i { width: 8px; height: 8px; border-radius: 50%; background: #555c6e; }
+  .conn.is-online i { background: var(--green); box-shadow: 0 0 8px rgba(151,196,89,0.6); }
+  .conn.is-connecting i { background: var(--gold); }
+  .chatter { padding: 5px 11px; font-size: 12px; }
+  .chatter.is-hot { border-color: rgba(240,80,80,0.6); color: var(--red); background: rgba(240,80,80,0.1); }
+  .record { margin-top: 14px; font-size: 13px; color: var(--muted); line-height: 1.55; }
+  .record b { color: #fff; }
+  .repeat { display: flex; align-items: center; gap: 9px; margin-top: 10px; font-size: 13px; cursor: pointer; user-select: none; }
+  .repeat input { accent-color: var(--red); width: 16px; height: 16px; }
+  .repeat b { color: var(--red); }
+
+  /* ---------- статьи ---------- */
+  .articles { display: flex; flex-direction: column; gap: 14px; }
+  .articles__group { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+  .articles__list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .article {
+    border: 1px solid rgba(255,255,255,0.14); border-radius: 10px; background: transparent; color: rgba(255,255,255,0.8);
+    padding: 7px 12px; font: 13px var(--font); cursor: pointer; transition: all .12s ease; text-align: left;
+  }
+  .article:hover { border-color: rgba(var(--lvl-rgb),0.6); color: #fff; }
+  .article.is-on { border-color: var(--lvl); color: var(--lvl); background: rgba(var(--lvl-rgb),0.14); box-shadow: 0 0 14px rgba(var(--lvl-rgb),0.2); }
+  .article[disabled] { cursor: not-allowed; opacity: .5; }
+
+  /* ---------- колесо ---------- */
+  .wheel-panel { position: sticky; top: 76px; display: flex; flex-direction: column; gap: 16px; align-items: stretch; }
+  .charge { display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; min-height: 54px; }
+  .charge__who { font-size: 22px; font-weight: 700; letter-spacing: .5px; overflow-wrap: anywhere; }
+  .charge__who.is-empty { color: var(--dim); font-weight: 400; font-size: 15px; }
+  .charge__rule { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; font-size: 13px; color: var(--muted); }
+  .wheel-stage { position: relative; }
+  .wheel-box { position: relative; width: 100%; max-width: 430px; margin: 0 auto; aspect-ratio: 230 / 237; }
+  .wheel-box svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .wheel-box.is-idle #wheel-group { opacity: .32; }
+  .wheel-label { font: 700 9.5px var(--font); fill: #fff; letter-spacing: .3px; paint-order: stroke; stroke: rgba(0,0,0,0.35); stroke-width: 1.2px; }
+  .wheel-live {
+    text-align: center; font-size: 26px; font-weight: 800; letter-spacing: 4px; text-transform: uppercase; min-height: 34px;
+    color: var(--ink, var(--dim)); text-shadow: 0 0 18px var(--ink, transparent); transition: color .08s linear;
+  }
+  .spin-row { display: flex; gap: 10px; justify-content: center; }
+  .btn--big { padding: 13px 34px; font-size: 16px; letter-spacing: 2px; text-transform: uppercase; }
+
+  /* ---------- приговор: карточка поверх колеса ---------- */
+  #result { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; padding: 0 6px; }
+  #result[hidden] { display: none; }
+  .result {
+    width: 100%; max-width: 470px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    display: flex; flex-direction: column; gap: 12px; align-items: center; text-align: center;
+    padding: 20px 18px; border-radius: 16px; border: 1px solid var(--ink); background: rgba(10,14,26,0.9);
+    box-shadow: 0 0 34px color-mix(in srgb, var(--ink) 30%, transparent); animation: verdict-in .5s cubic-bezier(.3,1.5,.5,1);
+  }
+  @keyframes verdict-in { from { transform: scale(.85); opacity: 0; } }
+  .result__label { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--dim); }
+  .result__sentence { font-size: 32px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--ink); line-height: 1.15; }
+  .result__who { font-size: 14px; color: var(--muted); }
+  .result__who b { color: #fff; }
+  .cmd { display: flex; gap: 8px; align-items: stretch; width: 100%; }
+  .cmd code {
+    flex: 1 1 auto; min-width: 0; text-align: left; padding: 9px 12px; border-radius: 10px; font: 13px Consolas, "Courier New", monospace;
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); overflow-wrap: anywhere; color: #fff;
+  }
+  .save-state { font-size: 12.5px; color: var(--dim); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .save-state.is-ok { color: var(--green); }
+  .save-state.is-err { color: var(--red); }
+
+  /* ---------- история ---------- */
+  .history { margin-top: 22px; }
+  .history .list-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .history .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .case__actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+  .case__actions .btn--sm { padding: 4px 9px; font-size: 11.5px; }
+  .foot { text-align: center; font-size: 12px; color: var(--dim); margin-top: 26px; }
+  .foot a { color: inherit; }
+
+  @media (max-width: 1000px) {
+    .court { grid-template-columns: minmax(0, 1fr); }
+    .wheel-panel { position: static; order: -1; }
+  }
+  @media (max-width: 520px) {
+    .result__sentence { font-size: 24px; }
+    .wheel-live { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+<script src="site.js?v=10"></script>
+
+<div class="wrap">
+  <header class="header">
+    <h1 class="title"><svg class="ic" aria-hidden="true"><use href="#i-gavel"></use></svg>Рулетка наказаний<svg class="ic" aria-hidden="true"><use href="#i-gavel"></use></svg></h1>
+    <p class="subtitle">Преступление и наказание · приговор сразу попадает в <a class="accent" href="rules.html" style="text-decoration:none">историю на сайте</a></p>
+  </header>
+
+  <section class="panel" id="auth" hidden>
+    <h2 class="panel__title"><svg class="ic"><use href="#i-shield"></use></svg>Нужен токен GitHub</h2>
+    <p class="panel__note">Приговоры записываются прямо в репозиторий сайта — тем же токеном, что и в админке.
+      Подключи его на странице <a href="admin.html">Админка сайта</a> в этом браузере и вернись сюда.</p>
+    <p class="panel__note" id="auth-error" style="color:var(--red);margin-top:10px" hidden></p>
+  </section>
+
+  <div id="app" hidden>
+    <div class="court">
+      <div class="court__side">
+        <section class="panel" aria-label="Подсудимый">
+          <h2 class="panel__title"><svg class="ic"><use href="#i-user"></use></svg>Подсудимый</h2>
+          <label class="field"><span>Ник <em class="hint-inline">— дай мут в чате, и ник подставится сам</em></span>
+            <input class="inp" id="nick" list="nicks" autocomplete="off" placeholder="Кто провинился"></label>
+          <div class="chat-line" id="chatters"></div>
+          <div class="record" id="record"></div>
+        </section>
+
+        <section class="panel" aria-label="Статья">
+          <h2 class="panel__title"><svg class="ic"><use href="#i-scale"></use></svg>Статья</h2>
+          <div class="articles" id="articles"></div>
+          <label class="field" style="margin-top:16px"><span>Комментарий <em class="hint-inline">— необязательно, виден в истории на сайте</em></span>
+            <input class="inp" id="note" maxlength="140" placeholder="Например: «после трёх просьб остыть»"></label>
+        </section>
+      </div>
+
+      <section class="panel wheel-panel" id="wheel-panel" aria-label="Рулетка">
+        <div class="charge" id="charge"></div>
+        <div class="wheel-stage">
+          <div class="wheel-box is-idle" id="wheel-box"></div>
+          <div id="result" hidden></div>
+        </div>
+        <div class="wheel-live" id="live" aria-live="polite"></div>
+        <div id="odds"></div>
+        <div class="spin-row">
+          <button type="button" class="btn btn--solid btn--big" id="spin" disabled><svg class="ic"><use href="#i-gavel"></use></svg>Вынести приговор</button>
+          <button type="button" class="btn btn--ghost" id="sound" title="Звук"></button>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel history" aria-label="История приговоров">
+      <div class="list-tools">
+        <h2 class="panel__title" style="margin:0"><svg class="ic"><use href="#i-calendar"></use></svg>История приговоров</h2>
+        <div class="chips" id="h-filter"></div>
+      </div>
+      <ul class="cases" id="cases"></ul>
+    </section>
+
+    <p class="foot"><a href="rules.html">Правила и история на сайте</a> · <span id="who"></span></p>
+  </div>
+
+  <p class="empty-state" id="loading">Загружаю...</p>
+</div>
+<datalist id="nicks"></datalist>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="github.js?v=1"></script>
+<script src="court.js?v=1"></script>
+<script>
+(function () {
+'use strict';
+const PATH = 'data/punishments.json';
+const CHANNEL = 'pariparikai';
+const BOTS = ['nightbot', 'streamelements', 'moobot', 'wizebot', 'streamlabs', 'fossabot', 'sery_bot', 'commanderroot'];
+const { OUTCOMES, LEVELS, SECTORS, MAX_LEVEL, esc } = court;
+const $ = id => document.getElementById(id);
+
+let rules = [];
+let file = null;            // { sha, data: {columns, items} } — data/punishments.json
+const pick = { nick: '', rule: null, repeat: false, repeatAuto: '' };
+let spinning = false, verdictShown = false;
+
+let toastTimer = 0;
+function toast(text, err) {
+  const t = $('toast');
+  t.className = 'toast is-on' + (err ? ' toast--err' : '');
+  t.innerHTML = icon(err ? 'alert' : 'check') + '<span>' + esc(text) + '</span>';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('is-on'), err ? 7000 : 4000);
+}
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch (e) { return false; }
+}
+const items = () => file ? file.data.items : [];
+const level = () => pick.rule ? Math.min(MAX_LEVEL, pick.rule.level + (pick.repeat ? 1 : 0)) : 0;
+const newId = () => Array.from(crypto.getRandomValues(new Uint8Array(4)), b => b.toString(16).padStart(2, '0')).join('');
+const rand = n => crypto.getRandomValues(new Uint32Array(1))[0] % n;
+
+// ===================== чат Twitch: кто пишет и кому дали мут =====================
+const chatters = new Map(); // login → { name, last }
+let connState = { state: 'off', text: 'Чат: не подключён' };
+let hot = '';               // кому только что дали мут/бан в чате
+let ws = null, wsDelay = 1000;
+function connectChat() {
+  setConn('connecting', 'Чат: подключаюсь…');
+  ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
+  ws.onopen = () => {
+    ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands');
+    ws.send('NICK justinfan' + (10000 + rand(80000)));
+    ws.send('JOIN #' + CHANNEL);
+  };
+  ws.onmessage = ev => ev.data.split('\r\n').forEach(line => line && onIrc(line));
+  ws.onclose = () => {
+    setConn('connecting', 'Чат: переподключаюсь…');
+    setTimeout(connectChat, wsDelay);
+    wsDelay = Math.min(wsDelay * 2, 15000);
+  };
+}
+function onIrc(line) {
+  if (line.startsWith('PING')) { ws.send('PONG :tmi.twitch.tv'); return; }
+  let tags = {};
+  if (line[0] === '@') {
+    const sp = line.indexOf(' ');
+    line.slice(1, sp).split(';').forEach(p => { const i = p.indexOf('='); tags[p.slice(0, i)] = p.slice(i + 1); });
+    line = line.slice(sp + 1);
+  }
+  const m = line.match(/^(?::(\S+) )?(\S+)(?: (.*))?$/);
+  if (!m) return;
+  const [, prefix = '', cmd, params = ''] = m;
+  if (cmd === '001') { setConn('online', 'Чат #' + CHANNEL); wsDelay = 1000; return; }
+  if (cmd === 'RECONNECT') { ws.close(); return; }
+  if (cmd === 'PRIVMSG') {
+    const login = prefix.split('!')[0].toLowerCase();
+    if (login === CHANNEL || BOTS.includes(login)) return;
+    chatters.set(login, { name: tags['display-name'] || login, last: Date.now() });
+    renderChatters();
+  }
+  // Мут или бан в чате: сразу заводим дело на этого зрителя
+  if (cmd === 'CLEARCHAT') {
+    const login = (params.split(' :')[1] || '').trim().toLowerCase();
+    if (!login || spinning || verdictShown) return;
+    const name = (chatters.get(login) || {}).name || login;
+    const dur = +tags['ban-duration'];
+    hot = login;
+    setNick(name);
+    toast(dur ? `${name} получил мут в чате (${Math.round(dur / 60)} мин) — дело заведено` : `${name} забанен в чате — дело заведено`);
+  }
+}
+function setConn(state, text) {
+  connState = { state, text };
+  renderChatters();
+}
+function renderChatters() {
+  const recent = [...chatters.entries()].sort((a, b) => b[1].last - a[1].last).slice(0, 10);
+  if (hot && !recent.some(([l]) => l === hot)) recent.unshift([hot, chatters.get(hot) || { name: hot }]);
+  $('chatters').innerHTML = `<span class="conn ${connState.state === 'online' ? 'is-online' : connState.state === 'connecting' ? 'is-connecting' : ''}"><i></i>${esc(connState.text)}</span>` +
+    recent.map(([login, u]) => `<button type="button" class="chip chatter${login === hot ? ' is-hot' : ''}" data-nick="${esc(u.name)}"${spinning ? ' disabled' : ''}>${esc(u.name)}</button>`).join('');
+  fillNicks();
+}
+$('chatters').addEventListener('click', e => {
+  const b = e.target.closest('[data-nick]');
+  if (b && !spinning) setNick(b.dataset.nick);
+});
+function fillNicks() {
+  const names = new Set([...chatters.values()].map(u => u.name));
+  items().forEach(it => names.add(it.nick));
+  $('nicks').innerHTML = [...names].sort((a, b) => a.localeCompare(b)).map(n => `<option value="${esc(n)}">`).join('');
+}
+
+// ===================== дело: подсудимый, статья, рецидив =====================
+function setNick(name) {
+  $('nick').value = name;
+  onNick();
+}
+function onNick() {
+  pick.nick = $('nick').value.trim();
+  // Рецидив отмечается сам, когда ник сменился; дальше — как решит стример
+  if (pick.repeatAuto !== pick.nick.toLowerCase()) {
+    pick.repeatAuto = pick.nick.toLowerCase();
+    pick.repeat = !!pick.nick && court.isRepeat(items(), pick.nick);
+  }
+  if (verdictShown) closeVerdict();
+  renderRecord();
+  renderCharge();
+}
+$('nick').addEventListener('input', onNick);
+
+function renderRecord() {
+  const box = $('record');
+  if (!pick.nick) { box.innerHTML = ''; return; }
+  const past = court.record(items(), pick.nick);
+  if (!past.length) { box.innerHTML = 'Чистая биография — раньше не попадался.'; return; }
+  const last = past[0];
+  box.innerHTML = `Ранее: <b>${past.length}</b> ${plural(past.length, 'приговор', 'приговора', 'приговоров')}. Последний — <span class="tz">${esc(court.when(last.at))}</span>,
+    ${court.sentence(last)} за «${esc(last.rule_title)}».
+    <label class="repeat"><input type="checkbox" id="repeat"${pick.repeat ? ' checked' : ''}${spinning ? ' disabled' : ''}>
+    <span><b>Рецидив</b> — статья на ступень тяжелее${court.isRepeat(items(), pick.nick) ? ` (попался снова за ${court.REPEAT_DAYS} дней)` : ''}</span></label>`;
+  $('repeat').addEventListener('change', e => { pick.repeat = e.target.checked; if (verdictShown) closeVerdict(); renderCharge(); });
+}
+const plural = (n, one, few, many) => n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many;
+
+function renderArticles() {
+  const groups = [];
+  for (let l = 1; l <= MAX_LEVEL; l++) {
+    const list = rules.filter(r => r.level === l);
+    if (!list.length) continue;
+    groups.push(`<div class="articles__group">${court.levelBadge(l)}<div class="articles__list">${list.map(r =>
+      `<button type="button" class="article lvl--${l}${pick.rule === r ? ' is-on' : ''}" data-id="${esc(r.id)}" title="${esc(r.text)}"${spinning ? ' disabled' : ''}>${esc(r.title)}</button>`).join('')}</div></div>`);
+  }
+  $('articles').innerHTML = groups.join('') || '<p class="panel__note">Статей нет — проверь data/rules.json.</p>';
+}
+$('articles').addEventListener('click', e => {
+  const b = e.target.closest('.article');
+  if (!b || spinning) return;
+  const r = rules.find(x => x.id === b.dataset.id);
+  pick.rule = pick.rule === r ? null : r;
+  if (verdictShown) closeVerdict();
+  renderArticles();
+  renderCharge();
+});
+
+// Шапка над колесом + само колесо и шансы для текущей ступени
+let shownLevel = -1;
+function renderCharge() {
+  const lvl = level();
+  $('charge').innerHTML = (pick.nick ? `<div class="charge__who">${esc(pick.nick)}</div>` : `<div class="charge__who is-empty">Кто провинился?</div>`) +
+    (pick.rule ? `<div class="charge__rule">${court.levelBadge(lvl)}<span>${esc(pick.rule.title)}${pick.repeat && lvl > pick.rule.level ? ' · рецидив' : ''}</span></div>`
+      : '<div class="charge__rule">Выбери статью — от неё зависит колесо</div>');
+  if (lvl !== shownLevel && !spinning) {
+    shownLevel = lvl;
+    drawWheel(lvl || 1);
+    $('wheel-box').classList.toggle('is-idle', !lvl);
+    $('odds').innerHTML = lvl ? court.oddsHTML(lvl) : '';
+    setLive('');
+  }
+  $('spin').disabled = spinning || verdictShown || !pick.nick || !pick.rule;
+}
+
+// ===================== колесо =====================
+const SVGNS = 'http://www.w3.org/2000/svg';
+const STEP = 360 / SECTORS;
+let layout = [];       // исход каждого деления по кругу, от стрелки по часовой
+let rotation = 0;      // градусы, по часовой
+const pt = (r, deg) => { const a = deg * Math.PI / 180; return `${(r * Math.sin(a)).toFixed(3)},${(-r * Math.cos(a)).toFixed(3)}`; };
+function drawWheel(lvl) {
+  layout = court.sectors(lvl);
+  const R = 100;
+  const slices = layout.map((id, i) => {
+    const o = OUTCOMES[id], a0 = i * STEP, a1 = a0 + STEP;
+    return `<path d="M0,0 L${pt(R, a0)} A${R},${R} 0 0 1 ${pt(R, a1)} Z" fill="${o.fill}" stroke="#0a0e1a" stroke-width="0.8"/>
+      <text class="wheel-label" transform="rotate(${a0 + STEP / 2 - 90}) translate(64 0)" text-anchor="middle" dominant-baseline="central"${id === 'perma' ? ` style="fill:${o.ink}"` : ''}>${esc(o.short)}</text>`;
+  }).join('');
+  $('wheel-box').innerHTML = `<svg viewBox="-115 -122 230 237" xmlns="${SVGNS}" role="img" aria-label="Рулетка наказаний">
+    <circle r="108" fill="#0a0e1a" stroke="rgba(250,199,117,0.55)" stroke-width="2"/>
+    <g id="wheel-group" transform="rotate(${rotation})">${slices}</g>
+    <circle r="22" fill="#0a0e1a" stroke="rgba(250,199,117,0.7)" stroke-width="1.5"/>
+    <g transform="translate(-9 -9) scale(.75)" fill="none" stroke="#FAC775" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-gavel" width="24" height="24"/></g>
+    <path d="M0,-90 L-10,-116 L10,-116 Z" fill="#FAC775" stroke="#0a0e1a" stroke-width="1.5" style="filter:drop-shadow(0 0 6px rgba(250,199,117,0.7))"/>
+  </svg>`;
+}
+const sectorAt = rot => Math.floor((((-rot) % 360 + 360) % 360) / STEP) % SECTORS;
+function setLive(id) {
+  const o = OUTCOMES[id];
+  $('live').textContent = o ? o.short : '';
+  $('live').style.setProperty('--ink', o ? o.ink : 'transparent');
+}
+
+// ---------- звук: щелчки делений и удар молотка ----------
+let soundOn = true;
+try { soundOn = localStorage.getItem('court-sound') !== '0'; } catch (e) { /* по умолчанию со звуком */ }
+let audio = null;
+function ac() {
+  if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+  if (audio.state === 'suspended') audio.resume().catch(() => {});
+  return audio;
+}
+function tone(freq, t, dur, type, vol, to) {
+  const a = ac(), osc = a.createOscillator(), g = a.createGain(), t0 = a.currentTime + t;
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t0);
+  if (to) osc.frequency.exponentialRampToValueAtTime(to, t0 + dur);
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(vol, t0 + 0.005);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  osc.connect(g); g.connect(a.destination);
+  osc.start(t0); osc.stop(t0 + dur + 0.02);
+}
+const click = () => soundOn && tone(2400, 0, 0.05, 'square', 0.04, 800);
+function gavel(kind) {
+  if (!soundOn) return;
+  // Удар-удар; бан — ниже и тяжелее
+  const base = kind === 'mute' ? 150 : 90;
+  [0, 0.28].forEach(t => { tone(base, t, 0.35, 'triangle', 0.5, base / 3); tone(base * 6, t, 0.06, 'square', 0.08, base * 2); });
+  if (kind !== 'mute') tone(55, 0.6, 1.4, 'sawtooth', 0.12, 40);
+}
+function paintSound() { $('sound').innerHTML = icon(soundOn ? 'volume' : 'volume-off'); }
+$('sound').addEventListener('click', () => {
+  soundOn = !soundOn;
+  try { localStorage.setItem('court-sound', soundOn ? '1' : '0'); } catch (e) { /* не запомнится */ }
+  paintSound();
+});
+
+// ---------- прокрутка ----------
+function lock(on) {
+  spinning = on;
+  $('nick').disabled = on;
+  $('note').disabled = on;
+  renderArticles();
+  renderChatters();
+  renderRecord();
+  renderCharge();
+}
+function animate(from, to, ms) {
+  return new Promise(done => {
+    const g = $('wheel-group'), t0 = performance.now();
+    let sector = sectorAt(from);
+    const frame = now => {
+      const t = Math.min(1, (now - t0) / ms);
+      const rot = from + (to - from) * (1 - Math.pow(1 - t, 4));
+      g.setAttribute('transform', `rotate(${rot})`);
+      const s = sectorAt(rot);
+      if (s !== sector) { sector = s; click(); setLive(layout[s]); }
+      if (t < 1) requestAnimationFrame(frame); else done();
+    };
+    requestAnimationFrame(frame);
+  });
+}
+$('spin').addEventListener('click', async () => {
+  if (spinning || !pick.nick || !pick.rule) return;
+  ac();
+  const lvl = level(), rule = pick.rule, nick = pick.nick, repeat = pick.repeat && lvl > rule.level, note = $('note').value.trim();
+  lock(true);
+  // Случайное деление (все 20 равновероятны) и случайная точка внутри него — не по центру
+  const idx = rand(SECTORS);
+  const inside = 2 + rand(1000) / 1000 * (STEP - 4);
+  const target = ((-(idx * STEP + inside)) % 360 + 360) % 360;
+  let delta = target - ((rotation % 360) + 360) % 360;
+  if (delta < 0) delta += 360;
+  const from = rotation, to = rotation + 6 * 360 + delta;
+  await animate(from, to, 7000);
+  rotation = to;
+  const outcome = layout[sectorAt(rotation)];
+  const at = new Date(), o = OUTCOMES[outcome];
+  const entry = {
+    id: newId(), at: court.stamp(at), nick, rule: rule.id, rule_title: rule.title, level: String(lvl), repeat: repeat ? '1' : '',
+    outcome, until: o.kind === 'mute' ? court.stamp(new Date(at.getTime() + o.sec * 1000)) : '', status: '', lifted_at: '', note,
+  };
+  gavel(o.kind);
+  spinning = false;
+  showVerdict(entry);
+  lock(false);
+  saveVerdict(entry);
+});
+
+// ===================== приговор =====================
+let lastEntry = null;
+function showVerdict(entry) {
+  lastEntry = entry;
+  verdictShown = true;
+  const o = OUTCOMES[entry.outcome];
+  const cmd = court.command(entry);
+  const box = $('result');
+  box.hidden = false;
+  box.innerHTML = `<div class="result" style="--ink:${o.ink}">
+      <div class="result__label">Приговор</div>
+      <div class="result__sentence">${esc(o.label)}</div>
+      <div class="result__who"><b>${esc(entry.nick)}</b> · ${esc(entry.rule_title)}${entry.repeat ? ' · рецидив' : ''}</div>
+      <div class="cmd"><code id="cmd">${esc(cmd)}</code><button type="button" class="btn btn--ghost" id="cmd-copy" title="Скопировать">${icon('copy')}</button></div>
+      <div class="save-state" id="save-state"></div>
+      <button type="button" class="btn btn--ghost" id="next-case">${icon('refresh')}Следующее дело</button>
+    </div>`;
+  $('cmd-copy').addEventListener('click', async () => {
+    const ok = await copy(cmd);
+    toast(ok ? 'Команда скопирована — вставь в чат' : 'Не вышло скопировать — выдели текст вручную', !ok);
+  });
+  $('next-case').addEventListener('click', () => { closeVerdict(); pick.rule = null; hot = ''; $('note').value = ''; setNick(''); renderArticles(); renderChatters(); $('nick').focus(); });
+  copy(cmd).then(ok => ok && toast('Команда для чата уже скопирована'));
+  setLive(entry.outcome);
+}
+function closeVerdict() {
+  verdictShown = false;
+  $('result').hidden = true;
+  setLive('');
+  renderCharge();
+}
+function setSave(state, text) {
+  const el = $('save-state');
+  if (!el) return;
+  el.className = 'save-state' + (state === 'ok' ? ' is-ok' : state === 'err' ? ' is-err' : '');
+  el.innerHTML = (state === 'ok' ? icon('check') : state === 'err' ? icon('alert') : '') + '<span>' + esc(text) + '</span>' +
+    (state === 'err' ? '<button type="button" class="btn btn--sm btn--ghost" id="save-retry">Повторить</button>' : '');
+  if (state === 'err') $('save-retry').addEventListener('click', () => saveVerdict(lastEntry));
+}
+async function saveVerdict(entry) {
+  setSave('saving', 'Записываю в историю…');
+  const o = OUTCOMES[entry.outcome];
+  try {
+    file = await siteGit.writeFile(PATH, file, data => {
+      if (data.items.some(x => x.id === entry.id)) return; // уже записан (повтор после сбоя)
+      data.items.push(Object.assign(Object.fromEntries(data.columns.map(c => [c, ''])), entry));
+    }, `Суд: ${entry.nick} — ${o.label} («${entry.rule_title}»)`);
+    if (lastEntry === entry) setSave('ok', 'Записано в историю — на сайте примерно через минуту');
+    renderHistory();
+    renderRecord();
+  } catch (err) {
+    console.error(err);
+    if (lastEntry === entry) setSave('err', err.message);
+    else toast(err.message, true);
+  }
+}
+
+// ===================== история =====================
+const H_FILTERS = [{ id: 'active', label: 'Действуют' }, { id: 'all', label: 'Все' }];
+let hFilter = 'active';
+const isActive = it => ['muted', 'banned', 'perma'].includes(court.state(it).id);
+function renderHistory() {
+  const all = items().slice().sort((a, b) => (siteTime.parse(b.at) || 0) - (siteTime.parse(a.at) || 0));
+  const counts = { active: all.filter(isActive).length, all: all.length };
+  $('h-filter').innerHTML = H_FILTERS.map(f => `<button type="button" class="chip${hFilter === f.id ? ' is-active' : ''}" data-v="${f.id}">${f.label} <span class="count">${counts[f.id]}</span></button>`).join('');
+  const list = hFilter === 'active' ? all.filter(isActive) : all;
+  $('cases').innerHTML = list.map(it => {
+    const st = court.state(it).id;
+    const lift = st === 'muted' ? 'Снять мут' : st === 'banned' || st === 'perma' ? 'Разбанить' : '';
+    return court.caseHTML(it, `<div class="case__actions">${lift ? `<button type="button" class="btn btn--sm btn--ghost" data-lift="${esc(it.id)}">${lift}</button>` : ''}
+      <button type="button" class="btn btn--sm btn--danger" data-del="${esc(it.id)}" title="Удалить запись (ошибка)">${icon('x')}</button></div>`);
+  }).join('') || `<li class="empty-state" style="padding:20px">${hFilter === 'active' ? 'Сейчас никто не наказан. Чат в порядке.' : 'Приговоров ещё не было.'}</li>`;
+  fillNicks();
+}
+$('h-filter').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) { hFilter = b.dataset.v; renderHistory(); } });
+$('cases').addEventListener('click', async e => {
+  const lift = e.target.closest('[data-lift]'), del = e.target.closest('[data-del]');
+  const btn = lift || del;
+  if (!btn) return;
+  const id = btn.dataset.lift || btn.dataset.del;
+  const it = items().find(x => x.id === id);
+  if (!it) return;
+  const o = court.outcomeOf(it);
+  if (lift && !confirm(`${o.kind === 'mute' ? 'Снять мут досрочно' : 'Разбанить'}: ${it.nick}?`)) return;
+  if (del && !confirm(`Удалить приговор ${it.nick} (${o.label}) из истории?\nТолько если это была ошибка — вернуть можно через историю git.`)) return;
+  btn.disabled = true;
+  try {
+    file = await siteGit.writeFile(PATH, file, data => {
+      const x = data.items.find(y => y.id === id);
+      if (!x) return;
+      if (lift) { x.status = 'lifted'; x.lifted_at = court.stamp(new Date()); }
+      else data.items = data.items.filter(y => y.id !== id);
+    }, lift ? `Суд: ${it.nick} — ${o.kind === 'mute' ? 'мут снят' : 'разбанен'}` : `Суд: удалён приговор ${it.nick} (${o.label})`);
+    renderHistory();
+    renderRecord();
+    if (lift) {
+      const cmd = court.undoCommand(it);
+      toast(await copy(cmd) ? `Готово. Скопировано для чата: ${cmd}` : `Готово. Не забудь в чате: ${cmd}`);
+    } else toast('Запись удалена');
+  } catch (err) {
+    console.error(err);
+    toast(err.message, true);
+    btn.disabled = false;
+  }
+});
+// «ещё N мин» и истёкшие муты — раз в минуту
+setInterval(() => { if (file && !spinning) renderHistory(); }, 60000);
+siteTime.onChange(() => { renderHistory(); renderRecord(); });
+
+// ===================== запуск =====================
+async function start() {
+  if (!siteGit.token) { $('loading').hidden = true; $('auth').hidden = false; return; }
+  try {
+    const [r, f, user] = await Promise.all([court.loadRules(), siteGit.readFile(PATH), siteGit.user()]);
+    rules = r;
+    file = f;
+    $('who').textContent = user.login ? 'Вход: ' + user.login : 'Токен подключён';
+  } catch (err) {
+    console.error(err);
+    $('loading').hidden = true;
+    $('auth').hidden = false;
+    $('auth-error').hidden = false;
+    $('auth-error').textContent = err.message;
+    return;
+  }
+  $('loading').hidden = true;
+  $('app').hidden = false;
+  paintSound();
+  renderArticles();
+  renderCharge();
+  renderHistory();
+  renderChatters();
+  connectChat();
+}
+start();
+})();
+</script>
+</body>
+</html>

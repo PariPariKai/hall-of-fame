@@ -57,6 +57,10 @@
     download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/>',
     wrench: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
     code: '<path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/>',
+    scale: '<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1ZM2 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1ZM7 21h10M12 3v18M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',
+    gavel: '<path d="m14.5 12.5-8 8a2.12 2.12 0 1 1-3-3l8-8M16 16l6-6M8 8l6-6M9 7l8 8M21 11l-8-8"/>',
+    ban: '<circle cx="12" cy="12" r="9.5"/><path d="m5.3 5.3 13.4 13.4"/>',
+    copy: '<rect x="8" y="8" width="14" height="14" rx="2.5"/><path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"/>',
   };
 
   const NAV_LINKS = `
@@ -74,11 +78,13 @@
       </ul>
     </li>
     <li><a href="experiments.html">Эксперименты</a></li>
+    <li><a href="rules.html">Правила</a></li>
     <li class="site-nav__dd">
       <button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">Для стримера <span class="site-nav__caret">▾</span></button>
       <ul class="site-nav__menu">
         <li><a href="admin.html">Админка сайта</a></li>
         <li><a href="chat-wheel.html">Чат-рулетка</a></li>
+        <li><a href="court.html">Рулетка наказаний</a></li>
         <li><a href="pain.html">Боль стримера за шекели</a></li>
         <li><a href="cards.html">Админка-рулетка</a></li>
         <li><a href="cards.html?stream">Хаос-рулетка</a></li>

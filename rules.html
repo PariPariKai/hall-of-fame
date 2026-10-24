@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Преступление и наказание — Hall of Fame</title>
+<meta name="description" content="Правила чата ParipariKai, рулетка наказаний и история приговоров.">
+<link rel="stylesheet" href="site.css?v=6">
+<link rel="stylesheet" href="court.css?v=1">
+<!--
+  Правила чата и история приговоров — для зрителей. Статьи: data/rules.json, приговоры: data/punishments.json
+  (их пишет суд — court.html). Тяжесть статей и колесо — court.js.
+-->
+<style>
+  .manifesto { display: grid; gap: 10px; }
+  .manifesto p { font-size: 15px; line-height: 1.65; color: rgba(255,255,255,0.82); max-width: 860px; }
+  .manifesto p.lead { font-size: 20px; font-weight: 700; color: var(--gold); letter-spacing: .3px; }
+  .manifesto .sign { font-size: 13px; color: var(--dim); font-style: italic; }
+
+  .section-title {
+    display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--gold); margin: 6px 0 16px;
+  }
+  .section-title .ic { font-size: 18px; }
+
+  .notes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: -12px 0 34px; }
+  .notes div { font-size: 13px; line-height: 1.55; color: var(--muted); padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,0.025); border: 1px solid var(--line); }
+  .notes b { color: #fff; }
+
+  .levels { display: flex; flex-direction: column; gap: 14px; margin-bottom: 38px; }
+  .level {
+    display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 22px; padding: 18px 20px; border-radius: 16px;
+    background: linear-gradient(135deg, rgba(var(--lvl-rgb),0.07), rgba(255,255,255,0.015) 55%);
+    border: 1px solid rgba(var(--lvl-rgb),0.22);
+  }
+  .level__head { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+  .level__name { font-size: 20px; font-weight: 700; color: var(--lvl); letter-spacing: .3px; }
+  .level__head .odds { width: 100%; }
+  .level__rules { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 22px; align-content: start; }
+  .level__rules li { font-size: 13px; line-height: 1.5; color: var(--muted); padding-left: 12px; border-left: 2px solid rgba(var(--lvl-rgb),0.45); }
+  .level__rules b { display: block; font-size: 14.5px; color: #fff; margin-bottom: 2px; }
+
+  .history-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .history-tools .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .history-zone { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: flex-end; margin-bottom: 12px; }
+
+  @media (max-width: 900px) {
+    .notes { grid-template-columns: 1fr; }
+    .level { grid-template-columns: 1fr; gap: 14px; }
+    .level__rules { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<script src="site.js?v=10"></script>
+
+<div class="wrap">
+  <header class="header">
+    <h1 class="title"><svg class="ic" aria-hidden="true"><use href="#i-scale"></use></svg>Преступление и наказание<svg class="ic" aria-hidden="true"><use href="#i-scale"></use></svg></h1>
+    <p class="subtitle">Правила чата · <span class="accent">рулетка наказаний</span> · история приговоров</p>
+  </header>
+
+  <section class="spotlight manifesto">
+    <p class="lead">Здесь болтают, вайбят и чиллят</p>
+    <p>Этот чат — место, куда заходят спокойно поговорить: без мата через слово, пошлятины, политики, сплетен и кислоты.
+      Правила все и так знают — тут не детский сад, поэтому их немного и они короткие.</p>
+    <p>Но знают все, а соблюдают не все. Предупреждать по сотому разу бесполезно, а банить с порога тех, с кем болтаешь год, — дико.
+      Поэтому у нас суд: нарушение замечает весь стрим, а наказание решает рулетка. Чем тяжелее статья — тем страшнее колесо.</p>
+    <p class="sign">Шутка — это когда смешно всем. Если смешно только тебе — это уже статья.</p>
+  </section>
+
+  <div class="rules">
+    <div class="rule">
+      <div class="rule__icon"><svg class="ic"><use href="#i-hand"></use></svg></div>
+      <div><div class="rule__step">Шаг 1</div><div class="rule__title">Стоп-кадр</div>
+        <div class="rule__text">Чат заметил нарушение — стрим на паузу, виновнику сразу <span class="accent">мут на 10 минут</span>, пока идёт суд.</div></div>
+    </div>
+    <div class="rule">
+      <div class="rule__icon"><svg class="ic"><use href="#i-scale"></use></svg></div>
+      <div><div class="rule__step">Шаг 2</div><div class="rule__title">Статья</div>
+        <div class="rule__text">Стример выбирает, что нарушено. У каждой статьи своя <span class="accent">тяжесть</span> — от неё зависит, какое колесо крутим.</div></div>
+    </div>
+    <div class="rule">
+      <div class="rule__icon"><svg class="ic"><use href="#i-gavel"></use></svg></div>
+      <div><div class="rule__step">Шаг 3</div><div class="rule__title">Рулетка</div>
+        <div class="rule__text"><span class="accent">20 делений</span> решают приговор: от 10 минут мута до вечного бана. Приговор попадает в историю внизу.</div></div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div><b>Рецидив.</b> Попался снова в течение <span id="repeat-days">30</span> дней — статья на ступень тяжелее.</div>
+    <div><b>Бан с апелляцией.</b> Можно подать запрос на разбан прямо в Twitch: объясни, что понял, — стример прочитает.</div>
+    <div><b>Вечный бан.</b> Без апелляции. До него на нашем колесе надо очень постараться.</div>
+  </div>
+
+  <h2 class="section-title"><svg class="ic"><use href="#i-scale"></use></svg>Статьи и колёса</h2>
+  <div class="levels" id="levels"><p class="empty-state">Загружаю...</p></div>
+
+  <h2 class="section-title" id="history"><svg class="ic"><use href="#i-gavel"></use></svg>История приговоров</h2>
+  <div class="history-tools">
+    <div class="chips" id="filter"></div>
+    <label class="search"><svg class="ic" aria-hidden="true"><use href="#i-search"></use></svg><input type="search" class="search-input" id="q" placeholder="Ник..."></label>
+  </div>
+  <div class="history-zone"><span class="tz-zone" id="zone"></span><span id="tz-btn"></span></div>
+  <ul class="cases" id="cases"><li class="empty-state">Загружаю...</li></ul>
+</div>
+
+<script src="court.js?v=1"></script>
+<script>
+(function () {
+'use strict';
+const { LEVELS, MAX_LEVEL, esc } = court;
+const $ = id => document.getElementById(id);
+$('repeat-days').textContent = court.REPEAT_DAYS;
+
+// ---------- статьи по ступеням ----------
+async function loadLevels() {
+  try {
+    const rules = await court.loadRules();
+    const blocks = [];
+    for (let l = 1; l <= MAX_LEVEL; l++) {
+      const list = rules.filter(r => r.level === l);
+      if (!list.length) continue;
+      blocks.push(`<section class="level lvl--${l}">
+        <div class="level__head">${court.levelBadge(l, 'Ступень ' + l)}<div class="level__name">${esc(LEVELS[l].name)}</div>${court.oddsHTML(l)}</div>
+        <ul class="level__rules">${list.map(r => `<li><b>${esc(r.title)}</b>${esc(r.text)}</li>`).join('')}</ul></section>`);
+    }
+    $('levels').innerHTML = blocks.join('');
+  } catch (err) {
+    console.error(err);
+    $('levels').innerHTML = '<p class="error-state">' + icon('alert') + 'Не удалось загрузить статьи. Обнови страницу.</p>';
+  }
+}
+
+// ---------- история ----------
+const FILTERS = [
+  { id: 'all', label: 'Все', test: () => true },
+  { id: 'muted', label: 'В муте', test: s => s === 'muted' },
+  { id: 'banned', label: 'В бане', test: s => s === 'banned' || s === 'perma' },
+  { id: 'freed', label: 'Разбанены и помилованы', test: s => s === 'unbanned' || s === 'lifted' },
+  { id: 'served', label: 'Отсидели', test: s => s === 'served' },
+];
+const view = { filter: 'all', q: '' };
+let cases = null;
+function renderHistory() {
+  $('zone').innerHTML = siteTime.zoneLabel();
+  $('tz-btn').innerHTML = siteTime.toggle();
+  if (!cases) return;
+  const all = cases.slice().sort((a, b) => (siteTime.parse(b.at) || 0) - (siteTime.parse(a.at) || 0));
+  const states = new Map(all.map(it => [it, court.state(it).id]));
+  $('filter').innerHTML = FILTERS.map(f => `<button type="button" class="chip${view.filter === f.id ? ' is-active' : ''}" data-v="${f.id}">${f.label} <span class="count">${all.filter(it => f.test(states.get(it))).length}</span></button>`).join('');
+  const test = FILTERS.find(f => f.id === view.filter).test;
+  const list = all.filter(it => test(states.get(it)) && (!view.q || it.nick.toLowerCase().includes(view.q)));
+  $('cases').innerHTML = list.map(it => court.caseHTML(it)).join('') ||
+    `<li class="empty-state">${all.length ? 'Никого не нашлось.' : 'Приговоров пока не было. Чат образцовый — так держать.'}</li>`;
+}
+$('filter').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) { view.filter = b.dataset.v; renderHistory(); } });
+$('q').addEventListener('input', e => { view.q = e.target.value.trim().toLowerCase(); renderHistory(); });
+siteTime.onChange(renderHistory);
+
+async function loadHistory() {
+  try {
+    const res = await fetch('data/punishments.json', { cache: 'no-cache' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    cases = (await res.json()).items || [];
+  } catch (err) {
+    console.error(err);
+    cases = null;
+    $('cases').innerHTML = '<li class="error-state">' + icon('alert') + 'Не удалось загрузить историю. Обнови страницу.</li>';
+    return;
+  }
+  renderHistory();
+}
+loadLevels();
+loadHistory();
+// Муты истекают — раз в минуту пересчитываем, раз в 5 минут перечитываем историю
+setInterval(renderHistory, 60000);
+setInterval(loadHistory, 5 * 60000);
+})();
+</script>
+</body>
+</html>
