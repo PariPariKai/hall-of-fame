@@ -40,6 +40,13 @@
   .level__rules li { font-size: 13px; line-height: 1.5; color: var(--muted); padding-left: 12px; border-left: 2px solid rgba(var(--lvl-rgb),0.45); }
   .level__rules b { display: block; font-size: 14.5px; color: #fff; margin-bottom: 2px; }
 
+  .memo { display: grid; gap: 14px; margin-bottom: 38px; }
+  .memo__lead { font-size: 15px; line-height: 1.65; color: rgba(255,255,255,0.85); max-width: 900px; }
+  .memo__lead b { color: var(--gold); }
+  .memo__list { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 22px; }
+  .memo__list li { font-size: 13.5px; line-height: 1.5; color: var(--muted); padding-left: 12px; border-left: 2px solid rgba(255,214,102,0.4); }
+  .memo__sign { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--dim); font-style: italic; }
+
   .history-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .history-tools .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .history-zone { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: flex-end; margin-bottom: 12px; }
@@ -48,6 +55,7 @@
     .notes { grid-template-columns: 1fr; }
     .level { grid-template-columns: 1fr; gap: 14px; }
     .level__rules { grid-template-columns: 1fr; }
+    .memo__list { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -95,6 +103,20 @@
 
   <h2 class="section-title"><svg class="ic"><use href="#i-scale"></use></svg>Статьи и колёса</h2>
   <div class="levels" id="levels"><p class="empty-state">Загружаю...</p></div>
+
+  <h2 class="section-title" id="memo"><svg class="ic"><use href="#i-shield"></use></svg>Памятка модераторам</h2>
+  <section class="spotlight memo">
+    <p class="memo__lead"><b>Главное правило:</b> оцениваем контекст, тяжесть нарушения и поведение пользователя.
+      Не каждую шутку нужно карать, но и терпеть откровенную дичь никто не обязан.</p>
+    <ul class="memo__list">
+      <li>Контекст важен, но не оправдывает откровенную травлю.</li>
+      <li>Не обязательно проходить все ступени наказания: за серьёзное нарушение можно сразу выдать бан.</li>
+      <li>Не устраиваем публичных разборок — действуем спокойно и по делу.</li>
+      <li>В спорных ситуациях советуемся со стримером, если ситуация позволяет ждать.</li>
+      <li>Не злоупотребляем полномочиями и не выдаём наказания из личной неприязни.</li>
+    </ul>
+    <p class="memo__sign"><svg class="ic"><use href="#i-swords"></use></svg>Модератор — не каратель, а защитник комфортного чата. Но меч всегда должен быть наточен.</p>
+  </section>
 
   <h2 class="section-title" id="history"><svg class="ic"><use href="#i-gavel"></use></svg>История приговоров</h2>
   <div class="history-tools">
