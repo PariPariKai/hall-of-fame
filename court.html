@@ -416,7 +416,7 @@ $('articles').addEventListener('click', e => {
 // ===================== правка статей (data/rules.json) =====================
 const RULES_PATH = 'data/rules.json';
 let rulesFile = null;  // { sha, data }
-let draft = null;      // черновик правки: [{ id, level, title, text, hidden }] или null; порядок = порядок на странице правил
+let draft = null;      // черновик правки: [{ id, level, title, text, hidden }] или null
 const levelOptions = sel => Array.from({ length: MAX_LEVEL }, (_, i) => i + 1)
   .map(l => `<option value="${l}"${l === sel ? ' selected' : ''}>${l} · ${esc(LEVELS[l].name)}</option>`).join('');
 function renderEditor() {
@@ -465,8 +465,10 @@ $('articles').addEventListener('click', e => {
   } else if (e.target.closest('#redit-save')) saveRules(e.target.closest('#redit-save'));
 });
 async function saveRules(btn) {
+  // По ступеням, от лёгкого к тяжёлому — так их и нумерует страница правил
   const list = draft.map(r => ({ id: r.id, level: r.level, title: r.title.trim(), text: r.text.trim(), hidden: r.hidden ? '1' : '' }))
-    .filter(r => r.title || r.text);
+    .filter(r => r.title || r.text)
+    .sort((a, b) => a.level - b.level);
   if (list.some(r => !r.title)) return toast('У каждой статьи должно быть название', true);
   if (!list.length) return toast('Нужна хотя бы одна статья', true);
   // Что поменялось — для сообщения коммита

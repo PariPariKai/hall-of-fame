@@ -142,7 +142,7 @@ $('repeat-days').textContent = court.REPEAT_DAYS;
 // hidden = статья только для суда (отдельная часть общего правила) — зрителям не показываем
 async function loadLevels() {
   try {
-    const rules = (await court.loadRules()).filter(r => r.hidden !== '1');
+    const rules = (await court.loadRules()).filter(r => r.hidden !== '1').sort((a, b) => a.level - b.level);
     const num = new Map(rules.map((r, i) => [r, i + 1]));
     $('code-list').innerHTML = rules.map(r => `<li class="lvl--${r.level}"><span class="code__num">${num.get(r)}</span>
       <span class="code__title">${esc(r.title)}</span><span class="code__text">${esc(r.text)}</span>${court.levelBadge(r.level, 'Ступень ' + r.level)}</li>`).join('');
