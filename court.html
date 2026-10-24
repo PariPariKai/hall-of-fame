@@ -43,6 +43,18 @@
   .article:hover { border-color: rgba(var(--lvl-rgb),0.6); color: #fff; }
   .article.is-on { border-color: var(--lvl); color: var(--lvl); background: rgba(var(--lvl-rgb),0.14); box-shadow: 0 0 14px rgba(var(--lvl-rgb),0.2); }
   .article[disabled] { cursor: not-allowed; opacity: .5; }
+  .panel__title .btn { margin-left: auto; text-transform: none; letter-spacing: 0; }
+
+  /* ---------- правка статей ---------- */
+  .redit { display: flex; flex-direction: column; gap: 10px; }
+  .redit__row {
+    display: grid; grid-template-columns: 210px minmax(0, 1fr) auto; gap: 8px; padding: 10px 10px 10px 12px;
+    border-radius: 12px; background: rgba(255,255,255,0.025); border-left: 3px solid var(--lvl);
+  }
+  .redit__row select { color: var(--lvl); font-weight: 600; }
+  .redit__text { grid-column: 1 / 3; }
+  .redit__foot { margin-top: 14px; justify-content: space-between; }
+  .redit__foot div { display: flex; gap: 10px; }
 
   /* ---------- колесо ---------- */
   .wheel-panel { position: sticky; top: 76px; display: flex; flex-direction: column; gap: 16px; align-items: stretch; }
@@ -99,6 +111,8 @@
     .wheel-panel { position: static; order: -1; }
   }
   @media (max-width: 520px) {
+    .redit__row { grid-template-columns: minmax(0, 1fr) auto; }
+    .redit__row select, .redit__text { grid-column: 1 / -1; }
     .result__sentence { font-size: 24px; }
     .wheel-live { font-size: 20px; }
   }
@@ -132,7 +146,8 @@
         </section>
 
         <section class="panel" aria-label="Статья">
-          <h2 class="panel__title"><svg class="ic"><use href="#i-scale"></use></svg>Статья</h2>
+          <h2 class="panel__title"><svg class="ic"><use href="#i-scale"></use></svg>Статья
+            <button type="button" class="btn btn--sm btn--ghost" id="rules-edit" title="Добавить, изменить или удалить статьи"><svg class="ic"><use href="#i-pencil"></use></svg>Править статьи</button></h2>
           <div class="articles" id="articles"></div>
           <label class="field" style="margin-top:16px"><span>Комментарий <em class="hint-inline">— необязательно, виден в истории на сайте</em></span>
             <input class="inp" id="note" maxlength="140" placeholder="Например: «после трёх просьб остыть»"></label>
@@ -171,7 +186,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="github.js?v=1"></script>
-<script src="court.js?v=1"></script>
+<script src="court.js?v=2"></script>
 <script>
 (function () {
 'use strict';
@@ -306,6 +321,9 @@ function renderRecord() {
 const plural = (n, one, few, many) => n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many;
 
 function renderArticles() {
+  $('rules-edit').hidden = !!draft;
+  $('rules-edit').disabled = spinning;
+  if (draft) { renderEditor(); return; }
   const groups = [];
   for (let l = 1; l <= MAX_LEVEL; l++) {
     const list = rules.filter(r => r.level === l);
@@ -325,6 +343,87 @@ $('articles').addEventListener('click', e => {
   renderCharge();
 });
 
+// ===================== правка статей (data/rules.json) =====================
+const RULES_PATH = 'data/rules.json';
+let rulesFile = null;  // { sha, data }
+let draft = null;      // черновик правки: [{ id, level, title, text }] или null
+const levelOptions = sel => Array.from({ length: MAX_LEVEL }, (_, i) => i + 1)
+  .map(l => `<option value="${l}"${l === sel ? ' selected' : ''}>${l} · ${esc(LEVELS[l].name)}</option>`).join('');
+function renderEditor() {
+  $('articles').innerHTML = `<div class="redit">${draft.map((r, i) => `<div class="redit__row lvl--${r.level}" data-i="${i}">
+      <select class="inp" data-f="level" aria-label="Тяжесть">${levelOptions(r.level)}</select>
+      <input class="inp" data-f="title" value="${esc(r.title)}" maxlength="60" placeholder="Название статьи" aria-label="Название">
+      <button type="button" class="btn btn--sm btn--danger" data-del title="Удалить статью">${icon('x')}</button>
+      <input class="inp redit__text" data-f="text" value="${esc(r.text)}" maxlength="160" placeholder="Пояснение одной строкой — его видят зрители на странице правил" aria-label="Пояснение">
+    </div>`).join('') || '<p class="panel__note">Статей не осталось. Добавь хотя бы одну.</p>'}</div>
+    <div class="row redit__foot">
+      <button type="button" class="btn btn--ghost" id="redit-add">${icon('plus')}Статья</button>
+      <div><button type="button" class="btn btn--ghost" id="redit-cancel">Отмена</button>
+        <button type="button" class="btn btn--solid" id="redit-save">${icon('check')}Сохранить</button></div>
+    </div>`;
+}
+$('rules-edit').addEventListener('click', () => {
+  if (spinning) return;
+  draft = rules.map(r => ({ id: r.id, level: r.level, title: r.title || '', text: r.text || '' }));
+  renderArticles();
+  renderCharge();
+});
+$('articles').addEventListener('input', e => {
+  const row = e.target.closest('.redit__row');
+  if (!row || !draft) return;
+  const r = draft[+row.dataset.i], f = e.target.dataset.f;
+  r[f] = f === 'level' ? +e.target.value : e.target.value;
+  if (f === 'level') row.className = 'redit__row lvl--' + r.level;
+});
+$('articles').addEventListener('click', e => {
+  if (!draft) return;
+  const del = e.target.closest('[data-del]');
+  if (del) {
+    const i = +del.closest('.redit__row').dataset.i;
+    if (draft[i].title.trim() && !confirm(`Удалить статью «${draft[i].title.trim()}»?\nПрошлые приговоры по ней останутся в истории.`)) return;
+    draft.splice(i, 1);
+    renderEditor();
+  } else if (e.target.closest('#redit-add')) {
+    draft.push({ id: newId(), level: 2, title: '', text: '' });
+    renderEditor();
+    $('articles').querySelector('.redit__row:last-child [data-f="title"]').focus();
+  } else if (e.target.closest('#redit-cancel')) {
+    draft = null;
+    renderArticles();
+    renderCharge();
+  } else if (e.target.closest('#redit-save')) saveRules(e.target.closest('#redit-save'));
+});
+async function saveRules(btn) {
+  const list = draft.map(r => ({ id: r.id, level: r.level, title: r.title.trim(), text: r.text.trim() }))
+    .filter(r => r.title || r.text)
+    .sort((a, b) => a.level - b.level);
+  if (list.some(r => !r.title)) return toast('У каждой статьи должно быть название', true);
+  if (!list.length) return toast('Нужна хотя бы одна статья', true);
+  // Что поменялось — для сообщения коммита
+  const before = new Map(rules.map(r => [r.id, r]));
+  const added = list.filter(r => !before.has(r.id)).map(r => '+«' + r.title + '»');
+  const removed = rules.filter(r => !list.some(x => x.id === r.id)).map(r => '−«' + r.title + '»');
+  const changed = list.filter(r => { const o = before.get(r.id); return o && (o.title !== r.title || (o.text || '') !== r.text || o.level !== r.level); }).length;
+  const parts = [...added, ...removed].concat(changed ? ['изменено ' + changed] : []);
+  if (!parts.length) { draft = null; renderArticles(); renderCharge(); return; }
+  btn.disabled = true;
+  try {
+    rulesFile = await siteGit.writeFile(RULES_PATH, rulesFile, data => {
+      data.items = list.map(r => Object.assign(Object.fromEntries(data.columns.map(c => [c, ''])), r, { level: String(r.level) }));
+    }, 'Суд: статьи — ' + parts.join(', '));
+    rules = court.normRules(rulesFile.data.items);
+    pick.rule = pick.rule && rules.find(r => r.id === pick.rule.id) || null;
+    draft = null;
+    renderArticles();
+    renderCharge();
+    toast('Статьи сохранены. На странице правил — примерно через минуту.');
+  } catch (err) {
+    console.error(err);
+    toast(err.message, true);
+    btn.disabled = false;
+  }
+}
+
 // Шапка над колесом + само колесо и шансы для текущей ступени
 let shownLevel = -1;
 function renderCharge() {
@@ -339,7 +438,7 @@ function renderCharge() {
     $('odds').innerHTML = lvl ? court.oddsHTML(lvl) : '';
     setLive('');
   }
-  $('spin').disabled = spinning || verdictShown || !pick.nick || !pick.rule;
+  $('spin').disabled = spinning || verdictShown || !!draft || !pick.nick || !pick.rule;
 }
 
 // ===================== колесо =====================
@@ -571,8 +670,9 @@ siteTime.onChange(() => { renderHistory(); renderRecord(); });
 async function start() {
   if (!siteGit.token) { $('loading').hidden = true; $('auth').hidden = false; return; }
   try {
-    const [r, f, user] = await Promise.all([court.loadRules(), siteGit.readFile(PATH), siteGit.user()]);
-    rules = r;
+    const [r, f, user] = await Promise.all([siteGit.readFile(RULES_PATH), siteGit.readFile(PATH), siteGit.user()]);
+    rulesFile = r;
+    rules = court.normRules(r.data.items);
     file = f;
     $('who').textContent = user.login ? 'Вход: ' + user.login : 'Токен подключён';
   } catch (err) {

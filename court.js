@@ -93,10 +93,12 @@
   }
   const undoCommand = it => (outcomeOf(it).kind === 'mute' ? '/untimeout ' : '/unban ') + it.nick;
 
+  // Статьи из data/rules.json: level — число 1–5
+  const normRules = list => list.map(r => Object.assign({}, r, { level: Math.min(MAX_LEVEL, Math.max(1, +r.level || 1)) }));
   async function loadRules() {
     const res = await fetch('data/rules.json', { cache: 'no-cache' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    return (await res.json()).items.map(r => Object.assign({}, r, { level: Math.min(MAX_LEVEL, Math.max(1, +r.level || 1)) }));
+    return normRules((await res.json()).items);
   }
 
   // ---------- разметка, общая для обеих страниц (стили — court.css) ----------
@@ -127,7 +129,7 @@
 
   window.court = {
     OUTCOMES, ORDER, LEVELS, SECTORS, MAX_LEVEL, REPEAT_DAYS,
-    sectors, odds, stamp, when, left, outcomeOf, state, sameNick, record, isRepeat, command, undoCommand, loadRules,
+    sectors, odds, stamp, when, left, outcomeOf, state, sameNick, record, isRepeat, command, undoCommand, normRules, loadRules,
     esc, levelBadge, sentence, oddsHTML, caseHTML,
   };
 })();
