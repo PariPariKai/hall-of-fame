@@ -48,18 +48,42 @@
     background: rgba(var(--lvl-rgb),0.06); border-left: 3px solid var(--lvl);
   }
   .article-hint b { color: var(--lvl); }
-  .memo-link { display: inline-block; margin-top: 10px; font-size: 12px; color: var(--dim); }
+
+  /* ---------- памятка модераторам: «капот» под колесом ---------- */
+  .hood { border-top: 1px solid var(--line); padding-top: 12px; }
+  .hood summary {
+    display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none; user-select: none;
+    font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--gold);
+  }
+  .hood summary::-webkit-details-marker { display: none; }
+  .hood__chev { margin-left: auto; transition: transform .15s ease; }
+  .hood[open] .hood__chev { transform: rotate(90deg); }
+  .hood__body {
+    display: grid; gap: 12px; margin-top: 12px; max-height: 48vh; overflow-y: auto; padding-right: 6px;
+    font-size: 13px; line-height: 1.55; color: var(--muted);
+  }
+  .hood__lead b, .hood__list b { color: #fff; }
+  .hood__list, .hood__principles { display: grid; gap: 10px; padding: 0; margin: 0; list-style: none; }
+  .hood__list li { padding-left: 10px; border-left: 2px solid rgba(255,255,255,0.12); }
+  .hood__list li.is-on { border-left-color: var(--gold); color: rgba(255,255,255,0.9); }
+  .hood__list b { display: block; margin-bottom: 2px; }
+  .hood h3 { font-size: 13px; color: #fff; margin: 4px 0 0; }
+  .hood__principles { gap: 6px; }
+  .hood__principles li::before { content: '— '; color: var(--dim); }
+  .hood__sign { font-style: italic; color: var(--gold); }
   .panel__title .btn { margin-left: auto; text-transform: none; letter-spacing: 0; }
 
   /* ---------- правка статей ---------- */
   .redit { display: flex; flex-direction: column; gap: 10px; }
   .redit__row {
-    display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 10px 10px 10px 12px;
+    display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; padding: 10px 10px 10px 12px;
     border-radius: 12px; background: rgba(255,255,255,0.025); border-left: 3px solid var(--lvl);
   }
   .redit__row select { color: var(--lvl); font-weight: 600; max-width: 260px; }
   .redit__row [data-f="title"], .redit__text { grid-column: 1 / -1; }
-  .redit__row [data-del] { grid-column: 2; grid-row: 1; }
+  .redit__row [data-del] { grid-column: 3; grid-row: 1; }
+  .redit__only { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); white-space: nowrap; cursor: pointer; }
+  .redit__only input { accent-color: var(--gold); }
   .redit__text { resize: vertical; min-height: 64px; line-height: 1.5; font-family: inherit; }
   .redit__foot { margin-top: 14px; justify-content: space-between; }
   .redit__foot div { display: flex; gap: 10px; }
@@ -156,7 +180,6 @@
             <button type="button" class="btn btn--sm btn--ghost" id="rules-edit" title="Добавить, изменить или удалить статьи"><svg class="ic"><use href="#i-pencil"></use></svg>Править статьи</button></h2>
           <div class="articles" id="articles"></div>
           <div id="article-hint"></div>
-          <a class="memo-link" id="memo-link" href="rules.html#memo" target="_blank" rel="noopener">Памятка модераторам: главное правило и общие принципы</a>
           <label class="field" style="margin-top:16px"><span>Комментарий <em class="hint-inline">— необязательно, виден в истории на сайте</em></span>
             <input class="inp" id="note" maxlength="140" placeholder="Например: «после трёх просьб остыть»"></label>
         </section>
@@ -174,6 +197,31 @@
           <button type="button" class="btn btn--solid btn--big" id="spin" disabled><svg class="ic"><use href="#i-gavel"></use></svg>Вынести приговор</button>
           <button type="button" class="btn btn--ghost" id="sound" title="Звук"></button>
         </div>
+        <details class="hood" id="hood">
+          <summary><svg class="ic"><use href="#i-swords"></use></svg>Памятка модераторам<svg class="ic hood__chev"><use href="#i-chevron"></use></svg></summary>
+          <div class="hood__body">
+            <p class="hood__lead"><b>Главное правило:</b> оцениваем контекст, тяжесть нарушения и поведение пользователя. Не каждую шутку нужно карать, но и терпеть откровенную дичь никто не обязан.</p>
+            <ol class="hood__list" id="hood-list">
+              <li data-rules="insult"><b>1. Оскорбления пользователей</b><span>Учитывай контекст и стиль общения. Если шутка неоднозначная — предупреди. Если не уверен, уместна ли она, удали сообщение и обратись к стримеру.</span></li>
+              <li data-rules="flood"><b>2. Флуд и спам</b><span>Серия из 5–7 сообщений подряд — повод присмотреться. Если сообщения мешают чату, предупреди пользователя. Продолжает — мут примерно на 10 минут. При массовом или намеренном спаме можно действовать жёстче.</span></li>
+              <li data-rules="begging"><b>3. Попрошайничество</b><span>Разовая просьба не всегда проблема. Если пользователь навязчиво выпрашивает внимание, подарки или давит на стримера — предупреждение или мут. При систематическом давлении можно сразу активировать меч.</span></li>
+              <li data-rules="links"><b>4. Опасные ссылки</b><span>Удаляем сообщение и по ситуации предупреждаем пользователя. Повторное нарушение — временный бан, срок зависит от содержания ссылки. Если ссылка явно опасна, содержит вредоносный контент или создаёт угрозу безопасности, предупреждать необязательно.</span></li>
+              <li data-rules="lewd minors"><b>5. Интимный и шокирующий контент</b><span>Подробные сексуальные описания, домогательства и адресные интимные сообщения — удаление и наказание вплоть до бана. Сексуализация несовершеннолетних и попытки вовлечь их в сексуальное общение — немедленная жёсткая реакция. Не ограничиваемся предупреждением.</span></li>
+              <li data-rules="streamer"><b>6. Оскорбления стримера</b><span>Прямые оскорбления и унижения — сразу бан, без обязательного предупреждения. Если пользователь пишет, что уходит к другому стримеру, оцени контекст: обычное мнение — не нарушение, намеренная провокация — повод для мута или бана.</span></li>
+              <li data-rules="twitch"><b>7. Нарушения правил Twitch</b><span>Предупредительный мут необязателен, удаление сообщения — мгновенным. За серьёзные нарушения сразу выдаём бан. Если ситуация требует внимания стримера, сообщаем ему.</span></li>
+              <li data-rules="ads"><b>8. Реклама других стримеров</b><span>Упоминание чужого канала в обычном разговоре допустимо. Намеренная реклама, самопиар или призыв уйти смотреть другого стримера — удаляем сообщение. Продолжает — мут; систематически спамит рекламой — бан.</span></li>
+            </ol>
+            <h3>Общие принципы</h3>
+            <ul class="hood__principles">
+              <li>Контекст важен, но не оправдывает откровенную травлю.</li>
+              <li>Не обязательно проходить все ступени наказания: за серьёзное нарушение можно сразу выдать бан.</li>
+              <li>Не устраиваем публичных разборок — действуем спокойно и по делу.</li>
+              <li>В спорных ситуациях советуемся со стримером, если ситуация позволяет ждать.</li>
+              <li>Не злоупотребляем полномочиями и не выдаём наказания из личной неприязни.</li>
+            </ul>
+            <p class="hood__sign">Модератор — не каратель, а защитник комфортного чата. Но меч всегда должен быть наточен.</p>
+          </div>
+        </details>
       </section>
     </div>
 
@@ -331,7 +379,7 @@ const plural = (n, one, few, many) => n % 10 === 1 && n % 100 !== 11 ? one : n %
 function renderArticles() {
   $('rules-edit').hidden = !!draft;
   $('rules-edit').disabled = spinning;
-  if (draft) { $('article-hint').innerHTML = ''; $('memo-link').hidden = true; renderEditor(); return; }
+  if (draft) { $('article-hint').innerHTML = ''; renderEditor(); return; }
   const groups = [];
   for (let l = 1; l <= MAX_LEVEL; l++) {
     const list = rules.filter(r => r.level === l);
@@ -340,11 +388,21 @@ function renderArticles() {
       `<button type="button" class="article lvl--${l}${pick.rule === r ? ' is-on' : ''}" data-id="${esc(r.id)}" title="${esc(r.text)}"${spinning ? ' disabled' : ''}>${esc(r.title)}</button>`).join('')}</div></div>`);
   }
   $('articles').innerHTML = groups.join('') || '<p class="panel__note">Статей нет — проверь data/rules.json.</p>';
-  // Что говорит памятка по выбранной статье
+  // Под списком — что говорит памятка по выбранной статье (или текст правила, если в памятке её нет)
   const r = pick.rule;
-  $('article-hint').innerHTML = r && r.text ? `<p class="article-hint lvl--${r.level}"><b>${esc(r.title)}.</b> ${esc(r.text)}</p>` : '';
-  $('memo-link').hidden = false;
+  let memo = null;
+  document.querySelectorAll('#hood-list li').forEach(li => {
+    const on = !!r && li.dataset.rules.split(' ').includes(r.id);
+    li.classList.toggle('is-on', on);
+    if (on) memo = li;
+  });
+  $('article-hint').innerHTML = !r ? '' : memo
+    ? `<p class="article-hint lvl--${r.level}"><b>Памятка:</b> ${esc(memo.querySelector('span').textContent)}</p>`
+    : r.text ? `<p class="article-hint lvl--${r.level}"><b>${esc(r.title)}.</b> ${esc(r.text)}</p>` : '';
 }
+// Памятка помнит, развёрнута ли она
+try { $('hood').open = localStorage.getItem('court-hood') === '1'; } catch (e) { /* без хранилища — свёрнута */ }
+$('hood').addEventListener('toggle', () => { try { localStorage.setItem('court-hood', $('hood').open ? '1' : ''); } catch (e) { /* ничего */ } });
 $('articles').addEventListener('click', e => {
   const b = e.target.closest('.article');
   if (!b || spinning) return;
@@ -358,15 +416,16 @@ $('articles').addEventListener('click', e => {
 // ===================== правка статей (data/rules.json) =====================
 const RULES_PATH = 'data/rules.json';
 let rulesFile = null;  // { sha, data }
-let draft = null;      // черновик правки: [{ id, level, title, text }] или null
+let draft = null;      // черновик правки: [{ id, level, title, text, hidden }] или null; порядок = порядок на странице правил
 const levelOptions = sel => Array.from({ length: MAX_LEVEL }, (_, i) => i + 1)
   .map(l => `<option value="${l}"${l === sel ? ' selected' : ''}>${l} · ${esc(LEVELS[l].name)}</option>`).join('');
 function renderEditor() {
   $('articles').innerHTML = `<div class="redit">${draft.map((r, i) => `<div class="redit__row lvl--${r.level}" data-i="${i}">
       <select class="inp" data-f="level" aria-label="Тяжесть">${levelOptions(r.level)}</select>
+      <label class="redit__only" title="Статья есть на суде, но не показывается в правилах на сайте"><input type="checkbox" data-f="hidden"${r.hidden ? ' checked' : ''}>только суд</label>
       <input class="inp" data-f="title" value="${esc(r.title)}" maxlength="60" placeholder="Название статьи" aria-label="Название">
       <button type="button" class="btn btn--sm btn--danger" data-del title="Удалить статью">${icon('x')}</button>
-      <textarea class="inp redit__text" data-f="text" rows="4" maxlength="600" placeholder="Что считается нарушением и как поступать — видят модераторы здесь и зрители на странице правил" aria-label="Пояснение">${esc(r.text)}</textarea>
+      <textarea class="inp redit__text" data-f="text" rows="4" maxlength="600" placeholder="Текст правила — его видят зрители на странице правил" aria-label="Пояснение">${esc(r.text)}</textarea>
     </div>`).join('') || '<p class="panel__note">Статей не осталось. Добавь хотя бы одну.</p>'}</div>
     <div class="row redit__foot">
       <button type="button" class="btn btn--ghost" id="redit-add">${icon('plus')}Статья</button>
@@ -376,7 +435,7 @@ function renderEditor() {
 }
 $('rules-edit').addEventListener('click', () => {
   if (spinning) return;
-  draft = rules.map(r => ({ id: r.id, level: r.level, title: r.title || '', text: r.text || '' }));
+  draft = rules.map(r => ({ id: r.id, level: r.level, title: r.title || '', text: r.text || '', hidden: r.hidden === '1' }));
   renderArticles();
   renderCharge();
 });
@@ -384,7 +443,7 @@ $('articles').addEventListener('input', e => {
   const row = e.target.closest('.redit__row');
   if (!row || !draft) return;
   const r = draft[+row.dataset.i], f = e.target.dataset.f;
-  r[f] = f === 'level' ? +e.target.value : e.target.value;
+  r[f] = f === 'level' ? +e.target.value : f === 'hidden' ? e.target.checked : e.target.value;
   if (f === 'level') row.className = 'redit__row lvl--' + r.level;
 });
 $('articles').addEventListener('click', e => {
@@ -396,7 +455,7 @@ $('articles').addEventListener('click', e => {
     draft.splice(i, 1);
     renderEditor();
   } else if (e.target.closest('#redit-add')) {
-    draft.push({ id: newId(), level: 2, title: '', text: '' });
+    draft.push({ id: newId(), level: 2, title: '', text: '', hidden: false });
     renderEditor();
     $('articles').querySelector('.redit__row:last-child [data-f="title"]').focus();
   } else if (e.target.closest('#redit-cancel')) {
@@ -406,16 +465,15 @@ $('articles').addEventListener('click', e => {
   } else if (e.target.closest('#redit-save')) saveRules(e.target.closest('#redit-save'));
 });
 async function saveRules(btn) {
-  const list = draft.map(r => ({ id: r.id, level: r.level, title: r.title.trim(), text: r.text.trim() }))
-    .filter(r => r.title || r.text)
-    .sort((a, b) => a.level - b.level);
+  const list = draft.map(r => ({ id: r.id, level: r.level, title: r.title.trim(), text: r.text.trim(), hidden: r.hidden ? '1' : '' }))
+    .filter(r => r.title || r.text);
   if (list.some(r => !r.title)) return toast('У каждой статьи должно быть название', true);
   if (!list.length) return toast('Нужна хотя бы одна статья', true);
   // Что поменялось — для сообщения коммита
   const before = new Map(rules.map(r => [r.id, r]));
   const added = list.filter(r => !before.has(r.id)).map(r => '+«' + r.title + '»');
   const removed = rules.filter(r => !list.some(x => x.id === r.id)).map(r => '−«' + r.title + '»');
-  const changed = list.filter(r => { const o = before.get(r.id); return o && (o.title !== r.title || (o.text || '') !== r.text || o.level !== r.level); }).length;
+  const changed = list.filter(r => { const o = before.get(r.id); return o && (o.title !== r.title || (o.text || '') !== r.text || o.level !== r.level || (o.hidden || '') !== r.hidden); }).length;
   const parts = [...added, ...removed].concat(changed ? ['изменено ' + changed] : []);
   if (!parts.length) { draft = null; renderArticles(); renderCharge(); return; }
   btn.disabled = true;

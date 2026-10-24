@@ -40,12 +40,19 @@
   .level__rules li { font-size: 13px; line-height: 1.5; color: var(--muted); padding-left: 12px; border-left: 2px solid rgba(var(--lvl-rgb),0.45); }
   .level__rules b { display: block; font-size: 14.5px; color: #fff; margin-bottom: 2px; }
 
-  .memo { display: grid; gap: 14px; margin-bottom: 38px; }
-  .memo__lead { font-size: 15px; line-height: 1.65; color: rgba(255,255,255,0.85); max-width: 900px; }
-  .memo__lead b { color: var(--gold); }
-  .memo__list { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 22px; }
-  .memo__list li { font-size: 13.5px; line-height: 1.5; color: var(--muted); padding-left: 12px; border-left: 2px solid rgba(255,214,102,0.4); }
-  .memo__sign { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--dim); font-style: italic; }
+  .code { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .code li {
+    display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 4px 12px; align-content: start; padding: 16px 18px; border-radius: 14px;
+    background: linear-gradient(135deg, rgba(var(--lvl-rgb),0.06), rgba(255,255,255,0.015) 60%); border: 1px solid rgba(var(--lvl-rgb),0.2);
+  }
+  .code__num { grid-row: span 3; font-size: 30px; font-weight: 800; line-height: 1; color: var(--lvl); }
+  .code__title { font-size: 16px; font-weight: 700; color: #fff; }
+  .code__text { font-size: 13.5px; line-height: 1.55; color: var(--muted); }
+  .code .lvl-badge { justify-self: start; margin-top: 6px; }
+  .code-foot { display: grid; gap: 8px; margin-bottom: 38px; }
+  .code-foot p { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.55; color: rgba(255,255,255,0.82); }
+  .code-foot .ic { flex: 0 0 auto; margin-top: 3px; color: var(--gold); }
+  .code-foot .sign { color: var(--gold); font-weight: 600; }
 
   .history-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .history-tools .chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -55,7 +62,7 @@
     .notes { grid-template-columns: 1fr; }
     .level { grid-template-columns: 1fr; gap: 14px; }
     .level__rules { grid-template-columns: 1fr; }
-    .memo__list { grid-template-columns: 1fr; }
+    .code { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -79,6 +86,14 @@
     <p class="sign">Шутка — это когда смешно всем. Если смешно только тебе — это уже статья.</p>
   </section>
 
+  <h2 class="section-title" id="code"><svg class="ic"><use href="#i-shield"></use></svg>Правила чата</h2>
+  <ol class="code" id="code-list"><li class="empty-state">Загружаю...</li></ol>
+  <div class="code-foot">
+    <p><svg class="ic"><use href="#i-alert"></use></svg><span>Наказание зависит от ситуации: от предупреждения и мута до временного или постоянного бана. За серьёзные нарушения предупреждений может не быть.</span></p>
+    <p class="sign">Общаемся, веселимся и не забываем, что по ту сторону экрана тоже люди.</p>
+  </div>
+
+  <h2 class="section-title"><svg class="ic"><use href="#i-gavel"></use></svg>Как работает суд</h2>
   <div class="rules">
     <div class="rule">
       <div class="rule__icon"><svg class="ic"><use href="#i-hand"></use></svg></div>
@@ -103,22 +118,8 @@
     <div><b>Вечный бан.</b> Без апелляции. До него на нашем колесе надо очень постараться.</div>
   </div>
 
-  <h2 class="section-title"><svg class="ic"><use href="#i-scale"></use></svg>Статьи и колёса</h2>
+  <h2 class="section-title"><svg class="ic"><use href="#i-scale"></use></svg>Ступени и колёса</h2>
   <div class="levels" id="levels"><p class="empty-state">Загружаю...</p></div>
-
-  <h2 class="section-title" id="memo"><svg class="ic"><use href="#i-shield"></use></svg>Памятка модераторам</h2>
-  <section class="spotlight memo">
-    <p class="memo__lead"><b>Главное правило:</b> оцениваем контекст, тяжесть нарушения и поведение пользователя.
-      Не каждую шутку нужно карать, но и терпеть откровенную дичь никто не обязан.</p>
-    <ul class="memo__list">
-      <li>Контекст важен, но не оправдывает откровенную травлю.</li>
-      <li>Предупреждение — не обязательный шаг: за серьёзное нарушение можно сразу в суд.</li>
-      <li>Не устраиваем публичных разборок — действуем спокойно и по делу.</li>
-      <li>В спорных ситуациях советуемся со стримером, если ситуация позволяет ждать.</li>
-      <li>Не злоупотребляем полномочиями и не выдаём наказания из личной неприязни.</li>
-    </ul>
-    <p class="memo__sign"><svg class="ic"><use href="#i-swords"></use></svg>Модератор — не каратель, а защитник комфортного чата. Но меч всегда должен быть наточен.</p>
-  </section>
 
   <h2 class="section-title" id="history"><svg class="ic"><use href="#i-gavel"></use></svg>История приговоров</h2>
   <div class="history-tools">
@@ -137,22 +138,26 @@ const { LEVELS, MAX_LEVEL, esc } = court;
 const $ = id => document.getElementById(id);
 $('repeat-days').textContent = court.REPEAT_DAYS;
 
-// ---------- статьи по ступеням ----------
+// ---------- свод правил и ступени ----------
+// hidden = статья только для суда (отдельная часть общего правила) — зрителям не показываем
 async function loadLevels() {
   try {
-    const rules = await court.loadRules();
+    const rules = (await court.loadRules()).filter(r => r.hidden !== '1');
+    const num = new Map(rules.map((r, i) => [r, i + 1]));
+    $('code-list').innerHTML = rules.map(r => `<li class="lvl--${r.level}"><span class="code__num">${num.get(r)}</span>
+      <span class="code__title">${esc(r.title)}</span><span class="code__text">${esc(r.text)}</span>${court.levelBadge(r.level, 'Ступень ' + r.level)}</li>`).join('');
     const blocks = [];
     for (let l = 1; l <= MAX_LEVEL; l++) {
       const list = rules.filter(r => r.level === l);
       if (!list.length) continue;
       blocks.push(`<section class="level lvl--${l}">
         <div class="level__head">${court.levelBadge(l, 'Ступень ' + l)}<div class="level__name">${esc(LEVELS[l].name)}</div>${court.oddsHTML(l)}</div>
-        <ul class="level__rules">${list.map(r => `<li><b>${esc(r.title)}</b>${esc(r.text)}</li>`).join('')}</ul></section>`);
+        <ul class="level__rules">${list.map(r => `<li><b>${num.get(r)}. ${esc(r.title)}</b></li>`).join('')}</ul></section>`);
     }
     $('levels').innerHTML = blocks.join('');
   } catch (err) {
     console.error(err);
-    $('levels').innerHTML = '<p class="error-state">' + icon('alert') + 'Не удалось загрузить статьи. Обнови страницу.</p>';
+    $('levels').innerHTML = $('code-list').innerHTML = '<p class="error-state">' + icon('alert') + 'Не удалось загрузить правила. Обнови страницу.</p>';
   }
 }
 
