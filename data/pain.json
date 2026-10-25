@@ -22,7 +22,7 @@
     {"name":"Watch_Dogs 2","hours":"","last_played":"","override":"","quip":"","id":"15a85437"},
     {"name":"Kerbal Space Program","hours":"","last_played":"","override":"","quip":"","id":"207a9142"},
     {"name":"Enshrouded","hours":"","last_played":"","override":"","quip":"","id":"51d8a066"},
-    {"name":"I Wanna be the Boshy","hours":"","last_played":"","override":"","quip":"","id":"ce674b54"},
+    {"name":"I Wanna be the Boshy","hours":"","last_played":"","override":"https://delicious-fruit.sfo3.digitaloceanspaces.com/11890_00000008","quip":"","id":"ce674b54"},
     {"name":"Digital Combat Simulator World","hours":"","last_played":"","override":"","quip":"","id":"fd380465"}
   ]
 }
