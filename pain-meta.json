@@ -373,6 +373,23 @@
       "override": "",
       "checked": "2026-10-22T19:50:18.255Z",
       "found": false
+    },
+    "digital combat simulator world": {
+      "name": "Digital Combat Simulator World",
+      "override": "",
+      "checked": "2026-10-25T19:14:59.555Z",
+      "found": true,
+      "appid": 223750,
+      "title": "DCS World Steam Edition",
+      "year": 2013,
+      "genres": [
+        "Симуляторы"
+      ],
+      "description": "Почувствуйте всю мощь современной боевой авиации! Займите место в российском штурмовике Су-25Т и сбросьте на головы противника несколько тонн бомб! Утомляет гул реактивных двигателей, хочется прикоснуться к чему-то раритетному? Тогда ваш выбор учебно-тренировочный самолет TF-51D, модификации легендарного истребителя P-51D “Mustang”!",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/223750/library_600x900.jpg?t=1784736456",
+      "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/223750/header.jpg?t=1784736456",
+      "source": "steam",
+      "steamUrl": "https://store.steampowered.com/app/223750/"
     }
   }
 }
