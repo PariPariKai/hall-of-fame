@@ -678,10 +678,6 @@ function paintReel(p, speed) {
   $('reel-blur-g').setAttribute('stdDeviation', '0 ' + (blur * 16).toFixed(1));
   strip.style.setProperty('--txt', (1 - blur * 0.9).toFixed(2));
   $('reel-streaks').style.opacity = (blur * 0.85).toFixed(2);
-  // Язычки: ребро ячейки толкает их вниз и отпускает
-  const kick = Math.max(0, 1 - mod(p - 0.5, 1) * 4);
-  $('pawl-l').style.transform = `rotate(${(kick * 16).toFixed(1)}deg)`;
-  $('pawl-r').style.transform = `rotate(${(-kick * 16).toFixed(1)}deg)`;
 }
 function resetReel() {
   if (!$('reel-strip')) return;
@@ -694,6 +690,27 @@ function setLive(id) {
   const o = OUTCOMES[id];
   $('live').textContent = o ? o.short : '';
   $('live').style.setProperty('--ink', o ? o.ink : 'transparent');
+}
+
+// ---------- язычки на пружинке: каждая ячейка отбивает их вниз, пружина возвращает с покачиванием ----------
+const pawl = { a: 0, w: 0 };   // угол в градусах (плюс — вниз) и угловая скорость
+let pawlRaf = 0, pawlLast = 0;
+function kickPawls(power) {
+  pawl.w += 520 * power;
+  if (!pawlRaf) { pawlLast = 0; pawlRaf = requestAnimationFrame(stepPawls); }
+}
+function stepPawls(now) {
+  const dt = pawlLast ? Math.min(0.033, (now - pawlLast) / 1000) : 0.016;
+  pawlLast = now;
+  for (let i = 0; i < 2; i++) {          // жёсткость 900, затухание 16 — пара-тройка покачиваний после щелчка
+    pawl.w += (-900 * pawl.a - 16 * pawl.w) * dt / 2;
+    pawl.a += pawl.w * dt / 2;
+  }
+  pawl.a = Math.max(-10, Math.min(30, pawl.a));
+  $('pawl-l').style.transform = `rotate(${pawl.a.toFixed(2)}deg)`;
+  $('pawl-r').style.transform = `rotate(${(-pawl.a).toFixed(2)}deg)`;
+  if (Math.abs(pawl.a) > 0.05 || Math.abs(pawl.w) > 1) pawlRaf = requestAnimationFrame(stepPawls);
+  else { pawl.a = pawl.w = 0; pawlRaf = 0; $('pawl-l').style.transform = $('pawl-r').style.transform = ''; }
 }
 
 // ---------- искры из-под язычков ----------
@@ -767,32 +784,77 @@ function gavel(kind) {
 function paintSound() { $('sound').innerHTML = icon(soundOn ? 'volume' : 'volume-off'); }
 $('sound').addEventListener('click', () => {
   soundOn = !soundOn;
+  if (!soundOn) rollStop();
   try { localStorage.setItem('court-sound', soundOn ? '1' : '0'); } catch (e) { /* не запомнится */ }
   paintSound();
 });
 
-// Свои звуки — файлы sounds/court/*.mp3; каких нет, те заменяет синтезатор:
-//   tick — щелчок ячейки, stop — удар остановки, verdict-mute / verdict-ban / verdict-perma — приговор,
+// Свои звуки — файлы sounds/court/*.mp3; каких нет, те заменяет синтезатор (шум вращения без файла просто молчит):
+//   tick-1, tick-2 — щелчок язычка, на каждую ячейку случайный (ещё варианты — дописать в TICKS); roll — петля вращения барабана, её высота и громкость
+//   идут за скоростью; stop — удар остановки; verdict-mute / verdict-ban / verdict-perma — приговор;
 //   music-1 … music-5 — музыка прокрутки для ступени (удар остановки — ровно через LEVELS[N].spin секунд от старта).
 const SFX_DIR = 'sounds/court/';
-const sfxRaw = {}, sfxReady = {}, sfxBuf = {};
+const TICKS = ['tick-1', 'tick-2'];
+const SFX_ALL = [...TICKS, 'roll', 'stop', 'verdict-mute', 'verdict-ban', 'verdict-perma'];
+const sfxRaw = {}, sfxReady = {}, sfxBuf = {}, sfxLead = {};
+// Тишина в начале файла: щелчок и удар должны звучать ровно в момент события, а не с задержкой
+function leadOf(buf) {
+  const d = buf.getChannelData(0);
+  let peak = 0;
+  for (let i = 0; i < d.length; i++) if (Math.abs(d[i]) > peak) peak = Math.abs(d[i]);
+  for (let i = 0; i < d.length; i++) if (Math.abs(d[i]) > peak * 0.2) return Math.max(0, i / buf.sampleRate - 0.003);
+  return 0;
+}
 function loadSfx(name) {  // скачать сразу; раскодировать — когда уже есть AudioContext (после клика)
   if (!sfxRaw[name]) sfxRaw[name] = fetch(SFX_DIR + name + '.mp3').then(r => r.ok ? r.arrayBuffer() : null).catch(() => null);
   return sfxRaw[name];
 }
 const readySfx = names => Promise.all(names.map(n => sfxReady[n] || (sfxReady[n] = loadSfx(n)
-  .then(raw => raw ? ac().decodeAudioData(raw) : null).catch(() => null).then(buf => { sfxBuf[n] = buf; }))));
-function sfx(name, fallback, rate) {
+  .then(raw => raw ? ac().decodeAudioData(raw) : null).catch(() => null)
+  .then(buf => { sfxBuf[n] = buf; if (buf && n !== 'roll' && !n.startsWith('music')) sfxLead[n] = leadOf(buf); }))));
+function sfx(name, fallback, rate, vol) {
   if (!soundOn) return;
   const buf = sfxBuf[name];
   if (!buf) { if (fallback) fallback(); return; }
-  const a = ac(), src = a.createBufferSource();
+  const a = ac(), src = a.createBufferSource(), g = a.createGain();
   src.buffer = buf;
   if (rate) src.playbackRate.value = rate;
-  src.connect(a.destination);
-  src.start();
+  g.gain.value = vol || 1;
+  src.connect(g); g.connect(a.destination);
+  src.start(0, sfxLead[name] || 0);
 }
-['tick', 'stop', 'verdict-mute', 'verdict-ban', 'verdict-perma'].forEach(loadSfx);
+// Щелчок язычка: случайный из имеющихся файлов, чуть другой высоты — чтобы не звучало как метроном
+function tickSound() {
+  const have = TICKS.filter(n => sfxBuf[n]);
+  if (!have.length) return click();
+  sfx(have[Math.floor(Math.random() * have.length)], null, 0.93 + Math.random() * 0.14, 0.5);
+}
+// Шум вращения: петля, которая разгоняется и тормозит вместе с барабаном
+let roll = null;
+function rollStart() {
+  if (!soundOn || !sfxBuf.roll || roll) return;
+  const a = ac(), src = a.createBufferSource(), gain = a.createGain();
+  src.buffer = sfxBuf.roll;
+  src.loop = true;
+  gain.gain.value = 0;
+  src.connect(gain); gain.connect(a.destination);
+  src.start();
+  roll = { src, gain };
+}
+function rollSpeed(v) {
+  if (!roll) return;
+  const t = ac().currentTime, k = Math.min(1, v / TOP_SPEED);
+  roll.src.playbackRate.setTargetAtTime(0.55 + 0.6 * k, t, 0.05);
+  roll.gain.gain.setTargetAtTime(1.6 * Math.sqrt(k), t, 0.06);   // сам файл тихий — это фон
+}
+function rollStop() {
+  if (!roll) return;
+  const r = roll, t = ac().currentTime;
+  roll = null;
+  r.gain.gain.setTargetAtTime(0, t, 0.06);
+  r.src.stop(t + 0.5);
+}
+SFX_ALL.forEach(loadSfx);
 
 // ---------- прокрутка ----------
 function lock(on) {
@@ -804,9 +866,9 @@ function lock(on) {
   renderRecord();
   renderCharge();
 }
-// Прокрутка: разгон → полный ход → торможение → удар (ровно через LEVELS[lvl].spin секунд) → отскок.
+// Прокрутка: разгон → полный ход → торможение → удар (ровно через LEVELS[lvl].spin секунд) → покачивание.
 // Скорость подбирается так, чтобы барабан встал точно на ячейке idx.
-const RAMP = 0.4, BOUNCE = 0.28, TOP_SPEED = 24;
+const RAMP = 0.4, BOUNCE = 0.9, TOP_SPEED = 24;
 function spinReel(lvl, idx, onStop) {
   const L = LEVELS[lvl], brake = L.brake, hold = L.spin - RAMP - brake;
   const k = RAMP / 2 + hold + brake / 3;           // путь при скорости 1: разгон + ход + торможение (v ~ (1-s)²)
@@ -825,14 +887,17 @@ function spinReel(lvl, idx, onStop) {
       else if (t < L.spin) { const s = (t - RAMP - hold) / brake; v = vmax * (1 - s) ** 2; p = p2 + vmax * brake * (1 - (1 - s) ** 3) / 3; }
       else {
         if (!stopped) { stopped = true; onStop(); }
-        p = dist - 0.13 * Math.sin(Math.PI * Math.min(1, (t - L.spin) / BOUNCE));  // клац — и чуть назад
+        const u = t - L.spin;   // по инерции чуть дальше, назад, и затихает — как спиннер в Hearthstone
+        p = dist + 0.22 * Math.exp(-u * 5.5) * Math.sin(u * 2 * Math.PI * 2.4);
       }
       if (v > 16) $('wheel-box').classList.remove('is-veiled');   // на ходу — уже сроки, но их не разглядеть
       paintReel(start + p, v);
+      rollSpeed(v);
       const tk = Math.floor(start + p - 0.5);
-      if (tk !== tick && !stopped) {
+      if (tk !== tick && !stopped) {   // ребро ячейки прошло под стрелками: щелчок, язычки вниз, искры
         tick = tk;
-        sfx('tick', click, 0.92 + Math.random() * 0.16);
+        tickSound();
+        kickPawls(v > 16 ? 0.55 : 1);
         emitSparks(v > 16 ? 1 : 2, 0.55 + v / 40);
       }
       if (t < L.spin + BOUNCE) requestAnimationFrame(frame);
@@ -849,13 +914,16 @@ $('spin').addEventListener('click', async () => {
   lock(true);
   resetReel();
   // Свои звуки, если есть, — но не ждём их дольше полутора секунд
-  await Promise.race([readySfx(['tick', 'stop', 'verdict-mute', 'verdict-ban', 'verdict-perma', 'music-' + lvl]), wait(1500)]);
+  await Promise.race([readySfx([...SFX_ALL, 'music-' + lvl]), wait(1500)]);
   const idx = rand(SECTORS);   // все 20 ячеек равновероятны
   const outcome = layout[idx], o = OUTCOMES[outcome];
   $('reel-plate').textContent = 'Суд идёт';
   sfx('music-' + lvl);
+  rollStart();
   await spinReel(lvl, idx, () => {
+    rollStop();
     sfx('stop', thunk);
+    kickPawls(1.8);
     emitSparks(16, 1.5);
     $('reel-plate').textContent = 'Приговор';
     $('reel-lens').style.setProperty('--win', o.ink);
