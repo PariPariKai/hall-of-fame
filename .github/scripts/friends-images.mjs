@@ -1,7 +1,7 @@
-// Копирует картинки баннеров «Рекомендую» (лист Friends) на сам сайт: friends/<ник>-<хэш>.jpg + friends-meta.json.
+// Копирует картинки баннеров «Рекомендую» (data/friends.json) на сам сайт: friends/<ник>-<хэш>.jpg + friends-meta.json.
 // Зачем: сторонние хостинги картинок открываются не у всех зрителей, а исходники весят мегабайты.
 // Картинка вписывается в 2500×500 (баннер 5:1, больше не нужно) и сохраняется в JPEG.
-// Перекачивается, только если в таблице сменили ссылку. Сайт берёт копию, а без неё — исходную ссылку.
+// Перекачивается, только если в админке сменили ссылку. Сайт берёт копию, а без неё — исходную ссылку.
 // Запускается GitHub Actions (см. .github/workflows/friends-images.yml) или вручную:
 //   npm install --no-save sharp && node .github/scripts/friends-images.mjs
 // SITE_ROOT — папка сайта (по умолчанию корень репозитория; нужно только для запуска не из репозитория).
@@ -12,7 +12,6 @@ import crypto from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import sharp from 'sharp';
 
-const CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=1322308154&single=true&output=csv';
 const ROOT = process.env.SITE_ROOT || fileURLToPath(new URL('../../', import.meta.url));
 const DIR = path.join(ROOT, 'friends');
 const META = path.join(ROOT, 'friends-meta.json');
@@ -20,33 +19,17 @@ const UA = {'User-Agent': 'Mozilla/5.0 (compatible; hall-of-fame-friends/1.0; +h
 const MAX_W = 2500, MAX_H = 500, QUALITY = 82;
 const BG = '#0a0e1a'; // фон сайта — на него ляжет прозрачность PNG
 
-function parseCSV(text) {
-  const rows = []; let row = [], cell = '', quoted = false;
-  text = text.replace(/^﻿/, '');
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (c === '"') {
-      if (quoted && text[i + 1] === '"') { cell += '"'; i++; } else quoted = !quoted;
-    } else if (c === ',' && !quoted) { row.push(cell); cell = ''; }
-    else if ((c === '\n' || c === '\r') && !quoted) {
-      if (c === '\r' && text[i + 1] === '\n') i++;
-      row.push(cell); rows.push(row); row = []; cell = '';
-    } else cell += c;
-  }
-  if (cell || row.length) { row.push(cell); rows.push(row); }
-  return rows;
-}
 
 const isUrl = s => /^https?:\/\//i.test(s || '');
 const slug = nick => nick.toLowerCase().replace(/[^a-z0-9_-]+/g, '') || 'friend';
 const kb = n => `${Math.round(n / 1024)} КБ`;
 
-const res = await fetch(CSV + '&cache=' + Date.now(), {headers: UA});
-if (!res.ok) throw new Error(`Лист Friends недоступен: HTTP ${res.status}`);
-const rows = parseCSV(await res.text());
+// Список — data/friends.json (правится на admin.html, вкладка «Рекомендую»)
+const list = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'friends.json'), 'utf8'));
+const rows = [list.columns, ...list.items.map(o => list.columns.map(c => o[c] ?? ''))];
 const header = rows[0].map(h => h.trim().toLowerCase());
 const cNick = header.indexOf('nick'), cImg = header.indexOf('image_url');
-if (cNick < 0 || cImg < 0) throw new Error('В листе Friends нужны колонки nick и image_url');
+if (cNick < 0 || cImg < 0) throw new Error('В data/friends.json нужны колонки nick и image_url');
 
 const prev = fs.existsSync(META) ? JSON.parse(fs.readFileSync(META, 'utf8')) : {images: {}};
 const images = {};

@@ -1,8 +1,12 @@
 # Подтягивает обложки, жанры и годы для новых игр из пула «Боль» и коммитит pain-meta.json.
-# Запуск: каждые 30 минут и вручную (Actions → «Боль: данные игр» → Run workflow).
+# Запуск: после правки data/pain.json в админке, каждые 30 минут и вручную (Actions → «Боль: данные игр» → Run workflow).
 name: "Боль: данные игр"
 
 on:
+  # Правка в админке — сразу обновляем
+  push:
+    branches: [main]
+    paths: ["data/pain.json"]
   schedule:
     - cron: "*/30 * * * *"
   workflow_dispatch:

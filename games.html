@@ -8,12 +8,12 @@
 <title>Заказы игр — Hall of Fame</title>
 <link rel="stylesheet" href="site.css?v=6">
 <script>
-  // Лист Games. Карточки, фильтры и загрузка — общие для всех заказов, см. orders.js.
+  // Раздел — data/games.json (правится на admin.html). Лист Games. Карточки, фильтры и загрузка — общие для всех заказов, см. orders.js.
   window.ORDERS_PAGE = {
     list: 'games',
     sheet: 'Games',
     noun: 'игр',
-    csv: "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=727100001&single=true&output=csv",
+    src: 'data/games.json',
     // weight — порядок в сортировке «По статусу»; done — заказ закрыт
     statuses: [
       { id: 'pending',   label: 'В очереди', tone: 'queue',   weight: 1 },
@@ -28,7 +28,7 @@
 </script>
 </head>
 <body>
-<script src="site.js?v=10"></script>
+<script src="site.js?v=11"></script>
 
 <div class="wrap">
   <header class="header">

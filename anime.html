@@ -8,12 +8,12 @@
 <title>Заказы аниме — Hall of Fame</title>
 <link rel="stylesheet" href="site.css?v=6">
 <script>
-  // Лист Anime. Карточки, фильтры и загрузка — общие для всех заказов, см. orders.js.
+  // Раздел — data/anime.json (правится на admin.html). Лист Anime. Карточки, фильтры и загрузка — общие для всех заказов, см. orders.js.
   window.ORDERS_PAGE = {
     list: 'anime',
     sheet: 'Anime',
     noun: 'аниме',
-    csv: "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=627100001&single=true&output=csv",
+    src: 'data/anime.json',
     // weight — порядок в сортировке «По статусу»; done — заказ закрыт
     statuses: [
       { id: 'pending',  label: 'В очереди',   tone: 'queue',  weight: 1 },
@@ -27,7 +27,7 @@
 </script>
 </head>
 <body>
-<script src="site.js?v=10"></script>
+<script src="site.js?v=11"></script>
 
 <div class="wrap">
   <header class="header">

@@ -1,0 +1,22 @@
+{
+  "columns": ["key","value"],
+  "items": [
+    {"key":"raffle_date","value":"2026-05-31 20:00"},
+    {"key":"raffle_title","value":"До розыгрыша Subnautica 2"},
+    {"key":"raffle_active","value":"FALSE"},
+    {"key":"tickets_banner_url","value":""},
+    {"key":"streamer_name","value":"ParipariKai"},
+    {"key":"streamer_intro","value":"Привет! Я стримлю игры, фильмы и аниме. Здесь хроника моих стримов, рулетки и заказы зрителей."},
+    {"key":"streamer_avatar_url","value":"https://static-cdn.jtvnw.net/jtv_user_pictures/d80dd9ee-d9e1-47c0-92d2-4ac28e278426-profile_image-70x70.png"},
+    {"key":"streamer_twitch_url","value":"https://www.twitch.tv/pariparikai"},
+    {"key":"schedule_sun","value":"17:00-22:00"},
+    {"key":"schedule_mon","value":"17:00-22:00"},
+    {"key":"schedule_tue","value":"17:00-22:00"},
+    {"key":"schedule_wed","value":"17:00-22:00"},
+    {"key":"schedule_thu","value":"17:00-22:00"},
+    {"key":"schedule_fri","value":"14:00-18:00"},
+    {"key":"schedule_sat","value":""},
+    {"key":"picker_time","value":"19:00"},
+    {"key":"movie_time","value":"20:00"}
+  ]
+}

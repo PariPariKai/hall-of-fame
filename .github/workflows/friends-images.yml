@@ -1,8 +1,12 @@
 # Копирует картинки баннеров «Рекомендую» (лист Friends) на сам сайт в JPEG и коммитит friends/ + friends-meta.json.
-# Запуск: каждый час и вручную (Actions → «Рекомендую: копии баннеров» → Run workflow).
+# Запуск: после правки data/friends.json в админке, каждый час и вручную (Actions → «Рекомендую: копии баннеров» → Run workflow).
 name: "Рекомендую: копии баннеров"
 
 on:
+  # Правка в админке — сразу обновляем
+  push:
+    branches: [main]
+    paths: ["data/friends.json"]
   schedule:
     - cron: "47 * * * *"
   workflow_dispatch:

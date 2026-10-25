@@ -9,21 +9,18 @@
 
 <!-- ============================================================
      ⚙ НАСТРОЙКА ⚙
-     Четыре листа заказов + лист Viewers (аватарки зрителей).
-     Ссылки те же, что используют anime/movies/series/games.
+     Четыре списка заказов + зрители (аватарки) — data/*.json, правятся на admin.html.
      ============================================================ -->
 <script>
-  const SHEET = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?single=true&output=csv&gid=";
-
   // on — включён ли источник при открытии страницы
   const SOURCES = [
-    { id:'anime',  name:'Аниме',   icon:'torii', color:'#E58CC0', on:true,  csv: SHEET + '627100001' },
+    { id:'anime',  name:'Аниме',   icon:'torii', color:'#E58CC0', on:true,  csv: 'data/anime.json' },
     { id:'movies', name:'Фильмы',  icon:'film', color:'#FAC775', on:true,  csv: 'data/movies.json' },
-    { id:'series', name:'Сериалы', icon:'tv', color:'#6FB7E8', on:true,  csv: SHEET + '627100003' },
-    { id:'games',  name:'Игры',    icon:'gamepad', color:'#9B8CE8', on:false, csv: SHEET + '727100001' },
+    { id:'series', name:'Сериалы', icon:'tv', color:'#6FB7E8', on:true,  csv: 'data/series.json' },
+    { id:'games',  name:'Игры',    icon:'gamepad', color:'#9B8CE8', on:false, csv: 'data/games.json' },
   ];
 
-  const VIEWERS_CSV_URL = SHEET + '527100001';
+  const VIEWERS_CSV_URL = 'data/viewers.json';
 
   // Сбор участников из чата: заказчик пишет одно из этих слов —
   // и его заказы попадают на колесо. Слово должно стоять первым
@@ -444,7 +441,7 @@
     .site-nav__dd:focus-within > .site-nav__menu { opacity: 1; visibility: visible; pointer-events: auto; transform: none; }
   }
 </style>
-<script src="site.js?v=10"></script>
+<script src="site.js?v=11"></script>
 
 <div class="wrap">
 
@@ -698,7 +695,7 @@ async function loadSource(source) {
 
 async function loadViewers() {
   try {
-    const res = await fetchWithTimeout(VIEWERS_CSV_URL, 12000);
+    const res = await siteData.fetch(VIEWERS_CSV_URL, { signal: AbortSignal.timeout(12000) });
     if (!res.ok) return false;
     const rows = parseCSV(await res.text());
     if (rows.length < 2) return false;

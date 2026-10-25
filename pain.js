@@ -1,7 +1,7 @@
 'use strict';
-// Only games come from column A. Duration options are fixed on the site.
+// Игры — колонка name в data/pain.json (правится на admin.html, вкладка «Боль»). Время задано на сайте.
 const minutes = Object.freeze([60, 240, 480]);
-const PAIN_CSV = 'https://docs.google.com/spreadsheets/d/1voGKd0Zx09_Io-Wb0F5uag9nKi5pME8LGbsyWwTVWOM/gviz/tq?tqx=out:csv&gid=827100001&headers=1&tq=select%20A';
+const PAIN_CSV = 'data/pain.json';
 const $ = id => document.getElementById(id);
 const TAU = Math.PI * 2;
 const palette = ['#8d4564','#555897','#ad704b','#487c87','#754d92','#9a5359','#687748','#455f95'];
@@ -22,16 +22,13 @@ function parseCSV(text) {
       row.push(cell); rows.push(row); row = []; cell = '';
     } else cell += c;
   }
-  if (quoted) throw new Error('Незакрытая кавычка в данных таблицы.');
+  if (quoted) throw new Error('Незакрытая кавычка в списке игр.');
   if (cell || row.length) { row.push(cell); rows.push(row); }
   return rows;
 }
 function readOptions(text) {
-  if (/^\s*</.test(text)) throw new Error('Google вернул страницу вместо списка. Проверь публикацию вкладки.');
   const rows = parseCSV(text);
-  if (rows[0]?.[0]?.trim() !== 'Название игры') {
-    throw new Error('Не найден столбец «Название игры». Проверь первую строку вкладки.');
-  }
+  if (!['name', 'Название игры'].includes(rows[0]?.[0]?.trim())) throw new Error('В data/pain.json нет колонки name.');
   const names = new Map();
   for (const row of rows.slice(1)) {
     const name = (row[0] || '').trim().replace(/\s+/g, ' ');
@@ -63,7 +60,7 @@ function drawWheel(id, labels, angle) {
     ctx.fillText('Список пока пуст',r,r*.65); return;
   }
   ctx.save(); ctx.translate(r,r); ctx.rotate(angle);
-  const items = labels.length ? labels : ['Добавь варианты в таблицу'];
+  const items = labels.length ? labels : ['Добавь игры в админке'];
   const step = TAU / items.length;
   items.forEach((label, i) => {
     ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,r-2,i*step,(i+1)*step); ctx.closePath();
@@ -103,23 +100,23 @@ function beep(frequency = 500, duration = .025) {
 }
 async function load() {
   if (busy || loading) return;
-  loading = true; controls(); status('Загружаем таблицу…');
+  loading = true; controls(); status('Загружаем список…');
   const ctrl = new AbortController(), timer = setTimeout(() => ctrl.abort(), 20000);
   try {
-    const res = await fetch(PAIN_CSV + '&cache=' + Date.now(), {signal: ctrl.signal, cache: 'no-store'});
-    if (!res.ok) throw new Error(`Google Sheets недоступен (HTTP ${res.status}).`);
+    const res = await siteData.fetch(PAIN_CSV, {signal: ctrl.signal});
+    if (!res.ok) throw new Error(`Список игр недоступен (HTTP ${res.status}).`);
     const options = readOptions(await res.text());
     games = options.games; redraw();
     $('entries').replaceChildren(...games.map(name => { const li = document.createElement('li'); li.textContent = name; return li; }));
     $('listSummary').textContent = `Игры и правила · ${games.length} в списке`;
-    $('gameHint').textContent = games.length ? `${games.length} игр · равные шансы` : 'Добавь названия игр в столбец A';
-    status(!games.length ? 'Список игр пока пуст. Добавь игры в таблицу и нажми «Обновить список».' : 'Всё готово. После доната запусти рулетки одной кнопкой.');
+    $('gameHint').textContent = games.length ? `${games.length} игр · равные шансы` : 'Добавь игры в админке, вкладка «Боль»';
+    status(!games.length ? 'Список игр пока пуст. Добавь игры в админке и нажми «Обновить список».' : 'Всё готово. После доната запусти рулетки одной кнопкой.');
   } catch (error) {
     // Never allow a paid round to silently use stale data after a refresh failed.
     games = []; redraw(); $('entries').replaceChildren();
     $('listSummary').textContent = 'Игры и правила';
     $('gameHint').textContent = 'Не удалось загрузить игры';
-    status((error.name === 'AbortError' ? 'Google Sheets не ответил вовремя.' : error.message) + ' Нажми «Обновить список», чтобы повторить.', true);
+    status((error.name === 'AbortError' ? 'Сайт не ответил вовремя.' : error.message) + ' Нажми «Обновить список», чтобы повторить.', true);
   } finally { clearTimeout(timer); loading = false; controls(); }
 }
 function animate(id, labels, start, index, duration) {

@@ -8,7 +8,8 @@
 <title>ParipariKai</title>
 
 <!-- ============================================================
-     ⚙ НАСТРОЙКА ⚙
+     ⚙ НАСТРОЙКА ⚙  Все данные — data/*.json в репозитории, правятся на admin.html.
+     Названия ниже остались от листов Google-таблицы.
      CONFIG_CSV_URL  — лист Config (имя стримера, интро, аватар, Twitch URL)
      WINNERS_CSV_URL — лист Winners (для счётчика Hall of Fame)
      TICKETS_CSV_URL — лист Tickets (для счётчика билетов)
@@ -18,16 +19,16 @@
      GAMES_CSV_URL   — лист Games (новый в v8)
      ============================================================ -->
 <script>
-  const CONFIG_CSV_URL  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=427100002&single=true&output=csv";
-  const WINNERS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=287600011&single=true&output=csv";
-  const TICKETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=427100001&single=true&output=csv";
-  const ANIME_CSV_URL   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=627100001&single=true&output=csv";
-  const MOVIES_CSV_URL  = "data/movies.json"; // фильмы переехали из таблицы, правятся на admin.html
-  const SERIES_CSV_URL  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=627100003&single=true&output=csv";
+  const CONFIG_CSV_URL  = "data/config.json";
+  const WINNERS_CSV_URL = "data/winners.json";
+  const TICKETS_CSV_URL = "data/tickets.json";
+  const ANIME_CSV_URL   = "data/anime.json";
+  const MOVIES_CSV_URL  = "data/movies.json";
+  const SERIES_CSV_URL  = "data/series.json";
   // Лист Friends (друзья-стримеры для баннера «Рекомендую»): nick, image_url, url, active.
   // Пока пусто — баннер не показывается.
-  const FRIENDS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=1322308154&single=true&output=csv";
-  const GAMES_CSV_URL   = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=727100001&single=true&output=csv";
+  const FRIENDS_CSV_URL = "data/friends.json";
+  const GAMES_CSV_URL   = "data/games.json";
 </script>
 
 <link rel="stylesheet" href="site.css?v=6">
@@ -761,7 +762,7 @@
 
 <body>
 
-<script src="site.js?v=10"></script>
+<script src="site.js?v=11"></script>
 
 <!-- Розыгрыш: виден, только когда в листе Config raffle_active = TRUE -->
 <section class="event" id="event" hidden aria-label="Розыгрыш">
@@ -1568,7 +1569,7 @@ async function loadFriends() {
   const copies = fetch('friends-meta.json', {cache: 'no-cache'}).then(r => r.ok ? r.json() : {}).catch(() => ({}));
   let rows;
   try {
-    const res = await fetch(FRIENDS_CSV_URL + '&cache=' + Date.now());
+    const res = await siteData.fetch(FRIENDS_CSV_URL);
     if (!res.ok) return;
     rows = parseCSV(await res.text());
   } catch (e) { return; }

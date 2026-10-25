@@ -1,0 +1,8 @@
+{
+  "columns": ["nick","image_url","url","active","id"],
+  "items": [
+    {"nick":"noisy_moth","image_url":"https://i.ibb.co/vCYhxV9m/banner4.jpg","url":"https://www.twitch.tv/noisy_moth","active":"","id":"b5a9097c"},
+    {"nick":"Midn1ghtCat","image_url":"https://i.ibb.co/m50vLRwv/Banner.png","url":"https://www.twitch.tv/midn1ghtcat","active":"","id":"5686c113"},
+    {"nick":"devahina","image_url":"https://i.ibb.co/5gnb1cX5/banner.pngg","url":"https://www.twitch.tv/devahina","active":"","id":"2ffb049b"}
+  ]
+}

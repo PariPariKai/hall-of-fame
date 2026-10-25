@@ -249,6 +249,7 @@
 // Разделы переезжают из таблицы в data/<раздел>.json (правятся на admin.html).
 // siteData.text(src) отдаёт текст в формате CSV и для JSON, и для старой ссылки на лист —
 // так страницы переходят на JSON заменой одной ссылки, а их разбор CSV остаётся прежним.
+// С 2026-10-25 в таблице ничего не осталось: все разделы — data/*.json.
 // Формат файла: { "columns": [...], "items": [{колонка: "строка"}, ...] }.
 (function () {
   'use strict';
@@ -266,5 +267,12 @@
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return isJson ? toCSV(await res.json()) : res.text();
   }
-  window.siteData = { text, toCSV };
+  // Замена fetch(ссылка) для кода, который сам проверяет res.ok и читает res.text():
+  // для data/*.json отдаёт ответ с тем же CSV-текстом, остальное — обычный fetch.
+  async function fetchData(src, opts) {
+    if (!/\.json(\?|$)/.test(src)) return fetch(src, opts);
+    const res = await fetch(src, Object.assign({ cache: 'no-cache' }, opts));
+    return res.ok ? new Response(toCSV(await res.json()), { status: 200 }) : res;
+  }
+  window.siteData = { text, toCSV, fetch: fetchData };
 })();

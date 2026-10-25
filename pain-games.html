@@ -8,7 +8,7 @@
 <title>Боль — пул игр — Hall of Fame</title>
 <script>
   // Тот же лист, из которого берёт игры рулетка «Боль стримера за шекели» (A — название, остальные колонки — сколько и когда играли).
-  const PAIN_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=827100001&single=true&output=csv";
+  const PAIN_CSV_URL = "data/pain.json";
 </script>
 <link rel="stylesheet" href="site.css?v=6">
 <style>
@@ -46,7 +46,7 @@
 
 <body>
 
-<script src="site.js?v=10"></script>
+<script src="site.js?v=11"></script>
 
 <div class="wrap">
   <div class="header">
@@ -190,7 +190,7 @@ function el(tag, cls, text) {
 function buildGames(rows, meta) {
   const header = rows[0].map(h => h.trim().toLowerCase());
   const col = re => header.findIndex((h, i) => i > 0 && re.test(h));
-  const playedCol = col(/наигр|сыгр|час/), lastCol = col(/послед|дата|когда/), quipCol = col(/описан|от себя/);
+  const playedCol = col(/наигр|сыгр|час|hours/), lastCol = col(/послед|дата|когда|last/), quipCol = col(/описан|от себя|quip/);
   const seen = new Set(), games = [];
   rows.slice(1).forEach(r => {
     const name = (r[0] || '').trim().replace(/\s+/g, ' ');
@@ -359,7 +359,7 @@ async function load() {
   const status = document.getElementById('status');
   try {
     const [csv, meta] = await Promise.all([
-      fetch(PAIN_CSV_URL + '&cache=' + Date.now(), {cache: 'no-store'}).then(r => {
+      siteData.fetch(PAIN_CSV_URL).then(r => {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.text();
       }),
@@ -367,7 +367,6 @@ async function load() {
       fetch('pain-meta.json?v=' + Math.floor(Date.now() / 60000), {cache: 'no-cache'})
         .then(r => r.ok ? r.json() : {games: {}}).catch(() => ({games: {}})),
     ]);
-    if (/^\s*</.test(csv)) throw new Error('таблица не опубликована');
     state.games = buildGames(parseCSV(csv), meta.games || {});
     state.games.forEach(buildCard);
     status.hidden = !!state.games.length;

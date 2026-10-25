@@ -3,34 +3,18 @@
 //   node .github/scripts/pain-meta.mjs
 // Ищет только новые игры: уже найденные берутся из прошлого pain-meta.json.
 // Поиск игр (Steam → Wikidata → IGDB) — в общем модуле lib/games.mjs, им же пользуется orders-meta.mjs.
-// Колонка «Steam ID или картинка» в таблице перекрывает автопоиск.
+// Список игр — data/pain.json (правится на admin.html, вкладка «Боль»); поле override («Steam ID или картинка») перекрывает автопоиск.
 
 import fs from 'node:fs';
 import {sleep, steamSearch, wikidataSteamId, steamDetails, igdbAuth, igdbSearch} from './lib/games.mjs';
 
-const SHEET_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=827100001&single=true&output=csv';
+const POOL = new URL('../../data/pain.json', import.meta.url);
 const OUT = new URL('../../pain-meta.json', import.meta.url);
 const UA = {'User-Agent': 'hall-of-fame-pain-meta/1.0 (https://pariparikai.github.io/hall-of-fame/)'};
 const RETRY_MISSING_DAYS = 7; // ненайденные игры перепроверяем раз в неделю
 
 const key = s => s.trim().replace(/\s+/g, ' ').toLocaleLowerCase('ru');
 
-function parseCSV(text) {
-  const rows = []; let row = [], cell = '', quoted = false;
-  text = text.replace(/^﻿/, '');
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (c === '"') {
-      if (quoted && text[i + 1] === '"') { cell += '"'; i++; } else quoted = !quoted;
-    } else if (c === ',' && !quoted) { row.push(cell); cell = ''; }
-    else if ((c === '\n' || c === '\r') && !quoted) {
-      if (c === '\r' && text[i + 1] === '\n') i++;
-      row.push(cell); rows.push(row); row = []; cell = '';
-    } else cell += c;
-  }
-  if (cell || row.length) { row.push(cell); rows.push(row); }
-  return rows;
-}
 
 // ---------- описания «от себя» (Claude API, нужен секрет ANTHROPIC_API_KEY) ----------
 
@@ -72,17 +56,10 @@ async function makeQuip(entry, examples) {
 
 // ---------- главный проход ----------
 
-const res = await fetch(SHEET_CSV + '&cache=' + Date.now(), {headers: UA});
-if (!res.ok) throw new Error(`Таблица недоступна: HTTP ${res.status}`);
-const rows = parseCSV(await res.text());
-const header = rows[0].map(h => h.trim().toLowerCase());
-if (header[0] !== 'название игры') throw new Error('Первая колонка таблицы должна называться «Название игры».');
-const overrideCol = header.findIndex(h => /steam|картин/.test(h));
-
 const games = new Map();
-for (const r of rows.slice(1)) {
-  const name = (r[0] || '').trim().replace(/\s+/g, ' ');
-  if (name && !games.has(key(name))) games.set(key(name), {name, override: overrideCol >= 0 ? (r[overrideCol] || '').trim() : ''});
+for (const g of JSON.parse(fs.readFileSync(POOL, 'utf8')).items) {
+  const name = (g.name || '').trim().replace(/\s+/g, ' ');
+  if (name && !games.has(key(name))) games.set(key(name), {name, override: (g.override || '').trim()});
 }
 
 const prev = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : {games: {}};

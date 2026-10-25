@@ -20,8 +20,8 @@
        ) и вставь сюда.
      ============================================================ -->
 <script>
-  const TICKETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=427100001&single=true&output=csv";
-  const VIEWERS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=527100001&single=true&output=csv";
+  const TICKETS_CSV_URL = "data/tickets.json";
+  const VIEWERS_CSV_URL = "data/viewers.json";
   const WHEEL_ACCESS_HASH = "fc8ee83f14149d6acca42377fc006a9ed55198c380953f09067532fd5ee7fe09";
 </script>
 
@@ -492,7 +492,7 @@
       .site-nav__dd:focus-within > .site-nav__menu { opacity: 1; visibility: visible; pointer-events: auto; transform: none; }
     }
   </style>
-  <script src="site.js?v=10"></script>
+  <script src="site.js?v=11"></script>
 
   <!-- Экран входа -->
   <div class="gate" id="gate">
@@ -783,8 +783,8 @@ document.addEventListener('click', () => { if (soundOn) ensureAudio(); }, { once
 async function loadData() {
   try {
     const [ticketsRes, viewersRes] = await Promise.all([
-      fetch(TICKETS_CSV_URL),
-      fetch(VIEWERS_CSV_URL),
+      siteData.fetch(TICKETS_CSV_URL),
+      siteData.fetch(VIEWERS_CSV_URL),
     ]);
     if (!ticketsRes.ok) throw new Error('Tickets HTTP ' + ticketsRes.status);
     // viewers — опционально, ошибку игнорируем

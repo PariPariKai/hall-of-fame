@@ -1,0 +1,17 @@
+{
+  "columns": ["nick","title","year","episodes_total","episodes_watched","status","rating","cover_url","date_added","date_completed","url","notes","scheduled_at","format","id"],
+  "items": [
+    {"nick":"SI_ve","title":"Неукротимый: Повелитель Чэньцин (сериал 2019)","year":"","episodes_total":"50","episodes_watched":"","status":"pending","rating":"","cover_url":"","date_added":"","date_completed":"","url":"","notes":"Первые 15 серий будем смотреть","scheduled_at":"","format":"","id":"686f417e"},
+    {"nick":"AnyaLan","title":"Королева Чхорин","year":"","episodes_total":"20","episodes_watched":"12","status":"paused","rating":"7","cover_url":"https://avatars.mds.yandex.net/get-kinopoisk-image/9784475/ac6e139c-6e23-4a4c-bf85-caf11e0aa4ba/600x900","date_added":"20.06.2026","date_completed":"","url":"https://www.kinopoisk.ru/series/1387213/","notes":"","scheduled_at":"","format":"","id":"3c9ac2ae"},
+    {"nick":"AzamatUK11","title":"пока не решила ^_~","year":"","episodes_total":"12","episodes_watched":"","status":"","rating":"","cover_url":"","date_added":"","date_completed":"","url":"","notes":"Первые 3 серий будем смотреть","scheduled_at":"","format":"","id":"e9eeeb0a"},
+    {"nick":"steshabtw","title":"пока не решила ^_~","year":"","episodes_total":"3","episodes_watched":"","status":"","rating":"","cover_url":"","date_added":"","date_completed":"","url":"","notes":"","scheduled_at":"","format":"","id":"9f88a580"},
+    {"nick":"ilyich116","title":"пока не решила ^_~","year":"","episodes_total":"3","episodes_watched":"","status":"","rating":"","cover_url":"","date_added":"","date_completed":"","url":"","notes":"","scheduled_at":"","format":"","id":"d86ddc0a"},
+    {"nick":"Rebel_dragons","title":"Шерлок","year":"","episodes_total":"9","episodes_watched":"","status":"","rating":"","cover_url":"","date_added":"25.06.2026","date_completed":"","url":"","notes":"","scheduled_at":"","format":"","id":"93bbb17f"},
+    {"nick":"Fire6545","title":"","year":"","episodes_total":"3","episodes_watched":"","status":"","rating":"","cover_url":"","date_added":"26.06.2026","date_completed":"","url":"","notes":"","scheduled_at":"","format":"","id":"f521b0ab"},
+    {"nick":"ParabellumLTD","title":"","year":"","episodes_total":"3","episodes_watched":"","status":"","rating":"","cover_url":"","date_added":"28.06.2026","date_completed":"","url":"","notes":"","scheduled_at":"","format":"","id":"9bc6c674"},
+    {"nick":"GPO3HO_TTAXHET","title":"","year":"","episodes_total":"3","episodes_watched":"","status":"","rating":"","cover_url":"","date_added":"28.06.2026","date_completed":"","url":"","notes":"","scheduled_at":"","format":"","id":"b830bcc1"},
+    {"nick":"l_depresso_l","title":"","year":"","episodes_total":"3","episodes_watched":"","status":"","rating":"","cover_url":"","date_added":"01.07.2026","date_completed":"","url":"","notes":"","scheduled_at":"","format":"","id":"b58f0e3e"},
+    {"nick":"assura2k","title":"","year":"","episodes_total":"3","episodes_watched":"","status":"","rating":"","cover_url":"","date_added":"20.07.2026","date_completed":"","url":"","notes":"","scheduled_at":"","format":"","id":"c0f81fc2"},
+    {"nick":"Kathran","title":"","year":"","episodes_total":"3","episodes_watched":"","status":"","rating":"","cover_url":"","date_added":"28.07.2026","date_completed":"","url":"","notes":"","scheduled_at":"","format":"","id":"0d5e6f90"}
+  ]
+}

@@ -15,9 +15,9 @@
      TWITCH_URL — твой Twitch-канал
      ============================================================ -->
 <script>
-  const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=287600011&single=true&output=csv";
-  const CURRENT_PRIZES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=918273645&single=true&output=csv";
-  const VIEWERS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=527100001&single=true&output=csv";
+  const CSV_URL = "data/winners.json";
+  const CURRENT_PRIZES_CSV_URL = "data/prizes.json";
+  const VIEWERS_CSV_URL = "data/viewers.json";
   const TWITCH_URL = "https://www.twitch.tv/pariparikai";
 </script>
 
@@ -387,7 +387,7 @@
 
 <body>
 
-<script src="site.js?v=10"></script>
+<script src="site.js?v=11"></script>
 
   <div class="wrap">
     <div class="header">
@@ -768,11 +768,11 @@ async function loadAll() {
 
   try {
     const [winnersRes, prizesRes, viewersRes] = await Promise.allSettled([
-      fetch(CSV_URL),
+      siteData.fetch(CSV_URL),
       CURRENT_PRIZES_CSV_URL && CURRENT_PRIZES_CSV_URL !== 'PASTE_YOUR_CURRENT_PRIZES_CSV_URL_HERE'
-        ? fetch(CURRENT_PRIZES_CSV_URL) : Promise.resolve(null),
+        ? siteData.fetch(CURRENT_PRIZES_CSV_URL) : Promise.resolve(null),
       VIEWERS_CSV_URL && VIEWERS_CSV_URL !== 'PASTE_YOUR_VIEWERS_CSV_URL_HERE'
-        ? fetch(VIEWERS_CSV_URL) : Promise.resolve(null),
+        ? siteData.fetch(VIEWERS_CSV_URL) : Promise.resolve(null),
     ]);
 
     // Viewers

@@ -3,7 +3,7 @@
 (function () {
 'use strict';
 const CFG = window.ORDERS_PAGE;
-const VIEWERS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?gid=527100001&single=true&output=csv";
+const VIEWERS_CSV_URL = "data/viewers.json";
 const STATUS = Object.fromEntries(CFG.statuses.map(s => [s.id, s]));
 const TYPE = Object.fromEntries((CFG.types || []).map(t => [t.id, t]));
 const isDone = s => !!(STATUS[s] && STATUS[s].done);
@@ -460,9 +460,9 @@ async function load() {
   const status = $('status');
   try {
     const [csv, viewersCsv, meta, quips] = await Promise.all([
-      // src — data/*.json (раздел уже переехал из таблицы) или старая ссылка csv на лист
+      // src — data/*.json (раздел правится на admin.html); csv — старая ссылка на лист, если где-то осталась
       siteData.text(CFG.src || CFG.csv).catch(e => { throw new Error(`${e.message} при загрузке списка ${CFG.sheet}`); }),
-      fetch(VIEWERS_CSV_URL).then(r => r.ok ? r.text() : '').catch(() => ''),
+      siteData.fetch(VIEWERS_CSV_URL).then(r => r.ok ? r.text() : '').catch(() => ''),
       ORDERS_META,
       ORDERS_QUIPS,
     ]);
