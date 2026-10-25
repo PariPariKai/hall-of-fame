@@ -370,9 +370,11 @@
     },
     "i wanna be the boshy": {
       "name": "I Wanna be the Boshy",
-      "override": "",
-      "checked": "2026-10-22T19:50:18.255Z",
-      "found": false
+      "override": "https://delicious-fruit.sfo3.digitaloceanspaces.com/11890_00000008",
+      "checked": "2026-10-25T19:16:04.800Z",
+      "found": true,
+      "cover": "https://delicious-fruit.sfo3.digitaloceanspaces.com/11890_00000008",
+      "source": "таблица"
     },
     "digital combat simulator world": {
       "name": "Digital Combat Simulator World",
