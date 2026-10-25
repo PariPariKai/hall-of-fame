@@ -14,7 +14,7 @@
   Мут и бан в Twitch выдаются руками: страница готовит команду для чата и копирует её.
 -->
 <style>
-  .court { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 540px); gap: 22px; align-items: start; }
+  .court { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 22px; align-items: start; }
   .court .panel { margin-bottom: 0; }
   .court__side { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
 
@@ -91,15 +91,18 @@
   /* ---------- колесо ---------- */
   .wheel-panel { position: sticky; top: 76px; display: flex; flex-direction: column; gap: 16px; align-items: stretch; }
   .charge { display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; min-height: 54px; }
-  .charge__who { font-size: 22px; font-weight: 700; letter-spacing: .5px; overflow-wrap: anywhere; }
+  .charge__who { font-size: 26px; font-weight: 700; letter-spacing: .5px; overflow-wrap: anywhere; }
   .charge__who.is-empty { color: var(--dim); font-weight: 400; font-size: 15px; }
   .charge__rule { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; font-size: 13px; color: var(--muted); }
   .wheel-stage { position: relative; }
 
-  /* ---------- барабан: металлический корпус, табличка, окно с ячейками, линза и два язычка ---------- */
+  /* ---------- барабан: металлический корпус, табличка, окно с ячейками, линза и два язычка ----------
+     Всё меряется от --cell (шаг ячейки) — его считает sizeReel() по ширине и высоте экрана. */
   .reel-box {
+    --cell: 58px;
     --rivet: radial-gradient(circle, #a3978a 0 2.5px, #3b342f 3.5px, transparent 4.5px);
-    position: relative; width: 100%; max-width: 430px; margin: 0 auto; padding: 52px 54px 24px; border-radius: 16px;
+    position: relative; width: 100%; max-width: 780px; margin: 0 auto; border-radius: 18px;
+    padding: calc(var(--cell) * 0.95) calc(var(--cell) * 0.95) calc(var(--cell) * 0.4);
     background:
       var(--rivet) 6px 6px / 16px 16px no-repeat, var(--rivet) calc(100% - 6px) 6px / 16px 16px no-repeat,
       var(--rivet) 6px calc(100% - 6px) / 16px 16px no-repeat, var(--rivet) calc(100% - 6px) calc(100% - 6px) / 16px 16px no-repeat,
@@ -108,30 +111,40 @@
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), inset 0 0 0 7px rgba(0,0,0,0.22), 0 14px 34px rgba(0,0,0,0.55);
   }
   .reel-plate {
-    position: absolute; top: 12px; left: 50%; transform: translateX(-50%); min-width: 210px; padding: 5px 20px; border-radius: 5px;
-    text-align: center; white-space: nowrap; font: 700 12.5px var(--font); letter-spacing: 2.5px; text-transform: uppercase;
+    position: absolute; top: calc(var(--cell) * 0.2); left: 50%; transform: translateX(-50%); padding: .35em 1.6em; border-radius: 5px;
+    text-align: center; white-space: nowrap; font: 700 calc(var(--cell) * 0.23) var(--font); letter-spacing: .2em; text-transform: uppercase;
     color: #3d3022; background: linear-gradient(180deg, #e2d3ad, #b9a579);
     box-shadow: 0 0 0 3px #29241f, 0 0 0 4px #51483f, 0 4px 10px rgba(0,0,0,0.5);
   }
   .reel { position: relative; }
   .reel__window {
-    position: relative; height: 290px; overflow: hidden; border-radius: 6px; background: #140707;
+    position: relative; height: calc(var(--cell) * 5); overflow: hidden; border-radius: 6px; background: #140707;
     box-shadow: 0 0 0 3px #b8913f, 0 0 0 5px #35260f, inset 0 0 26px rgba(0,0,0,0.9);
   }
   .reel__strip { position: absolute; inset: 0; }
-  .reel-box.is-idle .reel__strip { opacity: .4; filter: grayscale(.5); }
+  .reel-box.is-idle .reel__strip { opacity: .45; filter: grayscale(.4); }
   .reel__cell {
-    position: absolute; left: 7px; right: 7px; top: 50%; height: 54px; margin-top: -27px; display: grid; place-items: center;
-    border-radius: 3px; border: 1px solid rgba(255,214,140,0.22); will-change: transform;
-    background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(0,0,0,0.28)), var(--fill);
+    position: absolute; left: 7px; right: 7px; top: 50%; height: calc(var(--cell) - 4px); margin-top: calc(var(--cell) / -2 + 2px);
+    display: grid; place-items: center; border-radius: 3px; border: 1px solid rgba(255,214,140,0.22); will-change: transform;
+    --fill: var(--real); background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(0,0,0,0.28)), var(--fill);
     box-shadow: inset 0 0 14px rgba(0,0,0,0.45);
   }
-  .reel__cell span {
-    font: 800 22px var(--font); letter-spacing: 3px; text-transform: uppercase; color: #fff; opacity: var(--txt, 1);
+  .reel__cell > * { grid-area: 1 / 1; }
+  .reel__txt {
+    font: 800 calc(var(--cell) * 0.38) var(--font); letter-spacing: .14em; text-transform: uppercase; color: #fff; opacity: var(--txt, 1);
     text-shadow: 0 2px 0 rgba(0,0,0,0.55), 0 0 14px var(--ink);
   }
   .reel__cell.is-win { border-color: var(--ink); box-shadow: inset 0 0 14px rgba(0,0,0,0.3), 0 0 26px var(--ink); }
-  .reel__cell.is-win span { color: var(--ink); text-shadow: 0 2px 0 rgba(0,0,0,0.6), 0 0 18px var(--ink); }
+  .reel__cell.is-win .reel__txt { color: var(--ink); text-shadow: 0 2px 0 rgba(0,0,0,0.6), 0 0 18px var(--ink); }
+  /* До старта ячейки «закрыты»: вместо срока — картинка, цвет общий для мутов и для банов */
+  .reel__ic { display: none; width: calc(var(--cell) * 0.8); height: calc(var(--cell) * 0.8); filter: drop-shadow(0 2px 0 rgba(0,0,0,0.5)); }
+  .reel-box.is-veiled .reel__txt { display: none; }
+  .reel-box.is-veiled .reel__cell[data-kind="mute"] { --fill: #5c1812; }
+  .reel-box.is-veiled .reel__cell[data-kind="ban"] { --fill: #2a2421; }
+  .reel-box.is-veiled .reel__cell[data-kind="perma"] { --fill: #120707; }
+  .reel-box.is-veiled .reel__cell[data-kind="mute"] .reel__ic--shh { display: block; color: #f0e2c2; }
+  .reel-box.is-veiled .reel__cell[data-kind="ban"] .reel__ic--skull { display: block; color: #f4f1ea; }
+  .reel-box.is-veiled .reel__cell[data-kind="perma"] .reel__ic--skull { display: block; color: #ff3b3b; filter: drop-shadow(0 0 8px rgba(255,40,40,0.7)); }
   /* полосы скорости — проявляются, когда барабан летит */
   .reel__streaks {
     position: absolute; inset: 0; opacity: 0; pointer-events: none;
@@ -142,7 +155,8 @@
     background: linear-gradient(180deg, rgba(0,0,0,0.88), rgba(0,0,0,0) 34%, rgba(0,0,0,0) 66%, rgba(0,0,0,0.88));
   }
   .reel__lens {
-    position: absolute; left: -9px; right: -9px; top: 50%; height: 64px; margin-top: -32px; border-radius: 6px; pointer-events: none;
+    position: absolute; left: -9px; right: -9px; top: 50%; height: calc(var(--cell) + 8px); margin-top: calc(var(--cell) / -2 - 4px);
+    border-radius: 6px; pointer-events: none;
     background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0) 45%);
     box-shadow: 0 0 0 3px #d6ab52, 0 0 0 5px #4a3410, 0 6px 16px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,232,170,0.5);
   }
@@ -150,16 +164,19 @@
   @keyframes lens-flash {
     0% { box-shadow: 0 0 0 3px #fff4c8, 0 0 0 5px #4a3410, 0 0 46px var(--win, #ffd36b), inset 0 0 30px var(--win, #ffd36b); }
   }
-  .reel__pawl { position: absolute; top: 50%; width: 46px; height: 40px; margin-top: -20px; z-index: 2; filter: drop-shadow(0 3px 3px rgba(0,0,0,0.65)); }
+  .reel__pawl {
+    position: absolute; top: 50%; width: calc(var(--cell) * 0.8); height: calc(var(--cell) * 0.7); margin-top: calc(var(--cell) * -0.35);
+    z-index: 2; filter: drop-shadow(0 3px 3px rgba(0,0,0,0.65));
+  }
   .reel__pawl i { position: absolute; inset: 0; background: linear-gradient(165deg, #fdeab0, #cfa64e 45%, #7a571b); }
   .reel__pawl::before {
-    content: ''; position: absolute; top: 50%; width: 14px; height: 14px; margin-top: -7px; border-radius: 50%; z-index: 1;
-    background: radial-gradient(circle at 35% 35%, #c2b6a7, #4a423b); box-shadow: 0 0 0 2px #1b1714;
+    content: ''; position: absolute; top: 50%; width: calc(var(--cell) * 0.24); height: calc(var(--cell) * 0.24); margin-top: calc(var(--cell) * -0.12);
+    border-radius: 50%; z-index: 1; background: radial-gradient(circle at 35% 35%, #c2b6a7, #4a423b); box-shadow: 0 0 0 2px #1b1714;
   }
-  .reel__pawl--l { left: -52px; transform-origin: 7px 50%; }
+  .reel__pawl--l { left: calc(var(--cell) * -0.9); transform-origin: 12% 50%; }
   .reel__pawl--l i { clip-path: polygon(0 6%, 100% 50%, 0 94%); }
   .reel__pawl--l::before { left: 0; }
-  .reel__pawl--r { right: -52px; transform-origin: calc(100% - 7px) 50%; }
+  .reel__pawl--r { right: calc(var(--cell) * -0.9); transform-origin: 88% 50%; }
   .reel__pawl--r i { clip-path: polygon(100% 6%, 0 50%, 100% 94%); }
   .reel__pawl--r::before { right: 0; }
   .reel__sparks { position: absolute; left: -40px; top: -40px; width: calc(100% + 80px); height: calc(100% + 80px); pointer-events: none; z-index: 3; }
@@ -209,11 +226,6 @@
   @media (max-width: 520px) {
     .result__sentence { font-size: 24px; }
     .wheel-live { font-size: 20px; }
-    .reel-box { padding: 52px 44px 22px; }
-    .reel__pawl { width: 38px; }
-    .reel__pawl--l { left: -42px; }
-    .reel__pawl--r { right: -42px; }
-    .reel__cell span { font-size: 19px; }
   }
 </style>
 </head>
@@ -586,7 +598,7 @@ function renderCharge() {
 // ===================== барабан =====================
 // Вертикальный барабан из 20 ячеек по кругу (court.sectors). pos — сколько ячеек прокручено (в покое целое),
 // под стрелками — ячейка layout[pos mod 20]. Ячейки едут сверху вниз; рисуем только видимые — центр ± 4.
-const CELL = 58;          // шаг ячеек, px
+let CELL = 58;            // шаг ячеек, px — sizeReel() подгоняет под экран
 const POOL = 9;
 const HALF = (POOL - 1) / 2;
 const PLATE = 'Рулетка наказаний';
@@ -600,7 +612,9 @@ function drawReel(lvl) {
     $('wheel-box').innerHTML = `<div class="reel-plate" id="reel-plate">${PLATE}</div>
       <div class="reel">
         <div class="reel__window" role="img" aria-label="Рулетка наказаний">
-          <div class="reel__strip" id="reel-strip">${'<div class="reel__cell"><span></span></div>'.repeat(POOL)}</div>
+          <div class="reel__strip" id="reel-strip">${('<div class="reel__cell"><span class="reel__txt"></span>' +
+            '<svg class="reel__ic reel__ic--shh" aria-hidden="true"><use href="#reel-shh"/></svg>' +
+            '<svg class="reel__ic reel__ic--skull" aria-hidden="true"><use href="#reel-skull"/></svg></div>').repeat(POOL)}</div>
           <div class="reel__streaks" id="reel-streaks"></div>
           <div class="reel__shade"></div>
         </div>
@@ -609,12 +623,34 @@ function drawReel(lvl) {
         <div class="reel__pawl reel__pawl--r" id="pawl-r"><i></i></div>
       </div>
       <canvas class="reel__sparks" id="sparks"></canvas>
-      <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="reel-blur" x="0" y="-20%" width="100%" height="140%">
-        <feGaussianBlur id="reel-blur-g" stdDeviation="0 0"/></filter></svg>`;
+      <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <filter id="reel-blur" x="0" y="-20%" width="100%" height="140%"><feGaussianBlur id="reel-blur-g" stdDeviation="0 0"/></filter>
+        <symbol id="reel-shh" viewBox="0 0 48 48">
+          <path fill="currentColor" d="M12 47c0-6 1.5-9.5 4.5-11.5V31C11.5 28 9 23 9 17.5 9 9.5 15.5 3.5 23.5 3.5c7.5 0 12.5 5 13 11.5l3 6.2c.4.9-.1 1.6-1 1.8l-1.6.3.4 3.2c.2 1.6-.7 2.6-2.3 2.8l-4.5.4v3.4c5.5 1.6 9.5 5.6 10.5 13.9z"/>
+          <g fill="currentColor" stroke="#5c1812" stroke-width="2"><rect x="35.8" y="22.2" width="4.8" height="13" rx="2.4"/>
+          <rect x="30.5" y="31" width="13" height="10.5" rx="4.2"/></g>
+          <path d="M27.5 14.8q2.6 1.8 5.2 0M30.8 34.6h5.2M30.8 38h5.2" fill="none" stroke="#5c1812" stroke-width="1.8" stroke-linecap="round"/></symbol>
+        <symbol id="reel-skull" viewBox="0 0 48 48"><path fill="currentColor" fill-rule="evenodd" d="M24 5C13.5 5 7 12.5 7 21c0 6 3 9.6 6.5 11.6V38c0 2 1.5 3.5 3.5 3.5h14c2 0 3.5-1.5 3.5-3.5v-5.4C38 30.6 41 27 41 21 41 12.5 34.5 5 24 5Z
+          M13 22a4.8 4.8 0 1 0 9.6 0a4.8 4.8 0 1 0-9.6 0Z M25.4 22a4.8 4.8 0 1 0 9.6 0a4.8 4.8 0 1 0-9.6 0Z M24 26.5l-2.6 4.5h5.2Z
+          M19.6 35h1.6v6.5h-1.6Z M23.2 35h1.6v6.5h-1.6Z M26.8 35h1.6v6.5h-1.6Z"/></symbol>
+      </svg>`;
+    $('wheel-box').classList.add('is-veiled');
   }
   cellKey = [];
+  sizeReel();
   paintReel(pos, 0);
 }
+// Шаг ячейки — от ширины корпуса (барабан — главное на странице), но чтобы целиком влезал по высоте экрана
+function sizeReel() {
+  const w = $('wheel-box').clientWidth;
+  CELL = Math.round(Math.max(46, Math.min(112, w * 0.1285, (window.innerHeight - 350) / 6.3)));
+  $('wheel-box').style.setProperty('--cell', CELL + 'px');
+}
+let resizeRaf = 0;
+window.addEventListener('resize', () => {
+  if (resizeRaf || !$('reel-strip')) return;
+  resizeRaf = requestAnimationFrame(() => { resizeRaf = 0; sizeReel(); if (!spinning) paintReel(pos, 0); });
+});
 // p — положение барабана, speed — ячеек в секунду (от неё блюр и полосы)
 function paintReel(p, speed) {
   const cells = $('reel-strip').children, base = Math.round(p);
@@ -623,8 +659,9 @@ function paintReel(p, speed) {
     if (cellKey[k] !== v) {
       cellKey[k] = v;
       const o = OUTCOMES[layout[mod(v, SECTORS)]];
-      el.style.setProperty('--fill', o.fill);
+      el.style.setProperty('--real', o.fill);
       el.style.setProperty('--ink', o.ink);
+      el.dataset.kind = o.kind;
       el.firstChild.textContent = o.short;
     }
     // Барабан круглый: к краям окна ячейки сплющиваются и темнеют
@@ -645,6 +682,7 @@ function paintReel(p, speed) {
 function resetReel() {
   if (!$('reel-strip')) return;
   $('reel-plate').textContent = PLATE;
+  $('wheel-box').classList.add('is-veiled');
   $('reel-lens').classList.remove('is-flash');
   [...$('reel-strip').children].forEach(c => c.classList.remove('is-win'));
 }
@@ -785,6 +823,7 @@ function spinReel(lvl, idx, onStop) {
         if (!stopped) { stopped = true; onStop(); }
         p = dist - 0.13 * Math.sin(Math.PI * Math.min(1, (t - L.spin) / BOUNCE));  // клац — и чуть назад
       }
+      if (v > 16) $('wheel-box').classList.remove('is-veiled');   // на ходу — уже сроки, но их не разглядеть
       paintReel(start + p, v);
       const tk = Math.floor(start + p - 0.5);
       if (tk !== tick && !stopped) {
