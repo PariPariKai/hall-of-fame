@@ -95,10 +95,74 @@
   .charge__who.is-empty { color: var(--dim); font-weight: 400; font-size: 15px; }
   .charge__rule { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; font-size: 13px; color: var(--muted); }
   .wheel-stage { position: relative; }
-  .wheel-box { position: relative; width: 100%; max-width: 430px; margin: 0 auto; aspect-ratio: 230 / 237; }
-  .wheel-box svg { width: 100%; height: 100%; display: block; overflow: visible; }
-  .wheel-box.is-idle #wheel-group { opacity: .32; }
-  .wheel-label { font: 700 9.5px var(--font); fill: #fff; letter-spacing: .3px; paint-order: stroke; stroke: rgba(0,0,0,0.35); stroke-width: 1.2px; }
+
+  /* ---------- барабан: металлический корпус, табличка, окно с ячейками, линза и два язычка ---------- */
+  .reel-box {
+    --rivet: radial-gradient(circle, #a3978a 0 2.5px, #3b342f 3.5px, transparent 4.5px);
+    position: relative; width: 100%; max-width: 430px; margin: 0 auto; padding: 52px 54px 24px; border-radius: 16px;
+    background:
+      var(--rivet) 6px 6px / 16px 16px no-repeat, var(--rivet) calc(100% - 6px) 6px / 16px 16px no-repeat,
+      var(--rivet) 6px calc(100% - 6px) / 16px 16px no-repeat, var(--rivet) calc(100% - 6px) calc(100% - 6px) / 16px 16px no-repeat,
+      linear-gradient(160deg, #38322d, #1f1b18 55%, #151210);
+    border: 1px solid #0b0a09;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), inset 0 0 0 7px rgba(0,0,0,0.22), 0 14px 34px rgba(0,0,0,0.55);
+  }
+  .reel-plate {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%); min-width: 210px; padding: 5px 20px; border-radius: 5px;
+    text-align: center; white-space: nowrap; font: 700 12.5px var(--font); letter-spacing: 2.5px; text-transform: uppercase;
+    color: #3d3022; background: linear-gradient(180deg, #e2d3ad, #b9a579);
+    box-shadow: 0 0 0 3px #29241f, 0 0 0 4px #51483f, 0 4px 10px rgba(0,0,0,0.5);
+  }
+  .reel { position: relative; }
+  .reel__window {
+    position: relative; height: 290px; overflow: hidden; border-radius: 6px; background: #140707;
+    box-shadow: 0 0 0 3px #b8913f, 0 0 0 5px #35260f, inset 0 0 26px rgba(0,0,0,0.9);
+  }
+  .reel__strip { position: absolute; inset: 0; }
+  .reel-box.is-idle .reel__strip { opacity: .4; filter: grayscale(.5); }
+  .reel__cell {
+    position: absolute; left: 7px; right: 7px; top: 50%; height: 54px; margin-top: -27px; display: grid; place-items: center;
+    border-radius: 3px; border: 1px solid rgba(255,214,140,0.22); will-change: transform;
+    background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(0,0,0,0.28)), var(--fill);
+    box-shadow: inset 0 0 14px rgba(0,0,0,0.45);
+  }
+  .reel__cell span {
+    font: 800 22px var(--font); letter-spacing: 3px; text-transform: uppercase; color: #fff; opacity: var(--txt, 1);
+    text-shadow: 0 2px 0 rgba(0,0,0,0.55), 0 0 14px var(--ink);
+  }
+  .reel__cell.is-win { border-color: var(--ink); box-shadow: inset 0 0 14px rgba(0,0,0,0.3), 0 0 26px var(--ink); }
+  .reel__cell.is-win span { color: var(--ink); text-shadow: 0 2px 0 rgba(0,0,0,0.6), 0 0 18px var(--ink); }
+  /* полосы скорости — проявляются, когда барабан летит */
+  .reel__streaks {
+    position: absolute; inset: 0; opacity: 0; pointer-events: none;
+    background: repeating-linear-gradient(90deg, rgba(255,170,120,0.0) 0 2px, rgba(255,170,120,0.22) 2px 3px, rgba(0,0,0,0.28) 3px 6px, rgba(255,120,80,0.1) 6px 7px);
+  }
+  .reel__shade {
+    position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(180deg, rgba(0,0,0,0.88), rgba(0,0,0,0) 34%, rgba(0,0,0,0) 66%, rgba(0,0,0,0.88));
+  }
+  .reel__lens {
+    position: absolute; left: -9px; right: -9px; top: 50%; height: 64px; margin-top: -32px; border-radius: 6px; pointer-events: none;
+    background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0) 45%);
+    box-shadow: 0 0 0 3px #d6ab52, 0 0 0 5px #4a3410, 0 6px 16px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,232,170,0.5);
+  }
+  .reel__lens.is-flash { animation: lens-flash 1s ease-out; }
+  @keyframes lens-flash {
+    0% { box-shadow: 0 0 0 3px #fff4c8, 0 0 0 5px #4a3410, 0 0 46px var(--win, #ffd36b), inset 0 0 30px var(--win, #ffd36b); }
+  }
+  .reel__pawl { position: absolute; top: 50%; width: 46px; height: 40px; margin-top: -20px; z-index: 2; filter: drop-shadow(0 3px 3px rgba(0,0,0,0.65)); }
+  .reel__pawl i { position: absolute; inset: 0; background: linear-gradient(165deg, #fdeab0, #cfa64e 45%, #7a571b); }
+  .reel__pawl::before {
+    content: ''; position: absolute; top: 50%; width: 14px; height: 14px; margin-top: -7px; border-radius: 50%; z-index: 1;
+    background: radial-gradient(circle at 35% 35%, #c2b6a7, #4a423b); box-shadow: 0 0 0 2px #1b1714;
+  }
+  .reel__pawl--l { left: -52px; transform-origin: 7px 50%; }
+  .reel__pawl--l i { clip-path: polygon(0 6%, 100% 50%, 0 94%); }
+  .reel__pawl--l::before { left: 0; }
+  .reel__pawl--r { right: -52px; transform-origin: calc(100% - 7px) 50%; }
+  .reel__pawl--r i { clip-path: polygon(100% 6%, 0 50%, 100% 94%); }
+  .reel__pawl--r::before { right: 0; }
+  .reel__sparks { position: absolute; left: -40px; top: -40px; width: calc(100% + 80px); height: calc(100% + 80px); pointer-events: none; z-index: 3; }
   .wheel-live {
     text-align: center; font-size: 26px; font-weight: 800; letter-spacing: 4px; text-transform: uppercase; min-height: 34px;
     color: var(--ink, var(--dim)); text-shadow: 0 0 18px var(--ink, transparent); transition: color .08s linear;
@@ -145,6 +209,11 @@
   @media (max-width: 520px) {
     .result__sentence { font-size: 24px; }
     .wheel-live { font-size: 20px; }
+    .reel-box { padding: 52px 44px 22px; }
+    .reel__pawl { width: 38px; }
+    .reel__pawl--l { left: -42px; }
+    .reel__pawl--r { right: -42px; }
+    .reel__cell span { font-size: 19px; }
   }
 </style>
 </head>
@@ -188,7 +257,7 @@
       <section class="panel wheel-panel" id="wheel-panel" aria-label="Рулетка">
         <div class="charge" id="charge"></div>
         <div class="wheel-stage">
-          <div class="wheel-box is-idle" id="wheel-box"></div>
+          <div class="reel-box is-idle" id="wheel-box"></div>
           <div id="result" hidden></div>
         </div>
         <div class="wheel-live" id="live" aria-live="polite"></div>
@@ -242,7 +311,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="github.js?v=1"></script>
-<script src="court.js?v=2"></script>
+<script src="court.js?v=3"></script>
 <script>
 (function () {
 'use strict';
@@ -505,7 +574,8 @@ function renderCharge() {
       : '<div class="charge__rule">Выбери статью — от неё зависит колесо</div>');
   if (lvl !== shownLevel && !spinning) {
     shownLevel = lvl;
-    drawWheel(lvl || 1);
+    drawReel(lvl || 1);
+    if (lvl) loadSfx('music-' + lvl); // музыку прокрутки — заранее, пока выбирают
     $('wheel-box').classList.toggle('is-idle', !lvl);
     $('odds').innerHTML = lvl ? court.oddsHTML(lvl) : '';
     setLive('');
@@ -513,36 +583,117 @@ function renderCharge() {
   $('spin').disabled = spinning || verdictShown || !!draft || !pick.nick || !pick.rule;
 }
 
-// ===================== колесо =====================
-const SVGNS = 'http://www.w3.org/2000/svg';
-const STEP = 360 / SECTORS;
-let layout = [];       // исход каждого деления по кругу, от стрелки по часовой
-let rotation = 0;      // градусы, по часовой
-const pt = (r, deg) => { const a = deg * Math.PI / 180; return `${(r * Math.sin(a)).toFixed(3)},${(-r * Math.cos(a)).toFixed(3)}`; };
-function drawWheel(lvl) {
+// ===================== барабан =====================
+// Вертикальный барабан из 20 ячеек по кругу (court.sectors). pos — сколько ячеек прокручено (в покое целое),
+// под стрелками — ячейка layout[pos mod 20]. Ячейки едут сверху вниз; рисуем только видимые — центр ± 4.
+const CELL = 58;          // шаг ячеек, px
+const POOL = 9;
+const HALF = (POOL - 1) / 2;
+const PLATE = 'Рулетка наказаний';
+let layout = [];
+let pos = 0;
+let cellKey = [];         // какая ячейка (номер по кругу) сейчас в каждом слоте — чтобы не трогать DOM зря
+const mod = (n, m) => ((n % m) + m) % m;
+function drawReel(lvl) {
   layout = court.sectors(lvl);
-  const R = 100;
-  const slices = layout.map((id, i) => {
-    const o = OUTCOMES[id], a0 = i * STEP, a1 = a0 + STEP;
-    return `<path d="M0,0 L${pt(R, a0)} A${R},${R} 0 0 1 ${pt(R, a1)} Z" fill="${o.fill}" stroke="#0a0e1a" stroke-width="0.8"/>
-      <text class="wheel-label" transform="rotate(${a0 + STEP / 2 - 90}) translate(64 0)" text-anchor="middle" dominant-baseline="central"${id === 'perma' ? ` style="fill:${o.ink}"` : ''}>${esc(o.short)}</text>`;
-  }).join('');
-  $('wheel-box').innerHTML = `<svg viewBox="-115 -122 230 237" xmlns="${SVGNS}" role="img" aria-label="Рулетка наказаний">
-    <circle r="108" fill="#0a0e1a" stroke="rgba(250,199,117,0.55)" stroke-width="2"/>
-    <g id="wheel-group" transform="rotate(${rotation})">${slices}</g>
-    <circle r="22" fill="#0a0e1a" stroke="rgba(250,199,117,0.7)" stroke-width="1.5"/>
-    <g transform="translate(-9 -9) scale(.75)" fill="none" stroke="#FAC775" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-gavel" width="24" height="24"/></g>
-    <path d="M0,-90 L-10,-116 L10,-116 Z" fill="#FAC775" stroke="#0a0e1a" stroke-width="1.5" style="filter:drop-shadow(0 0 6px rgba(250,199,117,0.7))"/>
-  </svg>`;
+  if (!$('reel-strip')) {
+    $('wheel-box').innerHTML = `<div class="reel-plate" id="reel-plate">${PLATE}</div>
+      <div class="reel">
+        <div class="reel__window" role="img" aria-label="Рулетка наказаний">
+          <div class="reel__strip" id="reel-strip">${'<div class="reel__cell"><span></span></div>'.repeat(POOL)}</div>
+          <div class="reel__streaks" id="reel-streaks"></div>
+          <div class="reel__shade"></div>
+        </div>
+        <div class="reel__lens" id="reel-lens"></div>
+        <div class="reel__pawl reel__pawl--l" id="pawl-l"><i></i></div>
+        <div class="reel__pawl reel__pawl--r" id="pawl-r"><i></i></div>
+      </div>
+      <canvas class="reel__sparks" id="sparks"></canvas>
+      <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="reel-blur" x="0" y="-20%" width="100%" height="140%">
+        <feGaussianBlur id="reel-blur-g" stdDeviation="0 0"/></filter></svg>`;
+  }
+  cellKey = [];
+  paintReel(pos, 0);
 }
-const sectorAt = rot => Math.floor((((-rot) % 360 + 360) % 360) / STEP) % SECTORS;
+// p — положение барабана, speed — ячеек в секунду (от неё блюр и полосы)
+function paintReel(p, speed) {
+  const cells = $('reel-strip').children, base = Math.round(p);
+  for (let k = 0; k < POOL; k++) {
+    const v = base + k - HALF, d = p - v, el = cells[k];   // d > 0 — ячейка ниже центра
+    if (cellKey[k] !== v) {
+      cellKey[k] = v;
+      const o = OUTCOMES[layout[mod(v, SECTORS)]];
+      el.style.setProperty('--fill', o.fill);
+      el.style.setProperty('--ink', o.ink);
+      el.firstChild.textContent = o.short;
+    }
+    // Барабан круглый: к краям окна ячейки сплющиваются и темнеют
+    el.style.transform = `translateY(${(d * CELL).toFixed(2)}px) scaleY(${Math.cos(Math.min(1.4, Math.abs(d) * 0.5)).toFixed(3)})`;
+    el.style.opacity = (1 - Math.min(1, Math.abs(d) / 2.8) * 0.75).toFixed(3);
+  }
+  const blur = Math.max(0, Math.min(1, (speed - 5) / 14));
+  const strip = $('reel-strip');
+  strip.style.filter = blur > 0.03 ? 'url(#reel-blur)' : '';
+  $('reel-blur-g').setAttribute('stdDeviation', '0 ' + (blur * 16).toFixed(1));
+  strip.style.setProperty('--txt', (1 - blur * 0.9).toFixed(2));
+  $('reel-streaks').style.opacity = (blur * 0.85).toFixed(2);
+  // Язычки: ребро ячейки толкает их вниз и отпускает
+  const kick = Math.max(0, 1 - mod(p - 0.5, 1) * 4);
+  $('pawl-l').style.transform = `rotate(${(kick * 16).toFixed(1)}deg)`;
+  $('pawl-r').style.transform = `rotate(${(-kick * 16).toFixed(1)}deg)`;
+}
+function resetReel() {
+  if (!$('reel-strip')) return;
+  $('reel-plate').textContent = PLATE;
+  $('reel-lens').classList.remove('is-flash');
+  [...$('reel-strip').children].forEach(c => c.classList.remove('is-win'));
+}
 function setLive(id) {
   const o = OUTCOMES[id];
   $('live').textContent = o ? o.short : '';
   $('live').style.setProperty('--ink', o ? o.ink : 'transparent');
 }
 
-// ---------- звук: щелчки делений и удар молотка ----------
+// ---------- искры из-под язычков ----------
+const sparks = [];
+let sparkRaf = 0, sparkLast = 0;
+function emitSparks(n, power) {
+  const c = $('sparks'), cr = c.getBoundingClientRect();
+  [['pawl-l', 1], ['pawl-r', -1]].forEach(([id, dir]) => {
+    const r = $(id).getBoundingClientRect();
+    const x = (dir > 0 ? r.right - 4 : r.left + 4) - cr.left, y = r.top + r.height / 2 - cr.top;
+    for (let i = 0; i < n; i++) sparks.push({
+      x, y, life: 0, max: 0.3 + Math.random() * 0.5, hue: 28 + Math.random() * 24,
+      vx: -dir * (30 + Math.random() * 170) * power, vy: (-70 + Math.random() * 230) * power,
+    });
+  });
+  if (!sparkRaf) sparkRaf = requestAnimationFrame(drawSparks);
+}
+function drawSparks(now) {
+  const c = $('sparks'), dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+  if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+  const dt = sparkLast ? Math.min(0.05, (now - sparkLast) / 1000) : 0.016;
+  sparkLast = now;
+  const g = c.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, w, h);
+  g.globalCompositeOperation = 'lighter';
+  g.lineCap = 'round';
+  for (let i = sparks.length - 1; i >= 0; i--) {
+    const s = sparks[i];
+    s.life += dt;
+    if (s.life >= s.max) { sparks.splice(i, 1); continue; }
+    s.vy += 760 * dt; s.vx *= 0.985; s.x += s.vx * dt; s.y += s.vy * dt;
+    const k = 1 - s.life / s.max;
+    g.strokeStyle = `hsla(${s.hue.toFixed(0)}, 100%, ${(58 + 30 * k).toFixed(0)}%, ${k.toFixed(2)})`;
+    g.lineWidth = 0.8 + 1.6 * k;
+    g.beginPath(); g.moveTo(s.x, s.y); g.lineTo(s.x - s.vx * 0.022, s.y - s.vy * 0.022); g.stroke();
+  }
+  if (sparks.length) sparkRaf = requestAnimationFrame(drawSparks);
+  else { sparkRaf = 0; sparkLast = 0; g.clearRect(0, 0, w, h); }
+}
+
+// ---------- звук: щелчки ячеек, удар остановки, приговор ----------
 let soundOn = true;
 try { soundOn = localStorage.getItem('court-sound') !== '0'; } catch (e) { /* по умолчанию со звуком */ }
 let audio = null;
@@ -562,7 +713,8 @@ function tone(freq, t, dur, type, vol, to) {
   osc.connect(g); g.connect(a.destination);
   osc.start(t0); osc.stop(t0 + dur + 0.02);
 }
-const click = () => soundOn && tone(2400, 0, 0.05, 'square', 0.04, 800);
+const click = () => soundOn && tone(2400 + Math.random() * 500, 0, 0.04, 'square', 0.03, 800);
+const thunk = () => { if (!soundOn) return; tone(75, 0, 0.3, 'triangle', 0.7, 38); tone(1100, 0, 0.05, 'square', 0.12, 260); };
 function gavel(kind) {
   if (!soundOn) return;
   // Удар-удар; бан — ниже и тяжелее
@@ -577,6 +729,29 @@ $('sound').addEventListener('click', () => {
   paintSound();
 });
 
+// Свои звуки — файлы sounds/court/*.mp3; каких нет, те заменяет синтезатор:
+//   tick — щелчок ячейки, stop — удар остановки, verdict-mute / verdict-ban / verdict-perma — приговор,
+//   music-1 … music-5 — музыка прокрутки для ступени (удар остановки — ровно через LEVELS[N].spin секунд от старта).
+const SFX_DIR = 'sounds/court/';
+const sfxRaw = {}, sfxReady = {}, sfxBuf = {};
+function loadSfx(name) {  // скачать сразу; раскодировать — когда уже есть AudioContext (после клика)
+  if (!sfxRaw[name]) sfxRaw[name] = fetch(SFX_DIR + name + '.mp3').then(r => r.ok ? r.arrayBuffer() : null).catch(() => null);
+  return sfxRaw[name];
+}
+const readySfx = names => Promise.all(names.map(n => sfxReady[n] || (sfxReady[n] = loadSfx(n)
+  .then(raw => raw ? ac().decodeAudioData(raw) : null).catch(() => null).then(buf => { sfxBuf[n] = buf; }))));
+function sfx(name, fallback, rate) {
+  if (!soundOn) return;
+  const buf = sfxBuf[name];
+  if (!buf) { if (fallback) fallback(); return; }
+  const a = ac(), src = a.createBufferSource();
+  src.buffer = buf;
+  if (rate) src.playbackRate.value = rate;
+  src.connect(a.destination);
+  src.start();
+}
+['tick', 'stop', 'verdict-mute', 'verdict-ban', 'verdict-perma'].forEach(loadSfx);
+
 // ---------- прокрутка ----------
 function lock(on) {
   spinning = on;
@@ -587,42 +762,70 @@ function lock(on) {
   renderRecord();
   renderCharge();
 }
-function animate(from, to, ms) {
+// Прокрутка: разгон → полный ход → торможение → удар (ровно через LEVELS[lvl].spin секунд) → отскок.
+// Скорость подбирается так, чтобы барабан встал точно на ячейке idx.
+const RAMP = 0.4, BOUNCE = 0.28, TOP_SPEED = 24;
+function spinReel(lvl, idx, onStop) {
+  const L = LEVELS[lvl], brake = L.brake, hold = L.spin - RAMP - brake;
+  const k = RAMP / 2 + hold + brake / 3;           // путь при скорости 1: разгон + ход + торможение (v ~ (1-s)²)
+  const start = pos;
+  let dist = Math.ceil(TOP_SPEED * k);
+  dist += mod(idx - (start + dist), SECTORS);
+  const vmax = dist / k, p1 = vmax * RAMP / 2, p2 = p1 + vmax * hold;
   return new Promise(done => {
-    const g = $('wheel-group'), t0 = performance.now();
-    let sector = sectorAt(from);
+    const t0 = performance.now();
+    let tick = Math.floor(start - 0.5), stopped = false;
     const frame = now => {
-      const t = Math.min(1, (now - t0) / ms);
-      const rot = from + (to - from) * (1 - Math.pow(1 - t, 4));
-      g.setAttribute('transform', `rotate(${rot})`);
-      const s = sectorAt(rot);
-      if (s !== sector) { sector = s; click(); setLive(layout[s]); }
-      if (t < 1) requestAnimationFrame(frame); else done();
+      const t = (now - t0) / 1000;
+      let p, v = 0;
+      if (t < RAMP) { v = vmax * t / RAMP; p = vmax * t * t / (2 * RAMP); }
+      else if (t < RAMP + hold) { v = vmax; p = p1 + vmax * (t - RAMP); }
+      else if (t < L.spin) { const s = (t - RAMP - hold) / brake; v = vmax * (1 - s) ** 2; p = p2 + vmax * brake * (1 - (1 - s) ** 3) / 3; }
+      else {
+        if (!stopped) { stopped = true; onStop(); }
+        p = dist - 0.13 * Math.sin(Math.PI * Math.min(1, (t - L.spin) / BOUNCE));  // клац — и чуть назад
+      }
+      paintReel(start + p, v);
+      const tk = Math.floor(start + p - 0.5);
+      if (tk !== tick && !stopped) {
+        tick = tk;
+        sfx('tick', click, 0.92 + Math.random() * 0.16);
+        emitSparks(v > 16 ? 1 : 2, 0.55 + v / 40);
+      }
+      if (t < L.spin + BOUNCE) requestAnimationFrame(frame);
+      else { pos = mod(start + dist, SECTORS); paintReel(pos, 0); done(); }
     };
     requestAnimationFrame(frame);
   });
 }
+const wait = ms => new Promise(r => setTimeout(r, ms));
 $('spin').addEventListener('click', async () => {
   if (spinning || !pick.nick || !pick.rule) return;
   ac();
   const lvl = level(), rule = pick.rule, nick = pick.nick, repeat = pick.repeat && lvl > rule.level, note = $('note').value.trim();
   lock(true);
-  // Случайное деление (все 20 равновероятны) и случайная точка внутри него — не по центру
-  const idx = rand(SECTORS);
-  const inside = 2 + rand(1000) / 1000 * (STEP - 4);
-  const target = ((-(idx * STEP + inside)) % 360 + 360) % 360;
-  let delta = target - ((rotation % 360) + 360) % 360;
-  if (delta < 0) delta += 360;
-  const from = rotation, to = rotation + 6 * 360 + delta;
-  await animate(from, to, 7000);
-  rotation = to;
-  const outcome = layout[sectorAt(rotation)];
-  const at = new Date(), o = OUTCOMES[outcome];
+  resetReel();
+  // Свои звуки, если есть, — но не ждём их дольше полутора секунд
+  await Promise.race([readySfx(['tick', 'stop', 'verdict-mute', 'verdict-ban', 'verdict-perma', 'music-' + lvl]), wait(1500)]);
+  const idx = rand(SECTORS);   // все 20 ячеек равновероятны
+  const outcome = layout[idx], o = OUTCOMES[outcome];
+  $('reel-plate').textContent = 'Суд идёт';
+  sfx('music-' + lvl);
+  await spinReel(lvl, idx, () => {
+    sfx('stop', thunk);
+    emitSparks(16, 1.5);
+    $('reel-plate').textContent = 'Приговор';
+    $('reel-lens').style.setProperty('--win', o.ink);
+    $('reel-lens').classList.add('is-flash');
+    $('reel-strip').children[HALF].classList.add('is-win');
+  });
+  await wait(650);             // дать рассмотреть ячейку
+  const at = new Date();
   const entry = {
     id: newId(), at: court.stamp(at), nick, rule: rule.id, rule_title: rule.title, level: String(lvl), repeat: repeat ? '1' : '',
     outcome, until: o.kind === 'mute' ? court.stamp(new Date(at.getTime() + o.sec * 1000)) : '', status: '', lifted_at: '', note,
   };
-  gavel(o.kind);
+  sfx('verdict-' + o.kind, () => gavel(o.kind));
   spinning = false;
   showVerdict(entry);
   lock(false);
@@ -658,6 +861,7 @@ function closeVerdict() {
   verdictShown = false;
   $('result').hidden = true;
   setLive('');
+  resetReel();
   renderCharge();
 }
 function setSave(state, text) {

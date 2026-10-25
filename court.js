@@ -15,13 +15,14 @@
     perma: { kind: 'perma', sec: 0,      short: 'вечный', label: 'вечный бан',       fill: '#1b0b10', ink: '#ff5a5a' },
   };
   const ORDER = Object.keys(OUTCOMES);
-  // Тяжесть статьи (1–5) → сколько делений каждого исхода на колесе. Всего делений — 20.
+  // Тяжесть статьи (1–5) → сколько ячеек каждого исхода на барабане. Всего ячеек — 20.
+  // spin — секунд от нажатия до удара-остановки (под это пишется музыка music-N), brake — из них торможение.
   const LEVELS = [null,
-    { name: 'Мелкое хулиганство',  wheel: { m10: 12, m30: 6, h1: 2 } },
-    { name: 'Проступок',           wheel: { m10: 5, m30: 7, h1: 6, d1: 2 } },
-    { name: 'Преступление',        wheel: { m30: 3, h1: 6, d1: 7, w1: 3, ban: 1 } },
-    { name: 'Тяжкое преступление', wheel: { d1: 4, w1: 8, ban: 6, perma: 2 } },
-    { name: 'Особо тяжкое',        wheel: { ban: 1, perma: 19 } },
+    { name: 'Мелкое хулиганство',  spin: 4,   brake: 0.9, wheel: { m10: 12, m30: 6, h1: 2 } },
+    { name: 'Проступок',           spin: 5,   brake: 1.1, wheel: { m10: 5, m30: 7, h1: 6, d1: 2 } },
+    { name: 'Преступление',        spin: 6.5, brake: 1.6, wheel: { m30: 3, h1: 6, d1: 7, w1: 3, ban: 1 } },
+    { name: 'Тяжкое преступление', spin: 8,   brake: 2.2, wheel: { d1: 4, w1: 8, ban: 6, perma: 2 } },
+    { name: 'Особо тяжкое',        spin: 10,  brake: 3,   wheel: { ban: 1, perma: 19 } },
   ];
   const SECTORS = 20;
   const MAX_LEVEL = LEVELS.length - 1;
