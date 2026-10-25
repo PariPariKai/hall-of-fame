@@ -89,7 +89,8 @@
   .redit__foot div { display: flex; gap: 10px; }
 
   /* ---------- колесо ---------- */
-  .wheel-panel { position: sticky; top: 76px; display: flex; flex-direction: column; gap: 16px; align-items: stretch; }
+  /* Панель рулетки тянется на всю высоту ряда, барабан — по центру: без пустоты снизу и без «езды» при прокрутке */
+  .wheel-panel { align-self: stretch; display: flex; flex-direction: column; justify-content: center; gap: 16px; align-items: stretch; }
   .charge { display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; min-height: 54px; }
   .charge__who { font-size: 26px; font-weight: 700; letter-spacing: .5px; overflow-wrap: anywhere; }
   .charge__who.is-empty { color: var(--dim); font-weight: 400; font-size: 15px; }
@@ -221,7 +222,7 @@
 
   @media (max-width: 1000px) {
     .court { grid-template-columns: minmax(0, 1fr); }
-    .wheel-panel { position: static; order: -1; }
+    .wheel-panel { order: -1; }
   }
   @media (max-width: 520px) {
     .result__sentence { font-size: 24px; }
