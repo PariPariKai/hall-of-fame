@@ -26,6 +26,8 @@
   .conn.is-connecting i { background: var(--gold); }
   .chatter { padding: 5px 11px; font-size: 12px; }
   .chatter.is-hot { border-color: rgba(240,80,80,0.6); color: var(--red); background: rgba(240,80,80,0.1); }
+  .chatter small { margin-left: 6px; font-size: 11px; color: var(--dim); }
+  .chat-empty { font-size: 12px; color: var(--dim); }
   .record { margin-top: 14px; font-size: 13px; color: var(--muted); line-height: 1.55; }
   .record b { color: #fff; }
   .repeat { display: flex; align-items: center; gap: 9px; margin-top: 10px; font-size: 13px; cursor: pointer; user-select: none; }
@@ -356,7 +358,10 @@ const newId = () => Array.from(crypto.getRandomValues(new Uint8Array(4)), b => b
 const rand = n => crypto.getRandomValues(new Uint32Array(1))[0] % n;
 
 // ===================== чат Twitch: кто пишет и кому дали мут =====================
-const chatters = new Map(); // login → { name, last }
+const chatters = new Map(); // login → { name, last } — кто писал в чат: для подсказок в поле ника и красивого написания ника
+let jailSeq = 0;
+const jailed = new Map();   // login → { name, dur, at } — кому за эту сессию дали мут или бан в чате (это и есть кнопки под полем)
+const PURGE = 60;           // мут короче минуты — это чистка сообщений или снятие мута (Twitch шлёт его как мут на 1 с), не дело
 let connState = { state: 'off', text: 'Чат: не подключён' };
 let hot = '';               // кому только что дали мут/бан в чате
 let ws = null, wsDelay = 1000;
@@ -397,10 +402,13 @@ function onIrc(line) {
   // Мут или бан в чате: сразу заводим дело на этого зрителя
   if (cmd === 'CLEARCHAT') {
     const login = (params.split(' :')[1] || '').trim().toLowerCase();
-    if (!login || spinning || verdictShown) return;
-    const name = (chatters.get(login) || {}).name || login;
     const dur = +tags['ban-duration'];
+    if (!login || (dur && dur < PURGE)) return;
+    const name = (chatters.get(login) || {}).name || login;
+    jailed.set(login, { name, dur, at: ++jailSeq });
+    if (spinning || verdictShown) { renderChatters(); return; }
     hot = login;
+    renderChatters();
     setNick(name);
     toast(dur ? `${name} получил мут в чате (${Math.round(dur / 60)} мин) — дело заведено` : `${name} забанен в чате — дело заведено`);
   }
@@ -410,10 +418,11 @@ function setConn(state, text) {
   renderChatters();
 }
 function renderChatters() {
-  const recent = [...chatters.entries()].sort((a, b) => b[1].last - a[1].last).slice(0, 10);
-  if (hot && !recent.some(([l]) => l === hot)) recent.unshift([hot, chatters.get(hot) || { name: hot }]);
+  const recent = [...jailed.entries()].sort((a, b) => b[1].at - a[1].at).slice(0, 10);
+  const term = d => !d ? 'бан' : d < 3600 ? Math.round(d / 60) + ' мин' : d < 86400 ? Math.round(d / 3600) + ' ч' : Math.round(d / 86400) + ' дн';
   $('chatters').innerHTML = `<span class="conn ${connState.state === 'online' ? 'is-online' : connState.state === 'connecting' ? 'is-connecting' : ''}"><i></i>${esc(connState.text)}</span>` +
-    recent.map(([login, u]) => `<button type="button" class="chip chatter${login === hot ? ' is-hot' : ''}" data-nick="${esc(u.name)}"${spinning ? ' disabled' : ''}>${esc(u.name)}</button>`).join('');
+    (recent.length ? recent.map(([login, u]) => `<button type="button" class="chip chatter${login === hot ? ' is-hot' : ''}" data-nick="${esc(u.name)}"${spinning ? ' disabled' : ''}>${esc(u.name)}<small>${term(u.dur)}</small></button>`).join('')
+      : connState.state === 'online' ? '<span class="chat-empty">мутов пока не было</span>' : '');
   fillNicks();
 }
 $('chatters').addEventListener('click', e => {
