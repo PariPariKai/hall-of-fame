@@ -1,6 +1,5 @@
 {
   "columns": ["id","at","nick","rule","rule_title","level","repeat","outcome","until","status","lifted_at","note"],
   "items": [
-    {"id":"f691ca67","at":"25.10.2026 18:33","nick":"gamer2284111","rule":"flood","rule_title":"Не флуди и не спамь","level":"1","repeat":"","outcome":"m30","until":"25.10.2026 19:03","status":"","lifted_at":"","note":""}
   ]
 }
