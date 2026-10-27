@@ -471,7 +471,7 @@ function ordersSection(o) {
     // для вечера кино и «сейчас смотрим»
     statusOf, isUpcoming, isActive, isDone, cover, STATUS, o,
   };
-  sec.panel = o.tonight ? tonightPanel : o.progress ? nowPanel : null;
+  sec.panel = sessionPanel;
   return sec;
 }
 
@@ -483,7 +483,7 @@ function filmBlock(sec, it, extra) {
     <div class="film__meta"><span>${icon('user')} ${esc(it.nick)}</span>${extra || ''}</div></div></div>`;
 }
 
-// ----- вечер кино (фильмы) -----
+// Ближайший стримовый день, на который в разделе ещё ничего не назначено
 function nextStreamDay(sec) {
   const from = todayNo(), taken = new Set(), sch = schedule();
   items(sec.id).forEach(it => {
@@ -496,36 +496,64 @@ function nextStreamDay(sec) {
   }
   return new Date((from + 1) * 864e5).toISOString().slice(0, 10);
 }
-function tonightPanel(sec, box) {
-  $('panel-title').innerHTML = icon('film') + 'Вечер кино';
+// ----- панель раздела: сейчас (оценка, вердикт, серии/часы) + следующий показ или новая игра -----
+const PANEL_WORDS = {
+  movies: { title: 'Вечер кино', now: 'Смотрим сейчас', next: 'Следующий фильм', pick: 'Фильм из очереди', done: 'Посмотрели', start: 'Начали смотреть', about: 'о фильме', none: 'фильм' },
+  anime:  { title: 'Аниме на стриме', now: 'Смотрим сейчас', next: 'Следующий показ', pick: 'Аниме из очереди', done: 'Досмотрели', start: 'Начали смотреть', about: 'об аниме', none: 'аниме' },
+  series: { title: 'Сериалы на стриме', now: 'Смотрим сейчас', next: 'Следующий показ', pick: 'Сериал из очереди', done: 'Досмотрели', start: 'Начали смотреть', about: 'о сериале', none: 'сериал' },
+  games:  { title: 'Игры на стриме', now: 'Играем сейчас', next: 'Начать новую игру', pick: 'Игра из очереди', done: 'Пройдено', start: 'Начали играть', about: 'об игре', none: 'игру' },
+};
+const GAME_ENDS = [['completed', 'Пройдено', 'check'], ['played', 'Сыграно', 'gamepad'], ['dropped', 'Дропнуто', 'x']];
+const picked = {}; // раздел → id заказа, выбранного переключателем «сейчас»
+function sessionPanel(sec, box) {
+  const W = PANEL_WORDS[sec.id];
+  const eps = sec.o.progress === 'episodes', game = sec.o.progress === 'percent', afisha = !!sec.o.scheduled;
+  $('panel-title').innerHTML = icon(sec.icon) + W.title;
   box.innerHTML = '<div class="tonight"><div class="slot" id="slot-now"></div><div class="slot" id="slot-next"></div></div>';
   const all = items(sec.id);
-  // Сейчас: то, что смотрим, иначе назначенное на сегодня (или просроченное и не отмеченное)
-  const cur = all.find(sec.isActive) || all.filter(it => it.scheduled_at && sec.statusOf(it) === 'pending' && dayNo(it.scheduled_at) <= todayNo())
-    .sort((a, b) => ts(b.scheduled_at) - ts(a.scheduled_at))[0] || null;
-  const next = all.filter(it => it !== cur && sec.isUpcoming(it) && !sec.isActive(it)).sort((a, b) => ts(a.scheduled_at) - ts(b.scheduled_at))[0] || null;
+  // Сейчас: то, что смотрим/играем, и назначенное на сегодня (или просроченное и не отмеченное)
+  const active = all.filter(sec.isActive);
+  const due = all.filter(it => it.scheduled_at && sec.statusOf(it) === 'pending' && dayNo(it.scheduled_at) <= todayNo())
+    .sort((a, b) => ts(b.scheduled_at) - ts(a.scheduled_at));
+  const candidates = active.concat(due.filter(it => !active.includes(it)));
+  const cur = candidates.find(it => it.id === picked[sec.id]) || candidates[0] || null;
 
   const now = $('slot-now');
   if (!cur) {
     const seen = all.filter(it => sec.isDone(it) && it.date_completed && dayNo(it.date_completed) === todayNo()).pop();
+    const st = seen && sec.STATUS[sec.statusOf(seen)];
     now.innerHTML = `<div class="slot__head">${icon('play')}Сегодня</div>` + (seen
-      ? filmBlock(sec, seen, `<span class="tag tag--done">Просмотрено</span>${seen.rating ? `<span class="tag tag--rating">${icon('star')} ${esc(String(seen.rating).replace('.', ','))}</span>` : ''}`) +
+      ? filmBlock(sec, seen, `<span class="tag tag--${st.tone}">${st.label}</span>${seen.rating ? `<span class="tag tag--rating">${icon('star')} ${esc(String(seen.rating).replace('.', ','))}</span>` : ''}`) +
         (seen.notes ? `<p class="empty-slot">«${esc(seen.notes)}»</p>` : '') +
         `<div class="row"><button type="button" class="btn btn--ghost" data-edit="${esc(seen.id)}">${icon('pencil')}Изменить</button></div>`
-      : `<p class="empty-slot">На сегодня ничего не назначено. Назначь фильм справа — он появится в афише на главной.</p>`);
+      : `<p class="empty-slot">${game ? 'Сейчас ни во что не играем. Начни игру справа — она появится на главной в «Продолжаем».'
+        : `На сегодня ничего не назначено. Назначь ${W.none} справа — появится в афише на главной.`}</p>`);
   } else {
     const st = sec.statusOf(cur);
-    const when = cur.scheduled_at ? `<span>${icon('calendar')} ${esc(human(cur.scheduled_at))}</span>` : '';
+    const isAct = sec.isActive(cur);
+    const when = cur.scheduled_at && !game ? `<span>${icon('calendar')} ${esc(human(cur.scheduled_at))}</span>` : '';
+    const prog = eps ? `<span>${icon('tv')} серия ${esc(cur.episodes_watched || 0)} из ${esc(cur.episodes_total || '?')}</span>`
+      : game ? `<span>${icon('clock')} ${esc(fmtNum(num(cur.hours_played) || 0))} ч</span>${cur.progress_percent ? `<span>${esc(cur.progress_percent)}%</span>` : ''}` : '';
+    const switcher = candidates.length > 1 ? `<div class="chips">${candidates.map(it =>
+      `<button type="button" class="chip${it === cur ? ' is-active' : ''}" data-pick="${esc(it.id)}">${esc(sec.title(it))}</button>`).join('')}</div>` : '';
     const stars = Array.from({ length: 10 }, (_, i) => `<button type="button" class="star-btn" data-r="${i + 1}">${i + 1}</button>`).join('');
-    now.innerHTML = `<div class="slot__head">${icon('play')}${sec.isActive(cur) ? 'Смотрим сейчас' : 'Сегодня'}</div>
-      ${filmBlock(sec, cur, when + `<span class="tag tag--${sec.STATUS[st].tone}">${sec.STATUS[st].label}</span>`)}
+    const finish = game
+      ? GAME_ENDS.map(([id, label, ic], i) => `<button type="button" class="btn${i ? ' btn--ghost' : ' btn--solid'}" data-end="${id}">${icon(ic)}${label}</button>`).join('')
+      : `<button type="button" class="btn btn--solid" data-end="watched">${icon('check')}${W.done}</button>`;
+    now.innerHTML = `<div class="slot__head">${icon('play')}${isAct ? W.now : 'Сегодня'}</div>${switcher}
+      ${filmBlock(sec, cur, when + prog + `<span class="tag tag--${sec.STATUS[st].tone}">${sec.STATUS[st].label}</span>`)}
+      ${eps || game ? `<div class="row">
+        <button type="button" class="btn btn--sm" id="plus-btn">${icon('plus')}${eps ? '1 серия' : '1 час'}</button>
+        ${game ? `<label class="field" style="flex:0 1 150px"><span>Прогресс, %</span><input class="inp" id="prog-inp" type="number" min="0" max="100" step="1" value="${esc(cur.progress_percent)}" placeholder="без концовки"></label>` : ''}
+      </div>` : ''}
       <div class="field"><span>Оценка <b class="rating-out" id="rating-out">—</b></span>
         <div class="stars" id="stars">${stars}<button type="button" class="star-btn star-btn--half" data-half title="Добавить половинку">+½</button></div></div>
       <label class="field"><span>Вердикт <em class="hint-inline">— зрители видят на обороте карточки</em></span>
-        <textarea class="inp" id="verdict" rows="3" placeholder="Пара слов о фильме...">${esc(cur.notes)}</textarea></label>
+        <textarea class="inp" id="verdict" rows="3" placeholder="Пара слов ${W.about}...">${esc(cur.notes)}</textarea></label>
       <div class="row">
-        <button type="button" class="btn btn--solid" id="done-btn">${icon('check')}Посмотрели</button>
-        ${!sec.isActive(cur) ? `<button type="button" class="btn btn--ghost" id="start-btn">${icon('play')}Начали смотреть</button>` : ''}
+        ${finish}
+        ${!isAct ? `<button type="button" class="btn btn--ghost" id="start-btn">${icon('play')}${W.start}</button>` : ''}
+        ${eps || game ? `<button type="button" class="btn btn--ghost" id="keep-btn" title="Сохранить оценку и вердикт, не закрывая заказ">${icon('check')}Сохранить</button>` : ''}
         <button type="button" class="btn btn--ghost" data-edit="${esc(cur.id)}">${icon('pencil')}Изменить</button>
       </div>`;
     let rating = num(cur.rating);
@@ -542,49 +570,92 @@ function tonightPanel(sec, box) {
       else rating = +b.dataset.r === rating ? null : +b.dataset.r;
       paint();
     });
-    $('done-btn').addEventListener('click', e => {
-      if (rating == null && !confirm('Отметить без оценки?')) return;
-      const notes = $('verdict').value.trim(), r = rating, id = cur.id;
-      save(sec, `«${sec.title(cur)}» просмотрен${r != null ? ', ' + r + '/10' : ''}`, data => {
-        Object.assign(byId(data, id), { status: 'watched', rating: r == null ? '' : String(r), notes, date_completed: todayStr() });
-      }, e.currentTarget);
+    now.querySelectorAll('[data-pick]').forEach(b => b.addEventListener('click', () => { picked[sec.id] = b.dataset.pick; sessionPanel(sec, box); }));
+    // Оценка, вердикт и прогресс игры — из полей панели
+    const fromPanel = () => {
+      const v = { rating: rating == null ? '' : String(rating), notes: $('verdict').value.trim() };
+      if (game) v.progress_percent = $('prog-inp').value === '' ? '' : fmtNum(Math.min(100, Math.max(0, num($('prog-inp').value))));
+      return v;
+    };
+    now.querySelectorAll('[data-end]').forEach(b => b.addEventListener('click', () => {
+      if (rating == null && !confirm('Закрыть без оценки?')) return;
+      const status = b.dataset.end, v = fromPanel();
+      save(sec, `«${sec.title(cur)}» — ${sec.STATUS[status].label.toLowerCase()}${rating != null ? ', ' + rating + '/10' : ''}`, data => {
+        const x = byId(data, cur.id);
+        Object.assign(x, v, { status, date_completed: todayStr() });
+        if (eps && parseInt(x.episodes_total, 10)) x.episodes_watched = x.episodes_total;
+        if (game && status === 'completed' && x.progress_percent !== '') x.progress_percent = '100';
+      }, b);
+    }));
+    if ($('keep-btn')) $('keep-btn').addEventListener('click', e => {
+      const v = fromPanel();
+      save(sec, `«${sec.title(cur)}» — оценка и вердикт`, data => { Object.assign(byId(data, cur.id), v); }, e.currentTarget);
     });
     if ($('start-btn')) $('start-btn').addEventListener('click', e => {
-      save(sec, `смотрим «${sec.title(cur)}»`, data => { byId(data, cur.id).status = 'watching'; }, e.currentTarget);
+      save(sec, `${W.start.toLowerCase()} «${sec.title(cur)}»`, data => { byId(data, cur.id).status = game ? 'playing' : 'watching'; }, e.currentTarget);
+    });
+    if ($('plus-btn')) $('plus-btn').addEventListener('click', e => {
+      if (eps) {
+        const n = (parseInt(cur.episodes_watched, 10) || 0) + 1, total = parseInt(cur.episodes_total, 10) || 0;
+        save(sec, `«${sec.title(cur)}» — серия ${n}`, data => {
+          const x = byId(data, cur.id);
+          x.episodes_watched = String(total ? Math.min(n, total) : n);
+          if (sec.statusOf(x) === 'pending') x.status = 'watching';
+        }, e.currentTarget).then(ok => { if (ok && total && n >= total) toast(`Это была последняя серия — оцени и нажми «${W.done}».`); });
+      } else {
+        save(sec, `«${sec.title(cur)}» +1 час`, data => {
+          const x = byId(data, cur.id);
+          x.hours_played = fmtNum((num(x.hours_played) || 0) + 1);
+        }, e.currentTarget);
+      }
     });
   }
 
   const nx = $('slot-next');
-  const head = `<div class="slot__head">${icon('calendar')}Следующий фильм</div>`;
-  const scheduler = () => {
-    nx.innerHTML = head + `<div class="field pick"><span>Фильм из очереди</span>
+  const head = `<div class="slot__head">${icon(game ? 'gamepad' : 'calendar')}${W.next}</div>`;
+  // Очередь: заказы в ожидании; у аниме и сериалов — и то, что уже смотрим (назначить следующие серии)
+  const queue = () => all.filter(it => it.title && !sec.isDone(it) && !sec.isUpcoming(it) &&
+    (['pending', 'paused'].includes(sec.statusOf(it)) || (eps && sec.isActive(it))));
+  const picker = () => {
+    nx.innerHTML = head + `<div class="field pick"><span>${W.pick}</span>
         <input class="inp" id="pick-q" placeholder="Начни вводить название или ник..." autocomplete="off">
         <ul class="pick__list" id="pick-list" hidden></ul></div>
-      <div class="row">
+      ${afisha ? `<div class="row">
         <label class="field"><span>Дата</span><input class="inp" id="pick-date" type="date" value="${nextStreamDay(sec)}"></label>
         <label class="field"><span>Время</span><input class="inp" id="pick-time" type="time" value="${schedule().movie}"></label>
-      </div>
-      <div class="row"><button type="button" class="btn btn--solid" id="pick-btn" disabled>${icon('calendar')}Назначить</button>
-        <span class="hint-inline" id="pick-hint">Выбери фильм — он появится в афише на главной</span></div>`;
-    bindPicker(sec);
+      </div>` : ''}
+      <div class="row"><button type="button" class="btn btn--solid" id="pick-btn" disabled>${icon(afisha ? 'calendar' : 'play')}${afisha ? 'Назначить' : W.start}</button>
+        <span class="hint-inline" id="pick-hint">${afisha ? `Выбери ${W.none} — появится в афише на главной` : 'Выбери игру — статус станет «Играем»'}</span></div>`;
+    bindPicker(sec, queue, (chosen, btn) => {
+      if (!afisha) return save(sec, `${W.start.toLowerCase()} «${chosen.title}»`, data => { byId(data, chosen.id).status = 'playing'; }, btn);
+      const when = joinDate($('pick-date').value, $('pick-time').value);
+      if (!when) return toast('Выбери дату', true);
+      save(sec, `«${chosen.title}» на ${when}`, data => {
+        const it = byId(data, chosen.id);
+        it.scheduled_at = when;
+        if (sec.statusOf(it) === 'paused') it.status = 'pending';
+      }, btn);
+    });
   };
+  // Следующий показ в афише — назначенное позже текущего (у игр афиши нет — сразу выбор новой игры)
+  const next = afisha ? all.filter(it => it !== cur && sec.isUpcoming(it)).sort((a, b) => ts(a.scheduled_at) - ts(b.scheduled_at))[0] : null;
   if (next) {
     nx.innerHTML = head + filmBlock(sec, next, `<span>${icon('calendar')} ${esc(human(next.scheduled_at))}</span>`) +
       `<div class="row"><button type="button" class="btn btn--ghost" data-edit="${esc(next.id)}">${icon('pencil')}Изменить</button>
-       <button type="button" class="btn btn--ghost" id="next-more">${icon('plus')}Назначить ещё один</button></div>`;
-    $('next-more').addEventListener('click', scheduler);
-  } else scheduler();
+       <button type="button" class="btn btn--ghost" id="next-more">${icon('plus')}Назначить ещё</button></div>`;
+    $('next-more').addEventListener('click', picker);
+  } else picker();
 }
-function bindPicker(sec) {
+// Поиск по очереди с выпадающим списком; action(выбранный заказ, кнопка) — что сделать по кнопке
+function bindPicker(sec, queue, action) {
   let chosen = null, hl = 0, shown = [];
   const q = $('pick-q'), list = $('pick-list');
-  const queue = () => items(sec.id).filter(it => it.title && ['pending', 'paused'].includes(sec.statusOf(it)) && !sec.isUpcoming(it));
   const draw = () => {
     const s = low(q.value.trim());
     shown = queue().filter(it => !s || low(it.title).includes(s) || low(it.nick).includes(s)).slice(0, 40);
     hl = Math.min(hl, Math.max(shown.length - 1, 0));
     list.innerHTML = shown.length
-      ? shown.map((it, i) => `<li data-i="${i}" class="${i === hl ? 'is-hl' : ''}"><span>${esc(it.title)}</span><small>${esc(it.nick)}${sec.statusOf(it) === 'paused' ? ' · на паузе' : ''}</small></li>`).join('')
+      ? shown.map((it, i) => `<li data-i="${i}" class="${i === hl ? 'is-hl' : ''}"><span>${esc(it.title)}</span><small>${esc(it.nick)}${sec.statusOf(it) === 'paused' ? ' · на паузе' : sec.isActive(it) ? ' · смотрим' : ''}</small></li>`).join('')
       : '<li class="pick__none">В очереди ничего не нашлось</li>';
     list.hidden = false;
   };
@@ -604,58 +675,7 @@ function bindPicker(sec) {
   });
   list.addEventListener('mousedown', e => { const li = e.target.closest('li[data-i]'); if (li) { e.preventDefault(); choose(shown[+li.dataset.i]); } });
   q.addEventListener('blur', () => { list.hidden = true; });
-  $('pick-btn').addEventListener('click', e => {
-    const when = joinDate($('pick-date').value, $('pick-time').value);
-    if (!chosen || !when) return toast('Выбери фильм и дату', true);
-    const id = chosen.id;
-    save(sec, `«${chosen.title}» на ${when}`, data => {
-      const it = byId(data, id);
-      it.scheduled_at = when;
-      if (sec.statusOf(it) === 'paused') it.status = 'pending';
-    }, e.currentTarget);
-  });
-}
-
-// ----- сейчас смотрим / играем: +1 серия, +1 час -----
-function nowPanel(sec, box) {
-  const eps = sec.o.progress === 'episodes';
-  $('panel-title').innerHTML = icon(sec.icon) + (eps ? 'Сейчас смотрим' : 'Сейчас играем');
-  const active = items(sec.id).filter(sec.isActive);
-  if (!active.length) {
-    box.innerHTML = `<p class="empty-slot">Сейчас ничего не ${eps ? 'смотрим' : 'играем'}. Открой заказ в списке и поставь статус «${eps ? 'Смотрим' : 'Играем'}» — он появится здесь.</p>`;
-    return;
-  }
-  box.innerHTML = '<div class="now-list">' + active.map(it => {
-    const c = sec.cover(it);
-    const meta = eps
-      ? `<span>${icon('tv')} ${esc(it.episodes_watched || 0)} из ${esc(it.episodes_total || '?')}</span>`
-      : `<span>${icon('clock')} ${esc(fmtNum(num(it.hours_played) || 0))} ч</span>${it.progress_percent ? `<span>${esc(it.progress_percent)}%</span>` : ''}`;
-    return `<div class="now-card"><div class="film__poster"${bg(c)}>${c ? '' : icon(sec.icon)}</div>
-      <div class="film__body"><div class="film__title">${esc(sec.title(it))}</div>
-        <div class="film__meta"><span>${icon('user')} ${esc(it.nick)}</span>${meta}</div>
-        <div class="row" style="margin-top:4px">
-          <button type="button" class="btn btn--sm" data-plus="${esc(it.id)}">${icon('plus')}${eps ? '1 серия' : '1 час'}</button>
-          <button type="button" class="btn btn--sm btn--ghost" data-edit="${esc(it.id)}">${icon('pencil')}Изменить</button>
-        </div></div></div>`;
-  }).join('') + '</div>';
-  box.querySelectorAll('[data-plus]').forEach(b => b.addEventListener('click', () => {
-    const it = items(sec.id).find(x => x.id === b.dataset.plus);
-    if (!it) return;
-    if (eps) {
-      const n = (parseInt(it.episodes_watched, 10) || 0) + 1, total = parseInt(it.episodes_total, 10) || 0;
-      const finish = total && n >= total && confirm(`Это последняя серия «${sec.title(it)}». Отметить как просмотренное?`);
-      save(sec, finish ? `«${sec.title(it)}» досмотрен` : `«${sec.title(it)}» — серия ${n}`, data => {
-        const x = byId(data, it.id);
-        x.episodes_watched = String(total ? Math.min(n, total) : n);
-        if (finish) Object.assign(x, { status: 'watched', date_completed: x.date_completed || todayStr() });
-      }, b);
-    } else {
-      save(sec, `«${sec.title(it)}» +1 час`, data => {
-        const x = byId(data, it.id);
-        x.hours_played = fmtNum((num(x.hours_played) || 0) + 1);
-      }, b);
-    }
-  }));
+  $('pick-btn').addEventListener('click', e => { if (chosen) action(chosen, e.currentTarget); });
 }
 
 // ===================== «Боль»: пул игр рулетки боли =====================
