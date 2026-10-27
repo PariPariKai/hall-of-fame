@@ -237,6 +237,17 @@
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/10812607/7ae661a4-8d36-4fad-9278-9b63655c7eb3/600x900",
       "source": "kinopoisk"
     },
+    "movies|jagten": {
+      "list": "movies",
+      "title": "Jagten",
+      "checked": "2026-10-27T13:54:12.882Z",
+      "found": true,
+      "year": 2012,
+      "kp": "647671",
+      "url": "https://www.kinopoisk.ru/film/647671/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1900788/b97af3b9-41b5-4e1d-a59c-051e4e979e80/600x900",
+      "source": "kinopoisk"
+    },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
       "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
