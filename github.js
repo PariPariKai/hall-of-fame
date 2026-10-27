@@ -73,8 +73,25 @@
   const user = () => fetch('https://api.github.com/user', { headers: { Authorization: 'Bearer ' + token } })
     .then(r => r.ok ? r.json() : {}).catch(() => ({}));
 
+  // Вход на страницы стримера (рулетки, карточки): токен с правом записи в репозиторий открывает их сам.
+  // candidate — токен, вставленный в поле кода (так его подключают в OBS и на другом компьютере); подошёл — запоминаем.
+  async function hasAccess(candidate) {
+    const t = candidate || token;
+    if (!t) return false;
+    try {
+      const res = await fetch('https://api.github.com/repos/' + REPO, { cache: 'no-store',
+        headers: { Authorization: 'Bearer ' + t, Accept: 'application/vnd.github+json' } });
+      if (!res.ok) return false;
+      const repo = await res.json();
+      if (!(repo.permissions && repo.permissions.push)) return false;
+      if (candidate) setToken(candidate);
+      return true;
+    } catch (e) { return false; }
+  }
+  const isToken = s => /^(github_pat_|ghp_)/.test(s);
+
   window.siteGit = {
     get token() { return token; },
-    setToken, readFile, writeFile, user,
+    setToken, readFile, writeFile, user, hasAccess, isToken,
   };
 })();

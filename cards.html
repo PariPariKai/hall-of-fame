@@ -97,6 +97,7 @@
     width: 240px; text-align: center; outline: none;
   }
   .gate-input:focus { border-color: rgba(250,199,117,0.5); }
+  .gate-hint { color: rgba(255,255,255,.45); font-size: 12px; margin-top: 10px; }
   .gate-error { color: #F09595; font-size: 13px; margin-top: 12px; min-height: 18px; }
   .gate-button {
     margin-top: 6px; background: transparent; border: 1px solid rgba(250,199,117,0.5);
@@ -559,6 +560,7 @@
   }
 </style>
 <script src="site.js?v=12"></script>
+<script src="github.js?v=2"></script>
 
 <!-- ===== ВХОД ПО КОДУ ===== -->
 <div class="gate" id="gate">
@@ -566,6 +568,7 @@
   <form id="gate-form" onsubmit="return false;">
     <input type="password" class="gate-input" id="gate-input" autocomplete="off" autofocus>
     <div class="gate-error" id="gate-error"></div>
+<div class="gate-hint">или вставь токен GitHub из админки — запомнится</div>
     <button type="submit" class="gate-button" id="gate-submit">Войти</button>
   </form>
 </div>
@@ -2772,6 +2775,12 @@ async function tryEnter() {
   const entered = input.value.trim();
   if (!entered) { error.textContent = 'Введите код'; submit.disabled = false; return; }
 
+  if (siteGit.isToken(entered)) {
+    if (await siteGit.hasAccess(entered)) { try { sessionStorage.setItem('ppk_cards_gate', '1'); } catch (e) {} startApp(); }
+    else { error.textContent = 'GitHub не принял токен'; input.value = ''; submit.disabled = false; input.focus(); }
+    return;
+  }
+
   if (!crypto.subtle) {
     error.textContent = 'Проверка кода работает только по https — открой страницу по адресу сайта.';
     submit.disabled = false;
@@ -2806,7 +2815,11 @@ $('#gate-input').addEventListener('keydown', e => { if (e.key === 'Enter') tryEn
 let gateOk = false;
 try { gateOk = sessionStorage.getItem('ppk_cards_gate') === '1'; } catch (e) {}
 if (gateOk) startApp();
-else $('#gate-input').focus();
+else {
+  $('#gate-input').focus();
+  // Токен из админки — входим без кода
+  siteGit.hasAccess().then(ok => { if (ok && $('#gate').style.display !== 'none') startApp(); });
+}
 </script>
 </body>
 </html>

@@ -120,6 +120,7 @@
     width: 260px; outline: none; text-align: center; letter-spacing: 4px;
   }
   .gate-input:focus { border-color: rgba(250,199,117,0.5); }
+  .gate-hint { color: rgba(255,255,255,.45); font-size: 12px; margin-top: 10px; }
   .gate-error { color: #F09595; font-size: 13px; margin-top: 12px; min-height: 18px; }
   .gate-button {
     margin-top: 14px; background: transparent;
@@ -493,6 +494,7 @@
     }
   </style>
   <script src="site.js?v=12"></script>
+<script src="github.js?v=2"></script>
 
   <!-- Экран входа -->
   <div class="gate" id="gate">
@@ -500,6 +502,7 @@
     <form id="gate-form" onsubmit="return false;">
       <input type="password" class="gate-input" id="gate-input" autocomplete="off" autofocus>
       <div class="gate-error" id="gate-error"></div>
+<div class="gate-hint">или вставь токен GitHub из админки — запомнится</div>
       <br>
       <button type="submit" class="gate-button" id="gate-submit">Войти</button>
     </form>
@@ -815,6 +818,21 @@ async function sha256Hex(str) {
 
 let dataLoaded = false;
 
+function unlock() {
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  activeTickets = [...allTickets];
+  renderWheel();
+  updateStats();
+}
+// Токен из админки — входим без кода
+siteGit.hasAccess().then(async ok => {
+  if (!ok || dataLoaded) return;
+  if (!(await loadData())) return;
+  dataLoaded = true;
+  unlock();
+});
+
 async function tryEnter() {
   const error = document.getElementById('gate-error');
   const input = document.getElementById('gate-input');
@@ -836,16 +854,12 @@ async function tryEnter() {
     return;
   }
 
-  const enteredHash = await sha256Hex(entered);
-
-  if (enteredHash === WHEEL_ACCESS_HASH) {
-    document.getElementById('gate').style.display = 'none';
-    document.getElementById('app').style.display = 'flex';
-    activeTickets = [...allTickets];
-    renderWheel();
-    updateStats();
+  const ok = siteGit.isToken(entered) ? await siteGit.hasAccess(entered)
+    : await sha256Hex(entered) === WHEEL_ACCESS_HASH;
+  if (ok) {
+    unlock();
   } else {
-    error.textContent = 'Неверный код';
+    error.textContent = siteGit.isToken(entered) ? 'GitHub не принял токен' : 'Неверный код';
     input.value = '';
     submit.disabled = false;
     input.focus();
