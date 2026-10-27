@@ -153,7 +153,7 @@
 </style>
 </head>
 <body>
-<script src="site.js?v=11"></script>
+<script src="site.js?v=12"></script>
 
 <div class="wrap">
   <header class="header">
@@ -335,7 +335,7 @@ function fieldHTML(f, v) {
   const name = ` name="${f.k}"`;
   switch (f.type) {
     case 'textarea':
-      return `<label class="field"${style}>${lab}<textarea class="inp"${name} rows="${f.rows || 3}"${ph}>${esc(v)}</textarea></label>`;
+      return `<label class="field"${style}>${lab}<textarea class="inp"${name} rows="${f.rows || 3}"${ph}${req}>${esc(v)}</textarea></label>`;
     case 'select': {
       const opts = f.options.map(([val, text]) => `<option value="${esc(val)}"${val === v ? ' selected' : ''}>${esc(text)}</option>`).join('');
       const extra = v && !f.options.some(([val]) => val === v) ? `<option value="${esc(v)}" selected>${esc(v)}</option>` : '';
@@ -358,8 +358,10 @@ function fieldHTML(f, v) {
     default: {
       const type = f.type === 'number' ? 'number' : f.type === 'url' ? 'url' : 'text';
       const extra = (f.type === 'number' ? ` step="${f.step || 'any'}"${f.min != null ? ` min="${f.min}"` : ''}${f.max != null ? ` max="${f.max}"` : ''}` : '') +
-        (f.type === 'nick' ? ' list="nicks" autocomplete="off"' : '');
-      return `<label class="field"${style}>${lab}<input class="inp" type="${type}"${name} value="${esc(v)}"${ph}${req}${extra}></label>`;
+        (f.type === 'nick' ? ' list="nicks" autocomplete="off"' : f.suggest ? ` list="dl-${f.k}" autocomplete="off"` : '');
+      // suggest — подсказки из списка, но можно вписать и своё
+      const dl = f.suggest ? `<datalist id="dl-${f.k}">${f.suggest().map(s => `<option value="${esc(s)}">`).join('')}</datalist>` : '';
+      return `<label class="field"${style}>${lab}<input class="inp" type="${type}"${name} value="${esc(v)}"${ph}${req}${extra}>${dl}</label>`;
     }
   }
 }
@@ -838,6 +840,41 @@ const friendsSection = {
   match: (it, q) => low(it.nick).includes(q),
 };
 
+// ===================== шаблоны: пасты для рейдов, стили титров =====================
+// Вкладка на templates.html = значение tab: вписал новое имя — появилась новая вкладка
+const TPL_TABS = ['Паста', 'Титры'];
+const tplTabs = () => [...new Set(TPL_TABS.concat(items('templates').map(it => it.tab).filter(Boolean)))];
+const tplTitle = it => it.title || String(it.text || '').trim().split('\n')[0].slice(0, 60) || 'Без текста';
+const templatesSection = {
+  id: 'templates', label: 'Шаблоны', icon: 'copy', group: 'Стрим', path: 'data/templates.json', page: 'templates.html', one: 'Шаблон',
+  addLabel: 'Добавить шаблон', search: 'Текст или название...',
+  note: 'Пасты для рейдов, стили титров и прочие тексты под копирование.',
+  fields: [
+    { k: 'tab', label: 'Вкладка', required: true, w: '200px', suggest: tplTabs, hint: 'новое имя — новая вкладка' },
+    { k: 'title', label: 'Название', w: '300px', hint: 'необязательно' },
+    { k: 'text', label: 'Текст', type: 'textarea', rows: 8, required: true },
+  ],
+  title: tplTitle,
+  defaults: () => ({ tab: (views.templates && views.templates.filter !== 'all' && views.templates.filter) || TPL_TABS[0] }),
+  normalize: vals => { vals.text = vals.text.replace(/\r\n/g, '\n'); },
+  row: it => {
+    const n = [...String(it.text || '')].length;
+    return { // паста длиннее 500 символов не влезет в одно сообщение Twitch
+      poster: '', shape: 'none', title: tplTitle(it), sub: it.title ? String(it.text || '').replace(/\s+/g, ' ').slice(0, 140) : '',
+      tag: it.tab === 'Паста' && n > 500 ? { tone: 'dropped', label: 'Длиннее 500' } : { tone: 'queue', label: it.tab || '—' },
+      aux: '', date: n + ' симв.',
+    };
+  },
+  get filters() {
+    return [{ id: 'all', label: 'Все', fn: () => true }].concat(tplTabs().map(t => ({ id: t, label: t, fn: it => it.tab === t })));
+  },
+  sorts: [
+    { id: 'order', label: 'Как на сайте', fn: null },
+    { id: 'title', label: 'А–Я', fn: (a, b) => tplTitle(a).localeCompare(tplTitle(b), 'ru') },
+  ],
+  match: (it, q) => low(it.title).includes(q) || low(it.text).includes(q),
+};
+
 // ===================== настройки сайта (config) =====================
 const CONFIG_GROUPS = [
   ['Стример', [['streamer_name', 'Имя'], ['streamer_twitch_url', 'Ссылка на Twitch', 'url'], ['streamer_avatar_url', 'Аватарка', 'url'], ['streamer_intro', 'Приветствие на главной', 'textarea']]],
@@ -899,6 +936,7 @@ const SECTIONS = [
   painSection,
   ticketsSection, viewersSection, winnersSection,
   prizesSection, friendsSection, configSection,
+  templatesSection,
 ];
 const SEC = Object.fromEntries(SECTIONS.map(s => [s.id, s]));
 let current = SECTIONS[0];

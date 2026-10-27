@@ -85,6 +85,7 @@
         <li><a href="admin.html">Админка сайта</a></li>
         <li><a href="chat-wheel.html">Чат-рулетка</a></li>
         <li><a href="court.html">Рулетка наказаний</a></li>
+        <li><a href="templates.html">Шаблоны</a></li>
         <li><a href="pain.html">Боль стримера за шекели</a></li>
         <li><a href="cards.html">Админка-рулетка</a></li>
         <li><a href="cards.html?stream">Хаос-рулетка</a></li>

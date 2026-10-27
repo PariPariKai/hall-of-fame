@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Шаблоны — Hall of Fame</title>
+<meta name="description" content="Пасты для рейдов и шаблоны титров стрима ParipariKai: выбрать, скопировать, вставить.">
+<link rel="stylesheet" href="site.css?v=6">
+<!--
+  Текстовые шаблоны по вкладкам: пасты для рейдов, стили резюме для титров и т.д.
+  Данные — data/templates.json (tab, title, text, id), правятся на admin.html#templates.
+  Вкладка = значение колонки tab: новая вкладка появится сама, как только у записи будет новое имя вкладки.
+  Описание и иконка известных вкладок — TABS ниже.
+-->
+<style>
+  .tpl-tabs { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 18px; }
+  .tpl-tabs .chip { font-size: 13px; padding: 8px 15px; }
+
+  .tpl-intro {
+    display: flex; gap: 14px 22px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+    padding: 16px 20px; border-radius: 16px; margin-bottom: 22px;
+    background: linear-gradient(135deg, rgba(var(--ember-rgb),0.07), rgba(255,255,255,0.02));
+    border: 1px solid rgba(var(--gold-rgb),0.14);
+  }
+  .tpl-intro__text { flex: 1 1 380px; font-size: 14px; line-height: 1.6; color: var(--muted); }
+  .tpl-intro__text b { color: #fff; }
+  .tpl-intro__tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .tpl-intro__tools .search { width: 260px; }
+
+  /* Выпавший случайный шаблон */
+  .pick { margin-bottom: 26px; }
+  .pick__label { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); margin-bottom: 10px; }
+  .pick__title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .pick__text { font-size: 16px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; margin-bottom: 16px; }
+  .pick__foot { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .pick.is-new { animation: pick-in .45s cubic-bezier(.3,.9,.3,1); }
+  @keyframes pick-in { from { opacity: 0; transform: translateY(8px) scale(.985); } }
+
+  .tpl-grid { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 14px; align-items: start; }
+  .tpl {
+    display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; border-radius: 14px;
+    background: rgba(20,25,41,0.7); border: 1px solid var(--line); transition: border-color .2s ease, box-shadow .2s ease;
+  }
+  .tpl:hover { border-color: rgba(var(--gold-rgb),0.3); }
+  .tpl.is-picked { border-color: rgba(var(--gold-rgb),0.7); box-shadow: 0 0 22px rgba(var(--gold-rgb),0.15); }
+  .tpl__title { font-size: 15px; font-weight: 700; color: var(--gold); }
+  .tpl__text {
+    font-size: 14px; line-height: 1.6; color: rgba(255,255,255,0.88); white-space: pre-wrap; overflow-wrap: anywhere;
+    max-height: calc(1.6em * 10); overflow: hidden; position: relative;
+  }
+  .tpl__text.is-clamped::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 3em;
+    background: linear-gradient(transparent, rgb(20,25,41));
+  }
+  .tpl__text.is-open { max-height: none; }
+  .tpl__text.is-open::after { display: none; }
+  .tpl__more { align-self: flex-start; background: none; border: 0; padding: 0; color: var(--gold); font: inherit; font-size: 12px; cursor: pointer; }
+  .tpl__more:hover { text-decoration: underline; }
+  .tpl__foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: auto; }
+  .len { font-size: 12px; color: var(--dim); }
+  .len.is-over { color: var(--red); }
+  .btn.is-done { color: var(--green); border-color: rgba(151,196,89,0.5); background: rgba(151,196,89,0.1); }
+
+  .tpl-grid > .empty-state, .tpl-grid > .error-state { grid-column: 1 / -1; }
+  .tpl-empty .btn { margin-top: 14px; }
+
+  @media (max-width: 720px) {
+    .tpl-grid { grid-template-columns: 1fr; }
+    .tpl-intro__tools, .tpl-intro__tools .search { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<script src="site.js?v=12"></script>
+
+<div class="wrap">
+  <header class="header">
+    <h1 class="title"><svg class="ic" aria-hidden="true"><use href="#i-copy"></use></svg>Шаблоны<svg class="ic" aria-hidden="true"><use href="#i-copy"></use></svg></h1>
+    <p class="subtitle">Скопировал · <span class="accent">вставил</span> · все смеются</p>
+  </header>
+
+  <nav class="tpl-tabs" id="tabs" aria-label="Вкладки"></nav>
+  <section class="tpl-intro">
+    <div class="tpl-intro__text" id="intro"></div>
+    <div class="tpl-intro__tools">
+      <button type="button" class="btn btn--solid" id="random"><svg class="ic"><use href="#i-dice"></use></svg>Случайная</button>
+      <label class="search"><svg class="ic" aria-hidden="true"><use href="#i-search"></use></svg><input type="search" class="search-input" id="q" placeholder="Поиск..."></label>
+      <a class="btn btn--ghost" href="admin.html#templates" title="Добавить или поправить шаблоны"><svg class="ic"><use href="#i-pencil"></use></svg>Править</a>
+    </div>
+  </section>
+
+  <section class="spotlight pick" id="pick" hidden></section>
+  <ul class="tpl-grid" id="list"><li class="empty-state">Загружаю...</li></ul>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+// Известные вкладки — в этом порядке, даже пустые. Остальные появятся после них по данным.
+// limit — лимит символов чата (Twitch режет сообщения длиннее 500)
+const TABS = {
+  'Паста': {
+    icon: 'message', one: 'пасту', limit: 500,
+    intro: 'Заходим рейдом — и весь чат дружно жмёт <b>Ctrl+V</b>. Скопируй пасту заранее, а когда рейд залетит, вставляй. ' +
+      'В одно сообщение Twitch влезает <b>500 символов</b>.',
+  },
+  'Титры': {
+    icon: 'star', one: 'стиль',
+    intro: 'Стили резюме для титров в конце стрима — каким тоном подводим итог по истории чата. ' +
+      'Выбери настроение на сегодня и скопируй.',
+  },
+};
+const DEFAULT_TAB = { icon: 'pin', one: 'шаблон', intro: '' };
+const meta = tab => TABS[tab] || DEFAULT_TAB;
+
+let items = null;
+let tab = '';
+let q = '';
+let picked = null;
+
+const tabsList = () => [...new Set(Object.keys(TABS).concat((items || []).map(it => it.tab).filter(Boolean)))];
+const inTab = () => (items || []).filter(it => it.tab === tab);
+
+let toastTimer = 0;
+function toast(text, err) {
+  const t = $('toast');
+  t.className = 'toast is-on' + (err ? ' toast--err' : '');
+  t.innerHTML = icon(err ? 'alert' : 'check') + '<span>' + esc(text) + '</span>';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('is-on'), 2500);
+}
+
+// Копирование: Clipboard API, а без него (старый браузер, не https) — через выделение
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch (e) { /* пробуем по-старому */ }
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;opacity:0;top:0';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { /* не вышло */ }
+  ta.remove();
+  return ok;
+}
+
+const lenHTML = it => {
+  const lim = meta(it.tab).limit;
+  const n = [...it.text].length;
+  return lim ? `<span class="len${n > lim ? ' is-over' : ''}" title="${n > lim ? 'Длиннее лимита чата — Twitch обрежет' : 'Символов в сообщении'}">${n} / ${lim}</span>`
+    : `<span class="len">${n} симв.</span>`;
+};
+const copyBtn = (it, solid) => `<button type="button" class="btn${solid ? ' btn--solid' : ' btn--sm'}" data-copy="${esc(it.id)}">${icon('copy')}Копировать</button>`;
+
+function renderTabs() {
+  $('tabs').innerHTML = tabsList().map(t => `<button type="button" class="chip${t === tab ? ' is-active' : ''}" data-tab="${esc(t)}">${icon(meta(t).icon)}${esc(t)}
+    <span class="count">${(items || []).filter(it => it.tab === t).length}</span></button>`).join('');
+}
+
+function renderPick() {
+  const box = $('pick');
+  const it = picked && inTab().find(x => x.id === picked);
+  box.hidden = !it;
+  if (!it) return;
+  box.innerHTML = `<div class="pick__label">${icon('dice')}Выпало</div>
+    ${it.title ? `<div class="pick__title">${esc(it.title)}</div>` : ''}
+    <div class="pick__text">${esc(it.text)}</div>
+    <div class="pick__foot">${copyBtn(it, true)}<button type="button" class="btn btn--ghost" id="reroll">${icon('refresh')}Другую</button>${lenHTML(it)}</div>`;
+  box.classList.remove('is-new');
+  void box.offsetWidth; // перезапуск анимации
+  box.classList.add('is-new');
+}
+
+function renderList() {
+  const m = meta(tab);
+  $('intro').innerHTML = m.intro || `Шаблоны вкладки «${esc(tab)}».`;
+  if (!items) return;
+  const all = inTab();
+  $('random').disabled = all.length < 2;
+  const ql = q.toLowerCase();
+  const list = all.filter(it => !ql || (it.title + '\n' + it.text).toLowerCase().includes(ql));
+  $('list').innerHTML = list.map(it => `<li class="tpl${it.id === picked ? ' is-picked' : ''}" data-id="${esc(it.id)}">
+      ${it.title ? `<div class="tpl__title">${esc(it.title)}</div>` : ''}
+      <div class="tpl__text">${esc(it.text)}</div>
+      <button type="button" class="tpl__more" hidden>Развернуть</button>
+      <div class="tpl__foot">${lenHTML(it)}${copyBtn(it)}</div></li>`).join('') ||
+    (all.length ? '<li class="empty-state">Ничего не нашлось.</li>'
+      : `<li class="empty-state tpl-empty">Здесь пока пусто.<br><a class="btn" href="admin.html#templates">${icon('plus')}Добавить ${esc(m.one)}</a></li>`);
+  // Длинные тексты свёрнуты до 10 строк
+  $('list').querySelectorAll('.tpl__text').forEach(el => {
+    if (el.scrollHeight > el.clientHeight + 2) {
+      el.classList.add('is-clamped');
+      el.nextElementSibling.hidden = false;
+    }
+  });
+}
+
+function render() {
+  renderTabs();
+  renderPick();
+  renderList();
+}
+
+function setTab(t) {
+  tab = tabsList().includes(t) ? t : tabsList()[0];
+  picked = null;
+  render();
+}
+
+function pickRandom() {
+  const all = inTab();
+  if (!all.length) return;
+  const pool = all.length > 1 ? all.filter(it => it.id !== picked) : all; // не тот же, что в прошлый раз
+  picked = pool[Math.floor(Math.random() * pool.length)].id;
+  renderPick();
+  renderList();
+  $('pick').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+$('tabs').addEventListener('click', e => {
+  const b = e.target.closest('[data-tab]');
+  if (!b) return;
+  history.replaceState(null, '', '#' + encodeURIComponent(b.dataset.tab));
+  setTab(b.dataset.tab);
+});
+window.addEventListener('hashchange', () => setTab(decodeURIComponent(location.hash.slice(1))));
+$('random').addEventListener('click', pickRandom);
+$('q').addEventListener('input', e => { q = e.target.value.trim(); renderList(); });
+document.addEventListener('click', async e => {
+  if (e.target.closest('#reroll')) return pickRandom();
+  const more = e.target.closest('.tpl__more');
+  if (more) {
+    const open = more.previousElementSibling.classList.toggle('is-open');
+    more.textContent = open ? 'Свернуть' : 'Развернуть';
+    return;
+  }
+  const btn = e.target.closest('[data-copy]');
+  if (!btn) return;
+  const it = items.find(x => x.id === btn.dataset.copy);
+  if (!it) return;
+  if (!(await copyText(it.text))) return toast('Не получилось скопировать — выдели текст вручную', true);
+  toast('Скопировано — теперь Ctrl+V');
+  btn.classList.add('is-done');
+  btn.innerHTML = icon('check') + 'Скопировано';
+  setTimeout(() => { btn.classList.remove('is-done'); btn.innerHTML = icon('copy') + 'Копировать'; }, 1800);
+});
+
+async function load() {
+  try {
+    const res = await fetch('data/templates.json', { cache: 'no-cache' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    items = ((await res.json()).items || []).filter(it => String(it.text || '').trim())
+      .map(it => ({ id: it.id, tab: String(it.tab || '').trim() || 'Паста', title: String(it.title || '').trim(), text: String(it.text).replace(/\s+$/, '') }));
+  } catch (err) {
+    console.error(err);
+    $('list').innerHTML = '<li class="error-state">' + icon('alert') + 'Не удалось загрузить шаблоны. Обнови страницу.</li>';
+    return;
+  }
+  setTab(decodeURIComponent(location.hash.slice(1)));
+}
+setTab(decodeURIComponent(location.hash.slice(1)));
+load();
+})();
+</script>
+</body>
+</html>
