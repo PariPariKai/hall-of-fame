@@ -1,6 +1,7 @@
 {
   "columns": ["id","at","nick","rule","rule_title","level","repeat","outcome","until","status","lifted_at","note"],
   "items": [
-    {"id":"43abebf7","at":"28.10.2026 17:59","nick":"noname_3008","rule":"flood","rule_title":"Не флуди и не спамь","level":"1","repeat":"","outcome":"m30","until":"28.10.2026 18:29","status":"","lifted_at":"","note":""}
+    {"id":"43abebf7","at":"28.10.2026 17:59","nick":"noname_3008","rule":"flood","rule_title":"Не флуди и не спамь","level":"1","repeat":"","outcome":"m30","until":"28.10.2026 18:29","status":"","lifted_at":"","note":""},
+    {"id":"d6969669","at":"28.10.2026 18:00","nick":"nyrnborn","rule":"flood","rule_title":"Не флуди и не спамь","level":"1","repeat":"","outcome":"m30","until":"28.10.2026 18:30","status":"","lifted_at":"","note":""}
   ]
 }
