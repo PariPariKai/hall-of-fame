@@ -78,6 +78,13 @@
   .item__nick { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .item__rating { font-weight: 700; color: var(--gold); font-size: 14px; text-align: center; }
   .item__date { font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap; }
+  .copy-btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--line); background: rgba(255,255,255,0.04); color: var(--muted); font: inherit; font-size: 12px;
+  }
+  .copy-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .copy-btn.is-done { border-color: var(--gold); color: var(--gold); }
+  .copy-btn svg { width: 14px; height: 14px; }
   .item--blank .item__title { color: var(--dim); font-style: italic; font-weight: 400; }
   .count-line { font-size: 12px; color: var(--dim); margin: 0 0 10px 4px; letter-spacing: .4px; }
 
@@ -882,7 +889,7 @@ const templatesSection = {
     return { // паста длиннее 500 символов не влезет в одно сообщение Twitch
       poster: '', shape: 'none', title: tplTitle(it), sub: it.title ? String(it.text || '').replace(/\s+/g, ' ').slice(0, 140) : '',
       tag: it.tab === 'Паста' && n > 500 ? { tone: 'dropped', label: 'Длиннее 500' } : { tone: 'queue', label: it.tab || '—' },
-      aux: '', date: n + ' симв.',
+      aux: '', date: n + ' симв.', copy: String(it.text || ''),
     };
   },
   get filters() {
@@ -1012,7 +1019,7 @@ function render() {
     return `<li class="item${r.blank ? ' item--blank' : ''}" data-id="${esc(it.id)}" tabindex="0">
       <div class="item__poster${r.shape ? ' item__poster--' + r.shape : ''}"${bg(r.poster)}></div>
       <div><div class="item__title">${esc(r.title)}${r.small ? `<small>${esc(r.small)}</small>` : ''}</div><div class="item__sub">${esc(r.sub || '')}</div></div>
-      <div class="item__nick">${esc(r.nick || '')}</div>
+      <div class="item__nick">${r.copy != null ? `<button type="button" class="copy-btn" data-copy>${icon('copy')}Копировать</button>` : esc(r.nick || '')}</div>
       <div class="item__status">${r.tag ? `<span class="tag tag--${r.tag.tone}">${esc(r.tag.label)}</span>` : ''}</div>
       <div class="item__rating">${esc(r.aux || '')}</div>
       <div class="item__date">${r.date || ''}</div></li>`;
@@ -1024,7 +1031,28 @@ const view = () => views[current.id];
 $('f-status').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) { view().filter = b.dataset.v; render(); } });
 $('f-sort').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) { view().sort = b.dataset.v; render(); } });
 $('q').addEventListener('input', e => { view().q = e.target.value; render(); });
+// Кнопка «Копировать» (шаблоны) — текст в буфер, редактор не открываем
+async function copyFromList(btn) {
+  const it = items(current.id).find(x => x.id === btn.closest('.item').dataset.id);
+  const text = it ? current.row(it).copy : '';
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { // без доступа к буферу — через выделение
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0;top:0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { ok = document.execCommand('copy'); } catch (e2) { /* не вышло */ }
+    ta.remove();
+  }
+  if (!ok) return toast('Не вышло скопировать — открой шаблон и скопируй вручную.', true);
+  btn.classList.add('is-done');
+  btn.innerHTML = icon('check') + 'Скопировано';
+  setTimeout(() => { btn.classList.remove('is-done'); btn.innerHTML = icon('copy') + 'Копировать'; }, 1500);
+}
 const openFromList = e => {
+  const copyBtn = e.target.closest('[data-copy]');
+  if (copyBtn) { if (e.type === 'click') copyFromList(copyBtn); return; }
   const li = e.target.closest('.item');
   if (li && (e.type === 'click' || e.key === 'Enter')) openEditor(current, items(current.id).find(it => it.id === li.dataset.id));
 };
