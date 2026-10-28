@@ -140,6 +140,16 @@
   .cfg-group { margin-bottom: 20px; }
   .cfg-group h3 { font-size: 12px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
   .cfg-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+  /* Вкладка «Расписание» */
+  .sch-day { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .sch-day .check-line { min-width: 70px; min-height: 0; color: var(--text, #fff); font-weight: 600; }
+  .sch-day .inp { width: 120px; flex: 0 0 auto; }
+  .sch-day.is-off .inp, .sch-day .inp:disabled { opacity: .35; }
+  .sch-name { min-width: 150px; font-weight: 600; font-size: 14px; }
+  .sch-dash { color: var(--muted); font-size: 13px; }
+  .sch-msk { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .sch-shift { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+  .sch-shift .hint-inline { flex: 1 1 280px; line-height: 1.5; }
 
   @media (max-width: 900px) {
     .tonight { grid-template-columns: 1fr; }
@@ -905,7 +915,6 @@ const templatesSection = {
 // ===================== настройки сайта (config) =====================
 const CONFIG_GROUPS = [
   ['Стример', [['streamer_name', 'Имя'], ['streamer_twitch_url', 'Ссылка на Twitch', 'url'], ['streamer_avatar_url', 'Аватарка', 'url'], ['streamer_intro', 'Приветствие на главной', 'textarea']]],
-  ['Время', [['picker_time', 'Рулетка заказов', 'time'], ['movie_time', 'Кино', 'time']]],
   ['Розыгрыш', [['raffle_active', 'Розыгрыш идёт', 'bool'], ['raffle_title', 'Подпись таймера'], ['raffle_date', 'Дата розыгрыша', 'raffle'], ['tickets_banner_url', 'Баннер над билетами', 'url']]],
 ];
 const configSection = {
@@ -913,7 +922,8 @@ const configSection = {
   panel(sec, box) {
     $('panel-title').innerHTML = icon('sliders') + 'Настройки сайта';
     const c = config();
-    const known = new Set(CONFIG_GROUPS.flatMap(g => g[1].map(x => x[0])).concat(DAY_KEYS.map(k => 'schedule_' + k)));
+    // Расписание, рулетка и кино — на своей вкладке «Расписание»
+    const known = new Set(CONFIG_GROUPS.flatMap(g => g[1].map(x => x[0])).concat(DAY_KEYS.map(k => 'schedule_' + k), ['picker_time', 'movie_time']));
     const input = ([k, label, type]) => {
       const v = c[k] || '';
       if (type === 'textarea') return `<label class="field" style="flex:1 1 100%"><span>${esc(label)}</span><textarea class="inp" data-k="${k}" rows="3">${esc(v)}</textarea></label>`;
@@ -926,8 +936,7 @@ const configSection = {
       return `<label class="field" style="flex:1 1 ${type === 'time' ? '120px' : '240px'}"><span>${esc(label)}</span><input class="inp" type="${type || 'text'}" data-k="${k}" value="${esc(v)}"></label>`;
     };
     box.innerHTML = CONFIG_GROUPS.map(([title, keys], i) => `<div class="cfg-group"><h3>${title}</h3><div class="row">${keys.map(input).join('')}</div></div>` + (i === 0
-      ? `<div class="cfg-group"><h3>Расписание стримов <em class="hint-inline" style="text-transform:none;letter-spacing:0">— «17:00-22:00», пусто = выходной</em></h3><div class="cfg-days">${
-          [1, 2, 3, 4, 5, 6, 0].map(d => `<label class="field"><span>${DAY_NAMES[d]}</span><input class="inp" data-k="schedule_${DAY_KEYS[d]}" value="${esc(c['schedule_' + DAY_KEYS[d]] || '')}" placeholder="выходной"></label>`).join('')}</div></div>` : '')).join('') +
+      ? `<div class="cfg-group"><h3>Расписание стримов</h3><p class="hint-inline">Дни, рулетка и кино — на вкладке <a href="#schedule" style="color:var(--gold)">«Расписание»</a>.</p></div>` : '')).join('') +
       (Object.keys(c).some(k => !known.has(k)) ? `<div class="cfg-group"><h3>Прочее</h3><div class="row">${Object.keys(c).filter(k => !known.has(k)).map(k => input([k, k])).join('')}</div></div>` : '') +
       `<div class="row"><button type="button" class="btn btn--solid" id="cfg-save">${icon('check')}Сохранить настройки</button></div>`;
     $('cfg-save').addEventListener('click', e => {
@@ -950,6 +959,111 @@ const configSection = {
   },
 };
 
+// ===================== расписание стримов (data/config.json) =====================
+// Время — по часам стримера (Израиль, siteTime.streamer). Рядом с каждым днём — как это видят по Москве:
+// в РФ нет перехода на зимнее время, поэтому после перехода в Израиле всё сдвигают на час кнопкой «−1 ч» / «+1 ч».
+// Кино «сразу после рулетки» хранится как movie_time = picker_time — так его понимают и главная, и быстрые панели.
+const MSK = 'Europe/Moscow';
+const scheduleSection = {
+  id: 'schedule', data: 'config', label: 'Расписание', icon: 'calendar', group: 'Сайт', path: 'data/config.json', page: 'index.html', form: true,
+  panel(sec, box) {
+    $('panel-title').innerHTML = icon('calendar') + 'Расписание стримов';
+    const c = config();
+    const range = v => (String(v || '').match(/(\d{1,2}:\d{2})\s*[-–—]\s*(\d{1,2}:\d{2})/) || []).slice(1).map(t => t.padStart(5, '0'));
+    const picker = /^\d{1,2}:\d{2}$/.test(c.picker_time || '') ? c.picker_time.padStart(5, '0') : '19:00';
+    const movie = /^\d{1,2}:\d{2}$/.test(c.movie_time || '') ? c.movie_time.padStart(5, '0') : '20:00';
+    const offs = tz => siteTime.offsetLabel(siteTime.offset(tz));
+    box.innerHTML = `
+      <div class="cfg-group"><h3>Дни <em class="hint-inline" style="text-transform:none;letter-spacing:0">— время по Израилю (${offs(siteTime.streamer)}), справа — по Москве (${offs(MSK)})</em></h3>
+        <div class="sch-days">${[1, 2, 3, 4, 5, 6, 0].map(d => {
+          const [from, to] = range(c['schedule_' + DAY_KEYS[d]]);
+          return `<div class="sch-day${from ? '' : ' is-off'}" data-day="${d}">
+            <label class="check-line"><input type="checkbox" data-on${from ? ' checked' : ''}>${DAY_NAMES[d]}</label>
+            <input class="inp" type="time" data-from value="${from || '17:00'}" aria-label="${DAY_NAMES[d]}: начало">
+            <span class="sch-dash">до</span>
+            <input class="inp" type="time" data-to value="${to || '22:00'}" aria-label="${DAY_NAMES[d]}: конец">
+            <span class="sch-msk" data-msk></span></div>`;
+        }).join('')}</div></div>
+      <div class="cfg-group"><h3>Рулетка и кино</h3>
+        <div class="sch-day" data-day="picker">
+          <span class="sch-name">Рулетка заказов</span>
+          <input class="inp" type="time" id="sch-picker" value="${picker}"><span class="sch-msk" data-msk></span></div>
+        <div class="sch-day" data-day="movie">
+          <span class="sch-name">Кино</span>
+          <label class="check-line"><input type="checkbox" id="sch-after"${movie === picker ? ' checked' : ''}>Сразу после рулетки</label>
+          <input class="inp" type="time" id="sch-movie" value="${movie}"${movie === picker ? ' disabled' : ''}><span class="sch-msk" data-msk></span></div>
+      </div>
+      <div class="cfg-group"><h3>Переход на зимнее / летнее время</h3>
+        <div class="sch-shift">
+          <button type="button" class="btn btn--ghost" data-shift="-60">−1 ч</button>
+          <button type="button" class="btn btn--ghost" data-shift="60">+1 ч</button>
+          <span class="hint-inline">Сдвигает всё сразу: дни, рулетку, кино. Израиль перешёл на зимнее время — «−1 ч», и у зрителей из РФ
+            всё останется как было; весной, на летнее, — «+1 ч». Уже назначенные показы не меняются.</span>
+        </div>
+      </div>
+      <div class="row"><button type="button" class="btn btn--solid" id="sch-save">${icon('check')}Сохранить расписание</button></div>`;
+
+    // Как время по Израилю выглядит по Москве (на ближайший такой день недели — с учётом перевода часов)
+    const msk = (hm, wd) => {
+      const t = today();
+      const d = siteTime.at(t.y, t.mo, t.d + (wd == null ? 0 : (wd - t.wd + 7) % 7), +hm.slice(0, 2), +hm.slice(3, 5));
+      const p = siteTime.parts(d, MSK);
+      const shift = wd == null ? 0 : (p.wd - wd + 7) % 7;
+      return `${pad(p.h)}:${pad(p.mi)}${shift ? ` (${DAY_NAMES[p.wd].toLowerCase()})` : ''}`;
+    };
+    const after = $('sch-after');
+    const refresh = () => {
+      box.querySelectorAll('.sch-days .sch-day').forEach(row => {
+        const on = row.querySelector('[data-on]').checked, wd = +row.dataset.day;
+        row.classList.toggle('is-off', !on);
+        row.querySelectorAll('input[type=time]').forEach(i => { i.disabled = !on; });
+        row.querySelector('[data-msk]').textContent = on ? `МСК ${msk(row.querySelector('[data-from]').value, wd)}–${msk(row.querySelector('[data-to]').value, wd)}` : 'выходной';
+      });
+      if (after.checked) $('sch-movie').value = $('sch-picker').value;
+      $('sch-movie').disabled = after.checked;
+      box.querySelector('[data-day="picker"] [data-msk]').textContent = `МСК ${msk($('sch-picker').value)}`;
+      box.querySelector('[data-day="movie"] [data-msk]').textContent = after.checked ? '' : `МСК ${msk($('sch-movie').value)}`;
+    };
+    box.addEventListener('input', refresh);
+    box.addEventListener('change', refresh);
+    refresh();
+
+    // −1 ч / +1 ч: сдвигаем все поля времени (сохраняется кнопкой «Сохранить»)
+    box.querySelectorAll('[data-shift]').forEach(b => b.addEventListener('click', () => {
+      const by = +b.dataset.shift;
+      box.querySelectorAll('input[type=time]').forEach(i => {
+        if (!i.value) return;
+        const m = ((+i.value.slice(0, 2) * 60 + +i.value.slice(3, 5) + by) % 1440 + 1440) % 1440;
+        i.value = `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
+      });
+      refresh();
+      toast(`Сдвинуто на ${by > 0 ? '+' : '−'}1 ч — проверь и нажми «Сохранить»`);
+    }));
+
+    $('sch-save').addEventListener('click', async e => {
+      const vals = {};
+      for (const row of box.querySelectorAll('.sch-days .sch-day')) {
+        const on = row.querySelector('[data-on]').checked;
+        const from = row.querySelector('[data-from]').value, to = row.querySelector('[data-to]').value;
+        if (on && (!from || !to)) return toast(`${DAY_NAMES[+row.dataset.day]}: укажи начало и конец стрима`, true);
+        vals['schedule_' + DAY_KEYS[+row.dataset.day]] = on ? `${from}-${to}` : '';
+      }
+      if (!$('sch-picker').value) return toast('Укажи время рулетки', true);
+      vals.picker_time = $('sch-picker').value;
+      vals.movie_time = after.checked ? vals.picker_time : $('sch-movie').value || vals.picker_time;
+      const changed = Object.keys(vals).filter(k => (c[k] || '') !== vals[k]);
+      if (!changed.length) return toast('Ничего не поменялось');
+      const ok = await save({ ...sec, id: 'config' }, 'изменено ' + changed.join(', '), data => {
+        changed.forEach(k => {
+          const row = data.items.find(r => r.key === k);
+          if (row) row.value = vals[k]; else data.items.push({ key: k, value: vals[k] });
+        });
+      }, e.currentTarget);
+      if (ok && current === sec) render();
+    });
+  },
+};
+
 // ===================== список разделов =====================
 const SECTIONS = [
   ordersSection({ id: 'movies', list: 'movies', label: 'Фильмы', icon: 'film', page: 'movies.html', one: 'Фильм', statuses: WATCH, year: true, format: true, scheduled: true, tonight: true,
@@ -962,7 +1076,7 @@ const SECTIONS = [
     urlHint: 'пусто: робот сам найдёт Steam', urlPh: 'https://store.steampowered.com/app/...' }),
   painSection,
   ticketsSection, viewersSection, winnersSection,
-  prizesSection, friendsSection, configSection,
+  prizesSection, friendsSection, scheduleSection, configSection,
   templatesSection,
 ];
 const SEC = Object.fromEntries(SECTIONS.map(s => [s.id, s]));
@@ -985,10 +1099,11 @@ async function open(id) {
   const v = views[sec.id] || (views[sec.id] = { filter: 'all', sort: (sec.sorts || [{ id: '' }])[0].id, q: '' });
   $('q').placeholder = sec.search || '';
   $('q').value = v.q;
-  if (!files[sec.id]) {
+  const key = sec.data || sec.id; // «Расписание» правит файл раздела «Настройки» — одна копия на оба
+  if (!files[key]) {
     $('list').hidden = true; $('panel').hidden = true;
     $('loading').hidden = false; $('loading').textContent = 'Загружаю...';
-    try { files[sec.id] = await readFile(sec.path); }
+    try { files[key] = await readFile(sec.path); }
     catch (err) { $('loading').textContent = err.message; return; }
     if (current !== sec) return; // пока грузили, переключились на другую вкладку
     $('loading').hidden = true;

@@ -376,6 +376,7 @@
     color: #FAC775;
     font-variant-numeric: tabular-nums;
   }
+  .ritual__time--after { font-size: 13px; letter-spacing: 1px; text-transform: uppercase; min-width: 52px; }
   .ritual__next { font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.5; }
   .ritual__next b { color: #fff; font-weight: 600; }
   .ritual a { font-size: 12px; letter-spacing: 1px; color: #FAC775; text-decoration: none; }
@@ -1305,7 +1306,8 @@ function renderWeek() {
       ${siteTime.toggle()}
     </div>
     <div class="week__days">${days}</div>
-    <p class="week__note">На вечерних стримах: <b class="tz">${picker}</b> рулетка заказов · <b class="tz">${movie}</b> кино-вечер. Иногда начинаю раньше.</p>
+    <p class="week__note">На вечерних стримах: <b class="tz">${picker}</b> рулетка заказов${movieAfterPicker()
+      ? ' и сразу кино-вечер' : ` · <b class="tz">${movie}</b> кино-вечер`}. Иногда начинаю раньше.</p>
     <p class="week__zone tz-zone">${siteTime.zoneLabel()}</p>`;
 }
 
@@ -1368,6 +1370,12 @@ function renderNowItem(it, opts) {
     </a>`;
 }
 
+// Кино «сразу после рулетки» — в админке хранится как movie_time = picker_time
+function movieAfterPicker() {
+  const p = parseHM(SCHEDULE.picker), m = parseHM(SCHEDULE.movie);
+  return !!p && !!m && p.h === m.h && p.m === m.m;
+}
+
 function renderRitual(now) {
   const picker = nextStreamAt(now, parseHM(SCHEDULE.picker), true);
   const movie = picker ? nextStreamAt(picker, parseHM(SCHEDULE.movie), false) : null;
@@ -1379,7 +1387,9 @@ function renderRitual(now) {
   return `
     <div class="ritual">
       <div class="ritual__row"><span class="ritual__time tz">${fmtHM(atTime(now, parseHM(SCHEDULE.picker)))}</span><span>Рулетка заказов: зрители решают, что смотрим дальше</span></div>
-      <div class="ritual__row"><span class="ritual__time tz">${fmtHM(atTime(now, parseHM(SCHEDULE.movie)))}</span><span>Кино-вечер: смотрим победителя прошлой рулетки</span></div>
+      <div class="ritual__row">${movieAfterPicker()
+        ? '<span class="ritual__time ritual__time--after">сразу</span><span>после рулетки — кино-вечер: смотрим победителя прошлой рулетки</span>'
+        : `<span class="ritual__time tz">${fmtHM(atTime(now, parseHM(SCHEDULE.movie)))}</span><span>Кино-вечер: смотрим победителя прошлой рулетки</span>`}</div>
       ${next ? `<p class="ritual__next">${next}</p>` : ''}
       <a href="picker.html">Рулетка заказов →</a>
     </div>`;
