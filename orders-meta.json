@@ -69,6 +69,17 @@
       "checked": "2026-10-23T18:21:25.680Z",
       "found": false
     },
+    "movies|intouchables": {
+      "list": "movies",
+      "title": "Intouchables",
+      "checked": "2026-10-28T18:01:46.546Z",
+      "found": true,
+      "year": 2011,
+      "kp": "535341",
+      "url": "https://www.kinopoisk.ru/film/535341/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/10900341/caf9f155-1a19-42f1-a0f3-9c8773e9083e/600x900",
+      "source": "kinopoisk"
+    },
     "movies|летняя зоо-олимпиада + зимняя зоо-олимпиада": {
       "list": "movies",
       "title": "Летняя Зоо-Олимпиада + Зимняя Зоо-Олимпиада",
