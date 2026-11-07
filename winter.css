@@ -1,0 +1,72 @@
+/* =====================================================================
+   Зимняя тема (сезонная). Подключает site.js, если там SEASON = 'winter'.
+   Выключить — поставить SEASON = '' в site.js, этот файл можно не трогать.
+   Работает поверх site.css и собственных стилей рулеток: меняет токены
+   (--gold и --ember-rgb становятся ледяными), фон и тёплые цвета, зашитые в site.css.
+   Фон — winter-ice.svg (кристаллы льда), снег рисует site.js на <canvas class="winter-snow">.
+   ===================================================================== */
+:root {
+  --bg: #060b18;
+  --panel: #0f1a2e;
+  --gold: #A9DEFF;            /* был золотой — теперь лёд */
+  --gold-rgb: 169, 222, 255;
+  --ember-rgb: 96, 165, 250;  /* было тёплое свечение — теперь холодное */
+  --blue: #8EC5FF;
+  --muted: rgba(226, 239, 255, 0.64);
+  --dim: rgba(214, 232, 255, 0.44);
+  --line: rgba(180, 220, 255, 0.12);
+}
+
+body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(ellipse at 50% -10%, rgba(120, 180, 255, 0.10), transparent 55%),
+    linear-gradient(180deg, #08112a 0%, #060b18 55%, #050914 100%);
+  background-attachment: fixed;
+}
+/* Кристаллы льда и снег — за всем содержимым страницы */
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: -2; pointer-events: none;
+  background: url(winter-ice.svg) center / cover no-repeat;
+}
+.winter-snow { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+/* Оверлей для OBS с прозрачным фоном (cards.html?stream&bg=transparent) — без зимы */
+body.is-transparent::before, body.is-transparent .winter-snow { display: none; }
+@media print { body::before, .winter-snow { display: none; } }
+
+/* ---------- меню: морозное стекло и сосульки ---------- */
+.site-nav {
+  background: linear-gradient(180deg, rgba(16, 30, 56, 0.86), rgba(10, 20, 40, 0.8));
+  border-bottom: 1px solid rgba(190, 228, 255, 0.16);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 8px 26px rgba(0, 8, 24, 0.35);
+}
+.site-nav::after {
+  content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 12px; pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='12' viewBox='0 0 120 12'%3E%3Cpath d='M0 0h120v1.5c-3 0-4 1-5 4.5-1-3.5-2-4.5-4-4.5-2 0-3 2-4 8.5-1-6.5-2.5-8.5-5-8.5-3 0-4 1-5 3-1-2-2-3-5-3s-4 1.5-5 6c-1-4.5-2-6-4.5-6-3 0-4 1.5-5 3.5-1-2-2.5-3.5-5-3.5-2.5 0-3.5 2.5-4.5 10-1-7.5-2-10-4.5-10-3 0-4 1-5 2.5-1-1.5-2-2.5-5-2.5-2.5 0-3.5 1.5-4.5 5.5-1-4-2-5.5-4.5-5.5-3 0-4 1.5-5 4-1-2.5-2-4-4.5-4C6 1.5 5 3 4 7 3 3 2 1.5 0 1.5Z' fill='%23d6efff' fill-opacity='.28'/%3E%3C/svg%3E") repeat-x 0 0 / 120px 12px;
+}
+.site-nav__menu { background: rgba(12, 22, 42, 0.97); border-color: rgba(180, 220, 255, 0.16); }
+.site-nav__links a, .site-nav__dd-btn { color: rgba(222, 238, 255, 0.72); }
+.site-nav__brand { text-shadow: 0 0 10px rgba(var(--gold-rgb), 0.45); }
+
+/* ---------- шапка: ледяное свечение ---------- */
+.title { color: #dff3ff; text-shadow: 0 0 22px rgba(var(--ember-rgb), 0.7), 0 0 2px rgba(255, 255, 255, 0.6); }
+.title .ic { color: var(--gold); }
+.subtitle { color: rgba(210, 230, 255, 0.55); }
+
+/* ---------- тёплые цвета, зашитые в site.css ---------- */
+.spotlight {
+  background: radial-gradient(ellipse at 0% 0%, rgba(110, 175, 255, 0.2), transparent 60%), rgba(9, 18, 36, 0.86);
+  border-color: rgba(var(--gold-rgb), 0.32); box-shadow: 0 0 34px rgba(90, 160, 255, 0.14);
+}
+.rule { background: linear-gradient(135deg, rgba(var(--ember-rgb), 0.09), rgba(10, 20, 40, 0.55)); }
+.pcard__quip { color: #dcefff; }
+.stat.is-played b { color: #9fd0ff; }
+.progress__fill--active { background: linear-gradient(90deg, var(--gold), #5AA2F5); }
+.tag--show { color: #d6ecff; }
+.pcard__tags .tag--active, .pcard__tags .tag--show { background: rgba(8, 22, 42, 0.84); }
+.pcard__back { background: #08111f; }
+.btn--solid { color: #04111f; }
+.btn--solid:hover { background: #d8f1ff; }
+.panel { background: rgba(12, 22, 40, 0.8); border-color: rgba(180, 220, 255, 0.12); }
+.toast { background: #12203a; }
+.search-input, .inp { background: rgba(10, 22, 44, 0.45); }

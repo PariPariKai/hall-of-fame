@@ -40,14 +40,14 @@
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: thin;
-    scrollbar-color: rgba(250,199,117,0.3) transparent;
+    scrollbar-color: rgba(var(--gold-rgb, 250, 199, 117),0.3) transparent;
     padding: 4px 0 12px;
     -webkit-overflow-scrolling: touch;
   }
   .carousel-viewport::-webkit-scrollbar { height: 6px; }
   .carousel-viewport::-webkit-scrollbar-track { background: transparent; }
   .carousel-viewport::-webkit-scrollbar-thumb {
-    background: rgba(250,199,117,0.3);
+    background: rgba(var(--gold-rgb, 250, 199, 117),0.3);
     border-radius: 3px;
   }
   .carousel-track {
@@ -74,9 +74,9 @@
     display: block;
   }
   .prize-banner:hover {
-    border-color: rgba(250,199,117,0.5);
+    border-color: rgba(var(--gold-rgb, 250, 199, 117),0.5);
     transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 30px rgba(250,199,117,0.2);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 30px rgba(var(--gold-rgb, 250, 199, 117),0.2);
   }
   .prize-banner::after {
     content: '';
@@ -96,7 +96,7 @@
     font-size: 12px;
     letter-spacing: 1.5px;
     text-transform: uppercase;
-    color: #FAC775;
+    color: var(--gold, #FAC775);
     text-shadow: 0 1px 4px rgba(0,0,0,0.8);
     text-align: center;
     pointer-events: none;
@@ -167,15 +167,15 @@
   .r-legendary .chance { background: rgba(240,153,123,0.15); color: #F0997B; }
 
   .r-artifact {
-    border-color: #FAC775;
+    border-color: var(--gold, #FAC775);
     background: linear-gradient(180deg, #2a1d0a 0%, #11172a 60%);
-    box-shadow: 0 0 0 1px rgba(250,199,117,0.3);
+    box-shadow: 0 0 0 1px rgba(var(--gold-rgb, 250, 199, 117),0.3);
   }
   .r-artifact .shimmer-bg {
     position: absolute;
     top: -50%; left: -50%;
     width: 200%; height: 200%;
-    background: linear-gradient(45deg, transparent 30%, rgba(250,199,117,0.08) 50%, transparent 70%);
+    background: linear-gradient(45deg, transparent 30%, rgba(var(--gold-rgb, 250, 199, 117),0.08) 50%, transparent 70%);
     animation: shimmer 4s infinite linear;
     pointer-events: none;
     z-index: 0;
@@ -184,10 +184,10 @@
     0%   { transform: translate(-50%, -50%) rotate(0deg); }
     100% { transform: translate(-50%, -50%) rotate(360deg); }
   }
-  .r-artifact:hover { box-shadow: 0 8px 40px rgba(250,199,117,0.4); }
+  .r-artifact:hover { box-shadow: 0 8px 40px rgba(var(--gold-rgb, 250, 199, 117),0.4); }
   .r-artifact .rank-badge { background: #BA7517; color: #FAEEDA; }
-  .r-artifact .avatar { background: #412402; border-color: #FAC775; color: #FAC775; }
-  .r-artifact .chance { background: rgba(250,199,117,0.15); color: #FAC775; }
+  .r-artifact .avatar { background: #412402; border-color: var(--gold, #FAC775); color: var(--gold, #FAC775); }
+  .r-artifact .chance { background: rgba(var(--gold-rgb, 250, 199, 117),0.15); color: var(--gold, #FAC775); }
 
   .card.unique {
     transform: scale(1.08);
@@ -387,7 +387,7 @@
 
 <body>
 
-<script src="site.js?v=12"></script>
+<script src="site.js?v=13"></script>
 
   <div class="wrap">
     <div class="header">

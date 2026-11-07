@@ -149,6 +149,75 @@
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
 })();
 
+// ===== Сезонное оформление =====
+// SEASON = 'winter' — ледяные цвета (winter.css), кристаллы льда на фоне (winter-ice.svg) и лёгкий снег.
+// Выключить на весь сайт — SEASON = ''. Проверить без зимы на одной странице — ?season=off в адресе.
+(function () {
+  'use strict';
+  const SEASON = 'winter';
+  const me = document.currentScript;
+  if (SEASON !== 'winter' || /[?&]season=off\b/.test(location.search)) return;
+  // оверлеи для OBS — без зимы: страницы без меню и прозрачный фон (cards.html?stream&bg=transparent)
+  if ((me && me.dataset.nav === 'off') || /[?&]bg=transparent\b/.test(location.search)) return;
+  const css = '<link rel="stylesheet" href="winter.css?v=1">';
+  // Пока страница грузится — синхронно, чтобы не мелькнули старые цвета
+  if (document.readyState === 'loading') document.write(css);
+  else document.head.insertAdjacentHTML('beforeend', css);
+
+  // ---- снег: canvas позади содержимого ----
+  const cv = document.createElement('canvas');
+  cv.className = 'winter-snow';
+  cv.setAttribute('aria-hidden', 'true');
+  document.body.insertBefore(cv, document.body.firstChild);
+  const ctx = cv.getContext('2d');
+  if (!ctx) return;
+  const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W = 0, H = 0, dpr = 1, flakes = [];
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  // z — «глубина»: дальние снежинки мельче, бледнее и медленнее
+  const make = (anyY) => {
+    const z = Math.pow(Math.random(), 1.6);
+    return {
+      x: rnd(0, W), y: anyY ? rnd(0, H) : rnd(-40, -6), z,
+      r: 1 + z * 2.4, a: 0.4 + z * 0.5,
+      vy: 14 + z * 46, sway: rnd(6, 22) * (0.4 + z), ph: rnd(0, Math.PI * 2), sp: rnd(0.4, 1.1),
+    };
+  };
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const want = Math.min(150, Math.round(W * H / 13000));
+    while (flakes.length < want) flakes.push(make(true));
+    flakes.length = want;
+  }
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    for (const f of flakes) {
+      ctx.globalAlpha = f.a;
+      ctx.beginPath();
+      ctx.arc(f.x + Math.sin(f.ph) * f.sway, f.y, f.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.fillStyle = '#eef7ff';
+  resize();
+  window.addEventListener('resize', () => { resize(); ctx.fillStyle = '#eef7ff'; if (still) draw(); });
+  if (still) { draw(); return; }
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    for (const f of flakes) {
+      f.y += f.vy * dt; f.ph += f.sp * dt;
+      if (f.y - f.r > H) Object.assign(f, make(false));
+    }
+    draw();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame); // во вкладке в фоне браузер сам ставит на паузу
+})();
+
 // ===== Время: часовой пояс стримера и кнопка «Моё время» =====
 // Всё время в таблице — по часам стримера (STREAMER). Сайт переводит его в настоящие моменты времени,
 // поэтому отсчёты верны в любом поясе, а показывает — по часам стримера или, кнопкой «Моё время»,
