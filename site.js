@@ -194,6 +194,8 @@
   }
   function draw() {
     ctx.clearRect(0, 0, W, H);
+    // Цвет — каждый кадр: смена размера canvas сбрасывает настройки рисования (fillStyle → чёрный)
+    ctx.fillStyle = '#eef7ff';
     for (const f of flakes) {
       ctx.globalAlpha = f.a;
       ctx.beginPath();
@@ -201,9 +203,8 @@
       ctx.fill();
     }
   }
-  ctx.fillStyle = '#eef7ff';
   resize();
-  window.addEventListener('resize', () => { resize(); ctx.fillStyle = '#eef7ff'; if (still) draw(); });
+  window.addEventListener('resize', () => { resize(); if (still) draw(); });
   if (still) { draw(); return; }
   let last = performance.now();
   function frame(now) {
