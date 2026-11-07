@@ -82,7 +82,8 @@
     border-radius: 12px; background: rgba(255,255,255,0.025); border-left: 3px solid var(--lvl);
   }
   .redit__row select { color: var(--lvl); font-weight: 600; max-width: 260px; }
-  .redit__row [data-f="title"], .redit__text { grid-column: 1 / -1; }
+  .redit__row [data-f="article"], .redit__row [data-f="title"], .redit__text { grid-column: 1 / -1; }
+  .redit__row [data-f="article"] { font-weight: 600; }
   .redit__row [data-del] { grid-column: 3; grid-row: 1; }
   .redit__only { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); white-space: nowrap; cursor: pointer; }
   .redit__only input { accent-color: var(--gold); }
@@ -326,7 +327,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="github.js?v=1"></script>
-<script src="court.js?v=3"></script>
+<script src="court.js?v=4"></script>
 <script>
 (function () {
 'use strict';
@@ -476,7 +477,7 @@ function renderArticles() {
     const list = rules.filter(r => r.level === l);
     if (!list.length) continue;
     groups.push(`<div class="articles__group">${court.levelBadge(l)}<div class="articles__list">${list.map(r =>
-      `<button type="button" class="article lvl--${l}${pick.rule === r ? ' is-on' : ''}" data-id="${esc(r.id)}" title="${esc(r.text)}"${spinning ? ' disabled' : ''}>${esc(r.title)}</button>`).join('')}</div></div>`);
+      `<button type="button" class="article lvl--${l}${pick.rule === r ? ' is-on' : ''}" data-id="${esc(r.id)}" title="${esc(r.title)}"${spinning ? ' disabled' : ''}>${esc(r.article)}</button>`).join('')}</div></div>`);
   }
   $('articles').innerHTML = groups.join('') || '<p class="panel__note">Статей нет — проверь data/rules.json.</p>';
   // Под списком — что говорит памятка по выбранной статье (или текст правила, если в памятке её нет)
@@ -507,14 +508,15 @@ $('articles').addEventListener('click', e => {
 // ===================== правка статей (data/rules.json) =====================
 const RULES_PATH = 'data/rules.json';
 let rulesFile = null;  // { sha, data }
-let draft = null;      // черновик правки: [{ id, level, title, text, hidden }] или null
+let draft = null;      // черновик правки: [{ id, level, article, title, text, hidden }] или null
 const levelOptions = sel => Array.from({ length: MAX_LEVEL }, (_, i) => i + 1)
   .map(l => `<option value="${l}"${l === sel ? ' selected' : ''}>${l} · ${esc(LEVELS[l].name)}</option>`).join('');
 function renderEditor() {
   $('articles').innerHTML = `<div class="redit">${draft.map((r, i) => `<div class="redit__row lvl--${r.level}" data-i="${i}">
       <select class="inp" data-f="level" aria-label="Тяжесть">${levelOptions(r.level)}</select>
       <label class="redit__only" title="Статья есть на суде, но не показывается в правилах на сайте"><input type="checkbox" data-f="hidden"${r.hidden ? ' checked' : ''}>только суд</label>
-      <input class="inp" data-f="title" value="${esc(r.title)}" maxlength="60" placeholder="Название статьи" aria-label="Название">
+      <input class="inp" data-f="article" value="${esc(r.article)}" maxlength="60" placeholder="Статья на суде — коротко: «Флуд, спам»" aria-label="Статья">
+      <input class="inp" data-f="title" value="${esc(r.title)}" maxlength="60" placeholder="Правило для зрителей: «Не флуди и не спамь»" aria-label="Правило">
       <button type="button" class="btn btn--sm btn--danger" data-del title="Удалить статью">${icon('x')}</button>
       <textarea class="inp redit__text" data-f="text" rows="4" maxlength="600" placeholder="Текст правила — его видят зрители на странице правил" aria-label="Пояснение">${esc(r.text)}</textarea>
     </div>`).join('') || '<p class="panel__note">Статей не осталось. Добавь хотя бы одну.</p>'}</div>
@@ -526,7 +528,7 @@ function renderEditor() {
 }
 $('rules-edit').addEventListener('click', () => {
   if (spinning) return;
-  draft = rules.map(r => ({ id: r.id, level: r.level, title: r.title || '', text: r.text || '', hidden: r.hidden === '1' }));
+  draft = rules.map(r => ({ id: r.id, level: r.level, article: r.article || '', title: r.title || '', text: r.text || '', hidden: r.hidden === '1' }));
   renderArticles();
   renderCharge();
 });
@@ -542,13 +544,14 @@ $('articles').addEventListener('click', e => {
   const del = e.target.closest('[data-del]');
   if (del) {
     const i = +del.closest('.redit__row').dataset.i;
-    if (draft[i].title.trim() && !confirm(`Удалить статью «${draft[i].title.trim()}»?\nПрошлые приговоры по ней останутся в истории.`)) return;
+    const name = (draft[i].article || draft[i].title).trim();
+    if (name && !confirm(`Удалить статью «${name}»?\nПрошлые приговоры по ней останутся в истории.`)) return;
     draft.splice(i, 1);
     renderEditor();
   } else if (e.target.closest('#redit-add')) {
-    draft.push({ id: newId(), level: 2, title: '', text: '', hidden: false });
+    draft.push({ id: newId(), level: 2, article: '', title: '', text: '', hidden: false });
     renderEditor();
-    $('articles').querySelector('.redit__row:last-child [data-f="title"]').focus();
+    $('articles').querySelector('.redit__row:last-child [data-f="article"]').focus();
   } else if (e.target.closest('#redit-cancel')) {
     draft = null;
     renderArticles();
@@ -557,21 +560,23 @@ $('articles').addEventListener('click', e => {
 });
 async function saveRules(btn) {
   // По ступеням, от лёгкого к тяжёлому — так их и нумерует страница правил
-  const list = draft.map(r => ({ id: r.id, level: r.level, title: r.title.trim(), text: r.text.trim(), hidden: r.hidden ? '1' : '' }))
-    .filter(r => r.title || r.text)
+  const list = draft.map(r => ({ id: r.id, level: r.level, article: r.article.trim(), title: r.title.trim(), text: r.text.trim(), hidden: r.hidden ? '1' : '' }))
+    .filter(r => r.article || r.title || r.text)
     .sort((a, b) => a.level - b.level);
-  if (list.some(r => !r.title)) return toast('У каждой статьи должно быть название', true);
+  if (list.some(r => !r.article)) return toast('У каждой статьи должно быть название', true);
+  if (list.some(r => !r.title && !r.hidden)) return toast('У статьи в правилах должно быть правило для зрителей — или отметь «только суд»', true);
   if (!list.length) return toast('Нужна хотя бы одна статья', true);
   // Что поменялось — для сообщения коммита
   const before = new Map(rules.map(r => [r.id, r]));
-  const added = list.filter(r => !before.has(r.id)).map(r => '+«' + r.title + '»');
-  const removed = rules.filter(r => !list.some(x => x.id === r.id)).map(r => '−«' + r.title + '»');
-  const changed = list.filter(r => { const o = before.get(r.id); return o && (o.title !== r.title || (o.text || '') !== r.text || o.level !== r.level || (o.hidden || '') !== r.hidden); }).length;
+  const added = list.filter(r => !before.has(r.id)).map(r => '+«' + r.article + '»');
+  const removed = rules.filter(r => !list.some(x => x.id === r.id)).map(r => '−«' + r.article + '»');
+  const changed = list.filter(r => { const o = before.get(r.id); return o && (o.article !== r.article || (o.title || '') !== r.title || (o.text || '') !== r.text || o.level !== r.level || (o.hidden || '') !== r.hidden); }).length;
   const parts = [...added, ...removed].concat(changed ? ['изменено ' + changed] : []);
   if (!parts.length) { draft = null; renderArticles(); renderCharge(); return; }
   btn.disabled = true;
   try {
     rulesFile = await siteGit.writeFile(RULES_PATH, rulesFile, data => {
+      if (!data.columns.includes('article')) data.columns.splice(data.columns.indexOf('title'), 0, 'article');
       data.items = list.map(r => Object.assign(Object.fromEntries(data.columns.map(c => [c, ''])), r, { level: String(r.level) }));
     }, 'Суд: статьи — ' + parts.join(', '));
     rules = court.normRules(rulesFile.data.items);
@@ -592,7 +597,7 @@ let shownLevel = -1;
 function renderCharge() {
   const lvl = level();
   $('charge').innerHTML = (pick.nick ? `<div class="charge__who">${esc(pick.nick)}</div>` : `<div class="charge__who is-empty">Кто провинился?</div>`) +
-    (pick.rule ? `<div class="charge__rule">${court.levelBadge(lvl)}<span>${esc(pick.rule.title)}${pick.repeat && lvl > pick.rule.level ? ' · рецидив' : ''}</span></div>`
+    (pick.rule ? `<div class="charge__rule">${court.levelBadge(lvl)}<span>${esc(pick.rule.article)}${pick.repeat && lvl > pick.rule.level ? ' · рецидив' : ''}</span></div>`
       : '<div class="charge__rule">Выбери статью — от неё зависит колесо</div>');
   if (lvl !== shownLevel && !spinning) {
     shownLevel = lvl;
@@ -942,7 +947,7 @@ $('spin').addEventListener('click', async () => {
   await wait(650);             // дать рассмотреть ячейку
   const at = new Date();
   const entry = {
-    id: newId(), at: court.stamp(at), nick, rule: rule.id, rule_title: rule.title, level: String(lvl), repeat: repeat ? '1' : '',
+    id: newId(), at: court.stamp(at), nick, rule: rule.id, rule_title: rule.article, level: String(lvl), repeat: repeat ? '1' : '',
     outcome, until: o.kind === 'mute' ? court.stamp(new Date(at.getTime() + o.sec * 1000)) : '', status: '', lifted_at: '', note,
   };
   sfx('verdict-' + o.kind, () => gavel(o.kind));

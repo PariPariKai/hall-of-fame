@@ -95,7 +95,8 @@
   const undoCommand = it => (outcomeOf(it).kind === 'mute' ? '/untimeout ' : '/unban ') + it.nick;
 
   // Статьи из data/rules.json: level — число 1–5
-  const normRules = list => list.map(r => Object.assign({}, r, { level: Math.min(MAX_LEVEL, Math.max(1, +r.level || 1)) }));
+  // article — короткое название статьи для суда («Флуд, спам»), title — правило для зрителей («Не флуди и не спамь»)
+  const normRules = list => list.map(r => Object.assign({}, r, { level: Math.min(MAX_LEVEL, Math.max(1, +r.level || 1)), article: r.article || r.title }));
   async function loadRules() {
     const res = await fetch('data/rules.json', { cache: 'no-cache' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
