@@ -1059,6 +1059,9 @@ function setupRaffle(config) {
 // Ссылка и обложка, найденные роботом (.github/scripts/orders-meta.mjs), — только если в таблице пусто.
 // У YouTube-заказов без обложки берём превью прямо из ссылки на видео.
 const ORDERS_META = fetch('orders-meta.json', {cache: 'no-cache'}).then(r => r.ok ? r.json() : {}).catch(() => ({}));
+// Часы в Steam по заказанным играм (робот .github/scripts/steam-stats.mjs) — главнее ручных hours_played
+const STEAM_STATS = fetch('steam.json', {cache: 'no-cache'}).then(r => r.ok ? r.json() : null).catch(() => null);
+let steamGames = {};
 function metaKey(list, title) {
   return list + '|' + String(title || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('ru').replace(/ё/g, 'е');
 }
@@ -1067,11 +1070,14 @@ function applyOrdersMeta(items, meta, list) {
   items.forEach(it => {
     const m = found[metaKey(list, it.title)];
     if (m && m.found) {
+      if (m.appid) it.appid = m.appid;
       if (!it.url && m.url) it.url = m.url;
       if (!it.cover_url && m.cover) it.cover_url = m.cover;
       // Обложка в таблице есть — запоминаем робота как запасную вертикальную (см. fitCover)
       else if (m.cover && m.cover !== it.cover_url) it.alt_cover = m.cover;
     }
+    const steam = (it.url || '').match(/store\.steampowered\.com\/app\/(\d+)/); // ссылка в заказе главнее находки робота
+    if (steam) it.appid = +steam[1];
     const yt = (it.url || '').match(/(?:youtu\.be\/|[?&]v=|\/shorts\/|\/embed\/)([\w-]{11})/);
     if (!it.cover_url && yt) it.cover_url = `https://i.ytimg.com/vi/${yt[1]}/hqdefault.jpg`;
   });
@@ -1182,7 +1188,8 @@ function fanImgError(img) {
 function progressOf(key, it) {
   if (key === 'games') {
     const pct = parseFloat((it.progress_percent || '').replace(',', '.'));
-    const hours = parseFloat((it.hours_played || '').replace(',', '.'));
+    const sg = it.appid && steamGames[it.appid];
+    const hours = sg ? Math.round(sg.minutes / 6) / 10 : parseFloat((it.hours_played || '').replace(',', '.'));
     const bits = [];
     if (pct > 0) bits.push(`${Math.round(pct)}%`);
     if (hours > 0) bits.push(`${hours % 1 ? hours.toFixed(1) : hours} ч в игре`);
@@ -1547,6 +1554,7 @@ async function loadAll() {
         // Как на страницах списков: строка без ника или названия — не заказ (заготовки в таблице)
         const items = rowsToObjects(rows).filter(i => i.nick && i.title);
         applyOrdersMeta(items, await ORDERS_META, key);
+        if (key === 'games') steamGames = ((await STEAM_STATS) || {}).games || {};
         setCounter(key, countText(key, items));
         renderFan(key, items);
         return items;

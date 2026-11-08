@@ -101,8 +101,9 @@ function rowsToItems(rows, viewers) {
 const ORDERS_META = fetch('orders-meta.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}).catch(() => ({}));
 // Короткие смешные подписи для оборота карточки (как у «Боли»), см. orders-quips.json
 const ORDERS_QUIPS = fetch('orders-quips.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}).catch(() => ({}));
-// Steam стримера (робот .github/scripts/steam-stats.mjs, только заказанные игры) — у заказов игр рядом с часами
-// на стриме показываем часы в Steam и последний запуск. Ручные часы не трогаем: Steam считает и игру не на стриме.
+// Steam стримера (робот .github/scripts/steam-stats.mjs, только заказанные игры) — у заказов игр показываем часы
+// из Steam и последний запуск. Есть данные Steam — ручные часы (hours_played) игнорируем; нет игры в библиотеке
+// Steam (Family Sharing и т.п.) — показываем ручные.
 const STEAM_STATS = CFG.list === 'games'
   ? fetch('steam.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).catch(() => null) : Promise.resolve(null);
 let steamGames = {}; // appid → { minutes, minutes2w, last }
@@ -289,9 +290,9 @@ function buildCard(it) {
   const stats = [];
   const stat = (label, value) => stats.push(`<div class="stat"><span>${label}</span><b>${esc(value)}</b></div>`);
   if (show) stat('Показ', showTime(it.scheduled_at));
-  if (it.hours_played > 0) stat('Наиграно', `${fmtNum(it.hours_played)} ч`);
   const sg = it.appid && steamGames[it.appid];
-  if (sg && sg.minutes) stat('В Steam', sg.minutes < 60 ? `${sg.minutes} мин` : `${fmtNum(sg.minutes >= 600 ? Math.round(sg.minutes / 60) : Math.round(sg.minutes / 6) / 10)} ч`);
+  if (sg) { if (sg.minutes) stat('Наиграно', sg.minutes < 60 ? `${sg.minutes} мин` : `${fmtNum(sg.minutes >= 600 ? Math.round(sg.minutes / 60) : Math.round(sg.minutes / 6) / 10)} ч`); }
+  else if (it.hours_played > 0) stat('Наиграно', `${fmtNum(it.hours_played)} ч`);
   if (sg && sg.last) stat('Запускал', steamLast(sg.last));
   if (it.date_added) stat('Добавлено', shortDate(it.date_added));
   if (it.date_completed) stat(st.doneLabel || 'Завершено', shortDate(it.date_completed));
@@ -497,6 +498,8 @@ async function load() {
       STEAM_STATS,
     ]);
     steamGames = (steam && steam.games && !Array.isArray(steam.games) && steam.games) || {};
+    // Есть данные Steam — по умолчанию (при первом открытии) сортируем по последнему запуску
+    if (!state.signature && state.sort === 'default' && Object.keys(steamGames).length) state.sort = 'steam-last';
     // Каждую минуту перечитываем лист; ничего не поменялось — карточки не трогаем (перевёрнутые остаются перевёрнутыми).
     const signature = csv + '\n' + viewersCsv;
     if (signature === state.signature) return;
