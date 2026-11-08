@@ -20,6 +20,7 @@
     {"screen":"start","label":"","text":"С наступающим!","active":"TRUE","id":"0255a0fe"},
     {"screen":"end","label":"","text":"На рейдах пожалуйста будьте смешными","active":"TRUE","id":"7a961c87"},
     {"screen":"end","label":"","text":"Не надо меня агитировать на других стримах. Пожалуйста","active":"TRUE","id":"08deb69f"},
-    {"screen":"start","label":"","text":"Депресо - научись улыбатся","active":"TRUE","id":"b501c7c8"}
+    {"screen":"start","label":"","text":"Депресо - научись улыбатся","active":"TRUE","id":"b501c7c8"},
+    {"screen":"start","label":"","text":"Мы не материмся на стриме. Мы, блять, охуенные джентельмены, ебать","active":"TRUE","id":"3928e46a"}
   ]
 }
