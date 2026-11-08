@@ -912,6 +912,105 @@ const templatesSection = {
   match: (it, q) => low(it.title).includes(q) || low(it.text).includes(q),
 };
 
+// ===================== заставки для OBS (screen.html) =====================
+// Фразы — data/screens.json (screen: start | brb | end | all), настройки экранов — data/config.json, ключи screen_*.
+// Значения по умолчанию те же, что в screen.html (DEFAULTS, COMMON).
+const SCREENS = [['start', 'Начало стрима'], ['brb', 'Отошёл'], ['end', 'Конец стрима']];
+const SCREEN_NAME = Object.fromEntries(SCREENS.concat([['all', 'Все экраны']]));
+const SCREEN_DEFAULTS = {
+  start: { title: 'Стрим начинается', sub: '', timer: '5', timer_done: 'Вот-вот начнём', chat: 'TRUE', every: '35', pos: 'top' },
+  brb: { title: 'Скоро вернусь', sub: '', timer: '0', timer_done: 'Уже иду', chat: 'TRUE', every: '40', pos: 'top' },
+  end: { title: 'Стрим окончен', sub: 'Спасибо, что были сегодня', timer: '0', timer_done: '', chat: 'TRUE', every: '45', pos: 'top' },
+};
+const SCREEN_COMMON = { life: '10', max: '7', ignore: 'nightbot, streamelements, moobot, fossabot, wizebot, streamlabs, soundalerts, sery_bot, commanderroot' };
+const phraseTitle = it => String(it.text || '').trim().replace(/\s+/g, ' ').slice(0, 90) || 'Без текста';
+const screensSection = {
+  id: 'screens', label: 'Заставки', icon: 'video', group: 'Стрим', path: 'data/screens.json', one: 'Фраза',
+  addLabel: 'Добавить фразу', search: 'Текст фразы...',
+  note: 'Фразы всплывают облачками на заставке между сообщениями чата.',
+  fields: [
+    { k: 'screen', label: 'Экран', type: 'select', options: SCREENS.concat([['all', 'Все экраны']]) },
+    { k: 'label', label: 'Подпись сверху', w: '200px', hint: 'необязательно', ph: 'Факт, Новость...' },
+    { k: 'active', label: 'Показывать', type: 'bool', emptyOn: true, on: 'Включена' },
+    { k: 'text', label: 'Текст', type: 'textarea', rows: 3, required: true },
+  ],
+  title: phraseTitle,
+  defaults: () => ({ screen: SCREEN_NAME[views.screens && views.screens.filter] && views.screens.filter !== 'all' ? views.screens.filter : 'start', active: 'TRUE' }),
+  row: it => ({
+    poster: '', shape: 'none', title: phraseTitle(it), sub: '',
+    tag: isOn(it) ? { tone: it.screen === 'all' ? 'show' : 'queue', label: SCREEN_NAME[it.screen] || it.screen || '—' } : { tone: 'paused', label: 'Выключена' },
+    aux: '', date: esc(it.label || ''),
+  }),
+  filters: [
+    { id: 'all', label: 'Все', fn: () => true },
+    ...SCREENS.map(([id, label]) => ({ id, label, fn: it => it.screen === id || it.screen === 'all' })),
+    { id: 'off', label: 'Выключенные', fn: it => !isOn(it) },
+  ],
+  sorts: [{ id: 'order', label: 'Как добавлены', fn: null }, { id: 'title', label: 'А–Я', fn: (a, b) => phraseTitle(a).localeCompare(phraseTitle(b), 'ru') }],
+  match: (it, q) => low(it.text).includes(q) || low(it.label).includes(q),
+  panel: screensPanel,
+};
+function screensPanel(sec, box) {
+  $('panel-title').innerHTML = icon('video') + 'Заставки для OBS';
+  const c = config();
+  const scr = SCREEN_DEFAULTS[views.screens.filter] ? views.screens.filter : 'start';
+  const val = (k, d) => (k in c ? c[k] : d);
+  const s = k => val(`screen_${scr}_${k}`, SCREEN_DEFAULTS[scr][k]);
+  const g = k => val('screen_' + k, SCREEN_COMMON[k]) || SCREEN_COMMON[k];
+  const url = new URL(`screen.html?s=${scr}`, location.href).href;
+  const inp = (k, label, w, extra) => `<label class="field" style="flex:1 1 ${w}"><span>${label}</span><input class="inp" data-k="${k}" value="${esc(k.startsWith('screen_' + scr) ? s(k.slice(8 + scr.length)) : g(k.slice(7)))}"${extra || ''}></label>`;
+  box.innerHTML = `
+    <div class="chips" style="margin-bottom:16px">${SCREENS.map(([id, label]) =>
+      `<button type="button" class="chip${id === scr ? ' is-active' : ''}" data-scr="${id}">${esc(label)}</button>`).join('')}</div>
+    <div class="cfg-group"><h3>Источник для OBS</h3>
+      <div class="quick">
+        <label class="field"><span>Browser source, 1920×1080 <em class="hint-inline">— поставь поверх видео заставки</em></span><input class="inp" id="scr-url" value="${esc(url)}" readonly></label>
+        <button type="button" class="btn" id="scr-copy">${icon('copy')}Копировать</button>
+        <a class="btn btn--ghost" href="${esc(url)}&demo" target="_blank" rel="noopener">${icon('play')}Предпросмотр</a>
+      </div>
+      <p class="hint-inline" style="margin-top:8px">Отсчёт начинается, когда сцена становится активной в OBS. Правки ниже оверлей подхватывает сам примерно за минуту.</p>
+    </div>
+    <div class="cfg-group"><h3>${esc(SCREEN_NAME[scr])}</h3><div class="row">
+      ${inp(`screen_${scr}_title`, 'Надпись', '260px')}
+      ${inp(`screen_${scr}_sub`, 'Строка под надписью <em class="hint-inline">— необязательно</em>', '260px')}
+      <label class="field" style="flex:1 1 160px"><span>Где надпись</span><select class="inp" data-k="screen_${scr}_pos">${[['top', 'Сверху'], ['center', 'По центру'], ['bottom', 'Снизу']]
+        .map(([v, t]) => `<option value="${v}"${s('pos') === v ? ' selected' : ''}>${t}</option>`).join('')}</select></label>
+    </div><div class="row" style="margin-top:12px">
+      ${inp(`screen_${scr}_timer`, 'Отсчёт, мин <em class="hint-inline">— 0: без отсчёта</em>', '160px', ' type="number" min="0" max="120" step="0.5"')}
+      ${inp(`screen_${scr}_timer_done`, 'Когда отсчёт кончился', '220px')}
+      ${inp(`screen_${scr}_every`, 'Фраза раз в, сек <em class="hint-inline">— 0: без фраз</em>', '160px', ' type="number" min="0" max="600" step="5"')}
+      <div class="field" style="flex:1 1 160px"><span>Чат</span><label class="check-line"><input type="checkbox" data-k="screen_${scr}_chat"${truthy(s('chat')) ? ' checked' : ''}>Сообщения пузырями</label></div>
+    </div></div>
+    <div class="cfg-group"><h3>Пузыри — для всех экранов</h3><div class="row">
+      ${inp('screen_life', 'Живёт, сек', '120px', ' type="number" min="3" max="60" step="1"')}
+      ${inp('screen_max', 'Не больше на экране', '140px', ' type="number" min="1" max="20" step="1"')}
+      ${inp('screen_ignore', 'Не показывать ники <em class="hint-inline">— боты, через запятую</em>', '360px')}
+    </div><p class="hint-inline" style="margin-top:8px">Команды с «!» и сообщения со ссылками не показываются. Удалённые модератором сообщения пропадают с экрана.</p></div>
+    <div class="row"><button type="button" class="btn btn--solid" id="scr-save">${icon('check')}Сохранить «${esc(SCREEN_NAME[scr])}»</button></div>`;
+
+  box.querySelectorAll('[data-scr]').forEach(b => b.addEventListener('click', () => { views.screens.filter = b.dataset.scr; render(); }));
+  $('scr-copy').addEventListener('click', async e => {
+    try { await navigator.clipboard.writeText(url); } catch (err) { $('scr-url').select(); document.execCommand('copy'); }
+    e.currentTarget.innerHTML = icon('check') + 'Скопировано';
+  });
+  $('scr-save').addEventListener('click', async e => {
+    const vals = {};
+    box.querySelectorAll('[data-k]').forEach(el => { vals[el.dataset.k] = el.type === 'checkbox' ? (el.checked ? 'TRUE' : 'FALSE') : el.value.trim(); });
+    if (!vals[`screen_${scr}_title`]) return toast('Впиши надпись', true);
+    // Без изменений против того, что сейчас видит оверлей (с учётом значений по умолчанию), — не коммитим
+    const now = k => k.startsWith(`screen_${scr}_`) ? s(k.slice(8 + scr.length)) : g(k.slice(7));
+    const changed = Object.keys(vals).filter(k => String(now(k)) !== vals[k]);
+    if (!changed.length) return toast('Ничего не поменялось');
+    const ok = await save({ ...sec, id: 'config', path: 'data/config.json' }, `«${SCREEN_NAME[scr]}» — ${changed.join(', ')}`, data => {
+      changed.forEach(k => {
+        const row = data.items.find(r => r.key === k);
+        if (row) row.value = vals[k]; else data.items.push({ key: k, value: vals[k] });
+      });
+    }, e.currentTarget);
+    if (ok && current === sec) render();
+  });
+}
+
 // ===================== настройки сайта (config) =====================
 const CONFIG_GROUPS = [
   ['Стример', [['streamer_name', 'Имя'], ['streamer_twitch_url', 'Ссылка на Twitch', 'url'], ['streamer_avatar_url', 'Аватарка', 'url'], ['streamer_intro', 'Приветствие на главной', 'textarea']]],
@@ -923,7 +1022,8 @@ const configSection = {
     $('panel-title').innerHTML = icon('sliders') + 'Настройки сайта';
     const c = config();
     // Расписание, рулетка и кино — на своей вкладке «Расписание»
-    const known = new Set(CONFIG_GROUPS.flatMap(g => g[1].map(x => x[0])).concat(DAY_KEYS.map(k => 'schedule_' + k), ['picker_time', 'movie_time']));
+    const known = new Set(CONFIG_GROUPS.flatMap(g => g[1].map(x => x[0])).concat(DAY_KEYS.map(k => 'schedule_' + k), ['picker_time', 'movie_time'],
+      Object.keys(c).filter(k => k.startsWith('screen_')))); // заставки — на своей вкладке
     const input = ([k, label, type]) => {
       const v = c[k] || '';
       if (type === 'textarea') return `<label class="field" style="flex:1 1 100%"><span>${esc(label)}</span><textarea class="inp" data-k="${k}" rows="3">${esc(v)}</textarea></label>`;
@@ -1077,7 +1177,7 @@ const SECTIONS = [
   painSection,
   ticketsSection, viewersSection, winnersSection,
   prizesSection, friendsSection, scheduleSection, configSection,
-  templatesSection,
+  templatesSection, screensSection,
 ];
 const SEC = Object.fromEntries(SECTIONS.map(s => [s.id, s]));
 let current = SECTIONS[0];

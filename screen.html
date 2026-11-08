@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Заставка — OBS</title>
+<!--
+  Оверлей заставок для OBS (browser source 1920×1080, прозрачный фон; видео и музыка — отдельными источниками под ним).
+    screen.html?s=start   — «Стрим начинается»
+    screen.html?s=brb     — «Скоро вернусь»
+    screen.html?s=end     — «Стрим окончен»
+  Необязательно: &channel=ник — другой канал Twitch; &demo — предпросмотр с тёмным фоном и ненастоящим чатом.
+  Надпись, отсчёт и настройки — data/config.json (ключи screen_*), фразы — data/screens.json; правятся в админке
+  на вкладке «Заставки», оверлей перечитывает их раз в минуту.
+  Чат Twitch — анонимно, только чтение. Отсчёт идёт с момента, когда сцена стала активной в OBS.
+-->
+<style>
+  :root {
+    --font: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+    --gold: #FAC775;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  /* 1rem = 16px на ширине 1920 — оверлей одинаково выглядит в любом размере источника */
+  html { font-size: calc(100vw / 120); }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
+  body { font-family: var(--font); color: #fff; -webkit-font-smoothing: antialiased; }
+  [hidden] { display: none !important; }
+
+  /* ---------- надпись ---------- */
+  .head {
+    position: absolute; left: 50%; transform: translateX(-50%); z-index: 2;
+    display: flex; flex-direction: column; align-items: center; gap: 1rem; text-align: center;
+    width: max-content; max-width: 90vw; opacity: 0; transition: opacity 1.6s ease;
+  }
+  .head.is-on { opacity: 1; }
+  .head--top { top: 7vh; }
+  .head--center { top: 50%; transform: translate(-50%, -50%); }
+  .head--bottom { bottom: 8vh; }
+
+  .title {
+    font-size: 4.6rem; font-weight: 300; letter-spacing: .14em; line-height: 1.15; white-space: pre-wrap;
+    animation: breathe 9s ease-in-out infinite;
+  }
+  /* Цветовая волна: каждая буква проходит по палитре ночного города со сдвигом — цвет плывёт по слову */
+  .title .ch {
+    display: inline-block; white-space: pre;
+    animation: hue 12s linear infinite, float 6s ease-in-out infinite;
+    animation-delay: calc(var(--i) * -0.32s), calc(var(--i) * -0.22s);
+    text-shadow: 0 0 .35em currentColor, 0 0 1.2em rgba(0,0,0,.55);
+  }
+  @keyframes hue {
+    0%, 100% { color: #FAC775; }
+    20% { color: #FF9EB5; }
+    40% { color: #C5A9F8; }
+    60% { color: #8FD3FF; }
+    80% { color: #9EF0D8; }
+  }
+  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-.1em); } }
+  @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: .8; } }
+
+  .sub { font-size: 1.6rem; font-weight: 300; letter-spacing: .1em; color: rgba(255,255,255,.82); text-shadow: 0 0 1em rgba(0,0,0,.7); }
+  .timer {
+    font-size: 2.4rem; font-weight: 300; letter-spacing: .12em; font-variant-numeric: tabular-nums;
+    color: rgba(255,255,255,.9); text-shadow: 0 0 .6em rgba(143,211,255,.55), 0 0 1.2em rgba(0,0,0,.6);
+    transition: opacity .8s ease;
+  }
+  .timer.is-done { font-size: 1.9rem; letter-spacing: .1em; animation: breathe 3.2s ease-in-out infinite; }
+
+  /* ---------- пузыри ---------- */
+  .stage { position: absolute; inset: 0; z-index: 1; }
+  .bub {
+    --h: 200;
+    position: absolute; max-width: 27rem; visibility: hidden;
+    opacity: 0; transform: translateY(.8rem) scale(.94);
+    transition: opacity .8s ease, transform 1s cubic-bezier(.2,.8,.2,1), filter 1s ease;
+  }
+  .bub.is-placed { visibility: visible; }
+  .bub.is-in { opacity: 1; transform: none; }
+  .bub.is-out { opacity: 0; transform: translateY(-1rem) scale(.97); filter: blur(.25rem); }
+  .bub__body {
+    position: relative; padding: .7rem 1.05rem .8rem; border-radius: 1.15rem;
+    background: hsla(var(--h), 42%, 11%, .76);
+    border: 1px solid hsla(var(--h), 85%, 72%, .5);
+    box-shadow: 0 0 1.4rem hsla(var(--h), 90%, 62%, .22), inset 0 0 1rem hsla(var(--h), 90%, 70%, .07);
+    font-size: 1.3rem; line-height: 1.38; overflow-wrap: anywhere;
+    animation: drift var(--life, 10s) linear forwards;
+  }
+  @keyframes drift { from { transform: translateY(0); } to { transform: translateY(-1.2rem); } }
+  /* хвостик вниз и огонёк под ним — будто фразу сказали из окна */
+  .bub__body::after {
+    content: ""; position: absolute; top: 100%; left: var(--tail, 50%); width: .9rem; height: .9rem;
+    margin: -.45rem 0 0 -.45rem; transform: rotate(45deg);
+    background: hsla(var(--h), 42%, 11%, .76);
+    border-right: 1px solid hsla(var(--h), 85%, 72%, .5); border-bottom: 1px solid hsla(var(--h), 85%, 72%, .5);
+    clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  }
+  .bub__dot {
+    position: absolute; top: calc(100% + 1.25rem); left: var(--tail, 50%); width: .42rem; height: .42rem; margin-left: -.21rem;
+    border-radius: 50%; background: hsl(var(--h), 95%, 78%);
+    box-shadow: 0 0 .5rem .15rem hsla(var(--h), 95%, 65%, .8);
+    animation: glow 2.4s ease-in-out infinite;
+  }
+  @keyframes glow { 0%, 100% { opacity: .55; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.15); } }
+  .bub__nick { display: block; font-size: .82em; font-weight: 600; letter-spacing: .02em; margin-bottom: .15rem; }
+  .bub__badge {
+    display: inline-block; margin-left: .45rem; padding: .05rem .45rem; border-radius: 999px; vertical-align: .1em;
+    font-size: .68em; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+    color: hsl(var(--h), 95%, 82%); background: hsla(var(--h), 90%, 60%, .18);
+  }
+  .bub__text { color: rgba(255,255,255,.95); }
+  .emote { height: 1.55em; width: auto; vertical-align: -.42em; margin: 0 .05em; }
+  .bub--first .bub__body { box-shadow: 0 0 2.2rem hsla(var(--h), 95%, 62%, .45), inset 0 0 1rem hsla(var(--h), 90%, 70%, .12); }
+
+  /* фразы из админки: тёплые, без хвостика, чуть крупнее */
+  .bub--note { max-width: 32rem; }
+  .bub--note .bub__body {
+    background: rgba(28, 22, 12, .78); border-color: rgba(250, 199, 117, .5);
+    box-shadow: 0 0 1.8rem rgba(250, 199, 117, .2), inset 0 0 1rem rgba(250, 199, 117, .06);
+    font-size: 1.45rem; font-weight: 300; padding: .9rem 1.3rem 1rem;
+  }
+  .bub--note .bub__body::after, .bub--note .bub__dot { display: none; }
+  .bub__label { display: block; font-size: .62em; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); margin-bottom: .3rem; }
+
+  /* ---------- предпросмотр (&demo) ---------- */
+  body.demo {
+    background: radial-gradient(ellipse at 50% 120%, #2a2440 0%, #0d1224 45%, #05070f 100%);
+  }
+  .demo-lights { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+  .demo-lights i { position: absolute; border-radius: 50%; background: #ffd9a0; box-shadow: 0 0 6px 1px rgba(255, 210, 140, .6); }
+  .demo-note {
+    position: absolute; left: 1rem; bottom: 1rem; z-index: 3; font-size: .85rem; color: rgba(255,255,255,.5);
+    letter-spacing: .04em;
+  }
+</style>
+</head>
+<body>
+<div class="stage" id="stage"></div>
+<div class="head head--top" id="head">
+  <div class="title" id="title"></div>
+  <div class="sub" id="sub" hidden></div>
+  <div class="timer" id="timer" hidden></div>
+</div>
+
+<script>
+(function () {
+'use strict';
+
+// ===================== параметры =====================
+const qs = new URLSearchParams(location.search);
+const SCREEN = ['start', 'brb', 'end'].includes(qs.get('s')) ? qs.get('s') : 'start';
+const DEMO = qs.has('demo');
+const DEFAULTS = {
+  start: { title: 'Стрим начинается', sub: '', timer: '5', timer_done: 'Вот-вот начнём', chat: 'TRUE', every: '35', pos: 'top' },
+  brb: { title: 'Скоро вернусь', sub: '', timer: '0', timer_done: 'Уже иду', chat: 'TRUE', every: '40', pos: 'top' },
+  end: { title: 'Стрим окончен', sub: 'Спасибо, что были сегодня', timer: '0', timer_done: '', chat: 'TRUE', every: '45', pos: 'top' },
+};
+const COMMON = { life: '10', max: '7', ignore: 'nightbot, streamelements, moobot, fossabot, wizebot, streamlabs, soundalerts, sery_bot, commanderroot' };
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const rand = (a, b) => a + Math.random() * (b - a);
+const truthy = s => /^(true|yes|1|да)$/i.test(String(s || '').trim());
+const num = (s, d) => { const n = parseFloat(String(s == null ? '' : s).replace(',', '.')); return isFinite(n) ? n : d; };
+
+// ===================== настройки с сайта =====================
+let cfg = Object.assign({}, DEFAULTS[SCREEN], COMMON);
+let phrases = [];
+let channel = (qs.get('channel') || '').toLowerCase().replace(/^#/, '');
+
+async function loadJSON(path) {
+  const r = await fetch(path + '?t=' + Date.now(), { cache: 'no-store' });
+  if (!r.ok) throw new Error(path + ': ' + r.status);
+  return r.json();
+}
+async function loadSettings() {
+  try {
+    const [c, s] = await Promise.all([loadJSON('data/config.json'), loadJSON('data/screens.json')]);
+    const kv = Object.fromEntries((c.items || []).map(r => [r.key, r.value]));
+    const next = Object.assign({}, DEFAULTS[SCREEN], COMMON);
+    Object.keys(DEFAULTS[SCREEN]).forEach(k => { const v = kv[`screen_${SCREEN}_${k}`]; if (v != null && v !== '') next[k] = v; });
+    // подпись и текст после отсчёта можно и стереть — пустое значение тоже настройка
+    ['sub', 'timer_done'].forEach(k => { if (`screen_${SCREEN}_${k}` in kv) next[k] = kv[`screen_${SCREEN}_${k}`]; });
+    Object.keys(COMMON).forEach(k => { const v = kv['screen_' + k]; if (v != null && v !== '') next[k] = v; });
+    cfg = next;
+    phrases = (s.items || []).filter(p => (p.screen === SCREEN || p.screen === 'all') && String(p.text || '').trim() &&
+      (String(p.active || '').trim() === '' || truthy(p.active)));
+    if (!qs.get('channel')) {
+      const m = String(kv.streamer_twitch_url || '').match(/twitch\.tv\/([\w]+)/i);
+      channel = m ? m[1].toLowerCase() : channel;
+    }
+  } catch (e) {
+    console.warn('Настройки не загрузились, работаю на прежних', e);
+  }
+  if (!channel) channel = 'pariparikai';
+  applyHead();
+  phraseBag = phraseBag.filter(p => phrases.includes(p));
+}
+
+// ===================== надпись и отсчёт =====================
+let shownTitle = null;
+function applyHead() {
+  const head = $('head');
+  head.className = 'head head--' + (['top', 'center', 'bottom'].includes(cfg.pos) ? cfg.pos : 'top') + ' is-on';
+  if (cfg.title !== shownTitle) {
+    shownTitle = cfg.title;
+    $('title').innerHTML = Array.from(cfg.title).map((ch, i) => `<span class="ch" style="--i:${i}">${esc(ch)}</span>`).join('');
+  }
+  $('sub').textContent = cfg.sub || '';
+  $('sub').hidden = !cfg.sub;
+  tick();
+}
+
+let timerFrom = Date.now();
+function tick() {
+  const mins = num(cfg.timer, 0), el = $('timer');
+  if (mins <= 0) { el.hidden = true; return; }
+  el.hidden = false;
+  const left = Math.ceil((timerFrom + mins * 60000 - Date.now()) / 1000);
+  if (left > 0) {
+    el.classList.remove('is-done');
+    el.textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
+  } else {
+    el.classList.add('is-done');
+    el.textContent = cfg.timer_done || '';
+    el.hidden = !cfg.timer_done;
+  }
+}
+setInterval(tick, 250);
+// OBS сообщает, когда сцену с источником включили: отсчёт — заново
+window.addEventListener('obsSourceActiveChanged', e => { if (e.detail && e.detail.active) { timerFrom = Date.now(); tick(); } });
+
+// ===================== пузыри =====================
+const stage = $('stage');
+const live = [];   // { el, kind, msgId, login, rect }
+const queue = [];  // ждут свободного места: { kind, ... }
+const life = () => Math.max(3, num(cfg.life, 10)) * 1000;
+const maxOnScreen = () => Math.max(1, Math.round(num(cfg.max, 7)));
+
+// Спокойные «неоновые» оттенки ночного города
+const HUES = [195, 210, 265, 285, 320, 340, 30, 45, 165];
+const pickHue = () => HUES[Math.floor(Math.random() * HUES.length)] + Math.round(rand(-8, 8));
+
+function headRect() {
+  const r = $('head').getBoundingClientRect();
+  const pad = 24;
+  return { l: r.left - pad, t: r.top - pad, r: r.right + pad, b: r.bottom + pad };
+}
+const hit = (a, b) => a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
+
+// Случайное место, где пузырь не наезжает на надпись и другие пузыри
+function findSpot(w, h) {
+  const W = innerWidth, H = innerHeight, mx = W * 0.03, my = H * 0.04, gap = 14;
+  const busy = live.map(b => b.rect).concat(shownTitle ? [headRect()] : []);
+  for (let i = 0; i < 60; i++) {
+    const x = rand(mx, W - mx - w), y = rand(my, H - my - h);
+    const r = { l: x - gap, t: y - gap, r: x + w + gap, b: y + h + gap };
+    if (!busy.some(b => hit(r, b))) return { x, y, rect: r };
+  }
+  return null;
+}
+
+function show(item) {
+  const el = document.createElement('div');
+  const h = pickHue();
+  el.className = 'bub' + (item.kind === 'note' ? ' bub--note' : '') + (item.first ? ' bub--first' : '');
+  el.style.setProperty('--h', h);
+  el.style.setProperty('--tail', Math.round(rand(22, 78)) + '%');
+  const ms = item.kind === 'note' ? Math.min(20000, Math.max(life(), 4000 + [...item.text].length * 70)) : life();
+  el.style.setProperty('--life', (ms / 1000 + 1) + 's');
+  el.innerHTML = item.kind === 'note'
+    ? `<div class="bub__body">${item.label ? `<span class="bub__label">${esc(item.label)}</span>` : ''}<span class="bub__text">${esc(item.text)}</span></div>`
+    : `<div class="bub__body"><span class="bub__nick" style="color:${item.color}">${esc(item.nick)}${item.first ? '<span class="bub__badge">впервые в чате</span>' : ''}</span>` +
+      `<span class="bub__text">${item.html}</span><span class="bub__dot"></span></div>`;
+  stage.appendChild(el);
+  // огонёк под хвостиком тоже занимает место
+  const w = el.offsetWidth, hh = el.offsetHeight + (item.kind === 'note' ? 0 : 28);
+  const spot = findSpot(w, hh);
+  if (!spot) { el.remove(); return false; }
+  el.style.left = spot.x + 'px';
+  el.style.top = spot.y + 'px';
+  el.classList.add('is-placed');
+  const b = { el, kind: item.kind, msgId: item.msgId, login: item.login, rect: spot.rect };
+  live.push(b);
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('is-in')));
+  b.timer = setTimeout(() => hide(b), ms);
+  return true;
+}
+function hide(b) {
+  if (b.gone) return;
+  b.gone = true;
+  clearTimeout(b.timer);
+  b.el.classList.add('is-out');
+  // место освобождаем сразу — пока пузырь тает, рядом может появиться следующий
+  setTimeout(() => { const i = live.indexOf(b); if (i >= 0) live.splice(i, 1); }, 500);
+  setTimeout(() => b.el.remove(), 1200);
+}
+
+// Раз в полсекунды — следующий из очереди, если есть место (фразы стримера вперёд чата)
+setInterval(() => {
+  if (!queue.length || live.filter(b => !b.gone).length >= maxOnScreen()) return;
+  const i = queue.findIndex(q => q.kind === 'note');
+  const item = queue[i >= 0 ? i : 0];
+  if (show(item)) queue.splice(queue.indexOf(item), 1);
+}, 500);
+function enqueue(item) {
+  queue.push(item);
+  // чат несётся быстрее, чем пузыри успевают жить, — старые сообщения из очереди выбрасываем
+  const chat = queue.filter(q => q.kind === 'chat');
+  if (chat.length > 10) queue.splice(queue.indexOf(chat[0]), 1);
+}
+
+// ===================== фразы из админки =====================
+let phraseBag = [];
+function nextPhrase() {
+  if (!phrases.length) return null;
+  if (!phraseBag.length) {
+    phraseBag = phrases.slice().sort(() => Math.random() - 0.5);
+    // та же фраза два раза подряд — не надо
+    if (phraseBag.length > 1 && phraseBag[0] === lastPhrase) phraseBag.push(phraseBag.shift());
+  }
+  return (lastPhrase = phraseBag.shift());
+}
+let lastPhrase = null;
+function schedulePhrase(first) {
+  const every = num(cfg.every, 35) * (DEMO ? 0.3 : 1);
+  if (every <= 0) { setTimeout(() => schedulePhrase(), 15000); return; } // фразы выключены — проверим позже
+  setTimeout(() => {
+    const p = nextPhrase();
+    if (p && !queue.some(q => q.kind === 'note')) enqueue({ kind: 'note', text: String(p.text).trim(), label: String(p.label || '').trim() });
+    schedulePhrase();
+  }, first ? Math.min(every, 8) * 1000 : every * rand(0.8, 1.2) * 1000);
+}
+
+// ===================== чат Twitch (анонимно, только чтение) =====================
+let ws = null, wsChan = '', reconnectDelay = 1000;
+function connect() {
+  if (ws) { ws.onclose = null; try { ws.close(); } catch (e) { /* уже закрыт */ } }
+  wsChan = channel;
+  ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
+  ws.onopen = () => {
+    ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands');
+    ws.send('NICK justinfan' + Math.floor(10000 + Math.random() * 80000));
+    ws.send('JOIN #' + wsChan);
+  };
+  ws.onmessage = ev => ev.data.split('\r\n').forEach(line => { if (line) onLine(line); });
+  ws.onclose = () => { setTimeout(connect, reconnectDelay); reconnectDelay = Math.min(reconnectDelay * 2, 30000); };
+  ws.onerror = () => { try { ws.close(); } catch (e) { /* закроется сам */ } };
+}
+function parseTags(raw) {
+  const tags = {};
+  raw.split(';').forEach(pair => {
+    const i = pair.indexOf('=');
+    tags[i < 0 ? pair : pair.slice(0, i)] = i < 0 ? '' : pair.slice(i + 1).replace(/\\s/g, ' ').replace(/\\:/g, ';').replace(/\\\\/g, '\\');
+  });
+  return tags;
+}
+function onLine(line) {
+  if (line.startsWith('PING')) { ws.send('PONG :tmi.twitch.tv'); return; }
+  let tags = {}, rest = line, prefix = '';
+  if (rest[0] === '@') { const sp = rest.indexOf(' '); tags = parseTags(rest.slice(1, sp)); rest = rest.slice(sp + 1); }
+  if (rest[0] === ':') { const sp = rest.indexOf(' '); prefix = rest.slice(1, sp); rest = rest.slice(sp + 1); }
+  const sp = rest.indexOf(' ');
+  const cmd = sp < 0 ? rest : rest.slice(0, sp);
+  const params = sp < 0 ? '' : rest.slice(sp + 1);
+  const text = params.includes(' :') ? params.slice(params.indexOf(' :') + 2) : '';
+  if (cmd === '001') { reconnectDelay = 1000; return; }
+  if (cmd === 'RECONNECT') { try { ws.close(); } catch (e) { /* переподключимся */ } return; }
+  // Модератор удалил сообщение / забанил — убираем с экрана
+  if (cmd === 'CLEARMSG') { drop(b => b.msgId === tags['target-msg-id']); return; }
+  if (cmd === 'CLEARCHAT') { const who = text.trim().toLowerCase(); drop(b => b.kind === 'chat' && (!who || b.login === who)); return; }
+  if (cmd !== 'PRIVMSG' || !truthy(cfg.chat)) return;
+  onChat(tags, prefix.split('!')[0].toLowerCase(), text);
+}
+function drop(fn) {
+  live.filter(fn).forEach(hide);
+  for (let i = queue.length - 1; i >= 0; i--) if (fn(queue[i])) queue.splice(i, 1);
+}
+
+const LINK = /(https?:\/\/|www\.)\S+|\b[\w-]+\.(ru|com|tv|net|org|gg|ly|io|me|su|xyz|info|рф)\b/i;
+const MAX_LEN = 160;
+function onChat(tags, login, raw) {
+  let text = raw;
+  const action = /^\u0001ACTION (.*)\u0001$/.exec(text);
+  if (action) text = action[1];
+  const ignore = String(cfg.ignore || '').toLowerCase().split(/[\s,;]+/).filter(Boolean);
+  if (ignore.includes(login) || !text.trim() || text.trim()[0] === '!' || LINK.test(text)) return;
+  const nick = tags['display-name'] || login;
+  const first = tags['first-msg'] === '1';
+  enqueue({ kind: 'chat', login, nick, first, msgId: tags.id, color: nickColor(tags.color, login), html: renderText(text, tags.emotes) });
+}
+
+// Текст со смайликами Twitch: позиции в теге emotes — в символах (code points)
+function renderText(text, emotesTag) {
+  const chars = Array.from(text);
+  const at = {};
+  String(emotesTag || '').split('/').filter(Boolean).forEach(part => {
+    const [id, ranges] = part.split(':');
+    (ranges || '').split(',').forEach(r => { const [a, b] = r.split('-').map(Number); if (isFinite(a) && isFinite(b)) at[a] = { end: b, id }; });
+  });
+  let out = '', buf = '', i = 0, len = 0;
+  while (i < chars.length && len < MAX_LEN) {
+    const e = at[i];
+    if (e) {
+      out += esc(buf); buf = '';
+      out += `<img class="emote" alt="" src="https://static-cdn.jtvnw.net/emoticons/v2/${encodeURIComponent(e.id)}/default/dark/2.0">`;
+      i = e.end + 1; len += 3;
+    } else { buf += chars[i]; i++; len++; }
+  }
+  out += esc(buf);
+  return out + (i < chars.length ? '…' : '');
+}
+
+// Цвет ника из Twitch, но не темнее, чем читается на тёмном пузыре
+function nickColor(hex, login) {
+  let h, s, l;
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+  if (m) {
+    const n = parseInt(m[1], 16), r = (n >> 16) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+    l = (mx + mn) / 2;
+    s = d ? d / (1 - Math.abs(2 * l - 1)) : 0;
+    h = !d ? 0 : mx === r ? 60 * (((g - b) / d) % 6) : mx === g ? 60 * ((b - r) / d + 2) : 60 * ((r - g) / d + 4);
+  } else {
+    h = [...login].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7); s = 0.7; l = 0.7;
+  }
+  return `hsl(${Math.round((h + 360) % 360)}, ${Math.round(Math.min(s, 0.9) * 100)}%, ${Math.round(Math.max(l, 0.68) * 100)}%)`;
+}
+
+// ===================== предпросмотр =====================
+function demo() {
+  document.body.classList.add('demo');
+  const lights = document.createElement('div');
+  lights.className = 'demo-lights';
+  lights.innerHTML = Array.from({ length: 140 }, () => {
+    const y = rand(45, 98), s = rand(1.5, 3.5);
+    return `<i style="left:${rand(0, 100)}%;top:${y}%;width:${s}px;height:${s}px;opacity:${rand(.3, .9).toFixed(2)}"></i>`;
+  }).join('');
+  document.body.prepend(lights);
+  const note = document.createElement('div');
+  note.className = 'demo-note';
+  note.textContent = 'Предпросмотр: чат ненастоящий, фразы чаще обычного. В OBS — без «&demo».';
+  document.body.appendChild(note);
+  const nicks = [['Lunatik_77', '#FF4500'], ['kotofey', '#1E90FF'], ['Nyashka', '#FF69B4'], ['dedinside', ''], ['Barmaley', '#9ACD32'], ['night_owl', '#8A2BE2'], ['PetrovichTV', '#DAA520']];
+  const lines = ['привет!', 'всем ку', 'о, город ночью', 'кто там в футбол играет', 'ждём', 'чай налит, я готов', 'какой вайб', 'привет с Урала',
+    'что сегодня смотрим?', 'а это где снято?', 'добрый вечер', 'зашёл на огонёк', 'машинки едут', 'красиво'];
+  const fake = () => {
+    if (truthy(cfg.chat)) {
+      const [nick, color] = nicks[Math.floor(Math.random() * nicks.length)];
+      onChat({ 'display-name': nick, color, 'first-msg': Math.random() < 0.1 ? '1' : '0', id: String(Math.random()) }, nick.toLowerCase(),
+        lines[Math.floor(Math.random() * lines.length)]);
+    }
+    setTimeout(fake, rand(900, 2600));
+  };
+  fake();
+}
+
+// ===================== запуск =====================
+loadSettings().then(() => {
+  if (DEMO) demo(); else connect();
+  schedulePhrase(true);
+  setInterval(loadSettings, 60000);
+  // сменили канал на сайте — переподключаемся
+  setInterval(() => { if (!DEMO && channel !== wsChan) connect(); }, 60000);
+});
+})();
+</script>
+</body>
+</html>
