@@ -8,6 +8,7 @@
     {"screen":"all","label":"Шутка","text":"Русский сложны:\n- Чай или кофе?\n- Да.","active":"TRUE","id":"bc78ee8c"},
     {"screen":"start","label":"Шутка","text":"Кофе с молоком или молоко с кофе?\nСливки? Вам к психиатру","active":"TRUE","id":"fa476beb"},
     {"screen":"start","label":"Факт","text":"Запомни: одна ошибка — и ты ошибся! ©Джейсон Стейтем","active":"TRUE","id":"49138b75"},
-    {"screen":"all","label":"","text":"Неужели чай остыл?","active":"TRUE","id":"a10c5079"}
+    {"screen":"all","label":"","text":"Неужели чай остыл?","active":"TRUE","id":"a10c5079"},
+    {"screen":"start","label":"","text":"А где Хами?","active":"TRUE","id":"f7dc099e"}
   ]
 }
