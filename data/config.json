@@ -20,6 +20,7 @@
     {"key":"movie_time","value":"19:00"},
     {"key":"screen_start_sub","value":"чай поставьте"},
     {"key":"screen_end_sub","value":""},
-    {"key":"screen_end_every","value":"30"}
+    {"key":"screen_end_every","value":"30"},
+    {"key":"screen_life","value":"7"}
   ]
 }
