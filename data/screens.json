@@ -15,6 +15,7 @@
     {"screen":"start","label":"Факт","text":"Я бы стал витубером, но я люблю мыться","active":"TRUE","id":"bf9c2602"},
     {"screen":"start","label":"","text":"ПариПари любит парирование","active":"TRUE","id":"29ee2a3d"},
     {"screen":"brb","label":"","text":"Чай с лимоном или с лаймом?","active":"TRUE","id":"f3985508"},
-    {"screen":"brb","label":"","text":"Донатить когда я отошёл от компа - жестоко :(","active":"TRUE","id":"68c5785d"}
+    {"screen":"brb","label":"","text":"Донатить когда я отошёл от компа - жестоко :(","active":"TRUE","id":"68c5785d"},
+    {"screen":"start","label":"","text":"Я запрещаю вам болеть!","active":"TRUE","id":"d8887cf3"}
   ]
 }
