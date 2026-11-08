@@ -101,11 +101,11 @@ function rowsToItems(rows, viewers) {
 const ORDERS_META = fetch('orders-meta.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}).catch(() => ({}));
 // Короткие смешные подписи для оборота карточки (как у «Боли»), см. orders-quips.json
 const ORDERS_QUIPS = fetch('orders-quips.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}).catch(() => ({}));
-// Библиотека Steam стримера (робот .github/scripts/steam-stats.mjs) — у заказов игр рядом с часами на стриме
-// показываем часы в Steam. Ручные часы не трогаем: Steam считает и игру не на стриме.
+// Steam стримера (робот .github/scripts/steam-stats.mjs, только заказанные игры) — у заказов игр рядом с часами
+// на стриме показываем часы в Steam и последний запуск. Ручные часы не трогаем: Steam считает и игру не на стриме.
 const STEAM_STATS = CFG.list === 'games'
   ? fetch('steam.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).catch(() => null) : Promise.resolve(null);
-let steamMinutes = {}; // appid → минут в Steam
+let steamGames = {}; // appid → { minutes, minutes2w, last }
 function metaKey(list, title) {
   return list + '|' + String(title || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('ru').replace(/ё/g, 'е');
 }
@@ -136,6 +136,15 @@ const parseSheetDate = siteTime.parse;
 const ts = s => { const d = parseSheetDate(s); return d ? d.getTime() : 0; };
 const dayNo = (d, tz) => { const p = siteTime.parts(d, tz); return Date.UTC(p.y, p.mo, p.d) / 86400000; };
 // Дата без времени (добавлено, досмотрено) — по календарю стримера
+// Последний запуск в Steam (unix-время): «сегодня», «вчера», «8 ноя 2026» — по календарю зрителя/стримера
+function steamLast(ts) {
+  const day = d => { const p = siteTime.parts(d); return Date.UTC(p.y, p.mo, p.d) / 864e5; };
+  const d = new Date(ts * 1000), diff = day(new Date()) - day(d);
+  if (diff <= 0) return 'сегодня';
+  if (diff === 1) return 'вчера';
+  const p = siteTime.parts(d);
+  return `${p.d} ${MONTHS_RU[p.mo]} ${p.y}`;
+}
 function shortDate(s) {
   const d = parseSheetDate(s);
   if (!d) return s;
@@ -281,8 +290,9 @@ function buildCard(it) {
   const stat = (label, value) => stats.push(`<div class="stat"><span>${label}</span><b>${esc(value)}</b></div>`);
   if (show) stat('Показ', showTime(it.scheduled_at));
   if (it.hours_played > 0) stat('Наиграно', `${fmtNum(it.hours_played)} ч`);
-  const steamMin = it.appid && steamMinutes[it.appid];
-  if (steamMin) stat('В Steam', `${fmtNum(steamMin >= 600 ? Math.round(steamMin / 60) : Math.round(steamMin / 6) / 10)} ч`);
+  const sg = it.appid && steamGames[it.appid];
+  if (sg && sg.minutes) stat('В Steam', sg.minutes < 60 ? `${sg.minutes} мин` : `${fmtNum(sg.minutes >= 600 ? Math.round(sg.minutes / 60) : Math.round(sg.minutes / 6) / 10)} ч`);
+  if (sg && sg.last) stat('Запускал', steamLast(sg.last));
   if (it.date_added) stat('Добавлено', shortDate(it.date_added));
   if (it.date_completed) stat(st.doneLabel || 'Завершено', shortDate(it.date_completed));
   const link = isHttpUrl(it.url)
@@ -477,7 +487,7 @@ async function load() {
       ORDERS_QUIPS,
       STEAM_STATS,
     ]);
-    steamMinutes = Object.fromEntries(((steam && steam.games) || []).map(g => [g.appid, g.minutes]));
+    steamGames = (steam && steam.games && !Array.isArray(steam.games) && steam.games) || {};
     // Каждую минуту перечитываем лист; ничего не поменялось — карточки не трогаем (перевёрнутые остаются перевёрнутыми).
     const signature = csv + '\n' + viewersCsv;
     if (signature === state.signature) return;

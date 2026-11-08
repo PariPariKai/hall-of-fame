@@ -440,28 +440,6 @@
   }
   .wins[hidden] { display: none; }
 
-  /* ========== STEAM: недавние игры стримера ========== */
-  .steam { max-width: var(--page); margin: 0 auto 36px; }
-  .steam[hidden] { display: none; }
-  .steam__stats { margin: -4px 4px 12px; font-size: 13px; color: rgba(255,255,255,0.55); }
-  .steam__stats b { color: #fff; font-weight: 600; }
-  .steam__stats a { color: var(--gold); font-weight: 600; text-decoration: none; }
-  .steam__live { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ff4d5e; margin-right: 6px; vertical-align: 1px;
-    animation: now-pulse 1.8s ease-out infinite; }
-  .steam__row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; list-style: none; }
-  .steam-game { display: block; position: relative; aspect-ratio: 2 / 3; border-radius: 12px; overflow: hidden; text-decoration: none; color: #fff;
-    background: #1a2238; border: 1px solid rgba(255,255,255,0.08); transition: transform .18s ease, border-color .18s ease; }
-  .steam-game:hover { transform: translateY(-3px); border-color: rgba(250,199,117,0.45); }
-  .steam-game img { position: relative; width: 100%; height: 100%; object-fit: cover; display: block; }
-  .steam-game.is-landscape img { object-fit: contain; }
-  .steam-game__blur { position: absolute; inset: -10px; background-size: cover; background-position: center; filter: blur(10px) brightness(.5); display: none; }
-  .steam-game.is-landscape .steam-game__blur { display: block; }
-  .steam-game__shade { position: absolute; inset: auto 0 0 0; padding: 36px 10px 9px; background: linear-gradient(transparent, rgba(6,8,16,0.94) 55%); }
-  .steam-game__name { font-size: 13px; font-weight: 600; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-shadow: 0 1px 4px #000; }
-  .steam-game__hours { margin-top: 3px; font-size: 12px; color: #FAC775; font-weight: 600; text-shadow: 0 1px 4px #000; }
-  .steam-game__tag { position: absolute; top: 8px; left: 8px; padding: 3px 8px; border-radius: 999px; font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
-    background: rgba(40,12,16,0.85); color: #ff8a95; border: 1px solid rgba(255,77,94,0.5); }
-  @media (max-width: 900px) { .steam__row { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   .section-head {
     display: flex;
     align-items: baseline;
@@ -786,7 +764,7 @@
 
 <body>
 
-<script src="site.js?v=15"></script>
+<script src="site.js?v=16"></script>
 
 <!-- Розыгрыш: виден, только когда в листе Config raffle_active = TRUE -->
 <section class="event" id="event" hidden aria-label="Розыгрыш">
@@ -825,16 +803,6 @@
     <a href="hall.html">Весь Зал Славы →</a>
   </div>
   <div class="wins__track"><div class="wins__row" id="wins-row"></div></div>
-</section>
-
-<!-- Steam: библиотека стримера (steam.json, робот steam-stats). Нет данных — блока не видно -->
-<section class="steam" id="steam" hidden aria-labelledby="steam-label">
-  <div class="section-head">
-    <h2 id="steam-label">Недавно в Steam</h2>
-    <a href="library.html">Вся библиотека →</a>
-  </div>
-  <p class="steam__stats" id="steam-stats"></p>
-  <ul class="steam__row" id="steam-row"></ul>
 </section>
 
 <section class="cards" id="cards" data-n="3" aria-label="Разделы сайта">
@@ -1753,51 +1721,6 @@ function renderFriends(friends) {
 loadAll();
 loadFriends();
 
-// ===== Недавно в Steam: steam.json (робот .github/scripts/steam-stats.mjs, раз в час) =====
-// Шесть игр: сначала то, во что играю сейчас, потом недавние по последнему запуску.
-const STEAM_ASSETS = 'https://shared.steamstatic.com/store_item_assets/steam/apps/';
-const steamHours = min => min < 60 ? `${min} мин` : `${(min >= 600 ? Math.round(min / 60) : Math.round(min / 6) / 10).toLocaleString('ru-RU')} ч`;
-// Обложка: от робота → вертикальная по старому адресу → шапка магазина (вписывается целиком)
-function steamCover(img) {
-  const a = img.closest('.steam-game'), id = a.dataset.appid, step = +img.dataset.step;
-  if (step < 2) { img.dataset.step = step + 1; img.src = step === 0 ? `${STEAM_ASSETS}${id}/library_600x900.jpg` : `${STEAM_ASSETS}${id}/header.jpg`; }
-  else img.remove();
-}
-function steamFit(img) {
-  const a = img.closest('.steam-game');
-  const land = img.naturalWidth > img.naturalHeight * 0.85;
-  a.classList.toggle('is-landscape', land);
-  if (land) a.querySelector('.steam-game__blur').style.backgroundImage = `url("${img.src.replace(/"/g, '%22')}")`;
-}
-async function loadSteam() {
-  let d;
-  try {
-    const res = await fetch('steam.json', { cache: 'no-cache' });
-    if (!res.ok) return;
-    d = await res.json();
-  } catch (e) { return; }
-  const games = d.games || [];
-  if (!games.length) return;
-  const playing = d.profile && d.profile.playing;
-  const pick = [];
-  if (playing) pick.push(...games.filter(g => g.appid === playing.appid));
-  games.filter(g => g.last && !pick.includes(g)).sort((a, b) => b.last - a.last).forEach(g => { if (pick.length < 6) pick.push(g); });
-  const t = d.totals || {};
-  document.getElementById('steam-stats').innerHTML =
-    (playing ? `<span class="steam__live"></span>Сейчас играю: <a href="https://store.steampowered.com/app/${playing.appid}/" target="_blank" rel="noopener">${esc(playing.name)}</a> · ` : '') +
-    `в библиотеке <b>${t.games || 0}</b> ${plural(t.games || 0, ['игра', 'игры', 'игр'])} · <b>${(t.hours || 0).toLocaleString('ru-RU')}</b> ч в Steam`;
-  document.getElementById('steam-row').innerHTML = pick.map(g => {
-    const now = playing && playing.appid === g.appid;
-    const hours = g.minutes2w > 0 ? `${steamHours(g.minutes2w)} за 2 недели` : steamHours(g.minutes);
-    return `<li><a class="steam-game" href="https://store.steampowered.com/app/${g.appid}/" target="_blank" rel="noopener" data-appid="${g.appid}">
-      <div class="steam-game__blur"></div>
-      <img src="${esc(g.cover || `${STEAM_ASSETS}${g.appid}/library_600x900.jpg`)}" alt="" loading="lazy" decoding="async" data-step="${g.cover ? 0 : 1}" onload="steamFit(this)" onerror="steamCover(this)">
-      ${now ? '<span class="steam-game__tag">Сейчас</span>' : ''}
-      <div class="steam-game__shade"><div class="steam-game__name">${esc(g.name)}</div><div class="steam-game__hours">${hours}</div></div></a></li>`;
-  }).join('');
-  document.getElementById('steam').hidden = false;
-}
-loadSteam();
 </script>
 
 </body>

@@ -1,12 +1,15 @@
-# Подтягивает библиотеку Steam стримера (игры, часы, недавние, «сейчас играет») и коммитит steam.json.
+# Подтягивает из Steam часы и последний запуск по заказанным играм (data/games.json) и коммитит steam.json.
 # Нужен секрет STEAM_API_KEY (Settings → Secrets and variables → Actions); без него робот просто пропускает запуск.
-# Запуск: каждый час и вручную (Actions → «Steam: библиотека» → Run workflow).
-name: "Steam: библиотека"
+# Запуск: каждый час, после робота «Заказы: ссылки и обложки» (новые игры) и вручную (Actions → «Steam: часы в играх» → Run workflow).
+name: "Steam: часы в играх"
 
 on:
   schedule:
     - cron: "27 * * * *"
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Заказы: ссылки и обложки"]
+    types: [completed]
 
 permissions:
   contents: write
@@ -21,6 +24,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -33,6 +38,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898341+github-actions[bot]@users.noreply.github.com"
           git add steam.json
-          git commit -m "Steam: обновлена библиотека"
+          git commit -m "Steam: обновлены часы в играх"
           git pull --rebase
           git push
