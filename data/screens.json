@@ -25,6 +25,7 @@
     {"screen":"end","label":"Факт","text":"Если Пари за весь стрим не чихнул... Это к счастью!","active":"TRUE","id":"3055a374"},
     {"screen":"start","label":"","text":"Заряжайте Трулу музыкой!","active":"TRUE","id":"95cfb165"},
     {"screen":"start","label":"","text":"Бва-ха-ха-ха!","active":"TRUE","id":"d84c300f"},
-    {"screen":"all","label":"Факт","text":"Алкострим - грех. Но зато какой весёлый!","active":"TRUE","id":"362d939c"}
+    {"screen":"all","label":"Факт","text":"Алкострим - грех. Но зато какой весёлый!","active":"TRUE","id":"362d939c"},
+    {"screen":"start","label":"Факт","text":"Ваше присутствие - услада для моих глаз! ♥ ♥ ♥","active":"TRUE","id":"8a72d4a7"}
   ]
 }
