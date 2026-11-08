@@ -10,11 +10,17 @@
     screen.html?s=start   — «Стрим начинается»
     screen.html?s=brb     — «Скоро вернусь»
     screen.html?s=end     — «Стрим окончен»
-  Необязательно: &channel=ник — другой канал Twitch; &demo — предпросмотр с тёмным фоном и ненастоящим чатом.
+  Фон экрана (настройка в админке): прозрачный — под ним видео в OBS, или «pixel» — живой пиксельный город (pixel-city.js),
+  тогда и надпись с пузырями становятся пиксельными.
+  Необязательно: &channel=ник — другой канал Twitch; &bg=pixel|video — фон вместо настройки;
+  &demo — предпросмотр с тёмным фоном и ненастоящим чатом.
   Надпись, отсчёт и настройки — data/config.json (ключи screen_*), фразы — data/screens.json; правятся в админке
   на вкладке «Заставки», оверлей перечитывает их раз в минуту.
   Чат Twitch — анонимно, только чтение. Отсчёт идёт с момента, когда сцена стала активной в OBS.
 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Tiny5&display=swap">
 <style>
   :root {
     --font: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -135,6 +141,37 @@
   .bub--note .bub__body::after, .bub--note .bub__dot { display: none; }
   .bub__label { display: block; font-size: .62em; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); margin-bottom: .3rem; }
 
+  /* ---------- пиксельный фон и пиксельный стиль (фон «pixel») ---------- */
+  .city { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; image-rendering: pixelated; image-rendering: crisp-edges; }
+  body.px { --p: .3125rem; } /* один «пиксель» города: 5 точек на 1920 */
+  /* шрифты с нормальной кириллицей: Press Start 2P — надпись и отсчёт, Tiny5 — всё остальное */
+  body.px .title, body.px .timer { font-family: "Press Start 2P", var(--font); font-weight: 400; }
+  body.px .sub, body.px .bub__body { font-family: "Tiny5", var(--font); }
+  body.px .title { font-size: 3.3rem; letter-spacing: .04em; line-height: 1.3; }
+  body.px .title .ch { text-shadow: 0 0 .3em currentColor, var(--p) var(--p) 0 rgba(4,6,14,.85); animation-timing-function: linear, steps(4); }
+  body.px .timer { font-size: 2.2rem; letter-spacing: .04em; }
+  body.px .timer.is-done { font-size: 1.6rem; }
+  body.px .sub { font-size: 1.9rem; letter-spacing: .06em; }
+  body.px .head::before { background: radial-gradient(ellipse closest-side, rgba(4,6,14,.45), rgba(4,6,14,.2) 55%, transparent); }
+  /* рамка «лесенкой», как у окошек в старых играх: тени на один пиксель в четыре стороны */
+  body.px .bub__body {
+    --bc: hsl(var(--h), 85%, 70%);
+    border: 0; border-radius: 0; padding: .55rem .95rem .7rem; font-size: 1.6rem; line-height: 1.25; letter-spacing: .03em;
+    background: hsla(var(--h), 45%, 11%, .9);
+    box-shadow: 0 calc(var(--p) * -1) 0 0 var(--bc), 0 var(--p) 0 0 var(--bc), calc(var(--p) * -1) 0 0 0 var(--bc), var(--p) 0 0 0 var(--bc),
+      calc(var(--p) * 2) calc(var(--p) * 2) 0 0 rgba(4,6,14,.55);
+  }
+  body.px .bub--first .bub__body { background: hsla(var(--h), 55%, 18%, .92); }
+  body.px .bub__body::after {
+    top: calc(100% + var(--p)); width: var(--p); height: var(--p); margin: 0 0 0 calc(var(--p) / -2);
+    transform: none; clip-path: none; border: 0; background: var(--bc);
+    box-shadow: calc(var(--p) * -1) 0 0 0 var(--bc), var(--p) 0 0 0 var(--bc), 0 var(--p) 0 0 var(--bc);
+  }
+  body.px .bub__dot { border-radius: 0; width: var(--p); height: var(--p); margin-left: calc(var(--p) / -2); top: calc(100% + 1.6rem); }
+  body.px .bub__badge { border-radius: 0; }
+  body.px .bub--note .bub__body { --bc: #FAC775; background: rgba(30, 22, 10, .9); font-weight: 400; }
+  body.px .demo-lights { display: none; }
+
   /* ---------- предпросмотр (&demo) ---------- */
   body.demo {
     background: radial-gradient(ellipse at 50% 120%, #2a2440 0%, #0d1224 45%, #05070f 100%);
@@ -148,6 +185,7 @@
 </style>
 </head>
 <body>
+<canvas class="city" id="city" hidden></canvas>
 <div class="stage" id="stage"></div>
 <div class="head head--top" id="head">
   <div class="title" id="title"></div>
@@ -155,6 +193,7 @@
   <div class="timer" id="timer" hidden></div>
 </div>
 
+<script src="pixel-city.js?v=1"></script>
 <script>
 (function () {
 'use strict';
@@ -164,9 +203,9 @@ const qs = new URLSearchParams(location.search);
 const SCREEN = ['start', 'brb', 'end'].includes(qs.get('s')) ? qs.get('s') : 'start';
 const DEMO = qs.has('demo');
 const DEFAULTS = {
-  start: { title: 'Стрим начинается', sub: '', timer: '5', timer_done: 'Вот-вот начнём', chat: 'TRUE', every: '35', pos: 'top' },
-  brb: { title: 'Скоро вернусь', sub: '', timer: '0', timer_done: 'Уже иду', chat: 'TRUE', every: '40', pos: 'top' },
-  end: { title: 'Стрим окончен', sub: 'Спасибо, что были сегодня', timer: '0', timer_done: '', chat: 'TRUE', every: '45', pos: 'top' },
+  start: { title: 'Стрим начинается', sub: '', timer: '5', timer_done: 'Вот-вот начнём', chat: 'TRUE', every: '35', pos: 'top', bg: 'video' },
+  brb: { title: 'Скоро вернусь', sub: '', timer: '0', timer_done: 'Уже иду', chat: 'TRUE', every: '40', pos: 'top', bg: 'pixel' },
+  end: { title: 'Стрим окончен', sub: 'Спасибо, что были сегодня', timer: '0', timer_done: '', chat: 'TRUE', every: '45', pos: 'top', bg: 'video' },
 };
 const COMMON = { life: '10', max: '7', ignore: 'nightbot, streamelements, moobot, fossabot, wizebot, streamlabs, soundalerts, sery_bot, commanderroot' };
 
@@ -221,7 +260,18 @@ function applyHead() {
   }
   $('sub').textContent = cfg.sub || '';
   $('sub').hidden = !cfg.sub;
+  applyBg(qs.get('bg') || cfg.bg);
   tick();
+}
+
+// Фон: прозрачный (видео — в OBS под источником) или живой пиксельный город
+let city = null;
+function applyBg(bg) {
+  const pixel = bg === 'pixel' && window.PixelCity;
+  document.body.classList.toggle('px', !!pixel);
+  $('city').hidden = !pixel;
+  if (pixel && !city) city = PixelCity.start($('city'));
+  if (!pixel && city) { city.stop(); city = null; }
 }
 
 let timerFrom = Date.now();
@@ -264,9 +314,10 @@ const hit = (a, b) => a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
 // Случайное место, где пузырь не наезжает на надпись и другие пузыри
 function findSpot(w, h) {
   const W = innerWidth, H = innerHeight, mx = W * 0.03, my = H * 0.04, gap = 14;
+  const bottom = city ? H * 0.885 : H - my; // на пиксельном фоне не закрываем крышу с котом и кружкой
   const busy = live.map(b => b.rect).concat(shownTitle ? [headRect()] : []);
   for (let i = 0; i < 60; i++) {
-    const x = rand(mx, W - mx - w), y = rand(my, H - my - h);
+    const x = rand(mx, W - mx - w), y = rand(my, bottom - h);
     const r = { l: x - gap, t: y - gap, r: x + w + gap, b: y + h + gap };
     if (!busy.some(b => hit(r, b))) return { x, y, rect: r };
   }

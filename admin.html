@@ -918,10 +918,11 @@ const templatesSection = {
 const SCREENS = [['start', 'Начало стрима'], ['brb', 'Отошёл'], ['end', 'Конец стрима']];
 const SCREEN_NAME = Object.fromEntries(SCREENS.concat([['all', 'Все экраны']]));
 const SCREEN_DEFAULTS = {
-  start: { title: 'Стрим начинается', sub: '', timer: '5', timer_done: 'Вот-вот начнём', chat: 'TRUE', every: '35', pos: 'top' },
-  brb: { title: 'Скоро вернусь', sub: '', timer: '0', timer_done: 'Уже иду', chat: 'TRUE', every: '40', pos: 'top' },
-  end: { title: 'Стрим окончен', sub: 'Спасибо, что были сегодня', timer: '0', timer_done: '', chat: 'TRUE', every: '45', pos: 'top' },
+  start: { title: 'Стрим начинается', sub: '', timer: '5', timer_done: 'Вот-вот начнём', chat: 'TRUE', every: '35', pos: 'top', bg: 'video' },
+  brb: { title: 'Скоро вернусь', sub: '', timer: '0', timer_done: 'Уже иду', chat: 'TRUE', every: '40', pos: 'top', bg: 'pixel' },
+  end: { title: 'Стрим окончен', sub: 'Спасибо, что были сегодня', timer: '0', timer_done: '', chat: 'TRUE', every: '45', pos: 'top', bg: 'video' },
 };
+const SCREEN_BGS = [['video', 'Прозрачный: видео в OBS под ним'], ['pixel', 'Пиксельный ночной город']];
 const SCREEN_COMMON = { life: '10', max: '7', ignore: 'nightbot, streamelements, moobot, fossabot, wizebot, streamlabs, soundalerts, sery_bot, commanderroot' };
 const phraseTitle = it => String(it.text || '').trim().replace(/\s+/g, ' ').slice(0, 90) || 'Без текста';
 const screensSection = {
@@ -964,7 +965,7 @@ function screensPanel(sec, box) {
       `<button type="button" class="chip${id === scr ? ' is-active' : ''}" data-scr="${id}">${esc(label)}</button>`).join('')}</div>
     <div class="cfg-group"><h3>Источник для OBS</h3>
       <div class="quick">
-        <label class="field"><span>Browser source, 1920×1080 <em class="hint-inline">— поставь поверх видео заставки</em></span><input class="inp" id="scr-url" value="${esc(url)}" readonly></label>
+        <label class="field"><span>Browser source, 1920×1080 <em class="hint-inline">— ${s('bg') === 'pixel' ? 'фон рисуется сам, видео не нужно' : 'поставь поверх видео заставки'}</em></span><input class="inp" id="scr-url" value="${esc(url)}" readonly></label>
         <button type="button" class="btn" id="scr-copy">${icon('copy')}Копировать</button>
         <a class="btn btn--ghost" href="${esc(url)}&demo" target="_blank" rel="noopener">${icon('play')}Предпросмотр</a>
       </div>
@@ -975,6 +976,8 @@ function screensPanel(sec, box) {
       ${inp(`screen_${scr}_sub`, 'Строка под надписью <em class="hint-inline">— необязательно</em>', '260px')}
       <label class="field" style="flex:1 1 160px"><span>Где надпись</span><select class="inp" data-k="screen_${scr}_pos">${[['top', 'Сверху'], ['center', 'По центру'], ['bottom', 'Снизу']]
         .map(([v, t]) => `<option value="${v}"${s('pos') === v ? ' selected' : ''}>${t}</option>`).join('')}</select></label>
+      <label class="field" style="flex:1 1 240px"><span>Фон</span><select class="inp" data-k="screen_${scr}_bg">${SCREEN_BGS
+        .map(([v, t]) => `<option value="${v}"${s('bg') === v ? ' selected' : ''}>${t}</option>`).join('')}</select></label>
     </div><div class="row" style="margin-top:12px">
       ${inp(`screen_${scr}_timer`, 'Отсчёт, мин <em class="hint-inline">— 0: без отсчёта</em>', '160px', ' type="number" min="0" max="120" step="0.5"')}
       ${inp(`screen_${scr}_timer_done`, 'Когда отсчёт кончился', '220px')}

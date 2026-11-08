@@ -1,0 +1,376 @@
+// Пиксельный ночной город — живой фон заставки (screen.html, фон «pixel»).
+// Рисуется на холсте 384×216 и растягивается на весь экран без сглаживания (1 пиксель = 5 точек на 1920×1080).
+// Город каждый раз новый: дома, окна, машины, футбол, самолёты и падающие звёзды — случайные.
+// PixelCity.start(canvas) → { stop() }
+(function () {
+'use strict';
+const W = 384, H = 216;
+const FAR_BASE = 162, MID_BASE = 178, ROAD_Y = 180, LEDGE_Y = 199;
+const FIELD = { x0: 238, x1: 318, top: 166, bottom: 176, inset: 6 }; // футбольное поле — трапеция между домами
+
+const R = (a, b) => a + Math.random() * (b - a);
+const RI = (a, b) => Math.floor(R(a, b + 1));
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const chance = p => Math.random() < p;
+
+const SKY = ['#060918', '#080c20', '#0b1028', '#0f1431', '#15183a', '#1d1c44', '#28204d', '#352656', '#44295c'];
+const WARM = ['#ffd27a', '#ffc35e', '#ffe09a', '#f7b85a'];
+const WARM_DIM = ['#b8924e', '#a88544', '#c49c58'];
+const COOL = ['#9fd8ff', '#b8e4ff'];
+const COOL_DIM = ['#6a8cb4', '#5f7fa8'];
+const CAR_COLORS = ['#d94f5c', '#e8b04a', '#4a8fd9', '#d9d9e0', '#454a66', '#7a5ad9', '#4ac0a0', '#c0c4d8', '#e07a3c'];
+
+function layer() { const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'); x.imageSmoothingEnabled = false; return [c, x]; }
+const px = (ctx, x, y, col, w, h) => { ctx.fillStyle = col; ctx.fillRect(Math.round(x), Math.round(y), w || 1, h || 1); };
+
+// ===================== неподвижное: небо, дома, дорога, крыша =====================
+function buildSky() {
+  const [c, x] = layer();
+  const band = 150 / SKY.length;
+  for (let y = 0; y < H; y++) {
+    const i = Math.min(SKY.length - 1, Math.floor(y / band));
+    x.fillStyle = SKY[i];
+    x.fillRect(0, y, W, 1);
+    // стык полос — шахматкой, как в старых играх
+    const into = y - i * band;
+    if (i < SKY.length - 1 && into > band - 3) for (let xx = (y % 2); xx < W; xx += 2) px(x, xx, y, SKY[i + 1]);
+  }
+  // луна с ореолом
+  const mx = RI(250, 340), my = RI(26, 44);
+  for (let yy = -13; yy <= 13; yy++) for (let xx = -13; xx <= 13; xx++) {
+    const d = Math.hypot(xx, yy);
+    if (d > 8.5 && d < 13 && (xx + yy) % 2 === 0) px(x, mx + xx, my + yy, `rgba(244,236,208,${(0.1 * (13 - d) / 4.5).toFixed(3)})`);
+    else if (d <= 8.5) px(x, mx + xx, my + yy, d > 7.5 ? '#e6dbb8' : '#f4ecd0');
+  }
+  [[-3, -2, 2], [2, 1, 3], [-1, 4, 1], [4, -4, 1]].forEach(([dx, dy, s]) => px(x, mx + dx, my + dy, '#d9cda6', s, s));
+  return { c, moon: { x: mx, y: my } };
+}
+
+function buildFar() {
+  const [c, x] = layer();
+  const windows = [], antennas = [];
+  let bx = RI(-6, 0);
+  while (bx < W) {
+    const w = RI(8, 20), h = chance(0.14) ? RI(78, 104) : RI(26, 70), top = FAR_BASE - h;
+    const col = pick(['#111630', '#131934', '#161b39']);
+    px(x, bx, top, col, w, h);
+    if (chance(0.25) && w > 9) { const sw = w - RI(4, 6), sh = RI(3, 8); px(x, bx + Math.floor((w - sw) / 2), top - sh, col, sw, sh); }
+    if (h > 55 && chance(0.55)) {
+      const ax = bx + RI(2, w - 3), ah = RI(5, 12);
+      px(x, ax, top - ah, '#1c2244', 1, ah);
+      antennas.push({ x: ax, y: top - ah - 1, ph: R(0, 2) });
+    }
+    const pattern = RI(0, 2); // обычные окна, ленты, редкие
+    for (let wy = top + 3; wy < FAR_BASE - 3; wy += 3) for (let wx = bx + 2; wx < bx + w - 2; wx += 2) {
+      if (pattern === 2 && chance(0.6)) continue;
+      const cool = chance(0.22);
+      windows.push({ x: wx, y: wy, w: pattern === 1 ? 2 : 1, on: chance(0.3), col: pick(cool ? COOL_DIM : WARM_DIM) });
+    }
+    bx += w + RI(0, 2);
+  }
+  return { c, windows, antennas };
+}
+
+function buildMid() {
+  const [c, x] = layer();
+  const windows = [];
+  let neon = null, bx = RI(-10, 0);
+  while (bx < W) {
+    if (bx + 16 > FIELD.x0 - 4 && bx < FIELD.x1 + 4) { bx = FIELD.x1 + 5; continue; } // место под поле
+    const w = Math.min(RI(16, 38), bx < FIELD.x0 ? Math.max(12, FIELD.x0 - 4 - bx) : 99), h = RI(16, 50), top = MID_BASE - h;
+    const col = pick(['#191f42', '#1d244e', '#212956']);
+    px(x, bx, top, col, w, h);
+    px(x, bx, top, '#2a3363', w, 1); // край крыши
+    if (chance(0.3) && w > 14) { // бак с водой
+      const tx = bx + RI(2, w - 8);
+      px(x, tx, top - 6, '#2a3160', 6, 4); px(x, tx + 1, top - 2, '#2a3160', 1, 2); px(x, tx + 4, top - 2, '#2a3160', 1, 2);
+    } else if (chance(0.35)) px(x, bx + RI(1, w - 6), top - 2, '#262d5a', 4, 2); // кондиционер
+    const sign = !neon && w >= 24 && h >= 30 && chance(0.6);
+    if (sign) neon = { x: bx + 3, y: top + 4, w: w - 6, h: 6, on: true, next: R(2, 6) };
+    for (let wy = top + (sign ? 13 : 4); wy < MID_BASE - 4; wy += 5) for (let wx = bx + 2; wx < bx + w - 3; wx += 4) {
+      const cool = chance(0.18);
+      windows.push({ x: wx, y: wy, w: 2, h: 2, on: chance(0.42), col: pick(cool ? COOL : WARM), tv: cool && chance(0.35) });
+    }
+    bx += w + RI(1, 4);
+  }
+  return { c, windows, neon };
+}
+
+const fieldEdge = v => ({ l: FIELD.x0 + FIELD.inset * (1 - v), r: FIELD.x1 - FIELD.inset * (1 - v) }); // v: 0 — дальний край, 1 — ближний
+const toScreen = (u, v) => { const e = fieldEdge(v); return { x: e.l + (e.r - e.l) * u, y: FIELD.top + (FIELD.bottom - FIELD.top) * v }; };
+
+function buildGround() {
+  const [c, x] = layer();
+  // поле: подсветка прожекторов, газон полосами, разметка, ворота
+  for (let y = FIELD.top - 18; y < FIELD.top; y++) {
+    const a = 0.07 * (1 - (FIELD.top - y) / 18);
+    px(x, FIELD.x0 - 4, y, `rgba(255,250,215,${a.toFixed(3)})`, FIELD.x1 - FIELD.x0 + 8, 1);
+  }
+  for (let y = FIELD.top; y <= FIELD.bottom; y++) {
+    const v = (y - FIELD.top) / (FIELD.bottom - FIELD.top), e = fieldEdge(v);
+    for (let xx = Math.round(e.l); xx <= Math.round(e.r); xx++) px(x, xx, y, Math.floor((xx - FIELD.x0) / 6) % 2 ? '#2f8a46' : '#29793d');
+    px(x, Math.round(e.l), y, '#cfe8cf'); px(x, Math.round(e.r), y, '#cfe8cf');
+    px(x, Math.round((e.l + e.r) / 2), y, 'rgba(207,232,207,.7)');
+  }
+  const e0 = fieldEdge(0), e1 = fieldEdge(1);
+  px(x, Math.round(e0.l), FIELD.top, '#cfe8cf', Math.round(e0.r - e0.l) + 1, 1);
+  px(x, Math.round(e1.l), FIELD.bottom, '#cfe8cf', Math.round(e1.r - e1.l) + 1, 1);
+  [0, 1].forEach(u => { const a = toScreen(u, 0.38), b = toScreen(u, 0.62); px(x, a.x + (u ? 1 : -1), a.y - 2, '#ffffff', 1, Math.round(b.y - a.y) + 2); });
+  px(x, FIELD.x0 - 2, FIELD.bottom + 1, '#141830', FIELD.x1 - FIELD.x0 + 4, MID_BASE - FIELD.bottom - 1);
+  // прожекторы
+  [[FIELD.x0 - 2, 146], [FIELD.x1 + 2, 146], [FIELD.x0 + 26, 150], [FIELD.x1 - 26, 150]].forEach(([lx, ly], i) => {
+    if (i > 1) return; // дальние — только свет
+    px(x, lx, ly, '#3a3f66', 1, FIELD.bottom - ly + 1);
+    px(x, lx - 1, ly - 1, '#fffbe0', 3, 2);
+    for (let k = 0; k < 18; k++) px(x, lx - 1 - k * (i ? 1.6 : -1.6) - (i ? 0 : 0), ly + 2 + k, 'rgba(255,250,210,.05)', 4 + k, 1);
+  });
+
+  // тротуар, дорога, разметка
+  px(x, 0, MID_BASE, '#2c3052', W, 2);
+  px(x, 0, ROAD_Y, '#121528', W, 17);
+  for (let xx = 2; xx < W; xx += 12) px(x, xx, 188, '#3d3c55', 5, 1);
+  px(x, 0, 197, '#2c3052', W, 2);
+  // фонари и пятна света под ними
+  for (let lx = RI(8, 24); lx < W; lx += RI(40, 56)) {
+    px(x, lx, 165, '#3a3f66', 1, 13); px(x, lx, 165, '#3a3f66', 3, 1); px(x, lx + 2, 166, '#ffe7a8', 2, 1);
+    for (let k = 0; k < 14; k++) { const ww = 4 + k; px(x, lx + 3 - ww / 2, 167 + k + (k > 10 ? 4 : 0), 'rgba(255,215,140,.07)', ww, 1); }
+  }
+  return { c };
+}
+
+function buildLedge() {
+  const [c, x] = layer();
+  px(x, 0, LEDGE_Y, '#2f3558', W, 1);
+  px(x, 0, LEDGE_Y + 1, '#1d2140', W, 2);
+  px(x, 0, LEDGE_Y + 3, '#0b0e1c', W, H - LEDGE_Y - 3);
+  for (let y = LEDGE_Y + 5; y < H; y += 4) for (let xx = (y / 4) % 2 ? 0 : 6; xx < W; xx += 12) px(x, xx, y, '#0f1326', 11, 1);
+  // кружка чая
+  const mx = 52, my = LEDGE_Y - 7;
+  px(x, mx, my, '#fff4dc', 7, 1); px(x, mx + 1, my, '#6b3d1f', 5, 1);
+  px(x, mx, my + 1, '#e9dcc4', 7, 6); px(x, mx + 5, my + 1, '#c4b394', 2, 6);
+  px(x, mx + 7, my + 2, '#e9dcc4', 2, 1); px(x, mx + 8, my + 3, '#e9dcc4', 1, 2); px(x, mx + 7, my + 5, '#e9dcc4', 2, 1);
+  px(x, mx + 2, my + 3, '#d0605a', 2, 2); // сердечко на кружке
+  return { c, mug: { x: mx + 3, y: my - 1 } };
+}
+
+// кот со спины смотрит на город
+const CAT = ['.X.....X.', '.XX...XX.', '.XXXXXXX.', '.XXXXXXX.', '..XXXXX..', '..XXXXX..', '.XXXXXXX.', 'XXXXXXXXX', 'XXXXXXXXX', 'XXXXXXXXX', 'XXXXXXXXX'];
+const TAILS = [
+  [[9, 10], [10, 10], [11, 9], [12, 8], [12, 7]],
+  [[9, 10], [10, 10], [11, 10], [12, 9], [13, 8]],
+  [[9, 10], [10, 10], [11, 9], [11, 8], [12, 7]],
+];
+const CAR = ['...BWWB....', '.BBBBBBBBBH', 'TBBBBBBBBBB', '..K....K...'];
+const BUS = ['BBBBBBBBBBBBBBBBBBBBBB', 'BLLBLLBLLBLLBLLBLLBWWB', 'BLLBLLBLLBLLBLLBLLBWWB', 'BBBBBBBBBBBBBBBBBBBBBH', 'TBBBBBBBBBBBBBBBBBBBBB', '...KK............KK...'];
+
+// ===================== сцена =====================
+function build() {
+  const s = { t: 0, sky: buildSky(), far: buildFar(), mid: buildMid(), ground: buildGround(), ledge: buildLedge() };
+  const moon = s.sky.moon;
+  s.stars = Array.from({ length: 130 }, () => ({ x: RI(0, W - 1), y: RI(0, 118), ph: R(0, 6.3), sp: R(0.6, 2.2), big: chance(0.08) }))
+    .filter(st => Math.hypot(st.x - moon.x, st.y - moon.y) > 15);
+  s.clouds = Array.from({ length: 4 }, () => {
+    const w = RI(30, 64);
+    return { x: R(-w, W), y: RI(14, 92), w, sp: R(0.8, 2.4), rows: [[RI(4, 10), w - RI(14, 22)], [0, w], [RI(2, 6), w - RI(6, 12)]] };
+  });
+  s.cars = [[], []];
+  s.nextCar = [R(0, 2), R(0, 2)];
+  s.steam = [];
+  s.nextSteam = 0;
+  s.plane = null; s.nextPlane = R(15, 40);
+  s.shoot = null; s.nextShoot = R(6, 20);
+  s.nextToggle = 0;
+  s.cat = { x: 70, tail: 0, nextTail: 1, ear: false, nextEar: R(4, 10) };
+  // футбол: четверо на четверо
+  s.players = Array.from({ length: 8 }, (_, i) => {
+    const team = i < 4 ? 0 : 1, home = { u: team ? R(0.55, 0.9) : R(0.1, 0.45), v: R(0.15, 0.85) };
+    return { team, u: home.u, v: home.v, home, sp: R(0.09, 0.14) };
+  });
+  s.ball = { u: 0.5, v: 0.5, du: 0, dv: 0, hold: 0 };
+  return s;
+}
+
+function update(s, dt) {
+  s.t += dt;
+  // окна: кто-то включает и выключает свет
+  s.nextToggle -= dt;
+  if (s.nextToggle <= 0) {
+    s.nextToggle = R(0.15, 0.6);
+    const w = chance(0.5) ? pick(s.far.windows) : pick(s.mid.windows);
+    if (w) w.on = !w.on;
+  }
+  // неон моргает
+  const n = s.mid.neon;
+  if (n) { n.next -= dt; if (n.next <= 0) { n.on = !n.on; n.next = n.on ? R(2, 9) : R(0.05, 0.35); } }
+  // облака
+  s.clouds.forEach(c => { c.x += c.sp * dt; if (c.x > W) c.x = -c.w; });
+  // самолёт
+  s.nextPlane -= dt;
+  if (!s.plane && s.nextPlane <= 0) { const dir = chance(0.5) ? 1 : -1; s.plane = { x: dir > 0 ? -6 : W + 6, y: RI(18, 70), dir, sp: R(7, 11) }; }
+  if (s.plane) { s.plane.x += s.plane.dir * s.plane.sp * dt; if (s.plane.x < -10 || s.plane.x > W + 10) { s.plane = null; s.nextPlane = R(40, 90); } }
+  // падающая звезда
+  s.nextShoot -= dt;
+  if (!s.shoot && s.nextShoot <= 0) s.shoot = { x: R(40, W - 40), y: R(5, 50), dx: chance(0.5) ? -1 : 1, life: 0 };
+  if (s.shoot) { s.shoot.life += dt; if (s.shoot.life > 0.7) { s.shoot = null; s.nextShoot = R(15, 45); } }
+  // машины: верхняя полоса — вправо, нижняя — влево
+  [0, 1].forEach(lane => {
+    const list = s.cars[lane], dir = lane ? -1 : 1;
+    s.nextCar[lane] -= dt;
+    if (s.nextCar[lane] <= 0) {
+      const bus = chance(0.1), len = bus ? 22 : 11, x = dir > 0 ? -len - 8 : W + 8;
+      const lastCar = list[list.length - 1];
+      if (!lastCar || Math.abs(lastCar.x - x) > len + 14) {
+        const taxi = !bus && chance(0.12);
+        list.push({ x, len, bus, taxi, col: bus ? pick(['#e8b04a', '#3fa06b', '#d94f5c']) : taxi ? '#f2c230' : pick(CAR_COLORS), sp: bus ? R(11, 14) : R(15, 30) });
+      }
+      s.nextCar[lane] = R(1.2, 5);
+    }
+    list.forEach((car, i) => {
+      const ahead = list[i - 1]; // первые в списке едут впереди
+      let sp = car.sp;
+      if (ahead && Math.abs(ahead.x - car.x) < (dir > 0 ? car.len : ahead.len) + 6) sp = Math.min(sp, ahead.sp * 0.9);
+      car.x += dir * sp * dt;
+    });
+    s.cars[lane] = list.filter(car => car.x > -40 && car.x < W + 40);
+  });
+  // пар от чая
+  s.nextSteam -= dt;
+  if (s.nextSteam <= 0) { s.nextSteam = R(0.18, 0.4); s.steam.push({ x: s.ledge.mug.x + R(-1.5, 1.5), y: s.ledge.mug.y, ph: R(0, 6), life: 0, max: R(2.2, 3.4) }); }
+  s.steam.forEach(p => { p.life += dt; p.y -= R(4, 6) * dt; });
+  s.steam = s.steam.filter(p => p.life < p.max);
+  // кот: хвост и ухо
+  const cat = s.cat;
+  cat.nextTail -= dt;
+  if (cat.nextTail <= 0) { cat.tail = (cat.tail + 1) % TAILS.length; cat.nextTail = chance(0.2) ? R(2, 5) : R(0.4, 0.9); }
+  cat.nextEar -= dt;
+  if (cat.nextEar <= 0) { cat.ear = !cat.ear; cat.nextEar = cat.ear ? 0.25 : R(4, 12); }
+  // футбол
+  const b = s.ball;
+  if (b.hold > 0) { b.hold -= dt; if (b.hold <= 0) { b.u = 0.5; b.v = 0.5; b.du = b.dv = 0; } }
+  else {
+    b.u += b.du * dt; b.v += b.dv * dt;
+    b.du *= Math.pow(0.35, dt); b.dv *= Math.pow(0.35, dt);
+    if (b.v < 0 || b.v > 1) { b.v = Math.max(0, Math.min(1, b.v)); b.dv = -b.dv; }
+    if (b.u < 0 || b.u > 1) {
+      if (b.v > 0.38 && b.v < 0.62) { b.hold = 1.2; b.du = b.dv = 0; b.u = Math.max(0, Math.min(1, b.u)); s.goal = 1.2; } // гол
+      else { b.u = Math.max(0, Math.min(1, b.u)); b.du = -b.du; }
+    }
+  }
+  if (s.goal) s.goal = Math.max(0, s.goal - dt);
+  [0, 1].forEach(team => {
+    const mine = s.players.filter(p => p.team === team);
+    const near = mine.slice().sort((p, q) => Math.hypot(p.u - b.u, p.v - b.v) - Math.hypot(q.u - b.u, q.v - b.v)).slice(0, 2);
+    mine.forEach(p => {
+      const chase = near.includes(p) && b.hold <= 0;
+      const tu = chase ? b.u : p.home.u + Math.sin(s.t * 0.7 + p.home.v * 9) * 0.04 + (b.u - 0.5) * 0.25;
+      const tv = chase ? b.v : p.home.v + Math.cos(s.t * 0.6 + p.home.u * 7) * 0.05;
+      const d = Math.hypot(tu - p.u, tv - p.v);
+      if (d > 0.005) { const st = Math.min(d, p.sp * dt); p.u += (tu - p.u) / d * st; p.v += (tv - p.v) / d * st * 1.6; }
+      if (chase && d < 0.025 && Math.hypot(b.du, b.dv) < 0.08) { // удар: к чужим воротам, с разбросом
+        const aim = { u: team ? R(-0.05, 0.3) : R(0.7, 1.05), v: R(0.2, 0.8) };
+        const k = R(0.35, 0.7), dd = Math.hypot(aim.u - b.u, aim.v - b.v) || 1;
+        b.du = (aim.u - b.u) / dd * k; b.dv = (aim.v - b.v) / dd * k * 0.8;
+      }
+    });
+  });
+}
+
+function draw(ctx, s) {
+  const t = s.t;
+  ctx.drawImage(s.sky.c, 0, 0);
+  // звёзды мерцают
+  s.stars.forEach(st => {
+    const v = Math.sin(t * st.sp + st.ph);
+    if (v < -0.5) return;
+    const col = v > 0.55 ? '#ffffff' : v > 0 ? '#b9bce6' : '#5c6098';
+    px(ctx, st.x, st.y, col);
+    if (st.big && v > 0.75) { px(ctx, st.x - 1, st.y, '#7f84c0'); px(ctx, st.x + 1, st.y, '#7f84c0'); px(ctx, st.x, st.y - 1, '#7f84c0'); px(ctx, st.x, st.y + 1, '#7f84c0'); }
+  });
+  // падающая звезда
+  if (s.shoot) {
+    const sh = s.shoot, k = sh.life / 0.7;
+    for (let i = 0; i < 8; i++) px(ctx, sh.x + sh.dx * (k * 60 - i), sh.y + k * 30 - i * 0.5, `rgba(255,255,255,${((1 - i / 8) * (1 - k)).toFixed(2)})`);
+  }
+  // облака
+  s.clouds.forEach(c => c.rows.forEach(([a, b], i) => px(ctx, c.x + a, c.y + i, i === 0 ? 'rgba(120,100,170,.22)' : 'rgba(55,48,100,.35)', b - a, 1)));
+  // самолёт с мигалками
+  if (s.plane) {
+    const p = s.plane;
+    px(ctx, p.x - 2, p.y, '#4a5078', 5, 1);
+    if (Math.floor(t * 1.5) % 2) px(ctx, p.x + (p.dir > 0 ? 3 : -3), p.y, '#ff4d4d');
+    if (Math.floor(t * 2.2 + 0.5) % 3 === 0) px(ctx, p.x, p.y - 1, '#ffffff');
+  }
+  // дальние дома
+  ctx.drawImage(s.far.c, 0, 0);
+  s.far.windows.forEach(w => { if (w.on) px(ctx, w.x, w.y, w.col, w.w, 1); });
+  s.far.antennas.forEach(a => { if ((t + a.ph) % 2 < 0.45) { px(ctx, a.x, a.y, '#ff4d4d'); px(ctx, a.x - 1, a.y, 'rgba(255,77,77,.35)'); px(ctx, a.x + 1, a.y, 'rgba(255,77,77,.35)'); } });
+  // поле, дорога, фонари
+  ctx.drawImage(s.ground.c, 0, 0);
+  if (s.goal) px(ctx, FIELD.x0 - 4, FIELD.top - 18, `rgba(255,250,215,${(0.12 * s.goal / 1.2).toFixed(3)})`, FIELD.x1 - FIELD.x0 + 8, 30);
+  s.players.slice().sort((p, q) => p.v - q.v).forEach(p => {
+    const q = toScreen(p.u, p.v);
+    px(ctx, q.x, q.y - 2, '#f1d3b5'); px(ctx, q.x, q.y - 1, p.team ? '#8fd3ff' : '#ff7a7a');
+  });
+  if (s.ball.hold <= 0 || Math.floor(t * 6) % 2) { const q = toScreen(s.ball.u, s.ball.v); px(ctx, q.x, q.y, '#ffffff'); }
+  // ближние дома
+  ctx.drawImage(s.mid.c, 0, 0);
+  s.mid.windows.forEach(w => {
+    if (!w.on) return;
+    const col = w.tv ? (Math.sin(t * 13 + w.x) > 0.2 ? '#9fd8ff' : '#5f86c8') : w.col;
+    px(ctx, w.x, w.y, col, w.w, w.h);
+  });
+  const n = s.mid.neon;
+  if (n) {
+    const pink = n.on ? '#ff6fb5' : '#4a2a48', cyan = n.on ? '#5ff0e0' : '#244a52';
+    px(ctx, n.x, n.y, pink, n.w, 1); px(ctx, n.x, n.y + n.h - 1, pink, n.w, 1); px(ctx, n.x, n.y, pink, 1, n.h); px(ctx, n.x + n.w - 1, n.y, pink, 1, n.h);
+    for (let xx = n.x + 2; xx < n.x + n.w - 2; xx += 3) px(ctx, xx, n.y + 2, cyan, 2, 2);
+    if (n.on) px(ctx, n.x - 1, n.y + n.h, 'rgba(255,111,181,.12)', n.w + 2, 3);
+  }
+  // машины
+  s.cars.forEach((list, lane) => list.forEach(car => drawCar(ctx, car, lane ? 190 : 181, lane ? -1 : 1, t)));
+  // крыша, кружка, пар, кот
+  ctx.drawImage(s.ledge.c, 0, 0);
+  s.steam.forEach(p => { const a = 0.5 * (1 - p.life / p.max); px(ctx, p.x + Math.sin(p.life * 2.4 + p.ph) * 1.6, p.y, `rgba(225,225,245,${a.toFixed(2)})`); });
+  const cat = s.cat, cy = LEDGE_Y - CAT.length;
+  CAT.forEach((row, ry) => [...row].forEach((ch, rx) => {
+    if (ch !== 'X' || (cat.ear && ry === 0 && rx === 1)) return;
+    px(ctx, cat.x + rx, cy + ry, ry < 2 || rx === 0 || rx === 8 ? '#141833' : '#070912');
+  }));
+  TAILS[cat.tail].forEach(([tx, ty]) => px(ctx, cat.x + tx, cy + ty, '#0a0c18'));
+}
+
+function drawCar(ctx, car, y, dir, t) {
+  const spr = car.bus ? BUS : CAR, len = car.len, x0 = Math.round(car.x), top = y - (car.bus ? 2 : 0);
+  // свет фар на асфальте
+  const fx = dir > 0 ? x0 + len : x0 - 9;
+  for (let k = 0; k < 9; k++) { const kk = dir > 0 ? k : 8 - k; px(ctx, fx + k, top + spr.length - 2 - Math.floor(kk / 4), `rgba(255,240,190,${(0.22 * (1 - kk / 9)).toFixed(3)})`, 1, 1 + Math.floor(kk / 3)); }
+  spr.forEach((row, ry) => [...row].forEach((ch, rx) => {
+    if (ch === '.') return;
+    const xx = dir > 0 ? x0 + rx : x0 + len - 1 - rx;
+    const col = ch === 'B' ? car.col : ch === 'W' ? '#1d2e52' : ch === 'L' ? '#ffd27a' : ch === 'H' ? '#fff6d6' : ch === 'T' ? '#ff3b3b' : '#06070d';
+    px(ctx, xx, top + ry, col);
+  }));
+  if (car.taxi) px(ctx, dir > 0 ? x0 + 5 : x0 + len - 6, top - 1, Math.floor(t * 2) % 2 ? '#fff3a0' : '#e8c200', 1, 1);
+  const tail = dir > 0 ? x0 - 1 : x0 + len;
+  px(ctx, tail, top + 2, 'rgba(255,59,59,.35)');
+}
+
+function start(canvas) {
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  const s = build();
+  let raf = 0, last = performance.now(), acc = 0;
+  const STEP = 1 / 30;
+  const frame = now => {
+    acc += Math.min((now - last) / 1000, 0.25); last = now;
+    if (acc >= STEP) { while (acc >= STEP) { update(s, STEP); acc -= STEP; } draw(ctx, s); }
+    raf = requestAnimationFrame(frame);
+  };
+  draw(ctx, s);
+  raf = requestAnimationFrame(frame);
+  return { stop() { cancelAnimationFrame(raf); } };
+}
+
+window.PixelCity = { start, W, H };
+})();
