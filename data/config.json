@@ -17,6 +17,7 @@
     {"key":"schedule_fri","value":"14:00-18:00"},
     {"key":"schedule_sat","value":""},
     {"key":"picker_time","value":"19:00"},
-    {"key":"movie_time","value":"19:00"}
+    {"key":"movie_time","value":"19:00"},
+    {"key":"screen_start_sub","value":"чай поставьте"}
   ]
 }
