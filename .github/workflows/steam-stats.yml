@@ -1,0 +1,38 @@
+# Подтягивает библиотеку Steam стримера (игры, часы, недавние, «сейчас играет») и коммитит steam.json.
+# Нужен секрет STEAM_API_KEY (Settings → Secrets and variables → Actions); без него робот просто пропускает запуск.
+# Запуск: каждый час и вручную (Actions → «Steam: библиотека» → Run workflow).
+name: "Steam: библиотека"
+
+on:
+  schedule:
+    - cron: "27 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: steam-stats
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node .github/scripts/steam-stats.mjs
+        env:
+          STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
+      - name: Коммит, если что-то изменилось
+        run: |
+          if [ -z "$(git status --porcelain -- steam.json)" ]; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898341+github-actions[bot]@users.noreply.github.com"
+          git add steam.json
+          git commit -m "Steam: обновлена библиотека"
+          git pull --rebase
+          git push

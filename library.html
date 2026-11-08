@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<title>Библиотека Steam — Hall of Fame</title>
+<link rel="stylesheet" href="site.css?v=6">
+<style>
+  /* Карточки библиотеки — лицевая сторона постеров заказов, без переворота: клик ведёт в магазин Steam */
+  .pcard--lib .pcard__inner { display: block; color: inherit; text-decoration: none; }
+  .pcard--lib:focus-within .pcard__front { outline: 2px solid var(--gold); outline-offset: 3px; }
+  .pcard--unplayed .pcard__front img { filter: grayscale(.7) brightness(.7); }
+  .pcard__placeholder--lib { position: absolute; inset: 0; display: grid; place-items: center; font-size: 54px; font-weight: 700; color: rgba(255,255,255,0.75); }
+  .lib-stats { display: flex; flex-direction: column; gap: 2px; margin-top: 7px; }
+  .lib-hours { font-size: 16px; font-weight: 700; color: var(--gold); text-shadow: 0 1px 5px #000; }
+  .lib-sub { font-size: 11.5px; color: rgba(255,255,255,0.65); text-shadow: 0 1px 4px #000; }
+  .lib-sub b { color: #fff; font-weight: 600; }
+  .lib-live { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ff4d5e; margin-right: 6px; animation: lib-pulse 1.8s ease-out infinite; }
+  @keyframes lib-pulse { 0% { box-shadow: 0 0 0 0 rgba(255,77,94,0.6); } 100% { box-shadow: 0 0 0 9px rgba(255,77,94,0); } }
+  .lib-now { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 16px; }
+  .lib-now a { color: var(--gold); font-weight: 700; text-decoration: none; }
+  .lib-now a:hover { text-decoration: underline; }
+  .subtitle a { color: inherit; }
+  @media (prefers-reduced-motion: reduce) { .lib-live { animation: none; } }
+</style>
+</head>
+<body>
+<script src="site.js?v=15"></script>
+
+<div class="wrap">
+  <header class="header">
+    <h1 class="title"><svg class="ic" aria-hidden="true"><use href="#i-gamepad"></use></svg>Библиотека Steam<svg class="ic" aria-hidden="true"><use href="#i-gamepad"></use></svg></h1>
+    <p class="subtitle" id="subtitle">Во что я играю в Steam</p>
+  </header>
+
+  <section class="spotlight" id="now" aria-label="Сейчас играет" hidden></section>
+
+  <div class="toolbar">
+    <div class="toolbar__row">
+      <label class="search"><svg class="ic" aria-hidden="true"><use href="#i-search"></use></svg><input type="search" class="search-input" id="search" placeholder="Поиск по названию..." aria-label="Поиск по названию"></label>
+    </div>
+    <div class="toolbar__row" id="filters"></div>
+    <div class="toolbar__row" id="sorts"></div>
+  </div>
+
+  <p class="shown-count" id="shown-count" hidden></p>
+  <div id="status" class="empty-state">Загружаю библиотеку...</div>
+  <ul id="grid" class="grid" hidden></ul>
+</div>
+
+<script>
+// Библиотека Steam стримера. Данные — steam.json, его раз в час обновляет робот
+// .github/scripts/steam-stats.mjs (ключ Steam API хранится только в секретах GitHub).
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+  const plural = (n, f) => { const a = n % 100, b = n % 10; return a > 10 && a < 20 ? f[2] : b === 1 ? f[0] : b >= 2 && b <= 4 ? f[1] : f[2]; };
+  // Часы из минут: «1 234 ч», «5,5 ч», «40 мин»
+  function hoursText(min) {
+    if (min < 60) return `${min} мин`;
+    const h = min / 60;
+    return `${(h >= 10 ? Math.round(h) : Math.round(h * 10) / 10).toLocaleString('ru-RU')} ч`;
+  }
+  const dayNo = (d, tz) => { const p = siteTime.parts(d, tz); return Date.UTC(p.y, p.mo, p.d) / 864e5; };
+  function lastText(ts) {
+    if (!ts) return 'ни разу не запускал';
+    const d = new Date(ts * 1000), tz = siteTime.show();
+    const diff = dayNo(new Date(), tz) - dayNo(d, tz);
+    if (diff <= 0) return 'играл сегодня';
+    if (diff === 1) return 'играл вчера';
+    const p = siteTime.parts(d, tz);
+    return `играл ${p.d} ${MONTHS[p.mo]} ${p.y}`;
+  }
+  const storeUrl = appid => `https://store.steampowered.com/app/${appid}/`;
+  const ASSETS = 'https://shared.steamstatic.com/store_item_assets/steam/apps/';
+  const header = appid => `${ASSETS}${appid}/header.jpg`;
+
+  const FILTERS = [
+    { id: 'all', label: 'Все', fn: () => true },
+    { id: 'recent', label: 'Недавно', fn: g => g.minutes2w > 0 },
+    { id: 'played', label: 'Запускал', fn: g => g.minutes > 0 },
+    { id: 'unplayed', label: 'Ни разу', fn: g => !g.minutes },
+  ];
+  const SORTS = [
+    { id: 'hours', label: 'По часам', fn: (a, b) => b.minutes - a.minutes || a.name.localeCompare(b.name) },
+    { id: 'last', label: 'Недавние', fn: (a, b) => b.last - a.last || b.minutes - a.minutes },
+    { id: 'name', label: 'А–Я', fn: (a, b) => a.name.localeCompare(b.name, 'ru') },
+  ];
+  const state = { data: null, filter: 'all', sort: 'hours', q: '' };
+
+  // Обложка: вертикальная от робота → вертикальная по старому адресу → шапка магазина (вписывается целиком) → буква
+  window.libCover = function (img) {
+    const front = img.parentNode, appid = front.dataset.appid;
+    if (img.dataset.step === '0') { img.dataset.step = '1'; img.src = `${ASSETS}${appid}/library_600x900.jpg`; return; }
+    if (img.dataset.step === '1') { img.dataset.step = '2'; img.src = header(appid); return; }
+    img.replaceWith(Object.assign(document.createElement('div'), { className: 'pcard__placeholder--lib', textContent: [...front.dataset.name][0] || '?' }));
+  };
+  window.libFit = function (img) {
+    const front = img.parentNode;
+    const land = img.naturalWidth > img.naturalHeight * 0.85;
+    front.classList.toggle('is-landscape', land);
+    if (land) front.querySelector('.pcard__blur').style.backgroundImage = `url("${img.src.replace(/"/g, '%22')}")`;
+  };
+
+  function card(g, playing) {
+    const first = g.cover || `${ASSETS}${g.appid}/library_600x900.jpg`;
+    const sub = [];
+    if (g.minutes2w > 0) sub.push(`за 2 недели <b>${hoursText(g.minutes2w)}</b>`);
+    sub.push(esc(lastText(g.last)));
+    return `<li class="pcard pcard--lib${g.minutes ? '' : ' pcard--unplayed'}">
+      <a class="pcard__inner" href="${storeUrl(g.appid)}" target="_blank" rel="noopener" aria-label="${esc(g.name)} — страница в Steam">
+        <div class="pcard__face pcard__front" data-appid="${g.appid}" data-name="${esc(g.name)}">
+          <div class="pcard__blur"></div>
+          <img src="${esc(first)}" alt="" loading="lazy" decoding="async" data-step="${g.cover ? 0 : 1}" onload="libFit(this)" onerror="libCover(this)">
+          ${playing ? `<div class="pcard__tags"><span class="tag tag--active"><span class="lib-live"></span>Сейчас играет</span></div>` : ''}
+          <div class="pcard__shade">
+            <div class="pcard__title">${esc(g.name)}</div>
+            <div class="lib-stats"><span class="lib-hours">${g.minutes ? hoursText(g.minutes) : '—'}</span><span class="lib-sub">${sub.join(' · ')}</span></div>
+          </div>
+        </div>
+      </a></li>`;
+  }
+
+  function chips(box, list, cur, counts) {
+    box.innerHTML = list.map(f => `<button type="button" class="chip${f.id === cur ? ' is-active' : ''}" data-v="${f.id}">${esc(f.label)}${counts ? ` <span class="count">${counts(f)}</span>` : ''}</button>`).join('');
+  }
+
+  function render() {
+    const d = state.data, games = d.games || [];
+    const playing = d.profile && d.profile.playing;
+    chips($('filters'), FILTERS, state.filter, f => games.filter(f.fn).length);
+    chips($('sorts'), SORTS, state.sort);
+    const q = state.q.trim().toLowerCase();
+    const shown = games.filter(FILTERS.find(f => f.id === state.filter).fn)
+      .filter(g => !q || g.name.toLowerCase().includes(q))
+      .sort(SORTS.find(s => s.id === state.sort).fn);
+    $('grid').innerHTML = shown.map(g => card(g, playing && playing.appid === g.appid)).join('');
+    $('grid').hidden = !shown.length;
+    $('status').hidden = !!shown.length;
+    $('status').textContent = q ? `Ничего не найдено по «${state.q.trim()}»` : 'Здесь пока пусто';
+    $('shown-count').hidden = shown.length === games.length;
+    $('shown-count').textContent = `Показано: ${shown.length} из ${games.length}`;
+  }
+
+  $('filters').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (b) { state.filter = b.dataset.v; render(); } });
+  $('sorts').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (b) { state.sort = b.dataset.v; render(); } });
+  $('search').addEventListener('input', e => { state.q = e.target.value; render(); });
+  siteTime.onChange(() => state.data && render());
+
+  fetch('steam.json', { cache: 'no-cache' })
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(d => {
+      state.data = d;
+      const t = d.totals || {};
+      const upd = d.updated ? siteTime.parts(new Date(d.updated), siteTime.show()) : null;
+      $('subtitle').innerHTML = `<span class="accent">${t.games || 0}</span> ${plural(t.games || 0, ['игра', 'игры', 'игр'])} · запускал <span class="accent">${t.played || 0}</span> · ` +
+        `<span class="accent">${(t.hours || 0).toLocaleString('ru-RU')}</span> ч в Steam` +
+        (d.profile && d.profile.url ? ` · <a href="${esc(d.profile.url)}" target="_blank" rel="noopener">профиль</a>` : '') +
+        (upd ? `<br>обновлено ${upd.d} ${MONTHS[upd.mo]}, ${String(upd.h).padStart(2, '0')}:${String(upd.mi).padStart(2, '0')}` : '');
+      const p = d.profile && d.profile.playing;
+      if (p) {
+        $('now').hidden = false;
+        $('now').innerHTML = `<div class="lib-now"><span><span class="lib-live"></span>Сейчас играю:</span><a href="${storeUrl(p.appid)}" target="_blank" rel="noopener">${esc(p.name)}</a></div>`;
+      }
+      render();
+    })
+    .catch(() => { $('status').textContent = 'Библиотека Steam ещё не подключена — скоро здесь появятся игры.'; });
+})();
+</script>
+</body>
+</html>

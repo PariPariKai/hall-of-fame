@@ -101,6 +101,11 @@ function rowsToItems(rows, viewers) {
 const ORDERS_META = fetch('orders-meta.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}).catch(() => ({}));
 // Короткие смешные подписи для оборота карточки (как у «Боли»), см. orders-quips.json
 const ORDERS_QUIPS = fetch('orders-quips.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}).catch(() => ({}));
+// Библиотека Steam стримера (робот .github/scripts/steam-stats.mjs) — у заказов игр рядом с часами на стриме
+// показываем часы в Steam. Ручные часы не трогаем: Steam считает и игру не на стриме.
+const STEAM_STATS = CFG.list === 'games'
+  ? fetch('steam.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).catch(() => null) : Promise.resolve(null);
+let steamMinutes = {}; // appid → минут в Steam
 function metaKey(list, title) {
   return list + '|' + String(title || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('ru').replace(/ё/g, 'е');
 }
@@ -111,11 +116,14 @@ function applyOrdersMeta(items, meta, quips) {
     it.quip = quip[metaKey(CFG.list, it.key)] || '';
     const m = found[metaKey(CFG.list, it.key)];
     if (m && m.found) {
+      if (m.appid) it.appid = m.appid;
       if (!it.url && m.url) it.url = m.url;
       if (!it.cover_url && m.cover) it.cover_url = m.cover;
       // Обложка в таблице есть — запоминаем робота как запасную вертикальную (см. fitCover)
       else if (m.cover && m.cover !== it.cover_url) it.alt_cover = m.cover;
     }
+    const steam = (it.url || '').match(/store\.steampowered\.com\/app\/(\d+)/); // ссылка в таблице главнее находки робота
+    if (steam) it.appid = +steam[1];
     const yt = (it.url || '').match(/(?:youtu\.be\/|[?&]v=|\/shorts\/|\/embed\/)([\w-]{11})/);
     if (!it.cover_url && yt) it.cover_url = `https://i.ytimg.com/vi/${yt[1]}/hqdefault.jpg`;
   });
@@ -273,6 +281,8 @@ function buildCard(it) {
   const stat = (label, value) => stats.push(`<div class="stat"><span>${label}</span><b>${esc(value)}</b></div>`);
   if (show) stat('Показ', showTime(it.scheduled_at));
   if (it.hours_played > 0) stat('Наиграно', `${fmtNum(it.hours_played)} ч`);
+  const steamMin = it.appid && steamMinutes[it.appid];
+  if (steamMin) stat('В Steam', `${fmtNum(steamMin >= 600 ? Math.round(steamMin / 60) : Math.round(steamMin / 6) / 10)} ч`);
   if (it.date_added) stat('Добавлено', shortDate(it.date_added));
   if (it.date_completed) stat(st.doneLabel || 'Завершено', shortDate(it.date_completed));
   const link = isHttpUrl(it.url)
@@ -459,13 +469,15 @@ function resetFilters() {
 async function load() {
   const status = $('status');
   try {
-    const [csv, viewersCsv, meta, quips] = await Promise.all([
+    const [csv, viewersCsv, meta, quips, steam] = await Promise.all([
       // src — data/*.json (раздел правится на admin.html); csv — старая ссылка на лист, если где-то осталась
       siteData.text(CFG.src || CFG.csv).catch(e => { throw new Error(`${e.message} при загрузке списка ${CFG.sheet}`); }),
       siteData.fetch(VIEWERS_CSV_URL).then(r => r.ok ? r.text() : '').catch(() => ''),
       ORDERS_META,
       ORDERS_QUIPS,
+      STEAM_STATS,
     ]);
+    steamMinutes = Object.fromEntries(((steam && steam.games) || []).map(g => [g.appid, g.minutes]));
     // Каждую минуту перечитываем лист; ничего не поменялось — карточки не трогаем (перевёрнутые остаются перевёрнутыми).
     const signature = csv + '\n' + viewersCsv;
     if (signature === state.signature) return;
