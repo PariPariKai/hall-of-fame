@@ -26,6 +26,7 @@
     {"screen":"start","label":"","text":"Заряжайте Трулу музыкой!","active":"TRUE","id":"95cfb165"},
     {"screen":"start","label":"","text":"Бва-ха-ха-ха!","active":"TRUE","id":"d84c300f"},
     {"screen":"all","label":"Факт","text":"Алкострим - грех. Но зато какой весёлый!","active":"TRUE","id":"362d939c"},
-    {"screen":"start","label":"Факт","text":"Ваше присутствие - услада для моих глаз! ♥ ♥ ♥","active":"TRUE","id":"8a72d4a7"}
+    {"screen":"start","label":"Факт","text":"Ваше присутствие - услада для моих глаз! ♥ ♥ ♥","active":"TRUE","id":"8a72d4a7"},
+    {"screen":"start","label":"","text":"Веди себя адекватно. А то рулетка СУДА безпощадна.","active":"TRUE","id":"7ece95b7"}
   ]
 }
