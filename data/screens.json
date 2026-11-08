@@ -2,7 +2,6 @@
   "columns": ["screen","label","text","active","id"],
   "items": [
     {"screen":"start","label":"","text":"Наливай чай, устраивайся поудобнее — скоро начнём","active":"TRUE","id":"5c01a7e2"},
-    {"screen":"start","label":"","text":"Пока собираемся — напиши в чат, откуда смотришь","active":"TRUE","id":"9b3f10d4"},
     {"screen":"all","label":"Факт","text":"В этом городе вечером всегда кто-то играет в футбол. Даже когда стрим уже идёт","active":"TRUE","id":"e4a8c210"},
     {"screen":"brb","label":"","text":"Стример отошёл за чаем. Чат, не разбегаемся","active":"TRUE","id":"71d0b9c3"},
     {"screen":"end","label":"","text":"Спасибо, что были сегодня. До следующего стрима!","active":"TRUE","id":"0fa6d58e"}
