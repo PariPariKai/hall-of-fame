@@ -194,7 +194,7 @@
   <div class="timer" id="timer" hidden></div>
 </div>
 
-<script src="pixel-city.js?v=1"></script>
+<script src="pixel-city.js?v=2"></script>
 <script>
 (function () {
 'use strict';
@@ -203,6 +203,9 @@
 const qs = new URLSearchParams(location.search);
 const SCREEN = ['start', 'brb', 'end'].includes(qs.get('s')) ? qs.get('s') : 'start';
 const DEMO = qs.has('demo');
+// Версия страницы. Менять при каждой правке screen.html или pixel-city.js (и ?v= у pixel-city.js):
+// OBS держит копию страницы до 10 минут, а так оверлей сам замечает новую версию на сайте и перезагружается.
+const VERSION = '2026-11-08.3';
 const DEFAULTS = {
   start: { title: 'Стрим начинается', sub: '', timer: '5', timer_done: 'Вот-вот начнём', chat: 'TRUE', every: '35', pos: 'top', bg: 'video' },
   brb: { title: 'Скоро вернусь', sub: '', timer: '0', timer_done: 'Уже иду', chat: 'TRUE', every: '40', pos: 'top', bg: 'pixel' },
@@ -520,7 +523,25 @@ function demo() {
   fake();
 }
 
+// ===================== обновление самой страницы =====================
+// Свежая копия с сайта (мимо кэша) с другой VERSION — перезагружаемся с меткой в адресе, которой нет в кэше.
+// Метка _v свежее двух минут — не дёргаемся, чтобы разные узлы CDN не устроили перезагрузки по кругу.
+async function checkVersion() {
+  if (location.protocol === 'file:') return;
+  try {
+    const html = await (await fetch(location.pathname + '?t=' + Date.now(), { cache: 'no-store' })).text();
+    const m = /const VERSION = '([^']+)'/.exec(html);
+    if (!m || m[1] === VERSION) return;
+    const since = Date.now() - (+qs.get('_v') || 0);
+    if (since < 120000) return;
+    qs.set('_v', Date.now());
+    location.replace(location.pathname + '?' + qs.toString());
+  } catch (e) { /* сайт недоступен — работаем на том, что есть */ }
+}
+
 // ===================== запуск =====================
+checkVersion();
+setInterval(checkVersion, 5 * 60000);
 loadSettings().then(() => {
   if (DEMO) demo(); else connect();
   schedulePhrase(true);
