@@ -396,7 +396,14 @@ function dateTs(it) {
   if (isDone(state.status) && it.date_completed) return ts(it.date_completed);
   return ts(it.date_added) || ts(it.date_completed);
 }
+// Последний запуск в Steam (робот steam-stats), 0 — нет данных
+const steamLastTs = it => (it.appid && steamGames[it.appid] && steamGames[it.appid].last) || 0;
 function compare(a, b) {
+  if (state.sort === 'steam-last') {
+    const la = steamLastTs(a), lb = steamLastTs(b);
+    if (la !== lb) return lb - la; // без данных Steam — в конец, дальше по датам
+    return (ts(b.date_completed) || ts(b.date_added)) - (ts(a.date_completed) || ts(a.date_added)) || a._order - b._order;
+  }
   if (state.sort === 'date-desc' || state.sort === 'date-asc') {
     const da = dateTs(a), db = dateTs(b);
     if (da !== db) return state.sort === 'date-desc' ? db - da : da - db;
@@ -453,7 +460,9 @@ function renderChips() {
     chipsRow('type-filters', 'type', [['all', 'Все типы', state.items.length], ...CFG.types.map(t => [t.id, t.label, counts['t:' + t.id] || 0])], 'Тип:');
     $('type-filters').hidden = false;
   }
-  chipsRow('sort-filters', 'sort', [['default', 'По статусу'], ['date-desc', 'Сначала новые'], ['date-asc', 'Сначала старые']], 'Сортировка:');
+  const sorts = [['default', 'По статусу'], ['date-desc', 'Сначала новые'], ['date-asc', 'Сначала старые']];
+  if (Object.keys(steamGames).length) sorts.push(['steam-last', 'Последний запуск']);
+  chipsRow('sort-filters', 'sort', sorts, 'Сортировка:');
   const sub = $('subtitle');
   sub.innerHTML = CFG.summary(counts, state.items.length, n => `<span class="accent">${n}</span>`);
 }
