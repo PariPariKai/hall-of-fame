@@ -86,6 +86,7 @@
   .copy-btn.is-done { border-color: var(--gold); color: var(--gold); }
   .copy-btn svg { width: 14px; height: 14px; }
   .item--blank .item__title { color: var(--dim); font-style: italic; font-weight: 400; }
+  .item--lines .item__title { white-space: pre-line; line-height: 1.45; } /* фразы заставок: строки как на экране */
   .count-line { font-size: 12px; color: var(--dim); margin: 0 0 10px 4px; letter-spacing: .4px; }
 
   /* ---------- редактор ---------- */
@@ -924,7 +925,8 @@ const SCREEN_DEFAULTS = {
 };
 const SCREEN_BGS = [['video', 'Прозрачный: видео в OBS под ним'], ['pixel', 'Пиксельный ночной город']];
 const SCREEN_COMMON = { life: '10', max: '7', ignore: 'nightbot, streamelements, moobot, fossabot, wizebot, streamlabs, soundalerts, sery_bot, commanderroot' };
-const phraseTitle = it => String(it.text || '').trim().replace(/\s+/g, ' ').slice(0, 90) || 'Без текста';
+// Переносы строк сохраняем (шутки-диалоги), лишние пробелы внутри строк схлопываем
+const phraseTitle = it => String(it.text || '').trim().split('\n').map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean).join('\n').slice(0, 300) || 'Без текста';
 const screensSection = {
   id: 'screens', label: 'Заставки', icon: 'video', group: 'Стрим', path: 'data/screens.json', one: 'Фраза',
   addLabel: 'Добавить фразу', search: 'Текст фразы...',
@@ -936,9 +938,10 @@ const screensSection = {
     { k: 'text', label: 'Текст', type: 'textarea', rows: 3, required: true },
   ],
   title: phraseTitle,
+  normalize: vals => { vals.text = vals.text.replace(/\r\n/g, '\n'); },
   defaults: () => ({ screen: SCREEN_NAME[views.screens && views.screens.filter] && views.screens.filter !== 'all' ? views.screens.filter : 'start', active: 'TRUE' }),
   row: it => ({
-    poster: '', shape: 'none', title: phraseTitle(it), sub: '',
+    poster: '', shape: 'none', title: phraseTitle(it), sub: '', lines: true,
     tag: isOn(it) ? { tone: it.screen === 'all' ? 'show' : 'queue', label: SCREEN_NAME[it.screen] || it.screen || '—' } : { tone: 'paused', label: 'Выключена' },
     aux: '', date: esc(it.label || ''),
   }),
@@ -1234,7 +1237,7 @@ function render() {
   $('count').textContent = (sec.note ? sec.note + ' ' : '') + `Показано ${list.length} из ${all.length}`;
   $('items').innerHTML = list.map(it => {
     const r = sec.row(it);
-    return `<li class="item${r.blank ? ' item--blank' : ''}" data-id="${esc(it.id)}" tabindex="0">
+    return `<li class="item${r.blank ? ' item--blank' : ''}${r.lines ? ' item--lines' : ''}" data-id="${esc(it.id)}" tabindex="0">
       <div class="item__poster${r.shape ? ' item__poster--' + r.shape : ''}"${bg(r.poster)}></div>
       <div><div class="item__title">${esc(r.title)}${r.small ? `<small>${esc(r.small)}</small>` : ''}</div><div class="item__sub">${esc(r.sub || '')}</div></div>
       <div class="item__nick">${r.copy != null ? `<button type="button" class="copy-btn" data-copy>${icon('copy')}Копировать</button>` : esc(r.nick || '')}</div>
