@@ -193,6 +193,16 @@ const SPRITES = {
     '...KhK.......KhK..',
     '....K.........K...',
   ],
+  // чёрная «бэха»: низкая, длинный капот, раз в пару минут, торопится и моргает дальним
+  bmw: [
+    '.......RRRRR.......',
+    '......BGGGBGGGB....',
+    '.RRRRBGGGGBGGGGRRR.',
+    'TBBBBBBBBBBBBBBBBBH',
+    'DDDKKKDDDDDDDDKKKDD',
+    '...KhK........KhK..',
+    '....K..........K...',
+  ],
   bus: [
     '.RRRRRRRRRRRRRRRRRRRRRRRR.',
     'BBBBBBBBBBBBBBBBBBBBBBBBBB',
@@ -229,6 +239,7 @@ function build() {
   s.plane = null; s.nextPlane = R(15, 40);
   s.shoot = null; s.nextShoot = R(6, 20);
   s.nextToggle = 0;
+  s.nextBmw = R(40, 90); s.bmwDue = false;
   s.cat = { x: 70, tail: 0, nextTail: 1, ear: false, nextEar: R(4, 10) };
   // футбол: четверо на четверо
   s.players = Array.from({ length: 8 }, (_, i) => {
@@ -262,20 +273,27 @@ function update(s, dt) {
   if (!s.shoot && s.nextShoot <= 0) s.shoot = { x: R(40, W - 40), y: R(5, 50), dx: chance(0.5) ? -1 : 1, life: 0 };
   if (s.shoot) { s.shoot.life += dt; if (s.shoot.life > 0.7) { s.shoot = null; s.nextShoot = R(15, 45); } }
   // машины: верхняя полоса — вправо, нижняя — влево
+  if (!s.bmwDue) { s.nextBmw -= dt; if (s.nextBmw <= 0) s.bmwDue = true; }
   // Первые в списке едут впереди. Догнал медленного — тормозит и держит дистанцию, сквозь не проезжает.
   [0, 1].forEach(lane => {
     const list = s.cars[lane], dir = lane ? -1 : 1;
     const gapTo = (car, ahead) => dir > 0 ? ahead.x - (car.x + car.len) : car.x - (ahead.x + ahead.len);
     s.nextCar[lane] -= dt;
-    if (s.nextCar[lane] <= 0) {
-      const kind = chance(0.08) ? 'bus' : pick(['sedan', 'sedan', 'hatch', 'suv']);
+    // бэха выезжает в полосу, где сейчас больше машин, — чтобы было кого догнать
+    const bmwHere = s.bmwDue && list.length >= s.cars[1 - lane].length;
+    if (s.nextCar[lane] <= 0 || bmwHere) {
+      const kind = bmwHere ? 'bmw' : chance(0.08) ? 'bus' : pick(['sedan', 'sedan', 'hatch', 'suv']);
       const taxi = kind === 'sedan' && chance(0.15), spr = SPRITES[kind], len = spr[0].length;
       const car = { kind, spr, len, taxi, x: dir > 0 ? -len - 2 : W + 2,
-        col: kind === 'bus' ? pick(['#3f9a66', '#c8505a', '#3a78c0']) : taxi ? '#f2c230' : pick(CAR_COLORS),
-        sp: kind === 'bus' ? R(10, 13) : R(14, 28) };
+        col: kind === 'bmw' ? '#16171d' : kind === 'bus' ? pick(['#3f9a66', '#c8505a', '#3a78c0']) : taxi ? '#f2c230' : pick(CAR_COLORS),
+        sp: kind === 'bmw' ? R(44, 52) : kind === 'bus' ? R(10, 13) : R(14, 26) };
       const last = list[list.length - 1];
-      if (!last || gapTo(car, last) > 12) { car.v = last ? Math.min(car.sp, last.v) : car.sp; list.push(car); }
-      s.nextCar[lane] = R(1.2, 5);
+      if (!last || gapTo(car, last) > 12) {
+        car.v = last ? Math.min(car.sp, last.v) : car.sp;
+        list.push(car);
+        if (kind === 'bmw') { s.bmwDue = false; s.nextBmw = R(100, 160); }
+      }
+      if (!bmwHere) s.nextCar[lane] = R(1.2, 5);
     }
     list.forEach((car, i) => {
       const ahead = list[i - 1];
@@ -284,6 +302,11 @@ function update(s, dt) {
         const gap = gapTo(car, ahead);
         if (gap < 22) want = Math.min(want, Math.max(0, ahead.v + (gap - GAP - 4) * 1.2));
       }
+      // бэха упёрлась в медленного — моргает дальним: два коротких, пауза
+      const stuck = car.kind === 'bmw' && ahead && gapTo(car, ahead) < 30 && ahead.v < car.sp * 0.8;
+      car.flashT = stuck ? (car.flashT || 0) + dt : 0;
+      const ph = car.flashT % 1.1;
+      car.flash = stuck && (ph < 0.12 || (ph > 0.24 && ph < 0.36));
       car.v += Math.max(-40 * dt, Math.min(10 * dt, want - car.v)); // разгон плавный, тормоз резче
       car.x += dir * car.v * dt;
       if (ahead && gapTo(car, ahead) < GAP) { // страховка: вплотную, но не насквозь
@@ -404,17 +427,26 @@ function drawCar(ctx, car, ground, dir, t) {
   const pal = car.pal || (car.pal = { R: shade(car.col, 0.3), B: car.col, D: shade(car.col, -0.4) });
   const lightRow = spr.findIndex(r => r.includes('H'));
   const at = rx => dir > 0 ? x0 + rx : x0 + len - 1 - rx; // зеркалим, если едет влево
-  // свет фар: конус вперёд и пятно на асфальте
-  for (let k = 1; k <= 12; k++) {
-    const a = 0.3 * (1 - k / 13), y0 = top + lightRow, h = Math.min(ground - y0 + 1, 1 + Math.floor(k / 3));
-    px(ctx, at(len - 1 + k), y0, `rgba(255,214,120,${a.toFixed(3)})`, 1, h);
+  // свет фар: конус вперёд и пятно на асфальте; у бэхи — холодный ксенон, а дальний — длинный и яркий
+  const flash = car.flash, beam = flash ? 30 : 12, y0 = top + lightRow;
+  const rgb = car.kind === 'bmw' ? '220,236,255' : '255,214,120';
+  for (let k = 1; k <= beam; k++) {
+    const a = (flash ? 0.6 : 0.3) * (1 - k / (beam + 1));
+    const up = flash ? Math.floor(k / 6) : 0, h = Math.min(ground - y0 + 1 + up, 1 + Math.floor(k / 3) + up);
+    px(ctx, at(len - 1 + k), y0 - up, `rgba(${rgb},${a.toFixed(3)})`, 1, h);
+  }
+  if (flash) { // ореол вокруг фары
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -1; dx <= 3; dx++) {
+      const d = Math.abs(dy) + Math.abs(dx - 1);
+      if (d && d < 4) px(ctx, at(len - 1 + dx), y0 + dy, `rgba(240,248,255,${(0.55 - d * 0.15).toFixed(2)})`);
+    }
   }
   spr.forEach((row, ry) => [...row].forEach((ch, rx) => {
     if (ch === '.') return;
     let col = pal[ch];
     if (ch === 'G') col = row[rx - 1] !== 'G' ? '#5d80b0' : '#2b4268'; // блик на краю стекла
     else if (ch === 'W') col = '#ffd27a';
-    else if (ch === 'H') col = '#fff6d6';
+    else if (ch === 'H') col = flash ? '#ffffff' : car.kind === 'bmw' ? '#dff0ff' : '#fff6d6';
     else if (ch === 'T') col = '#ff3b3b';
     else if (ch === 'K') col = '#0b0c14';
     else if (ch === 'h') col = '#7a8098';

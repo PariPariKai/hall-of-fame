@@ -199,7 +199,7 @@
   <div class="timer" id="timer" hidden></div>
 </div>
 
-<script src="pixel-city.js?v=3"></script>
+<script src="pixel-city.js?v=4"></script>
 <script>
 (function () {
 'use strict';
@@ -210,7 +210,7 @@ const SCREEN = ['start', 'brb', 'end'].includes(qs.get('s')) ? qs.get('s') : 'st
 const DEMO = qs.has('demo');
 // Версия страницы. Менять при каждой правке screen.html или pixel-city.js (и ?v= у pixel-city.js):
 // OBS держит копию страницы до 10 минут, а так оверлей сам замечает новую версию на сайте и перезагружается.
-const VERSION = '2026-11-08.4';
+const VERSION = '2026-11-08.5';
 const DEFAULTS = {
   start: { title: 'Стрим начинается', sub: '', timer: '5', timer_done: 'Вот-вот начнём', chat: 'TRUE', every: '35', pos: 'top', bg: 'video' },
   brb: { title: 'Скоро вернусь', sub: '', timer: '0', timer_done: 'Уже иду', chat: 'TRUE', every: '40', pos: 'top', bg: 'pixel' },
