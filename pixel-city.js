@@ -18,7 +18,7 @@ const WARM = ['#ffd27a', '#ffc35e', '#ffe09a', '#f7b85a'];
 const WARM_DIM = ['#b8924e', '#a88544', '#c49c58'];
 const COOL = ['#9fd8ff', '#b8e4ff'];
 const COOL_DIM = ['#6a8cb4', '#5f7fa8'];
-const CAR_COLORS = ['#d94f5c', '#e8b04a', '#4a8fd9', '#d9d9e0', '#454a66', '#7a5ad9', '#4ac0a0', '#c0c4d8', '#e07a3c'];
+const CAR_COLORS = ['#d94f5c', '#4a8fd9', '#d9d9e0', '#454a66', '#7a5ad9', '#4ac0a0', '#c0c4d8', '#e07a3c', '#2f6fb0', '#8a2f3c']; // жёлтые — только такси
 
 function layer() { const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'); x.imageSmoothingEnabled = false; return [c, x]; }
 const px = (ctx, x, y, col, w, h) => { ctx.fillStyle = col; ctx.fillRect(Math.round(x), Math.round(y), w || 1, h || 1); };
@@ -133,7 +133,8 @@ function buildGround() {
   // фонари и пятна света под ними
   for (let lx = RI(8, 24); lx < W; lx += RI(40, 56)) {
     px(x, lx, 165, '#3a3f66', 1, 13); px(x, lx, 165, '#3a3f66', 3, 1); px(x, lx + 2, 166, '#ffe7a8', 2, 1);
-    for (let k = 0; k < 14; k++) { const ww = 4 + k; px(x, lx + 3 - ww / 2, 167 + k + (k > 10 ? 4 : 0), 'rgba(255,215,140,.07)', ww, 1); }
+    for (let k = 0; k < 11; k++) { const ww = 3 + k; px(x, lx + 3 - ww / 2, 167 + k, 'rgba(255,215,140,.06)', ww, 1); } // конус до тротуара
+    for (let k = 0; k < 3; k++) { const ww = 14 - k * 4; px(x, lx + 3 - ww / 2, MID_BASE + k, `rgba(255,190,90,${(0.13 - k * 0.04).toFixed(3)})`, ww, 1); } // пятно у столба
   }
   return { c };
 }
@@ -160,8 +161,56 @@ const TAILS = [
   [[9, 10], [10, 10], [11, 10], [12, 9], [13, 8]],
   [[9, 10], [10, 10], [11, 9], [11, 8], [12, 7]],
 ];
-const CAR = ['...BWWB....', '.BBBBBBBBBH', 'TBBBBBBBBBB', '..K....K...'];
-const BUS = ['BBBBBBBBBBBBBBBBBBBBBB', 'BLLBLLBLLBLLBLLBLLBWWB', 'BLLBLLBLLBLLBLLBLLBWWB', 'BBBBBBBBBBBBBBBBBBBBBH', 'TBBBBBBBBBBBBBBBBBBBBB', '...KK............KK...'];
+// Машины сбоку, мордой вправо (влево — зеркально). Читаются по крыше, окнам, аркам и двум круглым колёсам.
+// R — светлый верх кузова, B — кузов, D — низ кузова в тени, G — стекло, W — окно автобуса со светом,
+// H — фара, T — стоп-сигнал, K — шина, h — диск. Нижняя строка — земля.
+const SPRITES = {
+  sedan: [
+    '......RRRRRR......',
+    '.....BGGGBGGGB....',
+    '.RRRRBGGGBGGGGRRR.',
+    'TBBBBBBBBBBBBBBBBH',
+    'DDDKKKDDDDDDDKKKDD',
+    '...KhK.......KhK..',
+    '....K.........K...',
+  ],
+  hatch: [
+    '.....RRRRR.....',
+    '....BGGBGGGB...',
+    '..RRBGGBGGGGRR.',
+    'TBBBBBBBBBBBBBH',
+    'DDKKKDDDDDKKKDD',
+    '..KhK.....KhK..',
+    '...K.......K...',
+  ],
+  suv: [
+    '...RRRRRRRRRR.....',
+    '..BGGGBGGGBGGGB...',
+    '..BGGGBGGGBGGGGB..',
+    '.RBBBBBBBBBBBBBRRR',
+    'TBBBBBBBBBBBBBBBBH',
+    'DDDKKKDDDDDDDKKKDD',
+    '...KhK.......KhK..',
+    '....K.........K...',
+  ],
+  bus: [
+    '.RRRRRRRRRRRRRRRRRRRRRRRR.',
+    'BBBBBBBBBBBBBBBBBBBBBBBBBB',
+    'BWWBWWBWWBWWBWWBWWBWWBGGGB',
+    'BWWBWWBWWBWWBWWBWWBWWBGGGB',
+    'RRRRRRRRRRRRRRRRRRRRRRRRRR',
+    'TBBBBBBBBBBBBBBBBBBBBBBBBH',
+    'DDDKKKDDDDDDDDDDDDDKKKDDDD',
+    '...KhK.............KhK....',
+    '....K...............K.....',
+  ],
+};
+const LANE_GROUND = [186, 195]; // строка земли: дальняя полоса (едут вправо), ближняя (влево)
+const GAP = 4;                  // меньше этого машины друг к другу не подъезжают
+function shade(hex, k) { // k > 0 — светлее, k < 0 — темнее
+  const n = parseInt(hex.slice(1), 16), ch = s => { const v = (n >> s) & 255; return Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k)); };
+  return `rgb(${ch(16)},${ch(8)},${ch(0)})`;
+}
 
 // ===================== сцена =====================
 function build() {
@@ -213,23 +262,34 @@ function update(s, dt) {
   if (!s.shoot && s.nextShoot <= 0) s.shoot = { x: R(40, W - 40), y: R(5, 50), dx: chance(0.5) ? -1 : 1, life: 0 };
   if (s.shoot) { s.shoot.life += dt; if (s.shoot.life > 0.7) { s.shoot = null; s.nextShoot = R(15, 45); } }
   // машины: верхняя полоса — вправо, нижняя — влево
+  // Первые в списке едут впереди. Догнал медленного — тормозит и держит дистанцию, сквозь не проезжает.
   [0, 1].forEach(lane => {
     const list = s.cars[lane], dir = lane ? -1 : 1;
+    const gapTo = (car, ahead) => dir > 0 ? ahead.x - (car.x + car.len) : car.x - (ahead.x + ahead.len);
     s.nextCar[lane] -= dt;
     if (s.nextCar[lane] <= 0) {
-      const bus = chance(0.1), len = bus ? 22 : 11, x = dir > 0 ? -len - 8 : W + 8;
-      const lastCar = list[list.length - 1];
-      if (!lastCar || Math.abs(lastCar.x - x) > len + 14) {
-        const taxi = !bus && chance(0.12);
-        list.push({ x, len, bus, taxi, col: bus ? pick(['#e8b04a', '#3fa06b', '#d94f5c']) : taxi ? '#f2c230' : pick(CAR_COLORS), sp: bus ? R(11, 14) : R(15, 30) });
-      }
+      const kind = chance(0.08) ? 'bus' : pick(['sedan', 'sedan', 'hatch', 'suv']);
+      const taxi = kind === 'sedan' && chance(0.15), spr = SPRITES[kind], len = spr[0].length;
+      const car = { kind, spr, len, taxi, x: dir > 0 ? -len - 2 : W + 2,
+        col: kind === 'bus' ? pick(['#3f9a66', '#c8505a', '#3a78c0']) : taxi ? '#f2c230' : pick(CAR_COLORS),
+        sp: kind === 'bus' ? R(10, 13) : R(14, 28) };
+      const last = list[list.length - 1];
+      if (!last || gapTo(car, last) > 12) { car.v = last ? Math.min(car.sp, last.v) : car.sp; list.push(car); }
       s.nextCar[lane] = R(1.2, 5);
     }
     list.forEach((car, i) => {
-      const ahead = list[i - 1]; // первые в списке едут впереди
-      let sp = car.sp;
-      if (ahead && Math.abs(ahead.x - car.x) < (dir > 0 ? car.len : ahead.len) + 6) sp = Math.min(sp, ahead.sp * 0.9);
-      car.x += dir * sp * dt;
+      const ahead = list[i - 1];
+      let want = car.sp;
+      if (ahead) {
+        const gap = gapTo(car, ahead);
+        if (gap < 22) want = Math.min(want, Math.max(0, ahead.v + (gap - GAP - 4) * 1.2));
+      }
+      car.v += Math.max(-40 * dt, Math.min(10 * dt, want - car.v)); // разгон плавный, тормоз резче
+      car.x += dir * car.v * dt;
+      if (ahead && gapTo(car, ahead) < GAP) { // страховка: вплотную, но не насквозь
+        car.x = dir > 0 ? ahead.x - GAP - car.len : ahead.x + ahead.len + GAP;
+        car.v = Math.min(car.v, ahead.v);
+      }
     });
     s.cars[lane] = list.filter(car => car.x > -40 && car.x < W + 40);
   });
@@ -327,7 +387,7 @@ function draw(ctx, s) {
     if (n.on) px(ctx, n.x - 1, n.y + n.h, 'rgba(255,111,181,.12)', n.w + 2, 3);
   }
   // машины
-  s.cars.forEach((list, lane) => list.forEach(car => drawCar(ctx, car, lane ? 190 : 181, lane ? -1 : 1, t)));
+  s.cars.forEach((list, lane) => list.forEach(car => drawCar(ctx, car, LANE_GROUND[lane], lane ? -1 : 1, t)));
   // крыша, кружка, пар, кот
   ctx.drawImage(s.ledge.c, 0, 0);
   s.steam.forEach(p => { const a = 0.5 * (1 - p.life / p.max); px(ctx, p.x + Math.sin(p.life * 2.4 + p.ph) * 1.6, p.y, `rgba(225,225,245,${a.toFixed(2)})`); });
@@ -339,20 +399,32 @@ function draw(ctx, s) {
   TAILS[cat.tail].forEach(([tx, ty]) => px(ctx, cat.x + tx, cy + ty, '#0a0c18'));
 }
 
-function drawCar(ctx, car, y, dir, t) {
-  const spr = car.bus ? BUS : CAR, len = car.len, x0 = Math.round(car.x), top = y - (car.bus ? 2 : 0);
-  // свет фар на асфальте
-  const fx = dir > 0 ? x0 + len : x0 - 9;
-  for (let k = 0; k < 9; k++) { const kk = dir > 0 ? k : 8 - k; px(ctx, fx + k, top + spr.length - 2 - Math.floor(kk / 4), `rgba(255,240,190,${(0.22 * (1 - kk / 9)).toFixed(3)})`, 1, 1 + Math.floor(kk / 3)); }
+function drawCar(ctx, car, ground, dir, t) {
+  const spr = car.spr, len = car.len, x0 = Math.round(car.x), top = ground - spr.length + 1;
+  const pal = car.pal || (car.pal = { R: shade(car.col, 0.3), B: car.col, D: shade(car.col, -0.4) });
+  const lightRow = spr.findIndex(r => r.includes('H'));
+  const at = rx => dir > 0 ? x0 + rx : x0 + len - 1 - rx; // зеркалим, если едет влево
+  // свет фар: конус вперёд и пятно на асфальте
+  for (let k = 1; k <= 12; k++) {
+    const a = 0.3 * (1 - k / 13), y0 = top + lightRow, h = Math.min(ground - y0 + 1, 1 + Math.floor(k / 3));
+    px(ctx, at(len - 1 + k), y0, `rgba(255,214,120,${a.toFixed(3)})`, 1, h);
+  }
   spr.forEach((row, ry) => [...row].forEach((ch, rx) => {
     if (ch === '.') return;
-    const xx = dir > 0 ? x0 + rx : x0 + len - 1 - rx;
-    const col = ch === 'B' ? car.col : ch === 'W' ? '#1d2e52' : ch === 'L' ? '#ffd27a' : ch === 'H' ? '#fff6d6' : ch === 'T' ? '#ff3b3b' : '#06070d';
-    px(ctx, xx, top + ry, col);
+    let col = pal[ch];
+    if (ch === 'G') col = row[rx - 1] !== 'G' ? '#5d80b0' : '#2b4268'; // блик на краю стекла
+    else if (ch === 'W') col = '#ffd27a';
+    else if (ch === 'H') col = '#fff6d6';
+    else if (ch === 'T') col = '#ff3b3b';
+    else if (ch === 'K') col = '#0b0c14';
+    else if (ch === 'h') col = '#7a8098';
+    px(ctx, at(rx), top + ry, col);
   }));
-  if (car.taxi) px(ctx, dir > 0 ? x0 + 5 : x0 + len - 6, top - 1, Math.floor(t * 2) % 2 ? '#fff3a0' : '#e8c200', 1, 1);
-  const tail = dir > 0 ? x0 - 1 : x0 + len;
-  px(ctx, tail, top + 2, 'rgba(255,59,59,.35)');
+  px(ctx, at(-1), top + lightRow, 'rgba(255,59,59,.4)'); // стоп-сигнал светится назад
+  if (car.taxi) { // шашечка на крыше
+    const rx = spr[0].indexOf('R') + 2;
+    px(ctx, at(rx), top - 1, Math.floor(t * 2) % 2 ? '#fff3a0' : '#e8c200'); px(ctx, at(rx + 1), top - 1, '#e8c200');
+  }
 }
 
 function start(canvas) {
@@ -369,7 +441,7 @@ function start(canvas) {
   };
   draw(ctx, s);
   raf = requestAnimationFrame(frame);
-  return { stop() { cancelAnimationFrame(raf); } };
+  return { stop() { cancelAnimationFrame(raf); }, scene: s, update: dt => update(s, dt) }; // scene/update — для проверок
 }
 
 window.PixelCity = { start, W, H };
