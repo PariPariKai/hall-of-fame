@@ -17,6 +17,7 @@
     {"screen":"brb","label":"","text":"Чай с лимоном или с лаймом?","active":"TRUE","id":"f3985508"},
     {"screen":"brb","label":"","text":"Донатить когда я отошёл от компа - жестоко :(","active":"TRUE","id":"68c5785d"},
     {"screen":"start","label":"","text":"Я запрещаю вам болеть!","active":"TRUE","id":"d8887cf3"},
-    {"screen":"start","label":"","text":"С наступающим!","active":"TRUE","id":"0255a0fe"}
+    {"screen":"start","label":"","text":"С наступающим!","active":"TRUE","id":"0255a0fe"},
+    {"screen":"end","label":"","text":"На рейдах пожалуйста будьте смешными","active":"TRUE","id":"7a961c87"}
   ]
 }
