@@ -14,6 +14,7 @@
     {"screen":"start","label":"Факт","text":"Авокадо на вкус как мытый писюн. Живи теперь с этим.","active":"TRUE","id":"b0dc21b2"},
     {"screen":"start","label":"Факт","text":"Я бы стал витубером, но я люблю мыться","active":"TRUE","id":"bf9c2602"},
     {"screen":"start","label":"","text":"ПариПари любит парирование","active":"TRUE","id":"29ee2a3d"},
-    {"screen":"brb","label":"","text":"Чай с лимоном или с лаймом?","active":"TRUE","id":"f3985508"}
+    {"screen":"brb","label":"","text":"Чай с лимоном или с лаймом?","active":"TRUE","id":"f3985508"},
+    {"screen":"brb","label":"","text":"Донатить когда я отошёл от компа - жестоко :(","active":"TRUE","id":"68c5785d"}
   ]
 }
