@@ -10,6 +10,7 @@
     {"screen":"start","label":"Факт","text":"Запомни: одна ошибка — и ты ошибся! ©Джейсон Стейтем","active":"TRUE","id":"49138b75"},
     {"screen":"all","label":"","text":"Неужели чай остыл?","active":"TRUE","id":"a10c5079"},
     {"screen":"start","label":"","text":"А где Хами?","active":"TRUE","id":"f7dc099e"},
-    {"screen":"start","label":"","text":"Зачем пушить мид?","active":"TRUE","id":"7338f0ec"}
+    {"screen":"start","label":"","text":"Зачем пушить мид?","active":"TRUE","id":"7338f0ec"},
+    {"screen":"start","label":"Факт","text":"Авокадо на вкус как мытый писюн. Живи теперь с этим.","active":"TRUE","id":"b0dc21b2"}
   ]
 }
