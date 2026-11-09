@@ -759,6 +759,24 @@
     .now-item__title { font-size: 16px; }
     .win { width: 230px; }
   }
+
+  /* ===== Новогодняя гирлянда по бокам экрана (только зимой — site.js: SEASON, класс season-winter) =====
+     Провод провисает фестонами вдоль левого и правого края, лампочки мерцают: по гирлянде бежит мягкая волна,
+     а каждая четвёртая искрит по-своему. Рисует скрипт внизу страницы. На узких экранах места нет — не показываем. */
+  .xlights { display: none; }
+  @media (min-width: 1360px) {
+    .season-winter .xlights {
+      display: block; position: fixed; top: 0; bottom: 0; width: 64px; z-index: 1; pointer-events: none;
+    }
+  }
+  .xlights--l { left: 0; }
+  .xlights--r { right: 0; transform: scaleX(-1); }
+  .xlights svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  .xl-on { animation: xl-wave 2.8s ease-in-out infinite; }
+  .xl-on--spark { animation: xl-spark 1.9s linear infinite; }
+  @keyframes xl-wave { 0%, 100% { opacity: 1; } 50% { opacity: .12; } }
+  @keyframes xl-spark { 0%, 38%, 50%, 64%, 100% { opacity: 1; } 42% { opacity: .1; } 57% { opacity: .35; } 80% { opacity: .55; } }
+  @media (prefers-reduced-motion: reduce) { .xl-on, .xl-on--spark { animation: none; } }
 </style>
 </head>
 
@@ -1728,6 +1746,74 @@ function renderFriends(friends) {
 
 loadAll();
 loadFriends();
+
+// ===== Новогодняя гирлянда по бокам (стили — .xlights выше) =====
+(function xmasLights() {
+  if (window.siteSeason !== 'winter') return;
+  const COLORS = ['#ff4d5e', '#ffc94a', '#4fd17d', '#55aaff', '#ff7ad9'];
+  const NS = 'http://www.w3.org/2000/svg';
+  const f = n => +n.toFixed(1);
+  // темнее цвет — «погасшая» лампочка
+  const dim = hex => { const n = parseInt(hex.slice(1), 16); return `rgb(${(n >> 16 & 255) * .4 | 0},${(n >> 8 & 255) * .4 | 0},${(n & 255) * .4 | 0})`; };
+
+  function build(box, side) {
+    const H = box.clientHeight;
+    if (!H) return;
+    const A = 6, D = 26;                 // провод крепится у самого края, провисает к странице на D
+    const n = Math.max(2, Math.round((H + 40) / 160)), L = (H + 40) / n, top = -30;
+    const id = 'xl' + side;
+    let defs = '', wire = `M${A} ${top}`, nails = '', bulbs = '', k = 0;
+    COLORS.forEach((c, i) => {
+      defs += `<radialGradient id="${id}g${i}"><stop offset="0" stop-color="${c}" stop-opacity=".75"/><stop offset=".45" stop-color="${c}" stop-opacity=".22"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></radialGradient>`;
+    });
+    for (let s = 0; s < n; s++) {
+      const y0 = top + s * L, y1 = y0 + L, cx = A + 2 * D, cy = (y0 + y1) / 2;
+      wire += ` Q${cx} ${f(cy)} ${A} ${f(y1)}`;
+      nails += `<circle cx="${A}" cy="${f(y1)}" r="2.2" fill="#6d7f72"/>`;
+      for (const t of [0.22, 0.5, 0.78]) {
+        const u = 1 - t;
+        const x = u * u * A + 2 * u * t * cx + t * t * A, y = u * u * y0 + 2 * u * t * cy + t * t * y1;
+        const tx = 2 * u * (cx - A) + 2 * t * (A - cx), ty = 2 * u * (cy - y0) + 2 * t * (y1 - cy);
+        // нормаль к проводу в сторону страницы + немного вниз (лампочки тянет вес)
+        let nx = ty, ny = -tx; if (nx < 0) { nx = -nx; ny = -ny; }
+        const len = Math.hypot(nx, ny); nx /= len; ny /= len;
+        const ang = Math.atan2(ny * 0.8 + 0.45, nx * 0.8) * 180 / Math.PI - 90;
+        const ci = k % COLORS.length, c = COLORS[ci];
+        const spark = k % 4 === 3;
+        const style = `animation-delay:${f(-(k * 0.23) - (spark ? Math.random() * 2 : 0))}s` + (spark ? `;animation-duration:${f(1.5 + Math.random())}s` : '');
+        bulbs += `<g transform="translate(${f(x)} ${f(y)}) rotate(${f(ang)})">` +
+          `<rect x="-2.6" y="-1" width="5.2" height="5.5" rx="1" fill="#2c4a36"/>` +
+          `<ellipse cx="0" cy="11.5" rx="4.6" ry="7.6" fill="${dim(c)}"/>` +
+          `<g class="xl-on${spark ? ' xl-on--spark' : ''}" style="${style}">` +
+            `<circle cx="0" cy="11.5" r="17" fill="url(#${id}g${ci})"/>` +
+            `<ellipse cx="0" cy="11.5" rx="4.6" ry="7.6" fill="${c}"/>` +
+            `<ellipse cx="-1.5" cy="8.6" rx="1.4" ry="2.6" fill="#fff" fill-opacity=".8"/>` +
+          `</g></g>`;
+        k++;
+      }
+    }
+    box.innerHTML = `<svg xmlns="${NS}" viewBox="0 0 64 ${H}" preserveAspectRatio="xMinYMin meet" aria-hidden="true"><defs>${defs}</defs>` +
+      `<path d="${wire}" fill="none" stroke="#24402e" stroke-width="2.2" stroke-linecap="round"/>` +
+      `<path d="${wire}" fill="none" stroke="#5f8f6c" stroke-width=".7" stroke-opacity=".6" transform="translate(-.6 -.6)"/>` +
+      nails + bulbs + '</svg>';
+  }
+
+  const boxes = ['l', 'r'].map(side => {
+    const el = document.createElement('div');
+    el.className = 'xlights xlights--' + side;
+    el.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(el);
+    return [el, side];
+  });
+  const all = () => boxes.forEach(([el, side]) => build(el, side));
+  all();
+  let lastH = 0, timer = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => { const h = boxes[0][0].clientHeight; if (h !== lastH) { lastH = h; all(); } }, 200);
+  });
+  lastH = boxes[0][0].clientHeight;
+})();
 
 </script>
 
