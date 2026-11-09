@@ -496,6 +496,50 @@
   }
   .paper.is-shown .paper__text { opacity: 1; }
   .paper__meta { margin-top: 16px; font-size: clamp(11px, 1.1vw, 14px); letter-spacing: 1.5px; color: #7a6a58; text-transform: uppercase; }
+  /* ===== зимой бумажка — новогодняя открытка: гирлянда, ёлочки, звёзды, сугроб (site.js → класс season-winter) ===== */
+  .paper__deco { display: none; }
+  .season-winter .paper {
+    --x-garland: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='38' viewBox='0 0 160 38'%3E %3Cpath d='M0 6 Q80 46 160 6' fill='none' stroke='%233d5a45' stroke-width='1.6'/%3E%3Crect x='29.4' y='11.4' width='5.2' height='5' rx='1' fill='%238a7a5a'/%3E %3Cellipse cx='32' cy='23.4' rx='5.6' ry='7.6' fill='%23e8434f'/%3E %3Cellipse cx='30.2' cy='20.8' rx='1.6' ry='2.6' fill='%23fff' fill-opacity='.75'/%3E%3Crect x='61.4' y='14.6' width='5.2' height='5' rx='1' fill='%238a7a5a'/%3E %3Cellipse cx='64' cy='26.6' rx='5.6' ry='7.6' fill='%23f5c542'/%3E %3Cellipse cx='62.2' cy='24' rx='1.6' ry='2.6' fill='%23fff' fill-opacity='.75'/%3E%3Crect x='93.4' y='14.6' width='5.2' height='5' rx='1' fill='%238a7a5a'/%3E %3Cellipse cx='96' cy='26.6' rx='5.6' ry='7.6' fill='%2337b26c'/%3E %3Cellipse cx='94.2' cy='24' rx='1.6' ry='2.6' fill='%23fff' fill-opacity='.75'/%3E%3Crect x='125.4' y='11.4' width='5.2' height='5' rx='1' fill='%238a7a5a'/%3E %3Cellipse cx='128' cy='23.4' rx='5.6' ry='7.6' fill='%234aa3f0'/%3E %3Cellipse cx='126.2' cy='20.8' rx='1.6' ry='2.6' fill='%23fff' fill-opacity='.75'/%3E%3C/svg%3E");
+    --x-tree: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 130'%3E %3Crect x='43' y='104' width='14' height='18' rx='2' fill='%237a4a26'/%3E %3Cpath d='M50 50 L90 104 Q70 110 50 104 Q30 110 10 104 Z' fill='%232b7448' stroke='%231d5534' stroke-width='1.5' stroke-linejoin='round'/%3E %3Cpath d='M50 30 L80 76 Q65 82 50 76 Q35 82 20 76 Z' fill='%23318052' stroke='%231d5534' stroke-width='1.5' stroke-linejoin='round'/%3E %3Cpath d='M50 14 L71 50 Q60.5 56 50 50 Q39.5 56 29 50 Z' fill='%23378a59' stroke='%231d5534' stroke-width='1.5' stroke-linejoin='round'/%3E %3Cg fill='none' stroke='%23fff' stroke-width='4' stroke-linecap='round' stroke-opacity='.92'%3E %3Cpath d='M13 104 Q30 110 50 104 Q70 110 87 104'/%3E%3Cpath d='M23 76 Q35 82 50 76 Q65 82 77 76'/%3E%3Cpath d='M32 50 Q39.5 56 50 50 Q60.5 56 68 50'/%3E%3C/g%3E %3Cg%3E%3Ccircle cx='42' cy='42' r='3' fill='%23e8434f'/%3E%3Ccircle cx='59' cy='64' r='3.2' fill='%23f5c542'/%3E %3Ccircle cx='38' cy='68' r='3' fill='%234aa3f0'/%3E%3Ccircle cx='64' cy='94' r='3.4' fill='%23e8434f'/%3E %3Ccircle cx='34' cy='96' r='3.2' fill='%23f5c542'/%3E%3Ccircle cx='50' cy='86' r='3' fill='%234aa3f0'/%3E%3C/g%3E %3Cpolygon points='50,2 52.5,8.6 59.5,8.9 54,13.3 55.9,20.1 50,16.2 44.1,20.1 46,13.3 40.5,8.9 47.5,8.6' fill='%23f5c542' stroke='%23c98f1c' stroke-width='1.2' stroke-linejoin='round'/%3E %3C/svg%3E");
+    --x-sparkle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E %3Cpath d='M10 0 Q11 9 20 10 Q11 11 10 20 Q9 11 0 10 Q9 9 10 0Z' fill='%23e6b33a'/%3E%3C/svg%3E");
+    --x-star: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E %3Cpolygon points='10,1.1 12.4,7.4 19,7.7 13.8,11.8 15.6,18.3 10,14.6 4.4,18.3 6.2,11.8 1,7.7 7.6,7.4' fill='%23f2c14e' stroke='%23c98f1c' stroke-width='.8' stroke-linejoin='round'/%3E%3C/svg%3E");
+    --x-drift: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='24' viewBox='0 0 200 24' preserveAspectRatio='none'%3E %3Cpath d='M0 12 Q25 2 50 10 T100 9 T150 11 T200 12 V24 H0Z' fill='%23fff'/%3E %3Cpath d='M0 12 Q25 2 50 10 T100 9 T150 11 T200 12' fill='none' stroke='%23cfe3f3' stroke-width='2'/%3E%3C/svg%3E");
+    background: linear-gradient(180deg, #fffdf6 0%, #f7f0e1 100%);
+    color: #22301f; border-radius: 18px; clip-path: none;
+    padding: 64px clamp(92px, 15%, 150px) 46px;
+    box-shadow: 0 30px 70px rgba(0,0,0,0.6),
+      inset 0 0 0 8px #fffdf6, inset 0 0 0 10px #d9b35a, inset 0 0 0 13px #fffdf6, inset 0 0 0 14px rgba(217,179,90,0.55);
+  }
+  .season-winter .paper__deco { display: block; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; overflow: hidden; }
+  .season-winter .paper__rarity, .season-winter .paper__text, .season-winter .paper__meta { position: relative; z-index: 1; }
+  .season-winter .paper__close { z-index: 2; top: 14px; right: 16px; color: rgba(34,48,31,0.4); }
+  .season-winter .paper__close:hover { color: #b8323c; }
+  .season-winter .paper__meta { color: #6b6a55; }
+  .paper__garland {
+    position: absolute; left: 14px; right: 50px; top: 13px; height: 38px; /* справа место под крестик */
+    background: var(--x-garland) repeat-x -20px 0 / 160px 38px;
+    filter: drop-shadow(0 0 3px rgba(255,200,90,0.55));
+    animation: garland-glow 1.6s ease-in-out infinite alternate;
+  }
+  @keyframes garland-glow { to { filter: drop-shadow(0 0 7px rgba(255,210,110,0.95)) brightness(1.12); } }
+  .paper__tree {
+    position: absolute; bottom: 12px; width: clamp(64px, 11%, 104px); aspect-ratio: 100 / 130;
+    background: var(--x-tree) center / contain no-repeat;
+  }
+  .paper__tree--l { left: 18px; }
+  .paper__tree--r { right: 20px; width: clamp(52px, 8.5%, 82px); }
+  .paper__tree--r2 { right: clamp(62px, 9.5%, 92px); bottom: 12px; width: clamp(40px, 6.5%, 62px); }
+  .paper__drift {
+    position: absolute; left: 13px; right: 13px; bottom: 13px; height: 22px;
+    background: var(--x-drift) repeat-x 0 0 / 200px 22px;
+  }
+  .paper__star {
+    position: absolute; width: var(--s, 14px); height: var(--s, 14px);
+    background: var(--x-sparkle) center / contain no-repeat;
+    animation: paper-twinkle 2.4s ease-in-out infinite; animation-delay: var(--d, 0s);
+  }
+  .paper__star--5 { background-image: var(--x-star); }
+  @keyframes paper-twinkle { 0%, 100% { opacity: .35; transform: scale(.7) rotate(0deg); } 50% { opacity: 1; transform: scale(1.1) rotate(20deg); } }
 
   .stream__btn {
     flex: 0 0 auto;
@@ -621,6 +665,19 @@
       </svg>
     </div>
     <div class="paper" id="paper" title="Закрыть">
+      <div class="paper__deco" aria-hidden="true">
+        <div class="paper__garland"></div>
+        <i class="paper__star" style="left:5%;top:30%;--s:16px"></i>
+        <i class="paper__star paper__star--5" style="left:10%;top:52%;--s:13px;--d:-.8s"></i>
+        <i class="paper__star" style="right:6%;top:32%;--s:18px;--d:-1.4s"></i>
+        <i class="paper__star paper__star--5" style="right:11%;top:55%;--s:12px;--d:-.4s"></i>
+        <i class="paper__star" style="left:24%;top:17%;--s:10px;--d:-1.9s"></i>
+        <i class="paper__star" style="right:27%;top:16%;--s:11px;--d:-1.1s"></i>
+        <div class="paper__drift"></div>
+        <div class="paper__tree paper__tree--l"></div>
+        <div class="paper__tree paper__tree--r2"></div>
+        <div class="paper__tree paper__tree--r"></div>
+      </div>
       <button class="paper__close" id="p-close" title="Закрыть (Esc)">×</button>
       <div class="paper__rarity" id="p-rarity"></div>
       <div class="paper__text" id="p-text"></div>
@@ -2218,6 +2275,7 @@ function lottoResize() {
   lotto.saucerY = lotto.cy + lotto.R + lotto.R * 0.72;    // центр эллипса блюдца
   lotto.trayY = lotto.saucerY - lotto.ballR * 0.8;        // центр шара, лежащего на блюдце
   lotto.balls.forEach(b => { b.r = lotto.ballR; });
+  lottoWake(); // сфера поменяла размер — шарам надо заново улечься
 }
 
 function lottoBuildBalls() {
@@ -2231,7 +2289,14 @@ function lottoBuildBalls() {
   lotto.balls = balls;
 }
 
+// Куча шаров «засыпает»: через SETTLE_SEC просчитанной физики после перемешивания (или появления новых шаров)
+// шары замирают. Иначе гравитация и расталкивание каждый кадр чуть двигают лежащие шары — они вечно дрожат и крутятся.
+// Считаем время симуляции, а не часы: во вкладке в фоне кадры не идут, и шары не должны замереть в воздухе.
+const SETTLE_SEC = 3;
+function lottoWake() { lotto.settleLeft = SETTLE_SEC; }
+
 function lottoNewBall(r) {
+  lottoWake();
   const a = Math.random() * Math.PI * 2, d = Math.random() * (lotto.R - lotto.ballR * 1.2);
   return {
     rarity: r.id, color: r.color, r: lotto.ballR,
@@ -2248,10 +2313,13 @@ function lottoStep(dt) {
   const mixing = lotto.phase === 'mix';
   const mixT = mixing ? (performance.now() - lotto.t0) / lotto.mixDur : 0;
   const power = mixing ? (mixT < 0.82 ? 1 : Math.max(0, (1 - mixT) / 0.18)) : 0;
+  if (mixing) lottoWake(); else lotto.settleLeft -= dt;
+  const asleep = !(lotto.settleLeft > 0);
 
   for (const b of balls) {
-    if (b.free || b.hidden) continue;
+    if (b.free || b.hidden || asleep) continue;
     b.vy += g * dt;
+    if (!mixing) b.vx *= Math.exp(-dt * 1.5); // без потоков воздуха шары быстрее успокаиваются
     if (power > 0) {
       // два потока воздуха из нижних углов сферы навстречу друг другу:
       // каждый поднимается вдоль своей стенки и закручивается в вихрь,
@@ -2279,7 +2347,7 @@ function lottoStep(dt) {
       if (sp > max) { b.vx *= max / sp; b.vy *= max / sp; }
     }
     b.x += b.vx * dt; b.y += b.vy * dt;
-    b.rot += b.vx * dt / b.r * 0.35;
+    if (Math.abs(b.vx) > b.r * 0.8) b.rot += b.vx * dt / b.r * 0.35; // крутится, только когда правда катится
     const dx = b.x - cx, dy = b.y - cy, d = Math.hypot(dx, dy) || 0.001, lim = R - b.r;
     if (d > lim) {
       const nx = dx / d, ny = dy / d;
@@ -2292,7 +2360,7 @@ function lottoStep(dt) {
       b.vx *= 0.98;
     }
   }
-  for (let i = 0; i < balls.length; i++) {
+  if (!asleep) for (let i = 0; i < balls.length; i++) {
     const a = balls[i]; if (a.free || a.hidden) continue;
     for (let j = i + 1; j < balls.length; j++) {
       const c = balls[j]; if (c.free || c.hidden) continue;
@@ -2451,6 +2519,7 @@ function streamSpin() {
   later(T_MIX, () => {
     sfxMixStop();
     lotto.phase = 'drop';
+    lottoWake(); // перемешивание кончилось — даём куче осесть
     lotto.dropT0 = performance.now();
     ball.free = true; ball.from = { x: ball.x, y: ball.y };
   });
