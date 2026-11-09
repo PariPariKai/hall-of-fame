@@ -156,7 +156,11 @@
   'use strict';
   const SEASON = 'winter';
   const me = document.currentScript;
-  if (SEASON !== 'winter' || /[?&]season=off\b/.test(location.search)) return;
+  // Сезон виден страницам: window.siteSeason и класс season-winter на <html>
+  // (по нему, например, шары Хаос-рулетки становятся ёлочными игрушками — и в OBS-оверлее тоже)
+  window.siteSeason = /[?&]season=off\b/.test(location.search) ? '' : SEASON;
+  if (window.siteSeason) document.documentElement.classList.add('season-' + window.siteSeason);
+  if (SEASON !== 'winter' || !window.siteSeason) return;
   // оверлеи для OBS — без зимы: страницы без меню и прозрачный фон (cards.html?stream&bg=transparent)
   if ((me && me.dataset.nav === 'off') || /[?&]bg=transparent\b/.test(location.search)) return;
   const css = '<link rel="stylesheet" href="winter.css?v=1">';
