@@ -163,12 +163,30 @@ function buildLedge() {
   return { c, mug: { x: mx + 3, y: my - 1 } };
 }
 
-// кот со спины смотрит на город
-const CAT = ['.X.....X.', '.XX...XX.', '.XXXXXXX.', '.XXXXXXX.', '..XXXXX..', '..XXXXX..', '.XXXXXXX.', 'XXXXXXXXX', 'XXXXXXXXX', 'XXXXXXXXX', 'XXXXXXXXX'];
+// Кот со спины смотрит на город. Город светит ему в спину-контур: O — подсвеченный край, X — шерсть.
+// Силуэт «грушей»: острые уши, круглая голова шире шеи, плечи, широкие задние лапы.
+const CAT = [
+  '...O.....O...',
+  '..OXO...OXO..',
+  '..OXXOOOXXO..',
+  '..OXXXXXXXO..',
+  '..OXXXXXXXO..',
+  '...OXXXXXO...',
+  '....XXXXX....',
+  '...OXXXXXO...',
+  '..OXXXXXXXO..',
+  '..OXXXXXXXO..',
+  '.OXXXXXXXXXO.',
+  '.OXXXXXXXXXO.',
+  'OXXXXXXXXXXXO',
+  'OXXXXXXXXXXXO',
+  '.XXXXXXXXXXX.',
+];
+// хвост лежит на парапете и кончиком загибается вверх; кадры — покачивание кончика
 const TAILS = [
-  [[9, 10], [10, 10], [11, 9], [12, 8], [12, 7]],
-  [[9, 10], [10, 10], [11, 10], [12, 9], [13, 8]],
-  [[9, 10], [10, 10], [11, 9], [11, 8], [12, 7]],
+  [[13, 14], [14, 14], [15, 14], [16, 13], [16, 12], [17, 11]],
+  [[13, 14], [14, 14], [15, 14], [16, 14], [17, 13], [17, 12]],
+  [[13, 14], [14, 14], [15, 13], [15, 12], [16, 11], [16, 10]],
 ];
 // Машины сбоку, мордой вправо (влево — зеркально). Читаются по крыше, окнам, аркам и двум круглым колёсам.
 // R — светлый верх кузова, B — кузов, D — низ кузова в тени, G — стекло, W — окно автобуса со светом,
@@ -295,7 +313,7 @@ function build() {
   s.shoot = null; s.nextShoot = R(6, 20);
   s.nextToggle = 0;
   s.nextBmw = R(40, 90); s.bmwDue = false;
-  s.cat = { x: 70, tail: 0, nextTail: 1, ear: false, nextEar: R(4, 10) };
+  s.cat = { x: 70, tail: 0, nextTail: 1, ear: false, nextEar: R(4, 10), look: 0, nextLook: R(3, 8) };
   // футбол: четверо на четверо
   s.players = Array.from({ length: 8 }, (_, i) => {
     const team = i < 4 ? 0 : 1, home = { u: team ? R(0.55, 0.9) : R(0.1, 0.45), v: R(0.15, 0.85) };
@@ -399,6 +417,8 @@ function update(s, dt) {
   if (cat.nextTail <= 0) { cat.tail = (cat.tail + 1) % TAILS.length; cat.nextTail = chance(0.2) ? R(2, 5) : R(0.4, 0.9); }
   cat.nextEar -= dt;
   if (cat.nextEar <= 0) { cat.ear = !cat.ear; cat.nextEar = cat.ear ? 0.25 : R(4, 12); }
+  cat.nextLook -= dt; // иногда оглядывается на кружку или на машины
+  if (cat.nextLook <= 0) { cat.look = cat.look ? 0 : (chance(0.5) ? 1 : -1); cat.nextLook = cat.look ? R(1.5, 3.5) : R(7, 16); }
   // футбол
   const b = s.ball;
   if (b.hold > 0) { b.hold -= dt; if (b.hold <= 0) { b.u = 0.5; b.v = 0.5; b.du = b.dv = 0; } }
@@ -491,10 +511,18 @@ function draw(ctx, s) {
   s.steam.forEach(p => { const a = 0.5 * (1 - p.life / p.max); px(ctx, p.x + Math.sin(p.life * 2.4 + p.ph) * 1.6, p.y, `rgba(225,225,245,${a.toFixed(2)})`); });
   const cat = s.cat, cy = LEDGE_Y - CAT.length;
   CAT.forEach((row, ry) => [...row].forEach((ch, rx) => {
-    if (ch !== 'X' || (cat.ear && ry === 0 && rx === 1)) return;
-    px(ctx, cat.x + rx, cy + ry, ry < 2 || rx === 0 || rx === 8 ? '#141833' : '#070912');
+    if (ch === '.') return;
+    if (cat.ear && ry < 2 && rx < 5 && (ry === 0 || rx === 2)) return; // левое ухо дёрнулось
+    px(ctx, cat.x + rx, cy + ry, ch === 'X' ? '#10121f' : ry < 3 ? '#4a5290' : ry < 6 ? '#353c6c' : '#262b50'); // ярче всего — уши и макушка
   }));
-  TAILS[cat.tail].forEach(([tx, ty]) => px(ctx, cat.x + tx, cy + ty, '#0a0c18'));
+  if (cat.look) { // повернул голову: видно щёку с носом и глаз блестит
+    const side = cat.look > 0 ? 11 : 1, eye = cat.look > 0 ? 9 : 3;
+    px(ctx, cat.x + side, cy + 4, '#4a5290'); px(ctx, cat.x + side, cy + 3, '#2a3058');
+    px(ctx, cat.x + eye, cy + 3, '#d8f070');
+  }
+  const tail = TAILS[cat.tail];
+  tail.forEach(([tx, ty], i) => px(ctx, cat.x + tx, cy + ty, i === tail.length - 1 ? '#4a5290' : '#10121f'));
+  tail.forEach(([tx, ty]) => { if (!tail.some(([ax, ay]) => ax === tx && ay === ty - 1)) px(ctx, cat.x + tx, cy + ty - 1, 'rgba(74,82,144,.55)'); }); // свет по верху хвоста
 }
 
 function drawCar(ctx, car, ground, dir, t) {
@@ -550,7 +578,7 @@ function start(canvas) {
   };
   draw(ctx, s);
   raf = requestAnimationFrame(frame);
-  return { stop() { cancelAnimationFrame(raf); }, scene: s, update: dt => update(s, dt) }; // scene/update — для проверок
+  return { stop() { cancelAnimationFrame(raf); }, scene: s, update: dt => update(s, dt), draw: () => draw(ctx, s) }; // scene/update/draw — для проверок
 }
 
 window.PixelCity = { start, W, H };
