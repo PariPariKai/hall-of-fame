@@ -208,6 +208,7 @@
     {"id":"d6427746","nick":"0_pelmeshka_0","title":"Коралина в Стране Кошмаров","year":"","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""},
     {"id":"6fc80d86","nick":"Blaite_Scism","title":"Хэллоуин","year":"1978","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""},
     {"id":"6c72037e","nick":"I_Sergeevna_I","title":"Обсессия","year":"2025","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""},
-    {"id":"0ff37f63","nick":"ViTALO_DiSCO","title":"RoboCop","year":"1987","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""}
+    {"id":"0ff37f63","nick":"ViTALO_DiSCO","title":"RoboCop","year":"1987","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""},
+    {"id":"19b3c9df","nick":"ViTALO_DiSCO","title":"Predator","year":"1987","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""}
   ]
 }
