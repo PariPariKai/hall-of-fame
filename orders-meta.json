@@ -266,6 +266,17 @@
       "found": false,
       "year": 2005
     },
+    "movies|ayla": {
+      "list": "movies",
+      "title": "Ayla",
+      "checked": "2026-11-10T15:22:26.854Z",
+      "found": true,
+      "year": 2017,
+      "kp": "1032522",
+      "url": "https://www.kinopoisk.ru/film/1032522/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1599028/01ff50be-0883-477e-840f-3744723c4d28/600x900",
+      "source": "kinopoisk"
+    },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
       "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
