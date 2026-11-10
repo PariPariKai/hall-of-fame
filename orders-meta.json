@@ -259,6 +259,13 @@
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1900788/b97af3b9-41b5-4e1d-a59c-051e4e979e80/600x900",
       "source": "kinopoisk"
     },
+    "movies|lord of war": {
+      "list": "movies",
+      "title": "Lord of War",
+      "checked": "2026-11-10T15:21:25.957Z",
+      "found": false,
+      "year": 2005
+    },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
       "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
