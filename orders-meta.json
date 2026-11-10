@@ -319,6 +319,17 @@
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/6201401/8662d92a-5881-4600-a7ae-549e6fd53b03/600x900",
       "source": "kinopoisk"
     },
+    "movies|biutiful": {
+      "list": "movies",
+      "title": "Biutiful",
+      "checked": "2026-11-10T15:28:15.526Z",
+      "found": true,
+      "year": 2009,
+      "kp": "438268",
+      "url": "https://www.kinopoisk.ru/film/438268/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/6201401/03f417d6-70bd-4001-96f2-425f81755b40/600x900",
+      "source": "kinopoisk"
+    },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
       "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
