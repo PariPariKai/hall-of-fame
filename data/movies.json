@@ -197,6 +197,7 @@
     {"id":"fe76f1e3","nick":"Rebel_dragons","title":"Пункт назначения","year":"2000","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""},
     {"id":"6a9c0f97","nick":"Rebel_dragons","title":"Dream House","year":"2011","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""},
     {"id":"add76d23","nick":"steshabtw","title":"Seeking a Friend for the End of the World","year":"","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""},
-    {"id":"a2627e7c","nick":"steshabtw","title":"Léon","year":"","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""}
+    {"id":"a2627e7c","nick":"steshabtw","title":"Léon","year":"","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""},
+    {"id":"1aa6e5b1","nick":"steshabtw","title":"Biutiful","year":"2009","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""}
   ]
 }
