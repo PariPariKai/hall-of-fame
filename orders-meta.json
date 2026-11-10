@@ -299,6 +299,16 @@
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1599028/cc0074b8-d724-4826-8620-e4b86c851a8c/600x900",
       "source": "kinopoisk"
     },
+    "movies|seeking a friend for the end of the world": {
+      "list": "movies",
+      "title": "Seeking a Friend for the End of the World",
+      "checked": "2026-11-10T15:24:57.587Z",
+      "found": true,
+      "kp": "464573",
+      "url": "https://www.kinopoisk.ru/film/464573/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1946459/4a455a8b-2f04-4561-97ac-008f71de48a8/600x900",
+      "source": "kinopoisk"
+    },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
       "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
