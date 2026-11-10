@@ -392,6 +392,16 @@
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/4486454/51ba5b7d-77c5-45cd-8e58-e50ed47cd78b/600x900",
       "source": "kinopoisk"
     },
+    "movies|коралина в стране кошмаров": {
+      "list": "movies",
+      "title": "Коралина в Стране Кошмаров",
+      "checked": "2026-11-10T17:02:31.481Z",
+      "found": true,
+      "kp": "49166",
+      "url": "https://www.kinopoisk.ru/film/49166/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1629390/80428d65-9534-4518-974d-bf0d2396c252/600x900",
+      "source": "kinopoisk"
+    },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
       "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
