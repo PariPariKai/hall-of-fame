@@ -337,6 +337,17 @@
       "found": false,
       "year": 2017
     },
+    "movies|district 9": {
+      "list": "movies",
+      "title": "District 9",
+      "checked": "2026-11-10T15:44:25.496Z",
+      "found": true,
+      "year": 2009,
+      "kp": "397494",
+      "url": "https://www.kinopoisk.ru/film/397494/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/6201401/53cfa3bf-8ddb-4a9d-84b7-0fdb337c8999/600x900",
+      "source": "kinopoisk"
+    },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
       "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
