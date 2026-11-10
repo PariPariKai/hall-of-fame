@@ -348,6 +348,17 @@
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/6201401/53cfa3bf-8ddb-4a9d-84b7-0fdb337c8999/600x900",
       "source": "kinopoisk"
     },
+    "movies|twilight": {
+      "list": "movies",
+      "title": "Twilight",
+      "checked": "2026-11-10T15:45:00.303Z",
+      "found": true,
+      "year": 2008,
+      "kp": "401177",
+      "url": "https://www.kinopoisk.ru/film/401177/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/10893610/c91018f5-36a0-4496-aea0-9336474094b3/600x900",
+      "source": "kinopoisk"
+    },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
       "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
