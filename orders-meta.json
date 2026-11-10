@@ -309,6 +309,16 @@
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1946459/4a455a8b-2f04-4561-97ac-008f71de48a8/600x900",
       "source": "kinopoisk"
     },
+    "movies|léon": {
+      "list": "movies",
+      "title": "Léon",
+      "checked": "2026-11-10T15:27:23.543Z",
+      "found": true,
+      "kp": "389",
+      "url": "https://www.kinopoisk.ru/film/389/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/6201401/8662d92a-5881-4600-a7ae-549e6fd53b03/600x900",
+      "source": "kinopoisk"
+    },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
       "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
