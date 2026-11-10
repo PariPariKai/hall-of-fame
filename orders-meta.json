@@ -473,6 +473,16 @@
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/4486362/484bcd53-c60f-4c63-8a6d-c377c508d780/600x900",
       "source": "kinopoisk"
     },
+    "movies|брат или брак 2": {
+      "list": "movies",
+      "title": "Брат или брак 2",
+      "checked": "2026-11-10T19:46:36.390Z",
+      "found": true,
+      "kp": "1232562",
+      "url": "https://www.kinopoisk.ru/film/1232562/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/4774061/29b8f503-dbe0-4a29-95b0-30fd41fcec9b/600x900",
+      "source": "kinopoisk"
+    },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
       "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
