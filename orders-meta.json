@@ -435,6 +435,13 @@
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/6201401/d8bb12df-58a9-41f3-a5a9-d7ee1bf4e34d/600x900",
       "source": "kinopoisk"
     },
+    "movies|predator": {
+      "list": "movies",
+      "title": "Predator",
+      "checked": "2026-11-10T19:28:58.838Z",
+      "found": false,
+      "year": 1987
+    },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
       "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
