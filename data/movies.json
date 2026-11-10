@@ -200,6 +200,7 @@
     {"id":"a2627e7c","nick":"steshabtw","title":"Léon","year":"","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""},
     {"id":"1aa6e5b1","nick":"steshabtw","title":"Biutiful","year":"2009","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""},
     {"id":"a459f04d","nick":"Monosulfide","title":"The Shape of Water","year":"2017","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""},
-    {"id":"47adcf04","nick":"Monosulfide","title":"District 9","year":"2009","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""}
+    {"id":"47adcf04","nick":"Monosulfide","title":"District 9","year":"2009","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""},
+    {"id":"3238e5a6","nick":"AnyaLan","title":"Twilight","year":"2008","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""}
   ]
 }
