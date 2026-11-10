@@ -330,6 +330,13 @@
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/6201401/03f417d6-70bd-4001-96f2-425f81755b40/600x900",
       "source": "kinopoisk"
     },
+    "movies|the shape of water": {
+      "list": "movies",
+      "title": "The Shape of Water",
+      "checked": "2026-11-10T15:33:13.034Z",
+      "found": false,
+      "year": 2017
+    },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
       "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
