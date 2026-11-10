@@ -359,6 +359,17 @@
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/10893610/c91018f5-36a0-4496-aea0-9336474094b3/600x900",
       "source": "kinopoisk"
     },
+    "movies|chicken run": {
+      "list": "movies",
+      "title": "Chicken Run",
+      "checked": "2026-11-10T15:45:38.056Z",
+      "found": true,
+      "year": 2000,
+      "kp": "635",
+      "url": "https://www.kinopoisk.ru/film/635/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/4483445/8115723a-b8ed-4297-a550-9fd9a090ac09/600x900",
+      "source": "kinopoisk"
+    },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
       "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
