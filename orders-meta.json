@@ -402,6 +402,27 @@
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1629390/80428d65-9534-4518-974d-bf0d2396c252/600x900",
       "source": "kinopoisk"
     },
+    "movies|deadpool": {
+      "list": "movies",
+      "title": "Deadpool",
+      "checked": "2026-11-10T17:05:35.398Z",
+      "found": true,
+      "kp": "462360",
+      "url": "https://www.kinopoisk.ru/film/462360/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1629390/f5961569-594e-476d-85ec-2ff29862c95c/600x900",
+      "source": "kinopoisk"
+    },
+    "movies|хэллоуин": {
+      "list": "movies",
+      "title": "Хэллоуин",
+      "checked": "2026-11-10T17:05:40.387Z",
+      "found": true,
+      "year": 1978,
+      "kp": "8435",
+      "url": "https://www.kinopoisk.ru/film/8435/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/6201401/fe86cd89-aba3-4966-8230-6adf61de21dc/600x900",
+      "source": "kinopoisk"
+    },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
       "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
