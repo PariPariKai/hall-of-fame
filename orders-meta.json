@@ -381,6 +381,17 @@
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/10812607/619d7db4-1b17-416a-80d2-b2d5ead8bed8/600x900",
       "source": "kinopoisk"
     },
+    "movies|the twilight saga: eclipse": {
+      "list": "movies",
+      "title": "The Twilight Saga: Eclipse",
+      "checked": "2026-11-10T16:06:59.734Z",
+      "found": true,
+      "year": 2010,
+      "kp": "432423",
+      "url": "https://www.kinopoisk.ru/film/432423/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/4486454/51ba5b7d-77c5-45cd-8e58-e50ed47cd78b/600x900",
+      "source": "kinopoisk"
+    },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
       "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
