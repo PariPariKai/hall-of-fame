@@ -210,6 +210,7 @@
     {"id":"6c72037e","nick":"I_Sergeevna_I","title":"Обсессия","year":"2025","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""},
     {"id":"0ff37f63","nick":"ViTALO_DiSCO","title":"RoboCop","year":"1987","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""},
     {"id":"19b3c9df","nick":"ViTALO_DiSCO","title":"Predator","year":"1987","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""},
-    {"id":"e336c847","nick":"ViTALO_DiSCO","title":"Prey","year":"2022","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""}
+    {"id":"e336c847","nick":"ViTALO_DiSCO","title":"Prey","year":"2022","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""},
+    {"id":"6d829a43","nick":"AzamatUK11","title":"Бизнес по-казахски в Америке","year":"","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""}
   ]
 }
