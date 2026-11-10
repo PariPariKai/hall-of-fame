@@ -277,6 +277,17 @@
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1599028/01ff50be-0883-477e-840f-3744723c4d28/600x900",
       "source": "kinopoisk"
     },
+    "movies|пункт назначения": {
+      "list": "movies",
+      "title": "Пункт назначения",
+      "checked": "2026-11-10T15:22:48.216Z",
+      "found": true,
+      "year": 2000,
+      "kp": "668",
+      "url": "https://www.kinopoisk.ru/film/668/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1773646/47f8260a-2f09-4bce-9e36-04244a8e8463/600x900",
+      "source": "kinopoisk"
+    },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
       "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
