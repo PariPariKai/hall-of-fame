@@ -402,16 +402,6 @@
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1629390/80428d65-9534-4518-974d-bf0d2396c252/600x900",
       "source": "kinopoisk"
     },
-    "movies|deadpool": {
-      "list": "movies",
-      "title": "Deadpool",
-      "checked": "2026-11-10T17:05:35.398Z",
-      "found": true,
-      "kp": "462360",
-      "url": "https://www.kinopoisk.ru/film/462360/",
-      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1629390/f5961569-594e-476d-85ec-2ff29862c95c/600x900",
-      "source": "kinopoisk"
-    },
     "movies|хэллоуин": {
       "list": "movies",
       "title": "Хэллоуин",
@@ -421,6 +411,17 @@
       "kp": "8435",
       "url": "https://www.kinopoisk.ru/film/8435/",
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/6201401/fe86cd89-aba3-4966-8230-6adf61de21dc/600x900",
+      "source": "kinopoisk"
+    },
+    "movies|обсессия": {
+      "list": "movies",
+      "title": "Обсессия",
+      "checked": "2026-11-10T17:06:21.504Z",
+      "found": true,
+      "year": 2025,
+      "kp": "10355286",
+      "url": "https://www.kinopoisk.ru/film/10355286/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/10812607/91ce01f1-900b-40c4-810f-9c596c655e59/600x900",
       "source": "kinopoisk"
     },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
