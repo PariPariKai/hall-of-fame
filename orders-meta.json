@@ -288,6 +288,17 @@
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1773646/47f8260a-2f09-4bce-9e36-04244a8e8463/600x900",
       "source": "kinopoisk"
     },
+    "movies|dream house": {
+      "list": "movies",
+      "title": "Dream House",
+      "checked": "2026-11-10T15:23:21.995Z",
+      "found": true,
+      "year": 2011,
+      "kp": "468444",
+      "url": "https://www.kinopoisk.ru/film/468444/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1599028/cc0074b8-d724-4826-8620-e4b86c851a8c/600x900",
+      "source": "kinopoisk"
+    },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
       "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
