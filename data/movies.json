@@ -203,6 +203,7 @@
     {"id":"47adcf04","nick":"Monosulfide","title":"District 9","year":"2009","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""},
     {"id":"3238e5a6","nick":"AnyaLan","title":"Twilight","year":"2008","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""},
     {"id":"44625326","nick":"Monosulfide","title":"Chicken Run","year":"2000","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""},
-    {"id":"557030c9","nick":"AnyaLan","title":"The Twilight Saga: New Moon","year":"2009","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""}
+    {"id":"557030c9","nick":"AnyaLan","title":"The Twilight Saga: New Moon","year":"2009","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""},
+    {"id":"46d0a2b2","nick":"AnyaLan","title":"The Twilight Saga: Eclipse","year":"2010","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""}
   ]
 }
