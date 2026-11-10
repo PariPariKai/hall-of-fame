@@ -370,6 +370,17 @@
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/4483445/8115723a-b8ed-4297-a550-9fd9a090ac09/600x900",
       "source": "kinopoisk"
     },
+    "movies|the twilight saga: new moon": {
+      "list": "movies",
+      "title": "The Twilight Saga: New Moon",
+      "checked": "2026-11-10T15:48:55.580Z",
+      "found": true,
+      "year": 2009,
+      "kp": "420224",
+      "url": "https://www.kinopoisk.ru/film/420224/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/10812607/619d7db4-1b17-416a-80d2-b2d5ead8bed8/600x900",
+      "source": "kinopoisk"
+    },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
       "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
