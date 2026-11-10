@@ -424,6 +424,17 @@
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/10812607/91ce01f1-900b-40c4-810f-9c596c655e59/600x900",
       "source": "kinopoisk"
     },
+    "movies|robocop": {
+      "list": "movies",
+      "title": "RoboCop",
+      "checked": "2026-11-10T19:28:10.212Z",
+      "found": true,
+      "year": 1987,
+      "kp": "7410",
+      "url": "https://www.kinopoisk.ru/film/7410/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/6201401/d8bb12df-58a9-41f3-a5a9-d7ee1bf4e34d/600x900",
+      "source": "kinopoisk"
+    },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
       "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
