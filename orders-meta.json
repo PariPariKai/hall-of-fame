@@ -442,6 +442,17 @@
       "found": false,
       "year": 1987
     },
+    "movies|prey": {
+      "list": "movies",
+      "title": "Prey",
+      "checked": "2026-11-10T19:29:38.681Z",
+      "found": true,
+      "year": 2022,
+      "kp": "4324674",
+      "url": "https://www.kinopoisk.ru/film/4324674/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/4774061/4be12e16-890c-4b6d-9d31-80794d7c742c/600x900",
+      "source": "kinopoisk"
+    },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
       "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
