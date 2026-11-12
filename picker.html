@@ -217,38 +217,18 @@
   .collect-line.in { color: #97C459; }
   .collect-line.in .nick { color: #fff; }
 
-  /* ========== КОЛЕСО ========== */
-  /* Цвета обода, ступицы и стрелки. Зимой (site.js → .season-winter) — лёд вместо золота */
-  :root {
-    --rim-1: #fff3cf; --rim-2: #e2ad4f; --rim-3: #6e4a12; --rim-4: #f6d58a;
-    --ptr-1: #fff1c4; --ptr-2: #f2bf5e; --ptr-3: #9a6516;
-    --gem-1: #ffffff; --gem-2: #ffb36b; --gem-3: #b34b12;
-  }
-  .season-winter {
-    --rim-1: #f4fbff; --rim-2: #9ccbf2; --rim-3: #23406c; --rim-4: #c9e6ff;
-    --ptr-1: #ffffff; --ptr-2: #a9dcff; --ptr-3: #3b6fa8;
-    --gem-1: #ffffff; --gem-2: #8fd3ff; --gem-3: #1f5fae;
-  }
-
-  /* Колонка колеса под боковыми панелями: блёстки не лезут на фильтры */
-  .wheel-col { display: flex; flex-direction: column; align-items: center; min-width: 0; position: relative; z-index: 0; }
-  .side-left, .side-right { position: relative; z-index: 1; }
+  /* ========== КОЛЕСО ==========
+     Обод, стрелка, блёстки, вспышка и вид кнопок — общие для рулеток,
+     в wheel-kit.css. Здесь только раскладка этой страницы. */
+  .wheel-col { display: flex; flex-direction: column; align-items: center; min-width: 0; }
   .wrap { overflow-x: clip; }
   .wheel-area { position: relative; width: 100%; max-width: 620px; aspect-ratio: 1 / 1; margin: 10px 0 26px; }
-  .wheel-svg {
-    position: relative; z-index: 1; width: 100%; height: 100%; display: block; overflow: visible;
-    filter: drop-shadow(0 14px 30px rgba(0,0,0,0.6)) drop-shadow(0 0 28px rgba(var(--ember-rgb, 255, 140, 80), 0.22));
-  }
-  /* «Масло» с блёстками вокруг колеса — холст больше колеса на 30% с каждой стороны */
-  .wheel-fx { position: absolute; left: -30%; top: -30%; width: 160%; height: 160%; z-index: 0; pointer-events: none; }
-  @keyframes segFlash { 0%,100% { opacity: 0; } 25%,65% { opacity: 0.8; } 45% { opacity: 0.35; } }
-  .seg-flash { animation: segFlash 0.65s ease-in-out forwards; pointer-events: none; }
+  .wheel-svg { width: 100%; height: 100%; display: block; }
 
   .wheel-pointer {
     position: absolute; right: -10px; top: 50%;
     transform: translateY(-50%);
-    width: 64px; height: 56px; z-index: 10;
-    filter: drop-shadow(-4px 5px 7px rgba(0,0,0,0.65)) drop-shadow(0 0 10px rgba(var(--ember-rgb, 255, 140, 80), 0.35));
+    z-index: 10;
     transform-origin: 88% 50%; transition: transform 0.05s ease-out;
   }
   .wheel-pointer svg { width: 100%; height: 100%; }
@@ -267,53 +247,17 @@
 
   .controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 12px; }
   .ctrl-btn {
-    display: inline-flex; align-items: center; gap: 7px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
-    border: 1px solid rgba(255,255,255,0.14);
-    color: rgba(255,255,255,0.86); padding: 11px 20px;
-    font-family: inherit; font-size: 12.5px; font-weight: 600; letter-spacing: 1px;
-    text-transform: uppercase; border-radius: 11px; cursor: pointer;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 4px 14px rgba(0,0,0,0.25);
-    transition: background .15s ease, border-color .15s ease, box-shadow .2s ease, transform .15s ease;
+    padding: 11px 20px;
+    font-family: inherit; font-size: 12.5px; letter-spacing: 1px;
+    text-transform: uppercase; cursor: pointer;
   }
-  .ctrl-btn:hover:not(:disabled) { background: linear-gradient(180deg, rgba(255,255,255,0.13), rgba(255,255,255,0.04)); border-color: rgba(255,255,255,0.3); transform: translateY(-1px); }
-  .ctrl-btn:active:not(:disabled) { transform: translateY(0); }
-  .ctrl-btn:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
-  .ctrl-btn.primary {
-    border-color: rgba(var(--gold-rgb, 250, 199, 117),0.5); color: var(--gold, #FAC775);
-    background: linear-gradient(180deg, rgba(var(--gold-rgb, 250, 199, 117),0.18), rgba(var(--gold-rgb, 250, 199, 117),0.05));
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 0 18px rgba(var(--ember-rgb, 255, 140, 80),0.14);
-  }
-  .ctrl-btn.primary:hover:not(:disabled) {
-    border-color: var(--gold, #FAC775);
-    background: linear-gradient(180deg, rgba(var(--gold-rgb, 250, 199, 117),0.28), rgba(var(--gold-rgb, 250, 199, 117),0.08));
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 0 26px rgba(var(--ember-rgb, 255, 140, 80),0.3);
-  }
-  .ctrl-btn.danger { border-color: rgba(240,149,149,0.3); color: #f2c4c4; }
 
-  .duration-group {
-    display: flex; align-items: center; gap: 5px;
-    background: rgba(8, 14, 28, 0.55); border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 11px; padding: 4px;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
-  }
   .duration-label { font-size: 11px; color: rgba(255,255,255,0.35); padding: 0 6px; }
   .duration-btn {
     background: transparent; border: none; color: rgba(255,255,255,0.55);
     padding: 6px 11px; font-family: inherit; font-size: 12.5px;
     border-radius: 6px; cursor: pointer; transition: all 0.15s ease;
   }
-  .duration-btn.active { background: rgba(var(--gold-rgb, 250, 199, 117),0.18); color: var(--gold, #FAC775); }
-  .duration-btn:hover:not(.active):not(:disabled) { color: #fff; }
-  .duration-btn:disabled { cursor: not-allowed; }
-  .duration-btn:disabled:not(.active) { opacity: 0.4; }
-
-  .sound-group .duration-btn.active { background: rgba(151,196,89,0.18); color: #97C459; }
-  .sound-group .duration-btn[data-sound="off"].active { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); }
-
-  .ctrl-btn.auto { border-color: rgba(151,196,89,0.45); color: #97C459; }
-  .ctrl-btn.auto:hover:not(:disabled) { background: rgba(151,196,89,0.12); border-color: #97C459; }
-  .ctrl-btn.auto.running { background: rgba(151,196,89,0.16); border-color: #97C459; }
 
   /* ========== ИСТОРИЯ ========== */
   /* Без своей прокрутки: список растёт вниз вместе со страницей.
@@ -412,12 +356,12 @@
     .layout { grid-template-columns: 1fr; }
     .side-right { grid-template-columns: 1fr; }
     .title { font-size: 22px; letter-spacing: 2px; }
-    .wheel-pointer { width: 40px; height: 34px; right: -4px; }
     .winner-card { padding: 32px 22px; }
     .winner-title { font-size: 26px; }
     .people-list { max-height: 250px; }
   }
 </style>
+<link rel="stylesheet" href="wheel-kit.css?v=1">
 </head>
 
 <body>
@@ -471,6 +415,7 @@
   }
 </style>
 <script src="site.js?v=17"></script>
+<script src="wheel-kit.js?v=1"></script>
 
 <div class="wrap">
 
@@ -482,7 +427,7 @@
   <div class="layout">
 
     <!-- ===== Фильтры ===== -->
-    <div class="side-left">
+    <div class="side-left wheel-side">
       <div class="panel">
         <div class="panel-head"><div class="panel-title">Сбор из чата</div></div>
         <button class="ctrl-btn primary collect-btn" id="btn-collect"></button>
@@ -522,29 +467,8 @@
     <!-- ===== Колесо ===== -->
     <div class="wheel-col">
       <div class="wheel-area">
-        <canvas class="wheel-fx" id="wheel-fx" aria-hidden="true"></canvas>
         <svg class="wheel-svg" id="wheel" viewBox="0 0 100 100"></svg>
-        <div class="wheel-pointer" id="wheel-pointer">
-          <svg viewBox="0 0 60 52">
-            <defs>
-              <linearGradient id="ptr-body" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" style="stop-color: var(--ptr-1)"/>
-                <stop offset="0.5" style="stop-color: var(--ptr-2)"/>
-                <stop offset="1" style="stop-color: var(--ptr-3)"/>
-              </linearGradient>
-              <radialGradient id="ptr-gem" cx="0.38" cy="0.35" r="0.75">
-                <stop offset="0" style="stop-color: var(--gem-1)"/>
-                <stop offset="0.45" style="stop-color: var(--gem-2)"/>
-                <stop offset="1" style="stop-color: var(--gem-3)"/>
-              </radialGradient>
-            </defs>
-            <path d="M3 26 L48 5.5 Q56 2.5 56 10.5 L56 41.5 Q56 49.5 48 46.5 Z" fill="url(#ptr-body)" stroke="rgba(4,8,18,0.75)" stroke-width="1.6" stroke-linejoin="round"/>
-            <path d="M9 24.6 L47.5 8.6" stroke="rgba(255,255,255,0.75)" stroke-width="1.5" stroke-linecap="round"/>
-            <path d="M9 27.4 L47.5 43.4" stroke="rgba(0,0,0,0.25)" stroke-width="1.2" stroke-linecap="round"/>
-            <circle cx="47.5" cy="26" r="6.4" fill="url(#ptr-gem)" stroke="rgba(4,8,18,0.7)" stroke-width="1.3"/>
-            <circle cx="45.7" cy="24.1" r="1.9" fill="#fff" opacity="0.9"/>
-          </svg>
-        </div>
+        <div class="wheel-pointer" id="wheel-pointer"></div>
         <div class="wheel-empty" id="wheel-empty">Выбери источники слева —<br>варианты появятся на колесе</div>
       </div>
 
@@ -575,7 +499,7 @@
     </div>
 
     <!-- ===== История ===== -->
-    <div class="side-right">
+    <div class="side-right wheel-side">
       <div class="panel log" id="log">
         <div class="panel-head"><div class="panel-title">История</div></div>
         <div id="log-entries"></div>
@@ -809,16 +733,6 @@ function typeLabel(t) {
 }
 
 function srcById(id) { return SOURCES.find(s => s.id === id); }
-
-// Слегка меняем яркость цвета источника, чтобы соседние сектора отличались
-function shade(hex, amount) {
-  const n = parseInt(hex.slice(1), 16);
-  const clamp = v => Math.max(0, Math.min(255, v));
-  const r = clamp(((n >> 16) & 255) + amount);
-  const g = clamp(((n >> 8) & 255) + amount);
-  const b = clamp((n & 255) + amount);
-  return '#' + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
-}
 
 function renderSources() {
   document.getElementById('sources-list').innerHTML = SOURCES.map(s => {
@@ -1182,23 +1096,8 @@ function sectorPath(cx, cy, r, startAngle, endAngle) {
   return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${(endAngle - startAngle) > 180 ? 1 : 0} 1 ${x2} ${y2} Z`;
 }
 
-// Геометрия колеса в координатах viewBox 0..100: сектора до WHEEL_R,
-// дальше неподвижный обод с бликом. Штырьки на ободе крутятся с колесом.
-const WHEEL_R = 44;
-const RIM_R = 48.5;
-const PEG_R = 46.25;
-const MAX_PEGS = 72;   // больше — штырьки сливаются, ставим декоративные через равный шаг
-
-// Сектор темнеет к центру и светлеет у обода — колесо выглядит объёмным
-function sectorGradient(id, color) {
-  return `<radialGradient id="${id}" cx="50" cy="50" r="${WHEEL_R}" gradientUnits="userSpaceOnUse">
-    <stop offset="0" stop-color="${shade(color, -95)}"/>
-    <stop offset="0.38" stop-color="${shade(color, -38)}"/>
-    <stop offset="0.8" stop-color="${color}"/>
-    <stop offset="0.95" stop-color="${shade(color, 28)}"/>
-    <stop offset="1" stop-color="${shade(color, -20)}"/>
-  </radialGradient>`;
-}
+// Колесо целиком (обод, штырьки, блик, ступица) собирает wheel-kit.js
+const WHEEL_R = WheelKit.WHEEL_R;
 
 function renderWheel() {
   const svg = document.getElementById('wheel');
@@ -1209,14 +1108,13 @@ function renderWheel() {
   liveRotation = currentRotation;
 
   let content = '';
-  const grads = {};
+  const kit = WheelKit.builder();
   const cx = 50, cy = 50, r = WHEEL_R;
   segments.forEach(seg => {
     const base = srcById(seg.item.source);
-    const color = shade(base ? base.color : '#888', ((seg.itemIndex % 3) - 1) * 18);
-    const gid = 'sg-' + color.slice(1);
-    if (!grads[gid]) grads[gid] = sectorGradient(gid, color);
-    content += `<path d="${sectorPath(cx, cy, r, seg.startAngle, seg.endAngle)}" fill="url(#${gid})" stroke="rgba(255,255,255,0.32)" stroke-width="0.18" data-item="${seg.itemIndex}"/>`;
+    // Яркость слегка гуляет, чтобы соседние сектора одного источника отличались
+    const color = WheelKit.shade(base ? base.color : '#888', ((seg.itemIndex % 3) - 1) * 18);
+    content += `<path d="${sectorPath(cx, cy, r, seg.startAngle, seg.endAngle)}" fill="${kit.fill(color)}" stroke="rgba(255,255,255,0.32)" stroke-width="0.18" data-item="${seg.itemIndex}"/>`;
 
     if (seg.angle >= 2) {
       const textRadius = r * 0.86;
@@ -1235,56 +1133,12 @@ function renderWheel() {
     }
   });
 
-  // Штырьки — на границах секторов (по ним щёлкает стрелка); если секторов
-  // слишком много, просто ровный ряд
-  const pegAngles = segments.length <= MAX_PEGS
-    ? segments.map(s => s.startAngle)
-    : Array.from({ length: 48 }, (_, i) => i * 7.5);
-  let pegs = '';
-  pegAngles.forEach(a => {
-    const rad = (a - 90) * Math.PI / 180;
-    pegs += `<circle cx="${(cx + Math.cos(rad) * PEG_R).toFixed(3)}" cy="${(cy + Math.sin(rad) * PEG_R).toFixed(3)}" r="0.95" fill="url(#peg)" stroke="rgba(0,0,0,0.45)" stroke-width="0.2"/>`;
+  svg.innerHTML = kit.frame({
+    content,
+    boundaries: segments.map(s => s.startAngle),
+    rotation: currentRotation,
+    hubIcon: 'dice',
   });
-
-  svg.innerHTML = `
-    <defs>
-      ${Object.values(grads).join('')}
-      <linearGradient id="rim" x1="0.15" y1="0" x2="0.85" y2="1">
-        <stop offset="0" style="stop-color: var(--rim-1)"/>
-        <stop offset="0.3" style="stop-color: var(--rim-2)"/>
-        <stop offset="0.62" style="stop-color: var(--rim-3)"/>
-        <stop offset="1" style="stop-color: var(--rim-4)"/>
-      </linearGradient>
-      <radialGradient id="peg" cx="0.35" cy="0.3" r="0.8">
-        <stop offset="0" stop-color="#ffffff"/>
-        <stop offset="0.5" style="stop-color: var(--rim-2)"/>
-        <stop offset="1" style="stop-color: var(--rim-3)"/>
-      </radialGradient>
-      <radialGradient id="edge-shade" cx="50" cy="50" r="${WHEEL_R}" gradientUnits="userSpaceOnUse">
-        <stop offset="0.82" stop-color="#000" stop-opacity="0"/>
-        <stop offset="1" stop-color="#000" stop-opacity="0.38"/>
-      </radialGradient>
-      <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#fff" stop-opacity="0.24"/>
-        <stop offset="1" stop-color="#fff" stop-opacity="0"/>
-      </linearGradient>
-      <radialGradient id="hub" cx="0.4" cy="0.35" r="0.75">
-        <stop offset="0" stop-color="#1d2b4a"/>
-        <stop offset="1" stop-color="#05080f"/>
-      </radialGradient>
-    </defs>
-    <circle cx="50" cy="50" r="${RIM_R}" fill="url(#rim)"/>
-    <circle cx="50" cy="50" r="${RIM_R - 0.35}" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="0.3"/>
-    <circle cx="50" cy="50" r="${WHEEL_R + 0.35}" fill="#05080f"/>
-    <g id="wheel-group" style="transform-origin: 50% 50%; transform: rotate(${currentRotation}deg); transition: none;">
-      ${content}
-      ${pegs}
-    </g>
-    <circle cx="50" cy="50" r="${WHEEL_R}" fill="url(#edge-shade)" pointer-events="none"/>
-    <path d="M ${50 - WHEEL_R * 0.86} 44 A ${WHEEL_R} ${WHEEL_R} 0 0 1 ${50 + WHEEL_R * 0.86} 44 Q 50 34 ${50 - WHEEL_R * 0.86} 44 Z" fill="url(#gloss)" pointer-events="none"/>
-    <circle cx="50" cy="50" r="8.6" fill="url(#rim)" stroke="rgba(0,0,0,0.5)" stroke-width="0.3"/>
-    <circle cx="50" cy="50" r="6.7" fill="url(#hub)" stroke="rgba(255,255,255,0.25)" stroke-width="0.25"/>
-    <use href="#i-dice" x="46.3" y="46.3" width="7.4" height="7.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--gold, #FAC775)"/>`;
 
   labelCache = svg.querySelectorAll('#wheel-group text[data-base]');
   fitLabels();
@@ -1473,283 +1327,26 @@ async function spin(callback, dur = duration) {
 }
 
 // Вылетающий вариант вспыхивает на всех своих кусочках
-function flashItem(idx) {
-  const group = document.getElementById('wheel-group');
-  if (!group) return Promise.resolve();
-  group.querySelectorAll(`path[data-item="${idx}"]`).forEach(p => {
-    const f = p.cloneNode();
-    f.removeAttribute('data-item');
-    f.setAttribute('fill', '#fff');
-    f.setAttribute('class', 'seg-flash');
-    group.appendChild(f);
-  });
-  return new Promise(r => setTimeout(r, 650));
-}
+const flashItem = idx => WheelKit.flash(`path[data-item="${idx}"]`);
 
-// ============================================================
-// Блёстки в масле
-//
-// Колесо будто лежит в густом масле с блёстками. Раскрутили колесо —
-// масло у обода тянется за ним, дальние слои отстают и разгоняются
-// медленнее; после остановки блёстки ещё долго плывут по инерции.
-// На большой скорости их отбрасывает наружу, потом они оседают обратно.
-//
-// Расстояния — в радиусах колеса (1 = край обода). Угол растёт по
-// часовой, как и поворот колеса в CSS.
-// ============================================================
-const wheelFx = (() => {
-  const cv = document.getElementById('wheel-fx');
-  const ctx = cv.getContext('2d');
-  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const CANVAS_SCALE = 1.6;          // холст больше колеса (см. .wheel-fx)
-  const R_OUTER = RIM_R / 50;        // край обода в долях половины колеса
-  const COUNT = reduceMotion ? 0 : 340;
-  const winter = () => document.documentElement.classList.contains('season-winter');
-  const PALETTE = winter()
-    ? ['#ffffff', '#e3f4ff', '#bfe6ff', '#a9deff', '#8ec5ff', '#d9ccff']
-    : ['#ffffff', '#fff1c9', '#ffd98a', '#fac775', '#ffc2e0', '#cfe8ff'];
-
-  let W = 0, H = 0, R = 0, dpr = 1;
-  const parts = [];
-  let sparks = [];
-
-  function resize() {
-    const rect = cv.getBoundingClientRect();
-    dpr = Math.min(2, window.devicePixelRatio || 1);
-    W = cv.width = Math.round(rect.width * dpr);
-    H = cv.height = Math.round(rect.height * dpr);
-    R = W / CANVAS_SCALE / 2 * R_OUTER;
-  }
-
-  function spawn() {
-    const u = Math.random();
-    const r0 = 1.04 + 0.5 * Math.pow(u, 1.5);          // гуще у обода
-    return {
-      r: r0, r0, th: Math.random() * Math.PI * 2,
-      w: 0, vr: 0,
-      size: 0.9 + Math.random() * Math.random() * 3,
-      color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
-      ph: Math.random() * Math.PI * 2,
-      tw: 0.6 + Math.random() * 2.4,                    // скорость мерцания
-      star: Math.random() < 0.3,                        // часть — четырёхлучевые искры
-    };
-  }
-  for (let i = 0; i < COUNT; i++) parts.push(spawn());
-
-  // Искры из-под стрелки, когда колесо встало
-  function burst() {
-    if (reduceMotion || !R) return;
-    const x = W / 2 + R * 0.97, y = H / 2;
-    for (let i = 0; i < 46; i++) {
-      const a = (Math.random() - 0.5) * Math.PI * 1.3;
-      const v = (0.4 + Math.random() * 1.4) * R;
-      sparks.push({
-        x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v,
-        life: 1, decay: 0.55 + Math.random() * 0.7,
-        size: (0.8 + Math.random() * 1.8) * dpr,
-        color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
-      });
-    }
-  }
-
-  function drawStar(x, y, len, width) {
-    ctx.lineWidth = width;
-    ctx.beginPath();
-    ctx.moveTo(x - len, y); ctx.lineTo(x + len, y);
-    ctx.moveTo(x, y - len); ctx.lineTo(x, y + len);
-    ctx.stroke();
-  }
-
-  let last = performance.now(), lastRot = liveRotation, t = 0;
-  function frame(now) {
-    requestAnimationFrame(frame);
-    const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
-    last = now; t += dt;
-    if (!W || !COUNT || !dt) return;
-
-    // Скорость колеса берём из его настоящего угла; вне крутки угол
-    // может прыгнуть при пересборке — это не вращение
-    let wheelW = 0;
-    if (isSpinning) wheelW = (liveRotation - lastRot) * Math.PI / 180 / dt;
-    lastRot = liveRotation;
-
-    ctx.clearRect(0, 0, W, H);
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.lineCap = 'round';
-    const cx = W / 2, cy = H / 2;
-    const rMax = (W / 2) / R;                            // край холста в радиусах колеса
-
-    for (const p of parts) {
-      const inv = 1 / p.r;
-      // Масло тянется за ободом и быстро слабеет с расстоянием;
-      // без вращения — еле заметное течение, чтобы блёстки жили
-      const target = wheelW * inv * inv * inv + 0.05 * inv;
-      const grip = 2.4 * inv * inv;                      // дальние слои откликаются медленнее
-      p.w += (target - p.w) * (1 - Math.exp(-grip * dt));
-      p.vr += 0.0026 * p.w * p.w * p.r * dt;             // центробежная сила
-      p.vr += (p.r0 - p.r) * 1.8 * dt;                   // оседают обратно
-      p.vr *= Math.exp(-2.6 * dt);                       // вязкость
-      p.r += p.vr * dt;
-      if (p.r < 1.02) { p.r = 1.02; p.vr = Math.abs(p.vr) * 0.3; }
-      p.th += p.w * dt;
-
-      const fade = p.r > rMax * 0.82 ? Math.max(0, (rMax - p.r) / (rMax * 0.18)) : 1;
-      if (fade <= 0) continue;
-      const glint = Math.pow(Math.max(0, Math.sin(t * p.tw + p.ph)), 8);
-      const alpha = (0.45 + 0.55 * glint) * fade;
-      const x = cx + Math.cos(p.th) * p.r * R;
-      const y = cy + Math.sin(p.th) * p.r * R;
-      const size = p.size * dpr;
-
-      // На скорости блёстка вытягивается в штрих вдоль своего пути
-      const trail = Math.min(0.4, Math.abs(p.w) * 0.035);
-      ctx.globalAlpha = alpha;
-      ctx.strokeStyle = ctx.fillStyle = p.color;
-      if (trail * p.r * R > size * 1.5) {
-        const back = p.th - Math.sign(p.w) * trail;
-        ctx.lineWidth = size;
-        ctx.beginPath();
-        ctx.arc(cx, cy, p.r * R, Math.min(back, p.th), Math.max(back, p.th));
-        ctx.stroke();
-      } else {
-        ctx.beginPath();
-        ctx.arc(x, y, size * 0.75, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      if (glint > 0.4) {                                 // мягкий ореол на вспышке
-        ctx.globalAlpha = 0.16 * glint * fade;
-        ctx.beginPath();
-        ctx.arc(x, y, size * 3.2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      if (p.star && glint > 0.35) {
-        ctx.globalAlpha = glint * fade;
-        drawStar(x, y, size * (3 + glint * 4), Math.max(0.7, size * 0.35));
-      }
-    }
-
-    if (sparks.length) {
-      sparks = sparks.filter(s => (s.life -= s.decay * dt) > 0);
-      for (const s of sparks) {
-        s.vx *= Math.exp(-2.2 * dt); s.vy *= Math.exp(-2.2 * dt);
-        s.vy += 0.25 * R * dt;                           // чуть оседают вниз
-        s.x += s.vx * dt; s.y += s.vy * dt;
-        ctx.globalAlpha = Math.min(1, s.life * 1.4);
-        ctx.strokeStyle = ctx.fillStyle = s.color;
-        drawStar(s.x, s.y, s.size * (1.5 + s.life * 2.5), Math.max(0.6 * dpr, s.size * 0.4));
-      }
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  if (COUNT) {
-    new ResizeObserver(resize).observe(cv);
-    resize();
-    requestAnimationFrame(frame);
-  }
-  return { burst };
-})();
+// Стрелка и блёстки «в масле» вокруг колеса — wheel-kit.js
+const wheelFx = WheelKit.mount({
+  area: document.querySelector('.wheel-area'),
+  getRotation: () => liveRotation,
+  isSpinning: () => isSpinning,
+});
 
 // ============================================================
 // Звук
 // ============================================================
-// Щелчок стрелки — на выбор: «Дерево» и «Мягкий» синтезируются,
-// «Шарик» — файлы sounds/click-2..5.wav (те же, что в Хаос-рулетке).
-// Выбор запоминается в браузере. «Выкл» глушит и фанфары.
-const SOUND_KEY = 'picker.clickSound';
-const BALL_SOUNDS = [2, 3, 4, 5].map(n => `sounds/click-${n}.wav`);
-let clickSound = 'wood';
-try { const s = localStorage.getItem(SOUND_KEY); if (s) clickSound = s; } catch (e) {}
-if (!document.querySelector(`.sound-group [data-sound="${clickSound}"]`)) clickSound = 'wood';
-const soundOn = () => clickSound !== 'off';
+// Щелчок стрелки — на выбор (Дерево / Мягкий / Шарик / Выкл), общий
+// для всех рулеток: wheel-kit.js. «Выкл» глушит и фанфары.
+const playClick = () => WheelKit.sound.click();
+WheelKit.sound.bind(document.querySelector('.sound-group'));
 
-let audioCtx = null, noiseBuf = null, ballBufs = null, lastClickAt = 0;
-function ensureAudio() {
-  if (!audioCtx) {
-    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
-    // Полсекунды белого шума — из него «деревянная» атака щелчка
-    noiseBuf = audioCtx.createBuffer(1, audioCtx.sampleRate / 2, audioCtx.sampleRate);
-    const d = noiseBuf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  }
-  if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
-}
-function loadBallSounds() {
-  if (ballBufs || !audioCtx) return;
-  ballBufs = [];
-  BALL_SOUNDS.forEach(src => fetch(src)
-    .then(r => r.arrayBuffer())
-    .then(b => audioCtx.decodeAudioData(b))
-    .then(buf => ballBufs.push(buf))
-    .catch(() => {}));
-}
-
-// Короткий глухой «ток»: щелчок шума через полосовой фильтр + затухающий тон корпуса
-function clickWood(now, vol) {
-  const pitch = 1 + (Math.random() - 0.5) * 0.08;
-  const n = audioCtx.createBufferSource();
-  n.buffer = noiseBuf;
-  n.playbackRate.value = pitch;
-  const bp = audioCtx.createBiquadFilter();
-  bp.type = 'bandpass'; bp.frequency.value = 2200 * pitch; bp.Q.value = 1.2;
-  const ng = audioCtx.createGain();
-  ng.gain.setValueAtTime(0.0001, now);
-  ng.gain.exponentialRampToValueAtTime(0.35 * vol, now + 0.001);
-  ng.gain.exponentialRampToValueAtTime(0.0001, now + 0.018);
-  n.connect(bp).connect(ng).connect(audioCtx.destination);
-  n.start(now, Math.random() * 0.4); n.stop(now + 0.03);
-
-  const o = audioCtx.createOscillator(), og = audioCtx.createGain();
-  o.type = 'sine';
-  o.frequency.setValueAtTime(950 * pitch, now);
-  o.frequency.exponentialRampToValueAtTime(520 * pitch, now + 0.03);
-  og.gain.setValueAtTime(0.0001, now);
-  og.gain.exponentialRampToValueAtTime(0.16 * vol, now + 0.002);
-  og.gain.exponentialRampToValueAtTime(0.0001, now + 0.045);
-  o.connect(og).connect(audioCtx.destination);
-  o.start(now); o.stop(now + 0.06);
-}
-
-// Тихий округлый «пум» без высоких частот
-function clickSoft(now, vol) {
-  const pitch = 1 + (Math.random() - 0.5) * 0.06;
-  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-  const lp = audioCtx.createBiquadFilter();
-  lp.type = 'lowpass'; lp.frequency.value = 1400;
-  o.type = 'triangle';
-  o.frequency.setValueAtTime(560 * pitch, now);
-  o.frequency.exponentialRampToValueAtTime(330 * pitch, now + 0.05);
-  g.gain.setValueAtTime(0.0001, now);
-  g.gain.exponentialRampToValueAtTime(0.22 * vol, now + 0.004);
-  g.gain.exponentialRampToValueAtTime(0.0001, now + 0.07);
-  o.connect(lp).connect(g).connect(audioCtx.destination);
-  o.start(now); o.stop(now + 0.09);
-}
-
-function clickBall(now, vol) {
-  if (!ballBufs || !ballBufs.length) { clickWood(now, vol); return; }
-  const s = audioCtx.createBufferSource(), g = audioCtx.createGain();
-  s.buffer = ballBufs[Math.floor(Math.random() * ballBufs.length)];
-  g.gain.value = 0.6 * vol;
-  s.connect(g).connect(audioCtx.destination);
-  s.start(now);
-}
-
-function playClick() {
-  if (!soundOn()) return; ensureAudio(); if (!audioCtx) return;
-  const now = audioCtx.currentTime;
-  // На разгоне сектора мелькают десятками в секунду: реже 25 мс не щёлкаем,
-  // а частые щелчки делаем тише — вместо трещотки получается мягкий шелест
-  const dt = now - lastClickAt;
-  if (dt < 0.025) return;
-  lastClickAt = now;
-  const vol = Math.min(1, 0.35 + dt * 5);
-  if (clickSound === 'soft') clickSoft(now, vol);
-  else if (clickSound === 'ball') clickBall(now, vol);
-  else clickWood(now, vol);
-}
 function playFanfare() {
-  if (!soundOn()) return; ensureAudio(); if (!audioCtx) return;
+  if (!WheelKit.sound.enabled()) return;
+  const audioCtx = WheelKit.sound.ensure(); if (!audioCtx) return;
   const t0 = audioCtx.currentTime;
   [[261.63,0,0.18],[329.63,0.18,0.18],[392,0.36,0.18],[523.25,0.54,0.4],
    [659.25,1.0,0.2],[783.99,1.2,0.2],[1046.5,1.45,0.8]].forEach(([f,t,d]) => {
@@ -1763,25 +1360,6 @@ function playFanfare() {
     osc.start(t0 + t); osc.stop(t0 + t + d + 0.05);
   });
 }
-function updateSoundButtons() {
-  document.querySelectorAll('.sound-group [data-sound]').forEach(b =>
-    b.classList.toggle('active', b.dataset.sound === clickSound));
-}
-document.querySelectorAll('.sound-group [data-sound]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    clickSound = btn.dataset.sound;
-    try { localStorage.setItem(SOUND_KEY, clickSound); } catch (e) {}
-    updateSoundButtons();
-    if (!soundOn()) return;
-    ensureAudio(); loadBallSounds();
-    // Сразу даём послушать: три щелчка с замедлением
-    lastClickAt = 0;
-    [0, 140, 320].forEach(ms => setTimeout(() => { lastClickAt = 0; playClick(); }, ms));
-  });
-});
-updateSoundButtons();
-document.addEventListener('click', () => { if (soundOn()) { ensureAudio(); loadBallSounds(); } }, { once: true });
-
 // ============================================================
 // Победитель
 // ============================================================

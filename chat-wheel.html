@@ -141,7 +141,7 @@
 
   /* ===== Раскладка: колесо слева, панель справа ===== */
   .layout {
-    width: 100%; max-width: 1400px;
+    width: 100%; max-width: 1400px; overflow-x: clip;
     display: none; gap: 28px;
     align-items: flex-start;
     justify-content: center;
@@ -208,30 +208,12 @@
   .conn-dot.online { background: #97C459; box-shadow: 0 0 8px rgba(151,196,89,0.6); }
 
   /* ===== Кнопки ===== */
+  /* Вид кнопок (стекло, подсветка) — в wheel-kit.css */
   .ctrl-btn {
-    background: transparent;
-    border: 1px solid rgba(255,255,255,0.2);
-    color: #fff; padding: 12px 22px;
-    font-family: inherit; font-size: 14px; letter-spacing: 1.5px;
-    text-transform: uppercase; border-radius: 8px; cursor: pointer;
-    transition: all 0.15s ease;
+    padding: 12px 22px;
+    font-family: inherit; font-size: 13.5px; letter-spacing: 1.5px;
+    text-transform: uppercase; cursor: pointer;
   }
-  .ctrl-btn:hover:not(:disabled) {
-    background: rgba(255,255,255,0.05);
-    transform: translateY(-1px);
-  }
-  .ctrl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .ctrl-btn.primary {
-    border-color: var(--gold, #FAC775); color: var(--gold, #FAC775); background: rgba(var(--gold-rgb, 250, 199, 117),0.08);
-  }
-  .ctrl-btn.primary:hover:not(:disabled) {
-    background: rgba(var(--gold-rgb, 250, 199, 117),0.15);
-    box-shadow: 0 0 20px rgba(var(--gold-rgb, 250, 199, 117),0.3);
-  }
-  .ctrl-btn.danger {
-    border-color: #F09595; color: #F09595; background: rgba(216,90,48,0.05);
-  }
-  .ctrl-btn.danger:hover:not(:disabled) { background: rgba(216,90,48,0.15); }
   .ctrl-btn.small { padding: 9px 14px; font-size: 12px; letter-spacing: 1px; }
 
   /* ===== Сегментированные переключатели ===== */
@@ -394,22 +376,22 @@
   .feed-toggle:hover { color: #fff; }
 
   /* ===== Колесо ===== */
+  /* Обод, стрелка, блёстки, вспышка и вид кнопок — общие для рулеток,
+     в wheel-kit.css. Здесь только раскладка этой страницы. */
   .wheel-area {
     position: relative;
     width: 100%; max-width: 700px;
     aspect-ratio: 1 / 1;
-    margin-bottom: 24px;
+    margin: 10px 0 30px;
   }
   .wheel-svg {
     width: 100%; height: 100%;
     display: block;
-    filter: drop-shadow(0 8px 24px rgba(0,0,0,0.5));
   }
   .wheel-pointer {
     position: absolute; right: -10px; top: 50%;
     transform: translateY(-50%);
-    width: 58px; height: 50px; z-index: 10;
-    filter: drop-shadow(-4px 4px 8px rgba(0,0,0,0.6));
+    z-index: 10;
     transform-origin: 88% 50%;
     transition: transform 0.05s ease-out;
   }
@@ -426,12 +408,6 @@
     display: flex; gap: 14px; flex-wrap: wrap;
     justify-content: center; margin-bottom: 20px;
   }
-  .duration-group {
-    display: flex; align-items: center; gap: 8px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 8px; padding: 4px;
-  }
   .duration-label {
     font-size: 11px; letter-spacing: 1px;
     color: rgba(255,255,255,0.5);
@@ -440,34 +416,10 @@
   .duration-btn {
     background: transparent; border: none;
     color: rgba(255,255,255,0.6);
-    padding: 8px 14px; font-family: inherit;
+    padding: 7px 12px; font-family: inherit;
     font-size: 13px; font-weight: 500;
     border-radius: 6px; cursor: pointer; transition: all 0.15s ease;
   }
-  .duration-btn.active { background: rgba(var(--gold-rgb, 250, 199, 117),0.15); color: var(--gold, #FAC775); }
-  .duration-btn:hover:not(.active) { color: #fff; }
-
-  .sound-toggle {
-    background: transparent;
-    border: 1px solid rgba(151,196,89,0.4);
-    border-radius: 8px; padding: 10px 14px;
-    cursor: pointer; color: #97C459;
-    font-family: inherit; font-size: 13px;
-    transition: all 0.15s ease;
-  }
-  .sound-toggle:hover { background: rgba(151,196,89,0.05); }
-  .sound-toggle.off { color: rgba(255,255,255,0.5); border-color: rgba(255,255,255,0.15); }
-
-  /* ===== Режим выбывания индикатор ===== */
-  .elimination-status {
-    background: rgba(127,119,221,0.1);
-    border: 1px solid rgba(127,119,221,0.3);
-    border-radius: 8px; padding: 10px 20px;
-    color: #AFA9EC; font-size: 13px; letter-spacing: 1px;
-    text-align: center; margin-bottom: 16px;
-    display: none;
-  }
-  .elimination-status.active { display: block; }
 
   /* ===== История розыгрыша (правая колонка) =====
      Обычно — компактная карточка над настройками, видна только когда есть
@@ -628,13 +580,13 @@
 
   @media (max-width: 700px) {
     .wheel-area { max-width: 95vw; }
-    .wheel-pointer { width: 40px; height: 34px; right: -4px; }
     .winner-card { padding: 40px 30px; }
     .winner-nick { font-size: 36px; }
     .winner-avatar { width: 140px; height: 140px; font-size: 48px; }
     .winner-label { font-size: 14px; letter-spacing: 4px; margin-bottom: 18px; }
   }
 </style>
+<link rel="stylesheet" href="wheel-kit.css?v=1">
 </head>
 
 <body>
@@ -690,6 +642,7 @@
     }
   </style>
   <script src="site.js?v=17"></script>
+  <script src="wheel-kit.js?v=1"></script>
 <script src="github.js?v=2"></script>
 
   <!-- Экран входа -->
@@ -713,41 +666,39 @@
         <div class="app-stats" id="app-stats">Не подключено</div>
       </div>
 
-      <div id="elimination-status" class="elimination-status">
-        Режим выбывания. Осталось участников: <span id="elim-remaining">0</span>
-      </div>
-
       <div class="wheel-area">
         <svg class="wheel-svg" id="wheel" viewBox="0 0 100 100"></svg>
-        <div class="wheel-pointer" id="wheel-pointer">
-          <svg viewBox="0 0 60 52">
-            <polygon points="2,26 52,4 52,48" fill="#FAC775" stroke="#0a0e1a" stroke-width="2" stroke-linejoin="round"/>
-            <circle cx="50" cy="26" r="5" fill="#FAC775" stroke="#0a0e1a" stroke-width="2"/>
-          </svg>
-        </div>
+        <div class="wheel-pointer" id="wheel-pointer"></div>
       </div>
 
       <div class="controls">
         <div class="duration-group">
-          <span class="duration-label"><svg class="ic" aria-hidden="true"><use href="#i-timer"></use></svg> Длительность</span>
+          <span class="duration-label"><svg class="ic" aria-hidden="true"><use href="#i-timer"></use></svg></span>
           <button class="duration-btn" data-dur="3">3с</button>
           <button class="duration-btn active" data-dur="5">5с</button>
           <button class="duration-btn" data-dur="10">10с</button>
           <button class="duration-btn" data-dur="60">60с</button>
         </div>
-        <button class="sound-toggle" id="sound-toggle"><svg class="ic" aria-hidden="true"><use href="#i-volume"></use></svg> Звук вкл.</button>
+        <div class="duration-group sound-group" title="Звук щелчка стрелки (нажми — услышишь)">
+          <span class="duration-label"><svg class="ic" aria-hidden="true"><use href="#i-volume"></use></svg></span>
+          <button class="duration-btn" data-sound="wood">Дерево</button>
+          <button class="duration-btn" data-sound="soft">Мягкий</button>
+          <button class="duration-btn" data-sound="ball">Шарик</button>
+          <button class="duration-btn" data-sound="off">Выкл</button>
+        </div>
       </div>
 
       <div class="controls">
         <button class="ctrl-btn primary" id="btn-single"><svg class="ic" aria-hidden="true"><use href="#i-target"></use></svg> Один победитель</button>
         <button class="ctrl-btn primary" id="btn-elim"><svg class="ic" aria-hidden="true"><use href="#i-swords"></use></svg> Режим выбывания</button>
+        <button class="ctrl-btn auto" id="btn-auto"><svg class="ic" aria-hidden="true"><use href="#i-bot"></use></svg> Авто-выбывание</button>
         <button class="ctrl-btn danger" id="btn-reset">↺ Сброс</button>
       </div>
 
     </div>
 
     <!-- ===== Правая колонка: история, подключение, фильтры, участники ===== -->
-    <div class="side-col">
+    <div class="side-col wheel-side">
 
       <!-- История розыгрыша: в режиме выбывания остаётся одна на всю колонку -->
       <div class="card history-card" id="log">
@@ -960,11 +911,12 @@ let pendingRefresh = false;
 let collecting = false;
 let collectStart = null;            // timestamp начала сбора по слову
 let currentRotation = 0;
+let liveRotation = 0;               // угол колеса прямо сейчас, по кадрам анимации — по нему движутся блёстки
 let isSpinning = false;
 let eliminationMode = false;
+let autoRunning = false;
 let duration = 5;
 let logEntries = [];
-let soundOn = true;
 let feedVisible = true;
 
 const SECTOR_COLORS = [
@@ -1365,34 +1317,15 @@ function addFeedLine(user, text) {
 }
 
 // ============================================================
-// Звук (клики + фанфары) — как в рулетке билетов
+// Звук: щелчки стрелки — wheel-kit.js, фанфары — свои
 // ============================================================
-let audioCtx = null;
-function ensureAudio() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
-}
-
-function playClick() {
-  if (!soundOn) return;
-  ensureAudio();
-  if (!audioCtx) return;
-  const now = audioCtx.currentTime;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.type = 'square';
-  osc.frequency.setValueAtTime(2400, now);
-  osc.frequency.exponentialRampToValueAtTime(800, now + 0.04);
-  gain.gain.setValueAtTime(0, now);
-  gain.gain.linearRampToValueAtTime(0.05, now + 0.005);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-  osc.connect(gain); gain.connect(audioCtx.destination);
-  osc.start(now); osc.stop(now + 0.08);
-}
+// Щелчок стрелки — на выбор (Дерево / Мягкий / Шарик / Выкл), общий
+// для всех рулеток: wheel-kit.js. «Выкл» глушит и фанфары.
+const playClick = () => WheelKit.sound.click();
 
 function playFanfare() {
-  if (!soundOn) return;
-  ensureAudio();
+  if (!WheelKit.sound.enabled()) return;
+  const audioCtx = WheelKit.sound.ensure();
   if (!audioCtx) return;
   const t0 = audioCtx.currentTime;
   const notes = [
@@ -1483,6 +1416,9 @@ function computeSegments() {
   });
 }
 
+// Колесо целиком (обод, штырьки, блик, ступица) собирает wheel-kit.js
+const WHEEL_R = WheelKit.WHEEL_R;
+
 function renderWheel() {
   const svg = document.getElementById('wheel');
   if (wheelList.length === 0) {
@@ -1495,12 +1431,14 @@ function renderWheel() {
 
   const segments = computeSegments();
   currentSegments = segments;
+  liveRotation = currentRotation;
   let groupContent = '';
-  const cx = 50, cy = 50, r = 48;
+  const kit = WheelKit.builder();
+  const cx = 50, cy = 50, r = WHEEL_R;
 
   if (segments.length === 1) {
     const u = segments[0].user;
-    groupContent = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${SECTOR_COLORS[0]}" stroke="#0a0e1a" stroke-width="0.2"/>
+    groupContent = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${kit.fill(SECTOR_COLORS[0])}"/>
       <text x="${cx}" y="${cy - 10}" fill="#0a0e1a" font-size="5" text-anchor="middle"
         style="font-weight: 700;">${esc(u.name)}</text>`;
   } else {
@@ -1513,7 +1451,7 @@ function renderWheel() {
           color === SECTOR_COLORS[0]) {
         color = SECTOR_COLORS[1];
       }
-      groupContent += `<path d="${sectorPath(cx, cy, r, seg.startAngle, seg.endAngle)}" fill="${color}" stroke="#0a0e1a" stroke-width="0.2"/>`;
+      groupContent += `<path d="${sectorPath(cx, cy, r, seg.startAngle, seg.endAngle)}" fill="${kit.fill(color)}" stroke="rgba(255,255,255,0.32)" stroke-width="0.18" data-user="${seg.userIndex}"/>`;
 
       if (seg.angle >= 2) {
         // Подпись по радиусу от края к центру, как в picker.html
@@ -1522,24 +1460,24 @@ function renderWheel() {
         const tx = cx + Math.cos(rad) * textRadius;
         const ty = cy + Math.sin(rad) * textRadius;
         const baseRot = seg.midAngle - 90;
-        const fontSize = Math.min(2.8, Math.max(1.5, seg.angle * 0.4));
+        const fontSize = Math.min(2.7, Math.max(1.45, seg.angle * 0.4));
         groupContent += `<text x="${tx}" y="${ty}" fill="#0a0e1a" font-size="${fontSize}"
           data-base="${baseRot.toFixed(3)}" data-tx="${tx.toFixed(3)}" data-ty="${ty.toFixed(3)}"
           data-angle="${seg.angle.toFixed(4)}" data-full="${esc(seg.user.name)}"
           text-anchor="end" dominant-baseline="middle"
           transform="rotate(${baseRot} ${tx} ${ty})"
-          style="paint-order: stroke; stroke: rgba(255,255,255,0.55); stroke-width: 0.5;
+          style="paint-order: stroke; stroke: rgba(255,255,255,0.6); stroke-width: 0.5;
                  font-weight: 700; pointer-events: none;">${esc(seg.user.name)}</text>`;
       }
     });
   }
 
-  svg.innerHTML = `
-    <g id="wheel-group" style="transform-origin: 50% 50%; transform: rotate(${currentRotation}deg); transition: none;">
-      ${groupContent}
-    </g>
-    <circle cx="50" cy="50" r="6" fill="#0a0e1a" stroke="#FAC775" stroke-width="0.5"/>
-  `;
+  svg.innerHTML = kit.frame({
+    content: groupContent,
+    boundaries: segments.length > 1 ? segments.map(s => s.startAngle) : [],
+    rotation: currentRotation,
+    hubIcon: 'wheel',
+  });
   labelCache = svg.querySelectorAll('#wheel-group text[data-base]');
   fitLabels();
   updateLabelOrientation(currentRotation);
@@ -1550,7 +1488,7 @@ function renderWheel() {
 // двоичным поиском (по числу символов нельзя — кириллица и латиница
 // разной ширины). Логика из picker.html.
 function fitLabels() {
-  const textR = 48 * 0.86;
+  const textR = WHEEL_R * 0.86;
   for (let i = 0; i < labelCache.length; i++) {
     const el = labelCache[i];
     const angle = parseFloat(el.dataset.angle);
@@ -1620,11 +1558,11 @@ function pickWinnerIndex() {
 
 const POINTER_ANGLE = 90;   // стрелка справа: ник победителя горизонтален
 
-async function spin(callback) {
+async function spin(callback, dur = duration) {
   if (isSpinning) return;
   if (wheelList.length === 0) return;
   if (wheelList.length === 1) {
-    if (callback) callback(0);
+    if (callback) await callback(0);
     return;
   }
 
@@ -1654,18 +1592,29 @@ async function spin(callback) {
   currentRotation = finalRotation;
 
   const group = document.getElementById('wheel').querySelector('#wheel-group');
-  group.style.transition = `transform ${duration}s cubic-bezier(0.17, 0.67, 0.2, 1)`;
+  group.style.transition = `transform ${dur}s cubic-bezier(0.17, 0.67, 0.2, 1)`;
   group.style.transform = `rotate(${finalRotation}deg)`;
 
-  await trackPointerTicks(startRotation, finalRotation, duration, segments);
+  await trackPointerTicks(startRotation, finalRotation, dur, segments);
+  liveRotation = finalRotation;
   updateLabelOrientation(finalRotation);
   await new Promise(resolve => setTimeout(resolve, 100));
 
+  // Результат применяем до разблокировки кнопок: вспышка вылетающего
+  // участника идёт ещё полсекунды, и новая крутка в это время сломала бы выбывание
+  wheelFx.burst();
+  if (callback) await callback(winnerIdx);
   isSpinning = false;
   setControlsDisabled(false);
-  if (callback) callback(winnerIdx);
   if (pendingRefresh) { pendingRefresh = false; }
 }
+
+// Стрелка и блёстки «в масле» вокруг колеса — wheel-kit.js
+const wheelFx = WheelKit.mount({
+  area: document.querySelector('.wheel-area'),
+  getRotation: () => liveRotation,
+  isSpinning: () => isSpinning,
+});
 
 function cubicBezier(x1, y1, x2, y2, t) {
   const inv = 1 - t;
@@ -1714,6 +1663,7 @@ async function trackPointerTicks(startRot, endRot, dur, segments) {
       const t = Math.min(elapsed / dur, 1);
       const eased = easeOutBezier(t);
       const currentRot = startRot + totalDelta * eased;
+      liveRotation = currentRot;
       updateLabelOrientation(currentRot);
       const pointerOnWheel = normalizeAngle(POINTER_ANGLE - currentRot);
       for (const boundary of boundaries) {
@@ -1737,11 +1687,14 @@ function triggerTick() {
   playClick();
 }
 
+// В авто-режиме всё, кроме кнопки «Стоп», заблокировано и между крутками
 function setControlsDisabled(disabled) {
-  document.getElementById('btn-single').disabled = disabled;
-  document.getElementById('btn-elim').disabled = disabled;
-  document.getElementById('btn-reset').disabled = disabled;
-  document.querySelectorAll('.duration-btn').forEach(b => b.disabled = disabled);
+  const lock = disabled || autoRunning;
+  document.getElementById('btn-single').disabled = lock;
+  document.getElementById('btn-elim').disabled = lock;
+  document.getElementById('btn-reset').disabled = lock;
+  document.querySelectorAll('.duration-btn[data-dur]').forEach(b => b.disabled = lock);
+  document.getElementById('btn-auto').disabled = autoRunning ? false : disabled;
 }
 
 // ============================================================
@@ -1850,7 +1803,6 @@ document.getElementById('history-toggle').addEventListener('click', () => {
 
 function updateStats() {
   const el = document.getElementById('app-stats');
-  document.getElementById('elim-remaining').textContent = wheelList.length;
   if (!wsWanted) { el.textContent = 'Не подключено'; return; }
   el.textContent = `На колесе: ${wheelList.length}  •  Видели в чате: ${users.size}`;
 }
@@ -1963,35 +1915,21 @@ document.getElementById('feed-toggle').addEventListener('click', () => {
 });
 
 // Длительность и звук
-document.querySelectorAll('.duration-btn').forEach(btn => {
+function highlightDuration(sec) {
+  document.querySelectorAll('.duration-btn[data-dur]').forEach(b =>
+    b.classList.toggle('active', parseInt(b.dataset.dur, 10) === sec));
+}
+document.querySelectorAll('.duration-btn[data-dur]').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
     duration = parseInt(btn.dataset.dur, 10);
+    highlightDuration(duration);
   });
 });
 
-const soundBtn = document.getElementById('sound-toggle');
-function updateSoundButton() {
-  if (soundOn) {
-    soundBtn.classList.remove('off');
-    soundBtn.innerHTML = icon('volume') + ' Звук вкл.';
-  } else {
-    soundBtn.classList.add('off');
-    soundBtn.innerHTML = icon('volume-off') + ' Звук выкл.';
-  }
-}
-soundBtn.addEventListener('click', () => {
-  soundOn = !soundOn;
-  if (soundOn) ensureAudio();
-  updateSoundButton();
-});
-updateSoundButton();
-document.addEventListener('click', () => { if (soundOn) ensureAudio(); }, { once: true });
+WheelKit.sound.bind(document.querySelector('.sound-group'));
 
 function exitElimination() {
   eliminationMode = false;
-  document.getElementById('elimination-status').classList.remove('active');
   document.getElementById('btn-elim').innerHTML = icon('swords') + ' Режим выбывания';
   document.getElementById('layout').classList.remove('elim-active');
 }
@@ -2015,45 +1953,110 @@ document.getElementById('btn-single').addEventListener('click', () => {
 
 // Режим выбывания: состав фиксируется в момент старта,
 // новые сообщения из чата колесо уже не меняют
-document.getElementById('btn-elim').addEventListener('click', () => {
-  if (!eliminationMode) {
-    wheelList = computeEligible();
-    if (wheelList.length < 2) return;
-    eliminationMode = true;
-    renderWheel();
-    updateStats();
-    document.getElementById('elimination-status').classList.add('active');
-    document.getElementById('layout').classList.add('elim-active');
-    document.getElementById('btn-elim').innerHTML = icon('swords') + ' Крутить (выбывание)';
+function startElimination() {
+  if (eliminationMode) return true;
+  wheelList = computeEligible();
+  if (wheelList.length < 2) return false;
+  eliminationMode = true;
+  renderWheel();
+  updateStats();
+  document.getElementById('layout').classList.add('elim-active');
+  document.getElementById('btn-elim').innerHTML = icon('swords') + ' Крутить (выбывание)';
+  return true;
+}
+
+function finishElimination() {
+  const winner = wheelList[0];
+  addLogEntry('ПОБЕДИТЕЛЬ: ' + winner.name + (winner.isSub ? ' · саб' : ''), true);
+  exitElimination();
+  showWinner(winner);
+}
+
+// Выпавший участник вспыхивает и вылетает; когда остаётся один — он победитель
+async function eliminateAt(idx) {
+  if (wheelList.length === 1) { finishElimination(); return; }
+  await WheelKit.flash(`path[data-user="${idx}"]`);
+  const out = wheelList[idx];
+  addLogEntry('Выбыл: ' + out.name, false, wheelList.length);
+  wheelList.splice(idx, 1);
+  renderWheel();
+  updateStats();
+  if (wheelList.length === 1) {
+    // Пауза перед объявлением: кнопки заперты (крутка ещё «идёт»),
+    // чтобы лишний клик не записал победителя дважды
+    await new Promise(r => setTimeout(r, 700));
+    finishElimination();
   }
+}
+
+document.getElementById('btn-elim').addEventListener('click', () => {
+  if (!startElimination()) return;
   // На время прокрутки настройки не нужны — справа история выбывших
   setSidePanel('history');
-  spin(idx => {
-    if (wheelList.length === 1) {
-      const winner = wheelList[0];
-      addLogEntry('ПОБЕДИТЕЛЬ: ' + winner.name + (winner.isSub ? ' · саб' : ''), true);
-      exitElimination();
-      showWinner(winner);
-      return;
-    }
-    const out = wheelList[idx];
-    addLogEntry('Выбыл: ' + out.name, false, wheelList.length);
-    wheelList.splice(idx, 1);
-    renderWheel();
-    updateStats();
-    if (wheelList.length === 1) {
-      // Пауза перед объявлением: кнопки заперты, чтобы лишний клик
-      // не записал победителя дважды
-      setControlsDisabled(true);
-      setTimeout(() => {
-        setControlsDisabled(false);
-        const winner = wheelList[0];
-        addLogEntry('ПОБЕДИТЕЛЬ: ' + winner.name + (winner.isSub ? ' · саб' : ''), true);
-        exitElimination();
-        showWinner(winner);
-      }, 700);
-    }
+  spin(eliminateAt);
+});
+
+// ------------------------------------------------------------
+// Авто-выбывание: колесо само крутит и выкидывает по одному.
+// Темп (3с → 5с → 10с → финал 60с) — WheelKit.AUTO_PHASES.
+// ------------------------------------------------------------
+let autoWake = null;          // прерывает паузу между крутками при «Стоп»
+let manualDuration = duration;
+
+function autoPause(sec) {
+  return new Promise(resolve => {
+    const done = () => { clearTimeout(timer); autoWake = null; resolve(); };
+    const timer = setTimeout(done, sec * 1000);
+    autoWake = done;
   });
+}
+
+function stopAuto() {
+  if (!autoRunning) return;
+  autoRunning = false;
+  if (autoWake) autoWake();
+}
+
+async function runAuto() {
+  if (!startElimination()) return;
+  setSidePanel('history');
+  autoRunning = true;
+  manualDuration = duration;
+  const btn = document.getElementById('btn-auto');
+  btn.classList.add('running');
+  btn.innerHTML = icon('stop') + ' Стоп авто';
+  setControlsDisabled(false);
+
+  let first = true;
+  while (autoRunning && eliminationMode && wheelList.length > 1) {
+    const ph = WheelKit.autoPhase(wheelList.length);
+    if (!first) {
+      await autoPause(ph.pause);
+      if (!autoRunning || !eliminationMode) break;
+    }
+    first = false;
+    highlightDuration(ph.spin);
+    await spin(eliminateAt, ph.spin);
+  }
+
+  autoRunning = false;
+  autoWake = null;
+  btn.classList.remove('running');
+  btn.innerHTML = icon('bot') + ' Авто-выбывание';
+  duration = manualDuration;
+  highlightDuration(duration);
+  setControlsDisabled(isSpinning);
+}
+
+document.getElementById('btn-auto').addEventListener('click', () => {
+  if (autoRunning) {
+    // Идущая крутка доедет и выкинет своего участника, дальше — ручной режим
+    stopAuto();
+    if (isSpinning) document.getElementById('btn-auto').innerHTML = icon('stop') + ' Остановится после крутки';
+    return;
+  }
+  if (isSpinning) return;
+  runAuto();
 });
 
 // Сброс: вернуть исключённых, прервать выбывание, очистить историю
