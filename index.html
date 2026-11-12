@@ -11,7 +11,6 @@
      ⚙ НАСТРОЙКА ⚙  Все данные — data/*.json в репозитории, правятся на admin.html.
      Названия ниже остались от листов Google-таблицы.
      CONFIG_CSV_URL  — лист Config (имя стримера, интро, аватар, Twitch URL)
-     WINNERS_CSV_URL — лист Winners (для счётчика Hall of Fame)
      TICKETS_CSV_URL — лист Tickets (для счётчика билетов)
      ANIME_CSV_URL   — лист Anime
      MOVIES_CSV_URL  — лист Movies
@@ -20,7 +19,6 @@
      ============================================================ -->
 <script>
   const CONFIG_CSV_URL  = "data/config.json";
-  const WINNERS_CSV_URL = "data/winners.json";
   const TICKETS_CSV_URL = "data/tickets.json";
   const ANIME_CSV_URL   = "data/anime.json";
   const MOVIES_CSV_URL  = "data/movies.json";
@@ -433,13 +431,7 @@
     .week__time { font-size: 12px; }
   }
 
-  /* ========== ЛЕНТА ПОБЕД ========== */
-  .wins {
-    max-width: var(--page);
-    margin: 0 auto 36px;
-  }
-  .wins[hidden] { display: none; }
-
+  /* ========== ЗАГОЛОВКИ СЕКЦИЙ ========== */
   .section-head {
     display: flex;
     align-items: baseline;
@@ -462,59 +454,6 @@
     opacity: .85;
   }
   .section-head a:hover { opacity: 1; text-decoration: underline; }
-  .wins__track {
-    overflow: hidden;
-    -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
-            mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
-  }
-  .wins__row {
-    display: flex;
-    gap: 12px;
-    width: max-content;
-    padding: 4px 0 8px;
-  }
-  .wins__row.is-moving { animation: wins-scroll var(--wins-dur, 60s) linear infinite; }
-  .wins__track:hover .wins__row { animation-play-state: paused; }
-  @keyframes wins-scroll { from { transform: translateX(0); } to { transform: translateX(calc(-50% - 6px)); } }
-  .win {
-    --rc: #AFA9EC;
-    --rc-bg: rgba(127,119,221,0.10);
-    flex: 0 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    width: 260px;
-    padding: 12px 14px;
-    border-radius: 12px;
-    text-decoration: none;
-    color: #fff;
-    background: var(--rc-bg);
-    border: 1px solid color-mix(in srgb, var(--rc) 35%, transparent);
-    transition: border-color .18s ease, transform .18s ease;
-  }
-  .win:hover { border-color: var(--rc); transform: translateY(-2px); }
-  .win--legendary { --rc: #F0997B; --rc-bg: rgba(216,90,48,0.10); }
-  .win--artifact  { --rc: var(--gold, #FAC775); --rc-bg: rgba(var(--gold-rgb, 250, 199, 117),0.09); }
-  .win__top { display: flex; align-items: center; gap: 8px; font-size: 13px; }
-  .win__rank { color: var(--rc); font-size: 14px; }
-  .win__nick { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .win__date { margin-left: auto; font-size: 11px; color: rgba(255,255,255,0.45); font-variant-numeric: tabular-nums; }
-  .win__prize {
-    font-size: 14px;
-    color: var(--rc);
-    line-height: 1.3;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .win__quote {
-    font-size: 12px;
-    font-style: italic;
-    color: rgba(255,255,255,0.55);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
 
   /* ========== СЕТКА КАРТОЧЕК ========== */
   .cards {
@@ -524,10 +463,9 @@
     max-width: var(--page);
     margin: 0 auto;
   }
-  /* Сколько маленьких карточек видно (data-n) зависит от розыгрыша и сериалов —
-     Зал Славы растягивается так, чтобы сетка закрывалась без дыр */
-  .cards[data-n="3"] .page-card--hall { grid-column: 1 / -1; }
-  .cards[data-n="4"] .page-card--hall { grid-column: span 2; }
+  /* Сколько карточек видно (data-n) зависит от розыгрыша и сериалов — столько и колонок */
+  .cards[data-n="4"] { grid-template-columns: repeat(4, 1fr); }
+  .cards[data-n="5"] { grid-template-columns: repeat(5, 1fr); }
   .page-card[hidden] { display: none; }
   .page-card {
     background: rgba(255,255,255,0.04);
@@ -626,44 +564,6 @@
   }
   .page-card__count .accent { color: #fff; font-weight: 600; }
 
-  /* Зал Славы: большая цифра и разбивка по рангам вместо обложек */
-  .hall-art { position: relative; text-align: center; width: 100%; display: flex; flex-direction: column; align-items: center; }
-  .hall-art__num {
-    font-size: 72px;
-    font-weight: 700;
-    line-height: 1;
-    color: var(--gold, #FAC775);
-    text-shadow: 0 0 30px rgba(var(--gold-rgb, 250, 199, 117),0.5);
-    font-variant-numeric: tabular-nums;
-  }
-  .hall-art__ranks {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-    flex-wrap: wrap;
-    margin-top: 12px;
-  }
-  .rank-pill {
-    font-size: 12px;
-    padding: 4px 10px;
-    border-radius: 999px;
-    background: rgba(127,119,221,0.15);
-    color: #AFA9EC;
-  }
-  .rank-pill--legendary { background: rgba(240,153,123,0.15); color: #F0997B; }
-  .rank-pill--artifact  { background: rgba(var(--gold-rgb, 250, 199, 117),0.15); color: var(--gold, #FAC775); }
-  .hall-art__last {
-    margin-top: 10px;
-    font-size: 12px;
-    color: rgba(255,255,255,0.55);
-    max-width: min(420px, 100%);
-    padding: 0 12px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .hall-art__last b { color: #fff; }
-
   /* ========== РЕКОМЕНДУЮ: карусель друзей-стримеров ========== */
   /* Размер — как у баннера Зала Славы: ширина страницы, пропорции 5:1 (1240×248) */
   .friends { max-width: var(--page); margin: 36px auto 0; }
@@ -733,8 +633,6 @@
     .friends__dots { right: 10px; bottom: 12px; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .wins__row.is-moving { animation: none; }
-    .wins__track { overflow-x: auto; }
     .event__inner::after, .now__dot { animation: none; }
   }
 
@@ -747,17 +645,18 @@
     .hero__name { font-size: 32px; letter-spacing: 3px; }
     .hero__avatar-wrap { width: 96px; height: 96px; font-size: 32px; }
     .cards { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-    .cards[data-n="3"] .page-card--hall,
-    .cards[data-n="5"] .page-card--hall { grid-column: auto; }
-    .cards[data-n="4"] .page-card--hall { grid-column: 1 / -1; }
+    .cards[data-n] { grid-template-columns: repeat(2, 1fr); }
+    /* Нечётное число карточек — последняя на всю ширину, без дыры */
+    .cards[data-n="3"] .page-card:not([hidden]):last-child,
+    .cards[data-n="5"] .page-card:not([hidden]):last-child { grid-column: 1 / -1; }
     .page-card__art { height: 150px; }
     .event__cta { margin-left: 0; }
   }
   @media (max-width: 480px) {
-    .cards { grid-template-columns: 1fr; }
+    .cards[data-n] { grid-template-columns: 1fr; }
+    .cards[data-n] .page-card { grid-column: auto; }
     .now-item__cover { width: 76px; height: 114px; }
     .now-item__title { font-size: 16px; }
-    .win { width: 230px; }
   }
 
   /* ===== Новогодняя гирлянда по бокам экрана (только зимой — site.js: SEASON, класс season-winter) =====
@@ -815,22 +714,7 @@
   </aside>
 </main>
 
-<section class="wins" id="wins" aria-labelledby="wins-label">
-  <div class="section-head">
-    <h2 id="wins-label">Последние победы в рулетке</h2>
-    <a href="hall.html">Весь Зал Славы →</a>
-  </div>
-  <div class="wins__track"><div class="wins__row" id="wins-row"></div></div>
-</section>
-
 <section class="cards" id="cards" data-n="3" aria-label="Разделы сайта">
-  <a class="page-card page-card--hall" href="hall.html">
-    <div class="page-card__art" id="art-hall"><span class="page-card__icon"><svg class="ic" aria-hidden="true"><use href="#i-trophy"></use></svg></span></div>
-    <div class="page-card__body">
-      <h2 class="page-card__title">Зал Славы</h2>
-      <p class="page-card__count" data-counter="hall">…</p>
-    </div>
-  </a>
   <a class="page-card page-card--tickets" id="card-tickets" href="tickets.html" hidden>
     <div class="page-card__art"><span class="page-card__icon"><svg class="ic" aria-hidden="true"><use href="#i-ticket"></use></svg></span></div>
     <div class="page-card__body">
@@ -1131,7 +1015,7 @@ function fitCover(img) {
 
 function layoutCards() {
   const cards = document.getElementById('cards');
-  cards.dataset.n = cards.querySelectorAll('.page-card:not(.page-card--hall):not([hidden])').length;
+  cards.dataset.n = cards.querySelectorAll('.page-card:not([hidden])').length;
 }
 
 // Назначен на сегодня или позже (и не досмотрен, не на паузе)
@@ -1479,71 +1363,6 @@ function renderNow() {
   document.getElementById('now-list').innerHTML = parts.join('');
 }
 
-// ===== Зал Славы: лента последних побед + карточка =====
-const RANKS = {
-  epic:      { label: 'Эпическая',  symbol: '◆', forms: ['эпическая', 'эпических', 'эпических'] },
-  legendary: { label: 'Легендарка', symbol: icon('star', 'ic--fill'), forms: ['легендарка', 'легендарки', 'легендарок'] },
-  artifact:  { label: 'Артефакт',   symbol: icon('sparkles', 'ic--fill'), forms: ['артефакт', 'артефакта', 'артефактов'] },
-};
-
-function cleanQuote(q) {
-  const s = String(q || '').trim().replace(/^["«„“']+|["»“”']+$/g, '').trim();
-  return /^[?!.\s-]*$/.test(s) ? '' : s;
-}
-
-function renderWins(rows) {
-  const wins = rowsToObjects(rows)
-    .filter(w => w.nick && w.prize)
-    .map((w, idx) => ({ ...w, rank: (w.rank || '').toLowerCase(), _idx: idx, _ts: dateTs(w.date) }));
-
-  // Карточка Зала Славы
-  const n = wins.length;
-  setCounter('hall', `<span class="accent">${n}</span> ${plural(n, ['победа', 'победы', 'побед'])}`);
-  const recent = wins.slice().sort((a, b) => (b._ts - a._ts) || (b._idx - a._idx));
-  if (n > 0) {
-    const pills = ['artifact', 'legendary', 'epic']
-      .map(r => {
-        const c = wins.filter(w => w.rank === r).length;
-        return c ? `<span class="rank-pill rank-pill--${r}">${RANKS[r].symbol} ${c} ${plural(c, RANKS[r].forms)}</span>` : '';
-      }).join('');
-    const last = recent[0];
-    document.getElementById('art-hall').innerHTML = `
-      <div class="hall-art">
-        <div class="hall-art__num">${n}</div>
-        <div class="hall-art__ranks">${pills}</div>
-        <div class="hall-art__last">последний: <b>${esc(last.nick)}</b> — ${esc(last.prize)}</div>
-      </div>`;
-  }
-
-  // Лента
-  const section = document.getElementById('wins');
-  const row = document.getElementById('wins-row');
-  const top = recent.slice(0, 16);
-  if (top.length === 0) { section.hidden = true; return; }
-  const chips = top.map(w => {
-    const r = RANKS[w.rank] || RANKS.epic;
-    const quote = cleanQuote(w.quote);
-    const d = parseSheetDate(w.date);
-    const dp = d && !isNaN(d.getTime()) ? zparts(d, STREAMER_TZ) : null; // дата победы — по календарю стримера
-    const dd = dp ? `${String(dp.d).padStart(2, '0')}.${String(dp.mo + 1).padStart(2, '0')}` : '';
-    return `
-      <a class="win win--${esc(w.rank)}" href="hall.html" title="${esc(r.label)}: ${esc(w.prize)}">
-        <span class="win__top"><span class="win__rank">${r.symbol}</span><span class="win__nick">${esc(w.nick)}</span><span class="win__date">${dd}</span></span>
-        <span class="win__prize">${esc(w.prize)}</span>
-        ${quote ? `<span class="win__quote">«${esc(quote)}»</span>` : ''}
-      </a>`;
-  }).join('');
-
-  // Бесконечная прокрутка: дублируем ленту, но только если она шире экрана
-  row.innerHTML = chips;
-  requestAnimationFrame(() => {
-    if (row.scrollWidth <= row.parentElement.clientWidth) return;
-    row.insertAdjacentHTML('beforeend', chips.replace(/<a /g, '<a tabindex="-1" aria-hidden="true" '));
-    row.style.setProperty('--wins-dur', `${top.length * 5}s`);
-    row.classList.add('is-moving');
-  });
-}
-
 async function loadAll() {
   renderWeek();
 
@@ -1555,14 +1374,6 @@ async function loadAll() {
       renderWeek();
     })
     .catch(err => console.warn('Config load failed:', err.message));
-
-  fetchRows(WINNERS_CSV_URL)
-    .then(renderWins)
-    .catch(err => {
-      console.warn('Winners load failed:', err.message);
-      setCounter('hall', '—');
-      document.getElementById('wins').hidden = true;
-    });
 
   // Списки грузятся параллельно; каждый переживает свою ошибку
   const keys = Object.keys(CATS);
