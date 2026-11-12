@@ -128,14 +128,15 @@ async function wikidataKp(names, year, cfg) {
   }
   if (!ids.size) return null;
   const list = [...ids].slice(0, 50);
-  const ents = await getJSON(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${list.join('|')}&props=labels|aliases|descriptions|claims|sitelinks&languages=ru|en&format=json`);
+  // mul — общий для всех языков ярлык: Wikidata переносит туда оригинальные названия, и у многих фильмов
+  // (Lord of War, The Shape of Water, Predator) отдельного английского ярлыка больше нет
+  const ents = await getJSON(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${list.join('|')}&props=labels|aliases|descriptions|claims|sitelinks&languages=ru|en|mul&format=json`);
   let best = null;
   for (const id of list) {
     const e = ents?.entities?.[id];
     const kp = e?.claims?.P2603?.[0]?.mainsnak?.datavalue?.value;
     if (!kp || !/^\d+$/.test(kp)) continue;
-    const titles = [e.labels?.ru?.value, e.labels?.en?.value,
-      ...(e.aliases?.ru || []).map(x => x.value), ...(e.aliases?.en || []).map(x => x.value)].filter(Boolean);
+    const titles = ['ru', 'en', 'mul'].flatMap(l => [e.labels?.[l]?.value, ...(e.aliases?.[l] || []).map(x => x.value)]).filter(Boolean);
     let s = Math.max(...names.flatMap(n => titles.map(t => score(n, t))));
     const descs = [e.descriptions?.ru?.value, e.descriptions?.en?.value].filter(Boolean);
     const desc = descs.join(' · ');
@@ -147,7 +148,7 @@ async function wikidataKp(names, year, cfg) {
     if (year && y) s += Math.abs(y - year) <= 1 ? 0.3 : -0.6; // год — сильный признак: другой год отбрасываем
     const pop = Object.keys(e.sitelinks || {}).length;
     if (!best || s > best.s + 1e-9 || (Math.abs(s - best.s) <= 1e-9 && pop > best.pop)) {
-      best = {kp, s, pop, label: e.labels?.ru?.value || e.labels?.en?.value || id, desc};
+      best = {kp, s, pop, label: e.labels?.ru?.value || e.labels?.en?.value || e.labels?.mul?.value || id, desc};
     }
   }
   return best && best.s >= 0.75 ? best : null;

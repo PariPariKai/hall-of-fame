@@ -59,7 +59,7 @@
     "movies|notre dame de paris full musical": {
       "list": "movies",
       "title": "Notre Dame de Paris full musical",
-      "checked": "2026-11-11T19:03:28.388Z",
+      "checked": "2026-11-12T22:29:34.445Z",
       "found": false,
       "year": 1998
     },
@@ -200,7 +200,7 @@
     "movies|бишарашки": {
       "list": "movies",
       "title": "Бишарашки",
-      "checked": "2026-11-11T19:03:31.323Z",
+      "checked": "2026-11-12T22:29:37.838Z",
       "found": false,
       "year": 2022
     },
@@ -262,9 +262,13 @@
     "movies|lord of war": {
       "list": "movies",
       "title": "Lord of War",
-      "checked": "2026-11-10T15:21:25.957Z",
-      "found": false,
-      "year": 2005
+      "checked": "2026-11-12T22:29:40.908Z",
+      "found": true,
+      "year": 2005,
+      "kp": "77439",
+      "url": "https://www.kinopoisk.ru/film/77439/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/6201401/a57db481-df83-4aae-a681-275fa9357ef0/600x900",
+      "source": "kinopoisk"
     },
     "movies|ayla": {
       "list": "movies",
@@ -333,9 +337,13 @@
     "movies|the shape of water": {
       "list": "movies",
       "title": "The Shape of Water",
-      "checked": "2026-11-10T15:33:13.034Z",
-      "found": false,
-      "year": 2017
+      "checked": "2026-11-12T22:29:47.485Z",
+      "found": true,
+      "year": 2017,
+      "kp": "977743",
+      "url": "https://www.kinopoisk.ru/film/977743/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1599028/bf5bae12-2bf8-46de-9db0-ef8e5eb4b22f/600x900",
+      "source": "kinopoisk"
     },
     "movies|district 9": {
       "list": "movies",
@@ -438,9 +446,13 @@
     "movies|predator": {
       "list": "movies",
       "title": "Predator",
-      "checked": "2026-11-10T19:28:58.838Z",
-      "found": false,
-      "year": 1987
+      "checked": "2026-11-12T22:29:52.310Z",
+      "found": true,
+      "year": 1987,
+      "kp": "6303",
+      "url": "https://www.kinopoisk.ru/film/6303/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/4486362/dd3bf825-a248-49be-8e62-ccc2afbe44db/600x900",
+      "source": "kinopoisk"
     },
     "movies|prey": {
       "list": "movies",
