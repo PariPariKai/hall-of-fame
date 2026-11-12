@@ -869,6 +869,16 @@ function rollStop() {
   r.src.stop(t + 0.5);
 }
 SFX_ALL.forEach(loadSfx);
+// Звук включаем заранее — при первом клике или нажатии клавиши на странице (пока выбирают ник и статью).
+// Создание AudioContext на Windows с OBS и виртуальными устройствами может на секунду-другую подвесить страницу:
+// пусть это случится сейчас, а не на кнопке «Вынести приговор», когда барабан должен стартовать сразу.
+function warmAudio() {
+  document.removeEventListener('pointerdown', warmAudio, true);
+  document.removeEventListener('keydown', warmAudio, true);
+  try { ac(); readySfx(SFX_ALL); } catch (e) { /* без звука — не страшно */ }
+}
+document.addEventListener('pointerdown', warmAudio, true);
+document.addEventListener('keydown', warmAudio, true);
 
 // ---------- прокрутка ----------
 function lock(on) {
@@ -890,10 +900,12 @@ function spinReel(lvl, idx, onStop) {
   let dist = Math.ceil(TOP_SPEED * k);
   dist += mod(idx - (start + dist), SECTORS);
   const vmax = dist / k, p1 = vmax * RAMP / 2, p2 = p1 + vmax * hold;
-  return new Promise(done => {
+  return new Promise((done, fail) => {
     const t0 = performance.now();
     let tick = Math.floor(start - 0.5), stopped = false;
-    const frame = now => {
+    // Ошибка внутри кадра не должна навсегда оставить барабан «в процессе»
+    const frame = now => { try { step(now); } catch (err) { fail(err); } };
+    const step = now => {
       const t = (now - t0) / 1000;
       let p, v = 0;
       if (t < RAMP) { v = vmax * t / RAMP; p = vmax * t * t / (2 * RAMP); }
@@ -923,15 +935,29 @@ function spinReel(lvl, idx, onStop) {
 const wait = ms => new Promise(r => setTimeout(r, ms));
 $('spin').addEventListener('click', async () => {
   if (spinning || !pick.nick || !pick.rule) return;
-  ac();
   const lvl = level(), rule = pick.rule, nick = pick.nick, repeat = pick.repeat && lvl > rule.level, note = $('note').value.trim();
   lock(true);
   resetReel();
-  // Свои звуки, если есть, — но не ждём их дольше полутора секунд
-  await Promise.race([readySfx([...SFX_ALL, 'music-' + lvl]), wait(1500)]);
+  $('reel-plate').textContent = 'Суд идёт';   // сразу видно, что кнопка сработала
+  try {
+    try { ac(); } catch (e) { /* без звука */ }
+    // Свои звуки, если есть, — но не ждём их дольше 0.6 с (обычно уже готовы: см. warmAudio)
+    await Promise.race([readySfx([...SFX_ALL, 'music-' + lvl]), wait(600)]);
+    await runSpin(lvl, rule, nick, repeat, note);
+  } catch (err) {
+    // Что бы ни сломалось — страница не остаётся заблокированной
+    console.error(err);
+    rollStop();
+    spinning = false;
+    lock(false);
+    resetReel();
+    toast('Рулетка споткнулась: ' + (err && err.message || err) + '. Попробуй ещё раз.', true);
+  }
+});
+async function runSpin(lvl, rule, nick, repeat, note) {
   const idx = rand(SECTORS);   // все 20 ячеек равновероятны
   const outcome = layout[idx], o = OUTCOMES[outcome];
-  $('reel-plate').textContent = 'Суд идёт';
+  if (!o) throw new Error('барабан не готов — выбери статью заново');
   sfx('music-' + lvl);
   rollStart();
   await spinReel(lvl, idx, () => {
@@ -955,7 +981,7 @@ $('spin').addEventListener('click', async () => {
   showVerdict(entry);
   lock(false);
   saveVerdict(entry);
-});
+}
 
 // ===================== приговор =====================
 let lastEntry = null;
