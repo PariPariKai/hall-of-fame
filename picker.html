@@ -120,7 +120,7 @@
   .subtitle b { color: #fff; font-weight: 600; }
 
   .layout {
-    display: grid; grid-template-columns: 280px minmax(0, 1fr) 280px;
+    display: grid; grid-template-columns: 280px minmax(0, 1fr) 340px;
     gap: 18px; align-items: start;
   }
 
@@ -280,27 +280,22 @@
   .ctrl-btn.auto { border-color: rgba(151,196,89,0.45); color: #97C459; }
   .ctrl-btn.auto:hover:not(:disabled) { background: rgba(151,196,89,0.12); border-color: #97C459; }
   .ctrl-btn.auto.running { background: rgba(151,196,89,0.16); border-color: #97C459; }
-  .elim-auto { display: block; margin-top: 3px; font-size: 11.5px; color: #97C459; }
-  .elim-auto:empty { display: none; }
-
-  .elimination-status {
-    background: rgba(var(--gold-rgb, 250, 199, 117),0.1); border: 1px solid rgba(var(--gold-rgb, 250, 199, 117),0.28);
-    border-radius: 8px; padding: 9px 18px; color: var(--gold, #FAC775);
-    font-size: 12.5px; text-align: center; margin-bottom: 12px; display: none;
-  }
-  .elimination-status.active { display: block; }
 
   /* ========== ИСТОРИЯ ========== */
-  .log { display: none; max-height: 320px; overflow-y: auto; }
+  /* Без своей прокрутки: список растёт вниз вместе со страницей.
+     Самый свежий вылет — сверху, крупнее и жирнее остальных. */
+  .log { display: none; }
   .log.has-entries { display: block; }
   .log-entry {
-    font-size: 12.5px; padding: 6px 7px; color: rgba(255,255,255,0.68);
-    border-bottom: 1px solid rgba(255,255,255,0.05); border-radius: 6px;
+    font-size: 15px; line-height: 1.35; padding: 8px 9px; color: rgba(255,255,255,0.72);
+    border-bottom: 1px solid rgba(255,255,255,0.06); border-radius: 8px;
   }
   .log-entry:last-child { border-bottom: none; }
-  .log-entry.winner { color: var(--gold, #FAC775); font-weight: 700; font-size: 13.5px; }
-  .log-entry .num { color: rgba(255,255,255,0.28); margin-right: 7px; font-variant-numeric: tabular-nums; }
-  .log-who { color: rgba(255,255,255,0.38); font-size: 10.5px; }
+  .log-entry .num { color: rgba(255,255,255,0.3); margin-right: 8px; font-variant-numeric: tabular-nums; }
+  .log-who { color: rgba(255,255,255,0.4); font-size: 12px; margin-top: 2px; }
+  .log-entry.latest { font-size: 19px; font-weight: 700; color: #fff; padding: 11px 10px; }
+  .log-entry.latest .log-who { font-size: 13px; font-weight: 500; }
+  .log-entry.winner { color: var(--gold, #FAC775); font-weight: 700; }
   @keyframes logPop {
     0%{transform:scale(1.5);opacity:0;background:rgba(var(--gold-rgb, 250, 199, 117),0.3)}
     100%{transform:scale(1);background:transparent}
@@ -492,11 +487,6 @@
 
     <!-- ===== Колесо ===== -->
     <div class="wheel-col">
-      <div id="elimination-status" class="elimination-status">
-        Режим выбывания. Осталось вариантов: <span id="elim-remaining">0</span>
-        <span class="elim-auto" id="elim-auto"></span>
-      </div>
-
       <div class="wheel-area">
         <svg class="wheel-svg" id="wheel" viewBox="0 0 100 100"></svg>
         <div class="wheel-pointer" id="wheel-pointer">
@@ -1086,7 +1076,6 @@ function updateStats() {
     .map(s => `${icon(s.icon)} ${activeItems.filter(i => i.source === s.id).length}`).join(' · ');
   document.getElementById('top-stats').innerHTML =
     `<b>${total}</b> ${pluralize(total,'вариант','варианта','вариантов')}${bySrc ? ' &nbsp;•&nbsp; ' + bySrc : ''}`;
-  document.getElementById('elim-remaining').textContent = total;
   const empty = document.getElementById('wheel-empty');
   empty.style.display = total === 0 ? 'flex' : 'none';
   if (total === 0) {
@@ -1562,16 +1551,17 @@ function launchConfetti() {
 // ============================================================
 // История
 // ============================================================
-function addLogEntry(item, isWinner) {
-  log.push({ item, isWinner });
+// place — место в выбывании: первый вылетевший из N получает #N,
+// последний — #2, победитель — кубок (#1)
+function addLogEntry(item, isWinner, place) {
+  log.push({ item, isWinner, place });
   document.getElementById('log-entries').innerHTML = log.map((e, i) => `
-    <div class="log-entry${e.isWinner ? ' winner' : ''}${i === log.length - 1 ? ' fresh' : ''}">
-      <span class="num">${e.isWinner ? icon('trophy') : '#' + (i + 1)}</span>${e.isWinner ? '' : 'Выбыл: '}${esc(e.item.title)}
+    <div class="log-entry${e.isWinner ? ' winner' : ''}${i === log.length - 1 ? ' latest fresh' : ''}">
+      <span class="num">${e.isWinner ? icon('trophy') : '#' + e.place}</span>${e.isWinner ? '' : 'Выбыл: '}${esc(e.item.title)}
       ${e.item.who ? `<div class="log-who">заказ: ${esc(e.item.who)}</div>` : ''}
     </div>`).reverse().join('');
   const l = document.getElementById('log');
   l.classList.add('has-entries');
-  l.scrollTop = 0;
 }
 
 // ============================================================
@@ -1593,7 +1583,6 @@ document.querySelectorAll('.duration-btn[data-dur]').forEach(btn => {
 // ============================================================
 function setEliminationUi(on) {
   eliminationMode = on;
-  document.getElementById('elimination-status').classList.toggle('active', on);
   document.getElementById('btn-elim').innerHTML = icon('swords') + (on ? ' Крутить (выбывание)' : ' Режим выбывания');
 }
 
@@ -1607,7 +1596,7 @@ function finishElimination() {
 // Выкидываем выпавший вариант; когда остаётся один — он победитель
 function eliminateAt(idx) {
   if (activeItems.length === 1) { finishElimination(); return; }
-  addLogEntry(activeItems[idx], false);
+  addLogEntry(activeItems[idx], false, activeItems.length);
   activeItems.splice(idx, 1);
   updateStats();
   renderWheel();
@@ -1646,15 +1635,11 @@ const autoPhase = n => AUTO_PHASES.find(p => n <= p.upTo);
 let autoWake = null;          // прерывает паузу между крутками при «Стоп»
 let manualDuration = duration;
 
-function setAutoInfo(text) { document.getElementById('elim-auto').innerHTML = text ? icon('bot') + ' ' + esc(text) : ''; }
-
-function pause(sec, onTick) {
+function pause(sec) {
   return new Promise(resolve => {
-    let left = sec;
-    const done = () => { clearInterval(timer); autoWake = null; resolve(); };
-    const timer = setInterval(() => { left--; if (left <= 0) done(); else onTick(left); }, 1000);
+    const done = () => { clearTimeout(timer); autoWake = null; resolve(); };
+    const timer = setTimeout(done, sec * 1000);
     autoWake = done;
-    onTick(left);
   });
 }
 
@@ -1680,12 +1665,11 @@ async function runAuto() {
     const n = activeItems.length;
     const ph = autoPhase(n);
     if (!first) {
-      await pause(ph.pause, left => setAutoInfo(`Следующая крутка (${ph.spin}с) через ${left}…`));
+      await pause(ph.pause);
       if (!autoRunning || gen !== wheelGen) break;
     }
     first = false;
     highlightDuration(ph.spin);
-    setAutoInfo(n === 2 ? `Финальная крутка — ${ph.spin}с` : `Крутим ${ph.spin}с`);
     await spin(eliminateAt, ph.spin);
   }
 
@@ -1693,7 +1677,6 @@ async function runAuto() {
   autoWake = null;
   btn.classList.remove('running');
   btn.innerHTML = icon('bot') + ' Авто-выбывание';
-  setAutoInfo('');
   duration = manualDuration;
   highlightDuration(duration);
   setControlsDisabled(isSpinning);
@@ -1704,7 +1687,7 @@ document.getElementById('btn-auto').addEventListener('click', () => {
   if (autoRunning) {
     // Идущая крутка доедет и выкинет свой вариант, дальше — ручной режим
     stopAuto();
-    setAutoInfo(isSpinning ? 'Остановится после этой крутки' : '');
+    if (isSpinning) document.getElementById('btn-auto').innerHTML = icon('stop') + ' Остановится после крутки';
     return;
   }
   if (activeItems.length === 0 || isSpinning) return;
