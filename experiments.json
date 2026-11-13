@@ -6,7 +6,6 @@
       "title": "PariPariVault",
       "kind": "tool",
       "status": "done",
-      "version": "Версия 0.3.0",
       "date": "2026-11-11",
       "ai": [
         "Claude Opus 5.5",
@@ -18,11 +17,10 @@
       },
       "accent": "#a1305e",
       "gallery": [
-        "experiments/kaivault/shot-01.webp",
-        "experiments/kaivault/shot-02.webp",
-        "experiments/kaivault/shot-03.webp",
-        "experiments/kaivault/shot-04.webp",
-        "experiments/kaivault/shot-05.webp"
+        "experiments/kaivault/vault-01.webp",
+        "experiments/kaivault/vault-02.webp",
+        "experiments/kaivault/vault-03.webp",
+        "experiments/kaivault/vault-04.webp"
       ],
       "summary": "Вспомнил смешной тикток, который лайкнул год назад, и хочешь скинуть другу прямо сейчас? В лайках TikTok нет поиска — только листать час. PariPariVault скачивает твои лайки и избранное на комп и делает из них архив с поиском, таймлайном и категориями. Нашёл за секунды — отправил, пока шутка ещё в тему.",
       "features": [
