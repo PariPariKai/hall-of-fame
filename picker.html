@@ -415,7 +415,7 @@
   }
 </style>
 <script src="site.js?v=17"></script>
-<script src="wheel-kit.js?v=1"></script>
+<script src="wheel-kit.js?v=2"></script>
 
 <div class="wrap">
 
@@ -1277,7 +1277,8 @@ function setControlsDisabled(d) {
   document.getElementById('btn-auto').disabled = autoRunning ? false : d;
 }
 
-async function spin(callback, dur = duration) {
+// final — последняя крутка авто-выбывания (двое на колесе), см. WheelKit.finalSpin
+async function spin(callback, dur = duration, final = false) {
   if (isSpinning || activeItems.length === 0) return;
   if (collecting) stopCollect('Сбор закрыт: крутим');
   if (activeItems.length === 1) { if (callback) callback(0); return; }
@@ -1289,38 +1290,48 @@ async function spin(callback, dur = duration) {
   const segments = currentSegments.length ? currentSegments : computeSegments();
   const winnerIdx = pickWinnerIndex();
 
-  // У победителя может быть несколько кусочков — останавливаемся на случайном
-  const slices = segments.filter(s => s.itemIndex === winnerIdx);
-  let chosen = slices[0];
-  if (slices.length > 1) {
-    const p = new Uint32Array(1); crypto.getRandomValues(p);
-    chosen = slices[p[0] % slices.length];
+  if (final && activeItems.length === 2) {
+    // Финал: без замедления, резкий тормоз, а иногда и проскальзывание — wheel-kit.js
+    currentRotation = await WheelKit.finalSpin({
+      group: document.getElementById('wheel-group'),
+      segments, keyOf: s => s.itemIndex, target: winnerIdx,
+      startRot: currentRotation, pointer: POINTER_ANGLE,
+      onRotate: r => { liveRotation = r; updateLabelOrientation(r); },
+      onTick: triggerTick,
+      onStop: () => wheelFx.burst(),
+    });
+  } else {
+    // У победителя может быть несколько кусочков — останавливаемся на случайном
+    const slices = segments.filter(s => s.itemIndex === winnerIdx);
+    let chosen = slices[0];
+    if (slices.length > 1) {
+      const p = new Uint32Array(1); crypto.getRandomValues(p);
+      chosen = slices[p[0] % slices.length];
+    }
+    if (!chosen) { isSpinning = false; setControlsDisabled(false); return; }
+
+    const cur = ((currentRotation % 360) + 360) % 360;
+    const tgt = (((POINTER_ANGLE - chosen.midAngle) % 360) + 360) % 360;
+    let delta = tgt - cur; if (delta < 0) delta += 360;
+    const startRotation = currentRotation;
+    const finalRotation = currentRotation + 4 * 360 + delta;
+    currentRotation = finalRotation;
+
+    const group = document.querySelector('#wheel-group');
+    group.style.transition = `transform ${dur}s cubic-bezier(0.17, 0.67, 0.2, 1)`;
+    group.style.transform = `rotate(${finalRotation}deg)`;
+
+    await trackPointerTicks(startRotation, finalRotation, dur, segments);
+    liveRotation = finalRotation;
+    updateLabelOrientation(finalRotation);
+    await new Promise(r => setTimeout(r, 100));
+    if (gen === wheelGen) wheelFx.burst();
   }
-  if (!chosen) { isSpinning = false; setControlsDisabled(false); return; }
-
-  const cur = ((currentRotation % 360) + 360) % 360;
-  const tgt = (((POINTER_ANGLE - chosen.midAngle) % 360) + 360) % 360;
-  let delta = tgt - cur; if (delta < 0) delta += 360;
-  const startRotation = currentRotation;
-  const finalRotation = currentRotation + 4 * 360 + delta;
-  currentRotation = finalRotation;
-
-  const group = document.querySelector('#wheel-group');
-  group.style.transition = `transform ${dur}s cubic-bezier(0.17, 0.67, 0.2, 1)`;
-  group.style.transform = `rotate(${finalRotation}deg)`;
-
-  await trackPointerTicks(startRotation, finalRotation, dur, segments);
-  liveRotation = finalRotation;
-  updateLabelOrientation(finalRotation);
-  await new Promise(r => setTimeout(r, 100));
 
   // Пока крутилось, колесо пересобрали фильтрами — индекс уже про другой список.
   // Результат применяем до разблокировки кнопок: вспышка вылетающего сектора
   // идёт ещё полсекунды, и новая крутка в это время сломала бы выбывание.
-  if (gen === wheelGen) {
-    wheelFx.burst();
-    if (callback) await callback(winnerIdx);
-  }
+  if (gen === wheelGen && callback) await callback(winnerIdx);
   isSpinning = false;
   setControlsDisabled(false);
   updateStats();
@@ -1505,17 +1516,8 @@ document.getElementById('btn-elim').addEventListener('click', () => {
 
 // ------------------------------------------------------------
 // Авто-выбывание: колесо само крутит и выкидывает по одному.
-// Чем меньше осталось, тем дольше крутка и пауза — финал тянется.
-// Скорость выбирается по числу вариантов перед круткой.
+// Темп (3с → 5с → 10с → особый финал) — WheelKit.AUTO_PHASES.
 // ------------------------------------------------------------
-const AUTO_PHASES = [
-  { upTo: 2,        spin: 60, pause: 3 },   // финальная крутка
-  { upTo: 5,        spin: 10, pause: 3 },
-  { upTo: 10,       spin: 5,  pause: 2 },
-  { upTo: Infinity, spin: 3,  pause: 2 },
-];
-const autoPhase = n => AUTO_PHASES.find(p => n <= p.upTo);
-
 let autoWake = null;          // прерывает паузу между крутками при «Стоп»
 let manualDuration = duration;
 
@@ -1547,14 +1549,14 @@ async function runAuto() {
   let first = true;
   while (autoRunning && gen === wheelGen && activeItems.length > 1) {
     const n = activeItems.length;
-    const ph = autoPhase(n);
+    const ph = WheelKit.autoPhase(n);
     if (!first) {
       await pause(ph.pause);
       if (!autoRunning || gen !== wheelGen) break;
     }
     first = false;
     highlightDuration(ph.spin);
-    await spin(eliminateAt, ph.spin);
+    await spin(eliminateAt, ph.spin, ph.final);
   }
 
   autoRunning = false;

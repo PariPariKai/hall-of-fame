@@ -642,7 +642,7 @@
     }
   </style>
   <script src="site.js?v=17"></script>
-  <script src="wheel-kit.js?v=1"></script>
+  <script src="wheel-kit.js?v=2"></script>
 <script src="github.js?v=2"></script>
 
   <!-- Экран входа -->
@@ -1558,7 +1558,8 @@ function pickWinnerIndex() {
 
 const POINTER_ANGLE = 90;   // стрелка справа: ник победителя горизонтален
 
-async function spin(callback, dur = duration) {
+// final — последняя крутка авто-выбывания (двое на колесе), см. WheelKit.finalSpin
+async function spin(callback, dur = duration, final = false) {
   if (isSpinning) return;
   if (wheelList.length === 0) return;
   if (wheelList.length === 1) {
@@ -1572,37 +1573,49 @@ async function spin(callback, dur = duration) {
   const segments = currentSegments.length ? currentSegments : computeSegments();
   const winnerIdx = pickWinnerIndex();
 
-  // У победителя может быть несколько кусочков — останавливаемся на случайном
-  const slices = segments.filter(s => s.userIndex === winnerIdx);
-  let chosen = slices[0];
-  if (slices.length > 1) {
-    const p = new Uint32Array(1); crypto.getRandomValues(p);
-    chosen = slices[p[0] % slices.length];
+  if (final && wheelList.length === 2) {
+    // Финал: без замедления, резкий тормоз, а иногда и проскальзывание — wheel-kit.js
+    currentRotation = await WheelKit.finalSpin({
+      group: document.getElementById('wheel-group'),
+      segments, keyOf: s => s.userIndex, target: winnerIdx,
+      startRot: currentRotation, pointer: POINTER_ANGLE,
+      onRotate: r => { liveRotation = r; updateLabelOrientation(r); },
+      onTick: triggerTick,
+      onStop: () => wheelFx.burst(),
+    });
+  } else {
+    // У победителя может быть несколько кусочков — останавливаемся на случайном
+    const slices = segments.filter(s => s.userIndex === winnerIdx);
+    let chosen = slices[0];
+    if (slices.length > 1) {
+      const p = new Uint32Array(1); crypto.getRandomValues(p);
+      chosen = slices[p[0] % slices.length];
+    }
+    if (!chosen) { isSpinning = false; setControlsDisabled(false); return; }
+
+    let baseTarget = POINTER_ANGLE - chosen.midAngle;
+    const minRotations = 4;
+    let currentNormalized = ((currentRotation % 360) + 360) % 360;
+    let targetNormalized = ((baseTarget % 360) + 360) % 360;
+    let delta = targetNormalized - currentNormalized;
+    if (delta < 0) delta += 360;
+    const finalRotation = currentRotation + minRotations * 360 + delta;
+    const startRotation = currentRotation;
+    currentRotation = finalRotation;
+
+    const group = document.getElementById('wheel').querySelector('#wheel-group');
+    group.style.transition = `transform ${dur}s cubic-bezier(0.17, 0.67, 0.2, 1)`;
+    group.style.transform = `rotate(${finalRotation}deg)`;
+
+    await trackPointerTicks(startRotation, finalRotation, dur, segments);
+    liveRotation = finalRotation;
+    updateLabelOrientation(finalRotation);
+    await new Promise(resolve => setTimeout(resolve, 100));
+    wheelFx.burst();
   }
-  if (!chosen) { isSpinning = false; setControlsDisabled(false); return; }
-
-  let baseTarget = POINTER_ANGLE - chosen.midAngle;
-  const minRotations = 4;
-  let currentNormalized = ((currentRotation % 360) + 360) % 360;
-  let targetNormalized = ((baseTarget % 360) + 360) % 360;
-  let delta = targetNormalized - currentNormalized;
-  if (delta < 0) delta += 360;
-  const finalRotation = currentRotation + minRotations * 360 + delta;
-  const startRotation = currentRotation;
-  currentRotation = finalRotation;
-
-  const group = document.getElementById('wheel').querySelector('#wheel-group');
-  group.style.transition = `transform ${dur}s cubic-bezier(0.17, 0.67, 0.2, 1)`;
-  group.style.transform = `rotate(${finalRotation}deg)`;
-
-  await trackPointerTicks(startRotation, finalRotation, dur, segments);
-  liveRotation = finalRotation;
-  updateLabelOrientation(finalRotation);
-  await new Promise(resolve => setTimeout(resolve, 100));
 
   // Результат применяем до разблокировки кнопок: вспышка вылетающего
   // участника идёт ещё полсекунды, и новая крутка в это время сломала бы выбывание
-  wheelFx.burst();
   if (callback) await callback(winnerIdx);
   isSpinning = false;
   setControlsDisabled(false);
@@ -1998,7 +2011,7 @@ document.getElementById('btn-elim').addEventListener('click', () => {
 
 // ------------------------------------------------------------
 // Авто-выбывание: колесо само крутит и выкидывает по одному.
-// Темп (3с → 5с → 10с → финал 60с) — WheelKit.AUTO_PHASES.
+// Темп (3с → 5с → 10с → особый финал) — WheelKit.AUTO_PHASES.
 // ------------------------------------------------------------
 let autoWake = null;          // прерывает паузу между крутками при «Стоп»
 let manualDuration = duration;
@@ -2036,7 +2049,7 @@ async function runAuto() {
     }
     first = false;
     highlightDuration(ph.spin);
-    await spin(eliminateAt, ph.spin);
+    await spin(eliminateAt, ph.spin, ph.final);
   }
 
   autoRunning = false;

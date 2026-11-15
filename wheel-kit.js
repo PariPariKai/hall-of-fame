@@ -9,6 +9,8 @@
    WheelKit.flash()      — вспышка вылетающего варианта
    WheelKit.sound        — щелчки стрелки на выбор: Дерево / Мягкий / Шарик / Выкл
    WheelKit.autoPhase(n) — темп авто-выбывания по числу оставшихся вариантов
+   WheelKit.finalSpin()  — последняя крутка (двое на колесе): без замедления,
+                           резкий тормоз, а иногда проскальзывание к другому
 
    Геометрия — в координатах viewBox 0..100: сектора до WHEEL_R, дальше
    неподвижный обод (свет на нём не крутится), штырьки крутятся с колесом.
@@ -445,15 +447,122 @@ window.WheelKit = (() => {
     };
   })();
 
-  // Авто-выбывание: чем меньше осталось, тем дольше крутка и пауза перед ней —
-  // финал тянется. Темп выбирается по числу вариантов перед круткой.
+  // Авто-выбывание: чем меньше осталось, тем дольше крутка и пауза перед ней.
+  // Темп выбирается по числу вариантов перед круткой. Последняя крутка
+  // (двое на колесе) — особая, см. finalSpin.
   const AUTO_PHASES = [
-    { upTo: 2,        spin: 60, pause: 3 },   // финальная крутка
+    { upTo: 2,        final: true, pause: 3 },
     { upTo: 5,        spin: 10, pause: 3 },
     { upTo: 10,       spin: 5,  pause: 2 },
     { upTo: Infinity, spin: 3,  pause: 2 },
   ];
   const autoPhase = n => AUTO_PHASES.find(p => n <= p.upTo);
 
-  return { WHEEL_R, RIM_R, shade, builder, mount, flash, sound, AUTO_PHASES, autoPhase };
+  const random = () => { const b = new Uint32Array(1); crypto.getRandomValues(b); return b[0] / 4294967296; };
+
+  // ============================================================
+  // Финальная крутка (двое на колесе)
+  //
+  // Обычная крутка плавно замедляется, и задолго до конца видно, где
+  // встанет. Здесь колесо крутится без замедления и в случайный момент
+  // между 30 и 60 секундами резко тормозит: его чуть заносит дальше по
+  // инерции, и стрелка-фиксатор отбрасывает на несколько градусов назад.
+  //
+  // Потом 5 секунд тишины, и в четверти случаев (FINAL.slipChance) фиксатор не держит:
+  // колесо дрожит и проскальзывает к другому участнику. Итог всё равно
+  // честный: кто окажется под стрелкой, решено заранее (target, случайно,
+  // как в обычной крутке), а «проскальзывание» только меняет, на ком колесо
+  // встанет сначала. Поэтому даже вставшее колесо ещё ничего не значит.
+  //
+  // segments — кусочки колеса; keyOf(seg) — чей кусочек; target — чей
+  // кусочек в итоге окажется под стрелкой. Возвращает итоговый угол колеса.
+  // ============================================================
+  const FINAL = {
+    speed: 320,          // °/с — крейсерская скорость, без замедления
+    spinUp: 1.5,         // с — разгон
+    brakeFrom: 30,       // с — тормоз в случайный момент между…
+    brakeTo: 59,         // …и этим (плюс до секунды, чтобы встать точно)
+    brake: 0.7,          // с — сам тормоз
+    overshoot: [4, 9],   // ° — занос за точку остановки
+    holdBeforeSlip: 5,   // с — колесо стоит, прежде чем может проскользнуть
+    slipChance: 0.25,    // шанс, что фиксатор не удержит
+  };
+
+  function finalSpin({ group, segments, keyOf, target, startRot, pointer = 90, onRotate, onTick, onStop }) {
+    const mod = a => ((a % 360) + 360) % 360;
+    const pick = arr => arr[Math.floor(random() * arr.length)];
+    const others = segments.filter(s => keyOf(s) !== target);
+    const slip = others.length > 0 && random() < FINAL.slipChance;
+    const first = slip ? keyOf(others[0]) : target;
+
+    // Встаём не точно посередине кусочка — так меньше похоже на подгонку
+    const firstSlice = pick(segments.filter(s => keyOf(s) === first));
+    const firstAngle = firstSlice.startAngle + 3 + random() * Math.max(0, firstSlice.angle - 6);
+
+    const W = FINAL.speed, UP = FINAL.spinUp, D = FINAL.brake;
+    const over = FINAL.overshoot[0] + random() * (FINAL.overshoot[1] - FINAL.overshoot[0]);
+    const brakeDist = W * D / 3;                    // тормоз по кубической кривой проходит треть
+    const T = FINAL.brakeFrom + random() * (FINAL.brakeTo - FINAL.brakeFrom);
+    // Чтобы встать точно на firstAngle, тормоз чуть сдвигаем (до 360° = ~1 с)
+    const nominalOver = startRot + W * UP / 2 + W * (T - UP) + brakeDist;
+    const extra = mod(pointer - firstAngle + over - nominalOver);
+    const tBrake = T + extra / W;
+    const rotBrake = startRot + W * UP / 2 + W * (tBrake - UP);
+    const rotOver = rotBrake + brakeDist;
+    const rotStop = rotOver - over;
+
+    // Щелчок, когда стрелка переходит границу кусочка — в любую сторону
+    let lastP = pointer - startRot;
+    function setRot(rot) {
+      group.style.transform = `rotate(${rot}deg)`;
+      onRotate(rot);
+      const p = pointer - rot;
+      const lo = Math.min(p, lastP), hi = Math.max(p, lastP);
+      if (hi > lo && segments.some(s => Math.floor((hi - s.startAngle) / 360) !== Math.floor((lo - s.startAngle) / 360))) onTick();
+      lastP = p;
+    }
+    // Время — по часам, а не по кадрам: в фоновой вкладке колесо догонит
+    function animate(dur, fn) {
+      return new Promise(resolve => {
+        const t0 = performance.now();
+        (function frame(now) {
+          const u = Math.min(1, (now - t0) / 1000 / dur);
+          setRot(fn(u));
+          if (u < 1) requestAnimationFrame(frame); else resolve();
+        })(t0);
+      });
+    }
+    // Отдача: от base+amp назад к base с затухающим покачиванием
+    const recoil = (base, amp) => u => base + amp * Math.exp(-4 * u) * Math.cos(2.6 * Math.PI * u) * (1 - u);
+    const easeOut = u => 1 - Math.pow(1 - u, 3);
+    const sleep = sec => new Promise(r => setTimeout(r, sec * 1000));
+
+    return (async () => {
+      group.style.transition = 'none';
+      await animate(tBrake, u => {
+        const t = u * tBrake;
+        return t < UP ? startRot + W * t * t / (2 * UP) : startRot + W * UP / 2 + W * (t - UP);
+      });
+      await animate(D, u => rotBrake + brakeDist * easeOut(u));
+      await animate(0.9, recoil(rotStop, over));
+      setRot(rotStop);
+      if (onStop) onStop();
+      if (!slip) { await sleep(FINAL.holdBeforeSlip); return rotStop; }
+
+      await sleep(FINAL.holdBeforeSlip);
+      // Фиксатор не держит: дрожь, и колесо проскальзывает вперёд к ближайшему кусочку target
+      await animate(0.45, u => rotStop + 1.6 * Math.sin(u * Math.PI * 9) * (1 - u));
+      const dist = s => { const d = mod(pointer - s.midAngle - rotStop); return d < 4 ? d + 360 : d; };
+      const dest = segments.filter(s => keyOf(s) === target).reduce((a, b) => dist(a) <= dist(b) ? a : b);
+      const rotSlip = rotStop + dist(dest);
+      const slipOver = 2.5;
+      await animate(0.75, u => rotStop + (rotSlip + slipOver - rotStop) * easeOut(u));
+      await animate(0.6, recoil(rotSlip, slipOver));
+      setRot(rotSlip);
+      if (onStop) onStop();
+      return rotSlip;
+    })();
+  }
+
+  return { WHEEL_R, RIM_R, shade, builder, mount, flash, sound, AUTO_PHASES, autoPhase, finalSpin, FINAL, random };
 })();
