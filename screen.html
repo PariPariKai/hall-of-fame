@@ -562,6 +562,9 @@ checkVersion();
 setInterval(checkVersion, 5 * 60000);
 loadSettings().then(() => {
   if (DEMO) demo(); else connect();
+  // Будим сервис истории чата: рулетка наказаний (court.html) берёт из него, кто писал и кого мутили до её открытия.
+  // Сервис слушает канал сутки после последнего обращения, а заставка стоит в начале каждого стрима.
+  if (!DEMO) fetch('https://recent-messages.robotty.de/api/v2/recent-messages/' + channel + '?limit=1').catch(() => {});
   schedulePhrase(true);
   setInterval(loadSettings, 60000);
   // сменили канал на сайте — переподключаемся

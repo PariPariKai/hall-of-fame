@@ -28,6 +28,21 @@
   .chatter.is-hot { border-color: rgba(240,80,80,0.6); color: var(--red); background: rgba(240,80,80,0.1); }
   .chatter small { margin-left: 6px; font-size: 11px; color: var(--dim); }
   .chat-empty { font-size: 12px; color: var(--dim); }
+  .nick-field { position: relative; }
+  .suggest {
+    position: absolute; left: 0; right: 0; top: 100%; margin-top: 6px; z-index: 30; padding: 6px;
+    border-radius: 12px; background: #1a2033; border: 1px solid rgba(var(--gold-rgb),0.35); box-shadow: 0 14px 34px rgba(0,0,0,0.55);
+    max-height: 340px; overflow-y: auto;
+  }
+  .suggest__item {
+    display: flex; align-items: baseline; gap: 10px; width: 100%; padding: 9px 12px; border: 0; border-radius: 8px;
+    background: none; color: #fff; font: inherit; font-size: 14px; text-align: left; cursor: pointer;
+  }
+  .suggest__item small { margin-left: auto; font-size: 12px; color: var(--dim); white-space: nowrap; }
+  .suggest__item.is-jail small { color: var(--red); }
+  .suggest__item:hover, .suggest__item.is-on { background: rgba(var(--gold-rgb),0.14); }
+  .suggest__empty { padding: 9px 12px; font-size: 13px; color: var(--dim); }
+  .spin-hint { min-height: 18px; margin-top: -6px; font-size: 13px; color: var(--gold); text-align: center; }
   .record { margin-top: 14px; font-size: 13px; color: var(--muted); line-height: 1.55; }
   .record b { color: #fff; }
   .repeat { display: flex; align-items: center; gap: 9px; margin-top: 10px; font-size: 13px; cursor: pointer; user-select: none; }
@@ -254,8 +269,10 @@
       <div class="court__side">
         <section class="panel" aria-label="Подсудимый">
           <h2 class="panel__title"><svg class="ic"><use href="#i-user"></use></svg>Подсудимый</h2>
-          <label class="field"><span>Ник <em class="hint-inline">— дай мут в чате, и ник подставится сам</em></span>
-            <input class="inp" id="nick" list="nicks" autocomplete="off" placeholder="Кто провинился"></label>
+          <label class="field nick-field"><span>Ник <em class="hint-inline">— дай мут в чате, и ник подставится сам</em></span>
+            <input class="inp" id="nick" autocomplete="off" spellcheck="false" placeholder="Кто провинился — начни вводить ник"
+              role="combobox" aria-autocomplete="list" aria-controls="suggest" aria-expanded="false">
+            <div class="suggest" id="suggest" role="listbox" hidden></div></label>
           <div class="chat-line" id="chatters"></div>
           <div class="record" id="record"></div>
         </section>
@@ -282,6 +299,7 @@
           <button type="button" class="btn btn--solid btn--big" id="spin" disabled><svg class="ic"><use href="#i-gavel"></use></svg>Вынести приговор</button>
           <button type="button" class="btn btn--ghost" id="sound" title="Звук"></button>
         </div>
+        <div class="spin-hint" id="spin-hint"></div>
         <details class="hood" id="hood">
           <summary><svg class="ic"><use href="#i-swords"></use></svg>Памятка модераторам<svg class="ic hood__chev"><use href="#i-chevron"></use></svg></summary>
           <div class="hood__body">
@@ -323,7 +341,6 @@
 
   <p class="empty-state" id="loading">Загружаю...</p>
 </div>
-<datalist id="nicks"></datalist>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="github.js?v=1"></script>
@@ -360,9 +377,22 @@ const rand = n => crypto.getRandomValues(new Uint32Array(1))[0] % n;
 
 // ===================== чат Twitch: кто пишет и кому дали мут =====================
 const chatters = new Map(); // login → { name, last } — кто писал в чат: для подсказок в поле ника и красивого написания ника
-let jailSeq = 0;
-const jailed = new Map();   // login → { name, dur, at } — кому за эту сессию дали мут или бан в чате (это и есть кнопки под полем)
+const jailed = new Map();   // login → { name, dur, at } — кому дали мут или бан в чате (это и есть кнопки под полем)
 const PURGE = 60;           // мут короче минуты — это чистка сообщений или снятие мута (Twitch шлёт его как мут на 1 с), не дело
+// История чата за сутки (сервис recent-messages, им же пользуется Chatterino): кто писал и кого мутили ещё до открытия
+// страницы. Сервис слушает канал, пока к нему обращаются хотя бы раз в сутки — заставка screen.html заглядывает туда на старте стрима.
+const HISTORY = 'https://recent-messages.robotty.de/api/v2/recent-messages/' + CHANNEL;
+const JAIL_FRESH = 6 * 3600e3;   // муты из истории — только за последние 6 часов, вчерашний стрим не в счёт
+async function loadHistory(retries) {
+  try {
+    const res = await fetch(HISTORY + '?limit=800');
+    const j = await res.json();
+    (j.messages || []).forEach(line => onIrc(line, true));
+    renderChatters();
+    // Сервис только что начал слушать канал — истории ещё нет, заглянем позже
+    if (j.error_code === 'channel_not_joined' && retries) setTimeout(() => loadHistory(retries - 1), 30000);
+  } catch (e) { console.warn('История чата не загрузилась', e); }
+}
 let connState = { state: 'off', text: 'Чат: не подключён' };
 let hot = '';               // кому только что дали мут/бан в чате
 let ws = null, wsDelay = 1000;
@@ -381,8 +411,8 @@ function connectChat() {
     wsDelay = Math.min(wsDelay * 2, 15000);
   };
 }
-function onIrc(line) {
-  if (line.startsWith('PING')) { ws.send('PONG :tmi.twitch.tv'); return; }
+function onIrc(line, past) {
+  if (line.startsWith('PING')) { if (!past) ws.send('PONG :tmi.twitch.tv'); return; }
   let tags = {};
   if (line[0] === '@') {
     const sp = line.indexOf(' ');
@@ -392,13 +422,16 @@ function onIrc(line) {
   const m = line.match(/^(?::(\S+) )?(\S+)(?: (.*))?$/);
   if (!m) return;
   const [, prefix = '', cmd, params = ''] = m;
+  const ts = past ? +tags['tmi-sent-ts'] || +tags['rm-received-ts'] || 0 : Date.now();
+  if (past && cmd !== 'PRIVMSG' && cmd !== 'CLEARCHAT') return;
   if (cmd === '001') { setConn('online', 'Чат #' + CHANNEL); wsDelay = 1000; return; }
   if (cmd === 'RECONNECT') { ws.close(); return; }
   if (cmd === 'PRIVMSG') {
     const login = prefix.split('!')[0].toLowerCase();
     if (login === CHANNEL || BOTS.includes(login)) return;
-    chatters.set(login, { name: tags['display-name'] || login, last: Date.now() });
-    renderChatters();
+    if ((chatters.get(login) || {}).last >= ts) return;
+    chatters.set(login, { name: tags['display-name'] || login, last: ts });
+    if (!past) renderChatters();
   }
   // Мут или бан в чате: сразу заводим дело на этого зрителя
   if (cmd === 'CLEARCHAT') {
@@ -406,7 +439,11 @@ function onIrc(line) {
     const dur = +tags['ban-duration'];
     if (!login || (dur && dur < PURGE)) return;
     const name = (chatters.get(login) || {}).name || login;
-    jailed.set(login, { name, dur, at: ++jailSeq });
+    if (past) {   // из истории — просто в список, без тоста и без подстановки ника
+      if (Date.now() - ts < JAIL_FRESH && !((jailed.get(login) || {}).at >= ts)) jailed.set(login, { name, dur, at: ts });
+      return;
+    }
+    jailed.set(login, { name, dur, at: ts });
     if (spinning || verdictShown) { renderChatters(); return; }
     hot = login;
     renderChatters();
@@ -418,23 +455,70 @@ function setConn(state, text) {
   connState = { state, text };
   renderChatters();
 }
+const term = d => !d ? 'бан' : d < 3600 ? Math.round(d / 60) + ' мин' : d < 86400 ? Math.round(d / 3600) + ' ч' : Math.round(d / 86400) + ' дн';
+const ago = ms => ms < 60e3 ? 'только что' : ms < 3600e3 ? Math.round(ms / 60e3) + ' мин назад' : Math.round(ms / 3600e3) + ' ч назад';
 function renderChatters() {
   const recent = [...jailed.entries()].sort((a, b) => b[1].at - a[1].at).slice(0, 10);
-  const term = d => !d ? 'бан' : d < 3600 ? Math.round(d / 60) + ' мин' : d < 86400 ? Math.round(d / 3600) + ' ч' : Math.round(d / 86400) + ' дн';
   $('chatters').innerHTML = `<span class="conn ${connState.state === 'online' ? 'is-online' : connState.state === 'connecting' ? 'is-connecting' : ''}"><i></i>${esc(connState.text)}</span>` +
     (recent.length ? recent.map(([login, u]) => `<button type="button" class="chip chatter${login === hot ? ' is-hot' : ''}" data-nick="${esc(u.name)}"${spinning ? ' disabled' : ''}>${esc(u.name)}<small>${term(u.dur)}</small></button>`).join('')
       : connState.state === 'online' ? '<span class="chat-empty">мутов пока не было</span>' : '');
-  fillNicks();
+  if (!$('suggest').hidden) renderSuggest();
 }
 $('chatters').addEventListener('click', e => {
   const b = e.target.closest('[data-nick]');
   if (b && !spinning) setNick(b.dataset.nick);
 });
-function fillNicks() {
-  const names = new Set([...chatters.values()].map(u => u.name));
-  items().forEach(it => names.add(it.nick));
-  $('nicks').innerHTML = [...names].sort((a, b) => a.localeCompare(b)).map(n => `<option value="${esc(n)}">`).join('');
+// ---------- подсказки в поле ника: замученные в чате, писавшие в чат, бывшие подсудимые ----------
+let sugList = [], sugOn = -1;
+function suggestions(q) {
+  const now = Date.now(), all = new Map();   // login → { name, tag, score, jail }
+  const add = (login, c) => { const o = all.get(login); if (!o || o.score < c.score) all.set(login, c); };
+  const cases = new Map();
+  items().forEach(it => { const l = it.nick.toLowerCase(); cases.set(l, { name: it.nick, n: ((cases.get(l) || {}).n || 0) + 1 }); });
+  cases.forEach((c, l) => add(l, { name: c.name, tag: 'приговоров: ' + c.n, score: 1 }));
+  chatters.forEach((u, l) => add(l, { name: u.name, tag: 'писал ' + ago(now - u.last), score: 2 + u.last / 1e14 }));
+  jailed.forEach((u, l) => add(l, { name: u.name, tag: (u.dur ? 'мут ' + term(u.dur) : 'бан') + ', ' + ago(now - u.at), score: 3 + u.at / 1e14, jail: true }));
+  q = q.toLowerCase();
+  return [...all.entries()]
+    .filter(([l, c]) => !q || l.includes(q) || c.name.toLowerCase().includes(q))
+    .map(([l, c]) => Object.assign(c, { score: c.score + (q && (l.startsWith(q) || c.name.toLowerCase().startsWith(q)) ? 10 : 0) }))
+    .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
+    .slice(0, 8);
 }
+function renderSuggest() {
+  const q = $('nick').value.trim();
+  sugList = suggestions(q);
+  // Ник уже введён полностью и совпал с единственной подсказкой — список не нужен
+  if (sugList.length === 1 && sugList[0].name.toLowerCase() === q.toLowerCase()) sugList = [];
+  sugOn = Math.min(sugOn, sugList.length - 1);
+  const box = $('suggest');
+  box.innerHTML = sugList.map((c, i) => `<button type="button" class="suggest__item${c.jail ? ' is-jail' : ''}${i === sugOn ? ' is-on' : ''}" role="option" data-i="${i}" tabindex="-1">${esc(c.name)}<small>${esc(c.tag)}</small></button>`).join('') ||
+    (q ? '' : `<div class="suggest__empty">${chatters.size ? '' : 'В чате пока тихо — '}введи ник вручную</div>`);
+  box.hidden = !box.innerHTML;
+  $('nick').setAttribute('aria-expanded', String(!box.hidden));
+}
+function hideSuggest() { $('suggest').hidden = true; sugOn = -1; $('nick').setAttribute('aria-expanded', 'false'); }
+$('nick').addEventListener('focus', () => { sugOn = -1; renderSuggest(); });
+$('nick').addEventListener('blur', hideSuggest);
+$('nick').addEventListener('keydown', e => {
+  if ($('suggest').hidden || !sugList.length) return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    const n = sugList.length;
+    sugOn = e.key === 'ArrowDown' ? (sugOn + 1) % n : (sugOn <= 0 ? n : sugOn) - 1;
+    renderSuggest();
+  } else if (e.key === 'Enter' && sugOn >= 0) {
+    e.preventDefault();
+    setNick(sugList[sugOn].name);
+    hideSuggest();
+  } else if (e.key === 'Escape') hideSuggest();
+});
+// mousedown, а не click: иначе поле теряет фокус и список пропадает раньше, чем сработает выбор
+$('suggest').addEventListener('mousedown', e => {
+  e.preventDefault();
+  const b = e.target.closest('[data-i]');
+  if (b) { setNick(sugList[+b.dataset.i].name); hideSuggest(); }
+});
 
 // ===================== дело: подсудимый, статья, рецидив =====================
 function setNick(name) {
@@ -452,7 +536,7 @@ function onNick() {
   renderRecord();
   renderCharge();
 }
-$('nick').addEventListener('input', onNick);
+$('nick').addEventListener('input', () => { onNick(); sugOn = -1; renderSuggest(); });
 
 function renderRecord() {
   const box = $('record');
@@ -608,6 +692,11 @@ function renderCharge() {
     setLive('');
   }
   $('spin').disabled = spinning || verdictShown || !!draft || !pick.nick || !pick.rule;
+  $('spin-hint').textContent = spinning || verdictShown ? ''
+    : draft ? 'Сначала сохрани или отмени правку статей'
+    : !pick.nick && !pick.rule ? 'Сначала укажи ник и выбери статью'
+    : !pick.nick ? 'Сначала укажи ник подсудимого'
+    : !pick.rule ? 'Сначала выбери статью' : '';
 }
 
 // ===================== барабан =====================
@@ -857,7 +946,7 @@ function rollStart() {
 }
 function rollSpeed(v) {
   if (!roll) return;
-  const t = ac().currentTime, k = Math.min(1, v / TOP_SPEED);
+  const t = ac().currentTime, k = Math.min(1, Math.max(0, v / TOP_SPEED)) || 0;
   roll.src.playbackRate.setTargetAtTime(0.55 + 0.6 * k, t, 0.05);
   roll.gain.gain.setTargetAtTime(1.6 * Math.sqrt(k), t, 0.06);   // сам файл тихий — это фон
 }
@@ -906,7 +995,7 @@ function spinReel(lvl, idx, onStop) {
     // Ошибка внутри кадра не должна навсегда оставить барабан «в процессе»
     const frame = now => { try { step(now); } catch (err) { fail(err); } };
     const step = now => {
-      const t = (now - t0) / 1000;
+      const t = Math.max(0, (now - t0) / 1000);   // метка кадра бывает чуть раньше старта — без отрицательного времени
       let p, v = 0;
       if (t < RAMP) { v = vmax * t / RAMP; p = vmax * t * t / (2 * RAMP); }
       else if (t < RAMP + hold) { v = vmax; p = p1 + vmax * (t - RAMP); }
@@ -1056,7 +1145,6 @@ function renderHistory() {
     return court.caseHTML(it, `<div class="case__actions">${lift ? `<button type="button" class="btn btn--sm btn--ghost" data-lift="${esc(it.id)}">${lift}</button>` : ''}
       <button type="button" class="btn btn--sm btn--danger" data-del="${esc(it.id)}" title="Удалить запись (ошибка)">${icon('x')}</button></div>`);
   }).join('') || `<li class="empty-state" style="padding:20px">${hFilter === 'active' ? 'Сейчас никто не наказан. Чат в порядке.' : 'Приговоров ещё не было.'}</li>`;
-  fillNicks();
 }
 $('h-filter').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) { hFilter = b.dataset.v; renderHistory(); } });
 $('cases').addEventListener('click', async e => {
@@ -1118,6 +1206,7 @@ async function start() {
   renderHistory();
   renderChatters();
   connectChat();
+  loadHistory(4);
 }
 start();
 })();
