@@ -151,6 +151,16 @@
   .sch-msk { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
   .sch-shift { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
   .sch-shift .hint-inline { flex: 1 1 280px; line-height: 1.5; }
+  /* Настройки рулеток (во вкладке «Настройки») */
+  .wh { margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--line); }
+  .wh-title { display: flex; align-items: center; gap: 9px; font-size: 16px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold); font-weight: 600; margin-bottom: 16px; }
+  .wh-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .wh-row .sch-name { min-width: 210px; display: inline-flex; align-items: center; gap: 8px; }
+  .wh-row .check-line { min-height: 0; }
+  .wh-lab { font-size: 13px; color: var(--muted); }
+  .wh-num { display: inline-flex; align-items: center; gap: 6px; }
+  .wh-num .inp { flex: 0 0 auto; }
+  .wh-num em { font-style: normal; font-size: 13px; color: var(--muted); }
 
   @media (max-width: 900px) {
     .tonight { grid-template-columns: 1fr; }
@@ -172,6 +182,7 @@
 </head>
 <body>
 <script src="site.js?v=17"></script>
+<script src="wheel-kit.js?v=3"></script>
 
 <div class="wrap">
   <header class="header">
@@ -1017,6 +1028,137 @@ function screensPanel(sec, box) {
   });
 }
 
+// ===================== настройки рулеток (data/config.json, ключи wheel_* и picker_*) =====================
+// Значения по умолчанию — в wheel-kit.js (WheelKit.DEFAULTS): их же берут сами рулетки,
+// если поле пустое. Колёса читают настройки при открытии страницы.
+const WHEEL_LINKS = [
+  ['picker.html', 'dice', 'Рулетка заказов'],
+  ['chat-wheel.html', 'message', 'Чат-рулетка'],
+  ['wheel.html', 'ticket', 'Рулетка билетов'],
+  ['cards.html', 'sliders', 'Админка-рулетка'],
+  ['cards.html?stream', 'zap', 'Хаос-рулетка'],
+];
+const WHEEL_SOURCES = [['anime', 'Аниме'], ['movies', 'Фильмы'], ['series', 'Сериалы'], ['games', 'Игры']];
+const WHEEL_STATUSES = [['pending', 'Ещё не смотрели'], ['watching', 'Сейчас смотрим'], ['watched', 'Уже посмотрели']];
+const WHEEL_SOUNDS = [['wood', 'Дерево'], ['soft', 'Мягкий'], ['ball', 'Шарик'], ['off', 'Без звука']];
+
+function wheelSettingsHTML(c) {
+  const D = WheelKit.DEFAULTS;
+  const v = k => (c[k] != null && String(c[k]).trim() !== '' ? String(c[k]).trim() : String(D[k]));
+  const num = (k, unit, w, attrs) => `<span class="wh-num"><input class="inp" type="number" data-w="${k}" value="${esc(v(k))}" placeholder="${esc(D[k])}" style="width:${w || 78}px"${attrs || ' min="0" step="0.5"'}>${unit ? `<em>${unit}</em>` : ''}</span>`;
+  const checks = (k, opts) => {
+    const on = v(k).split(',').map(x => x.trim());
+    return opts.map(([id, label]) => `<label class="check-line"><input type="checkbox" data-wlist="${k}" value="${id}"${on.includes(id) ? ' checked' : ''}>${esc(label)}</label>`).join('');
+  };
+  const classic = v('wheel_final_mode') === 'classic';
+  return `
+    <div class="wh">
+      <h2 class="wh-title">${icon('wheel')}Рулетки</h2>
+      <div class="cfg-group"><h3>Открыть</h3>
+        <div class="quick">${WHEEL_LINKS.map(([href, ic, label]) =>
+          `<a class="btn btn--ghost" href="${href}" target="_blank" rel="noopener">${icon(ic)}${label}</a>`).join('')}</div>
+        <p class="hint-inline" style="margin-top:8px">Рулетка заказов и чат-рулетка берут настройки ниже при открытии: после сохранения подожди минуту и обнови страницу рулетки.</p>
+      </div>
+
+      <div class="cfg-group"><h3>Авто-выбывание</h3>
+        <div class="wh-row"><span class="sch-name">Много вариантов</span>
+          <span class="wh-lab">крутка</span>${num('wheel_auto_spin_many', 'с')}<span class="wh-lab">пауза перед</span>${num('wheel_auto_pause_many', 'с')}</div>
+        <div class="wh-row"><span class="sch-name">Осталось ${num('wheel_auto_mid_from', '', 64, ' min="4" step="1"')} и меньше</span>
+          <span class="wh-lab">крутка</span>${num('wheel_auto_spin_mid', 'с')}<span class="wh-lab">пауза перед</span>${num('wheel_auto_pause_mid', 'с')}</div>
+        <div class="wh-row"><span class="sch-name">Осталось ${num('wheel_auto_late_from', '', 64, ' min="3" step="1"')} и меньше</span>
+          <span class="wh-lab">крутка</span>${num('wheel_auto_spin_late', 'с')}<span class="wh-lab">пауза перед</span>${num('wheel_auto_pause_late', 'с')}</div>
+        <div class="wh-row"><span class="sch-name">Финал — двое</span>
+          <select class="inp" data-w="wheel_final_mode" style="width:auto">
+            <option value="surprise"${classic ? '' : ' selected'}>Без замедления, резкий тормоз</option>
+            <option value="classic"${classic ? ' selected' : ''}>Обычная крутка</option>
+          </select>
+          <span class="wh-classic"${classic ? '' : ' hidden'}><span class="wh-lab">крутка</span>${num('wheel_final_classic_spin', 'с')}</span>
+          <span class="wh-lab">пауза перед</span>${num('wheel_auto_pause_final', 'с')}</div>
+        <p class="hint-inline" style="margin-top:8px">Темп выбирается по тому, сколько вариантов осталось перед круткой. Пауза — перед круткой, после вылета предыдущего.</p>
+      </div>
+
+      <div class="cfg-group wh-final"${classic ? ' hidden' : ''}><h3>Финал без замедления</h3>
+        <div class="wh-row"><span class="sch-name">Тормоз</span>
+          <span class="wh-lab">в случайный момент между</span>${num('wheel_final_brake_from', 'с', 78, ' min="3" step="1"')}<span class="wh-lab">и</span>${num('wheel_final_brake_to', 'с', 78, ' min="3" step="1"')}</div>
+        <div class="wh-row"><span class="sch-name">Скорость</span>${num('wheel_final_speed', 'оборота в секунду', 78, ' min="0.2" max="3" step="0.1"')}</div>
+        <div class="wh-row"><span class="sch-name">Проскальзывание</span>
+          <span class="wh-lab">шанс</span>${num('wheel_final_slip_chance', '%', 70, ' min="0" max="100" step="5"')}<span class="wh-lab">через</span>${num('wheel_final_slip_after', 'с после остановки', 70, ' min="0" step="1"')}</div>
+        <div class="wh-row"><span class="sch-name"></span>
+          <label class="check-line"><input type="checkbox" data-wbool="wheel_final_manual"${truthy(v('wheel_final_manual')) ? ' checked' : ''}>Такой же финал и в ручном выбывании</label></div>
+        <p class="hint-inline" style="margin-top:8px">Кто окажется под стрелкой, решается заранее и честно, 50 на 50. Проскальзывание меняет только то, на ком колесо встанет сначала: шанс 0% — выключить.</p>
+      </div>
+
+      <div class="cfg-group"><h3>Вид и звук</h3>
+        <div class="wh-row"><span class="sch-name">Блёстки вокруг колеса</span>${num('wheel_glitter', 'штук · 0 — без блёсток', 90, ' min="0" max="1500" step="20"')}</div>
+        <div class="wh-row"><span class="sch-name">Звук щелчка</span>
+          <select class="inp" data-w="wheel_sound_default" style="width:auto">${WHEEL_SOUNDS.map(([id, label]) =>
+            `<option value="${id}"${v('wheel_sound_default') === id ? ' selected' : ''}>${label}</option>`).join('')}</select>
+          <span class="hint-inline">— по умолчанию; кто выбрал звук на самой рулетке, у того остаётся свой</span></div>
+      </div>
+
+      <div class="cfg-group"><h3>Рулетка заказов</h3>
+        <div class="wh-row"><span class="sch-name">Источники при открытии</span>${checks('picker_sources', WHEEL_SOURCES)}</div>
+        <div class="wh-row"><span class="sch-name">Статусы при открытии</span>${checks('picker_statuses', WHEEL_STATUSES)}</div>
+        <div class="wh-row"><span class="sch-name">Слово для сбора из чата</span>
+          <input class="inp" data-w="picker_join_words" value="${esc(v('picker_join_words'))}" placeholder="${esc(D.picker_join_words)}" style="width:160px">
+          <span class="hint-inline">— через запятую; засчитывается, если стоит первым в сообщении</span></div>
+      </div>
+
+      <div class="row">
+        <button type="button" class="btn btn--solid" id="wh-save">${icon('check')}Сохранить рулетки</button>
+        <button type="button" class="btn btn--ghost" id="wh-reset">Вернуть как было по умолчанию</button>
+      </div>
+    </div>`;
+}
+
+function wheelSettingsBind(sec, box, c) {
+  const D = WheelKit.DEFAULTS;
+  const root = box.querySelector('.wh');
+  const mode = root.querySelector('[data-w="wheel_final_mode"]');
+  const syncMode = () => {
+    const classic = mode.value === 'classic';
+    root.querySelector('.wh-classic').hidden = !classic;
+    root.querySelector('.wh-final').hidden = classic;
+  };
+  mode.addEventListener('change', syncMode);
+
+  $('wh-reset').addEventListener('click', () => {
+    root.querySelectorAll('[data-w]').forEach(el => { el.value = String(D[el.dataset.w]); });
+    root.querySelectorAll('[data-wbool]').forEach(el => { el.checked = truthy(D[el.dataset.wbool]); });
+    root.querySelectorAll('[data-wlist]').forEach(el => { el.checked = String(D[el.dataset.wlist]).split(',').includes(el.value); });
+    syncMode();
+    toast('Вернул значения по умолчанию — нажми «Сохранить рулетки»');
+  });
+
+  $('wh-save').addEventListener('click', async e => {
+    const vals = {};
+    root.querySelectorAll('[data-w]').forEach(el => { vals[el.dataset.w] = el.value.trim(); });
+    root.querySelectorAll('[data-wbool]').forEach(el => { vals[el.dataset.wbool] = el.checked ? 'TRUE' : 'FALSE'; });
+    const lists = {};
+    root.querySelectorAll('[data-wlist]').forEach(el => { (lists[el.dataset.wlist] = lists[el.dataset.wlist] || []); if (el.checked) lists[el.dataset.wlist].push(el.value); });
+    Object.entries(lists).forEach(([k, arr]) => { vals[k] = arr.join(','); });
+
+    if (!vals.picker_sources) return toast('Рулетка заказов: включи хотя бы один источник', true);
+    if (!vals.picker_statuses) return toast('Рулетка заказов: включи хотя бы один статус', true);
+    if (!vals.picker_join_words) return toast('Впиши слово для сбора из чата', true);
+    const n = k => parseFloat(String(vals[k]).replace(',', '.'));
+    if (n('wheel_auto_late_from') >= n('wheel_auto_mid_from')) return toast('Авто-выбывание: второй порог должен быть меньше первого', true);
+    if (n('wheel_final_brake_to') < n('wheel_final_brake_from')) return toast('Финал: «между … и …» — второе число не может быть меньше первого', true);
+
+    // Сравниваем с тем, что сейчас видят рулетки (пустое поле = по умолчанию)
+    const now = k => (c[k] != null && String(c[k]).trim() !== '' ? String(c[k]).trim() : String(D[k]));
+    const changed = Object.keys(vals).filter(k => now(k) !== vals[k]);
+    if (!changed.length) return toast('Ничего не поменялось');
+    const ok = await save(sec, 'рулетки — ' + changed.join(', '), data => {
+      changed.forEach(k => {
+        const row = data.items.find(r => r.key === k);
+        if (row) row.value = vals[k]; else data.items.push({ key: k, value: vals[k] });
+      });
+    }, e.currentTarget);
+    if (ok && current === sec) render();
+  });
+}
+
 // ===================== настройки сайта (config) =====================
 const CONFIG_GROUPS = [
   ['Стример', [['streamer_name', 'Имя'], ['streamer_twitch_url', 'Ссылка на Twitch', 'url'], ['streamer_avatar_url', 'Аватарка', 'url'], ['streamer_intro', 'Приветствие на главной', 'textarea']]],
@@ -1029,7 +1171,8 @@ const configSection = {
     const c = config();
     // Расписание, рулетка и кино — на своей вкладке «Расписание»
     const known = new Set(CONFIG_GROUPS.flatMap(g => g[1].map(x => x[0])).concat(DAY_KEYS.map(k => 'schedule_' + k), ['picker_time', 'movie_time'],
-      Object.keys(c).filter(k => k.startsWith('screen_')))); // заставки — на своей вкладке
+      Object.keys(c).filter(k => k.startsWith('screen_')), // заставки — на своей вкладке
+      Object.keys(WheelKit.DEFAULTS))); // рулетки — своим блоком ниже
     const input = ([k, label, type]) => {
       const v = c[k] || '';
       if (type === 'textarea') return `<label class="field" style="flex:1 1 100%"><span>${esc(label)}</span><textarea class="inp" data-k="${k}" rows="3">${esc(v)}</textarea></label>`;
@@ -1044,7 +1187,9 @@ const configSection = {
     box.innerHTML = CONFIG_GROUPS.map(([title, keys], i) => `<div class="cfg-group"><h3>${title}</h3><div class="row">${keys.map(input).join('')}</div></div>` + (i === 0
       ? `<div class="cfg-group"><h3>Расписание стримов</h3><p class="hint-inline">Дни, рулетка и кино — на вкладке <a href="#schedule" style="color:var(--gold)">«Расписание»</a>.</p></div>` : '')).join('') +
       (Object.keys(c).some(k => !known.has(k)) ? `<div class="cfg-group"><h3>Прочее</h3><div class="row">${Object.keys(c).filter(k => !known.has(k)).map(k => input([k, k])).join('')}</div></div>` : '') +
-      `<div class="row"><button type="button" class="btn btn--solid" id="cfg-save">${icon('check')}Сохранить настройки</button></div>`;
+      `<div class="row"><button type="button" class="btn btn--solid" id="cfg-save">${icon('check')}Сохранить настройки</button></div>` +
+      wheelSettingsHTML(c);
+    wheelSettingsBind(sec, box, c);
     $('cfg-save').addEventListener('click', e => {
       const vals = {};
       box.querySelectorAll('[data-k]').forEach(el => {

@@ -642,7 +642,7 @@
     }
   </style>
   <script src="site.js?v=17"></script>
-  <script src="wheel-kit.js?v=2"></script>
+  <script src="wheel-kit.js?v=3"></script>
 <script src="github.js?v=2"></script>
 
   <!-- Экран входа -->
@@ -2006,7 +2006,7 @@ document.getElementById('btn-elim').addEventListener('click', () => {
   if (!startElimination()) return;
   // На время прокрутки настройки не нужны — справа история выбывших
   setSidePanel('history');
-  spin(eliminateAt);
+  spin(eliminateAt, duration, WheelKit.finalInManual());
 });
 
 // ------------------------------------------------------------

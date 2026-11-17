@@ -12,12 +12,13 @@
      Четыре списка заказов + зрители (аватарки) — data/*.json, правятся на admin.html.
      ============================================================ -->
 <script>
-  // on — включён ли источник при открытии страницы
+  // Какие источники и статусы включены при открытии, слово для сбора
+  // из чата — в админке: «Настройки» → «Рулетки» (wheel-kit.js, picker_*)
   const SOURCES = [
-    { id:'anime',  name:'Аниме',   icon:'torii', color:'#E58CC0', on:true,  csv: 'data/anime.json' },
-    { id:'movies', name:'Фильмы',  icon:'film', color:'#FAC775', on:true,  csv: 'data/movies.json' },
-    { id:'series', name:'Сериалы', icon:'tv', color:'#6FB7E8', on:true,  csv: 'data/series.json' },
-    { id:'games',  name:'Игры',    icon:'gamepad', color:'#9B8CE8', on:false, csv: 'data/games.json' },
+    { id:'anime',  name:'Аниме',   icon:'torii', color:'#E58CC0', csv: 'data/anime.json' },
+    { id:'movies', name:'Фильмы',  icon:'film', color:'#FAC775', csv: 'data/movies.json' },
+    { id:'series', name:'Сериалы', icon:'tv', color:'#6FB7E8', csv: 'data/series.json' },
+    { id:'games',  name:'Игры',    icon:'gamepad', color:'#9B8CE8', csv: 'data/games.json' },
   ];
 
   const VIEWERS_CSV_URL = 'data/viewers.json';
@@ -26,14 +27,13 @@
   // и его заказы попадают на колесо. Слово должно стоять первым
   // («я», «Я!», «я хочу» — да; «ясно» — нет).
   const TWITCH_CHANNEL = 'pariparikai';
-  const JOIN_WORDS = ['я'];
+  let JOIN_WORDS = ['я'];   // заменяется словами из админки
 
   // Статусы из колонки status. Всё непонятное считаем «ещё не смотрели».
-  // on — включён ли статус при открытии: по умолчанию только «ещё не смотрели».
   const STATUSES = [
-    { id:'pending',  name:'Ещё не смотрели', icon:'○', on:true  },
-    { id:'watching', name:'Сейчас смотрим',  icon:'◐', on:false },
-    { id:'watched',  name:'Уже посмотрели',  icon:'●', on:false },
+    { id:'pending',  name:'Ещё не смотрели', icon:'○' },
+    { id:'watching', name:'Сейчас смотрим',  icon:'◐' },
+    { id:'watched',  name:'Уже посмотрели',  icon:'●' },
   ];
 
   // Тип берётся из колонки type (фильмы: movie/youtube/other)
@@ -415,7 +415,7 @@
   }
 </style>
 <script src="site.js?v=17"></script>
-<script src="wheel-kit.js?v=2"></script>
+<script src="wheel-kit.js?v=3"></script>
 
 <div class="wrap">
 
@@ -682,8 +682,11 @@ function avatarOf(nick) {
 }
 
 async function loadAll() {
-  SOURCES.forEach(s => { if (!srcState[s.id]) srcState[s.id] = { on: s.on !== false }; srcState[s.id].error = false; });
-  STATUSES.forEach(s => { if (!(s.id in statState)) statState[s.id] = s.on; });
+  // Что включено при открытии — из админки; дальше галочки живут своей жизнью
+  await WheelKit.ready;
+  const srcOn = WheelKit.list('picker_sources'), statOn = WheelKit.list('picker_statuses');
+  SOURCES.forEach(s => { if (!srcState[s.id]) srcState[s.id] = { on: srcOn.includes(s.id) }; srcState[s.id].error = false; });
+  STATUSES.forEach(s => { if (!(s.id in statState)) statState[s.id] = statOn.includes(s.id); });
 
   // Аватарки — украшение, и лежат они в отдельном листе, который
   // Google порой отдаёт по минуте. Не держим из-за них колесо:
@@ -940,8 +943,10 @@ function handleChatLine(line) {
 function isJoinMessage(text) {
   // ACTION (/me) приходит обёрнутым в \x01 — снимаем обёртку
   const t = text.replace(/^\x01ACTION |\x01$/g, '').trim().toLowerCase();
-  const first = (t.split(/\s+/)[0] || '').replace(/[!?.,:;)+]+$/, '');
-  return JOIN_WORDS.some(w => first === w.toLowerCase());
+  const raw = t.split(/\s+/)[0] || '';
+  const first = raw.replace(/[!?.,:;)+]+$/, '');
+  // Слово целиком («+» тоже годится как слово) или без знаков на конце («я!»)
+  return JOIN_WORDS.some(w => raw === w.toLowerCase() || first === w.toLowerCase());
 }
 
 function onChatMessage(login, name, text) {
@@ -987,6 +992,11 @@ document.getElementById('btn-collect').addEventListener('click', () => {
   if (collecting) stopCollect(); else startCollect();
 });
 updateCollectUi();
+WheelKit.ready.then(() => {
+  const words = WheelKit.list('picker_join_words').map(w => w.toLowerCase());
+  if (words.length) JOIN_WORDS = words;
+  updateCollectUi();
+});
 
 document.getElementById('who-search').addEventListener('input', e => {
   whoQuery = e.target.value.trim().toLowerCase();
@@ -1511,7 +1521,7 @@ document.getElementById('btn-single').addEventListener('click', () => {
 
 document.getElementById('btn-elim').addEventListener('click', () => {
   if (!eliminationMode) setEliminationUi(true);
-  spin(eliminateAt);
+  spin(eliminateAt, duration, WheelKit.finalInManual());
 });
 
 // ------------------------------------------------------------

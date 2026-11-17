@@ -157,7 +157,6 @@ window.WheelKit = (() => {
     const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const CANVAS_SCALE = 1.6;          // холст больше колеса (см. .wheel-fx)
     const R_OUTER = RIM_R / 50;        // край обода в долях половины колеса
-    const COUNT = reduceMotion ? 0 : 340;
     const PALETTE = document.documentElement.classList.contains('season-winter')
       ? ['#ffffff', '#e3f4ff', '#bfe6ff', '#a9deff', '#8ec5ff', '#d9ccff']
       : ['#ffffff', '#fff1c9', '#ffd98a', '#fac775', '#ffc2e0', '#cfe8ff'];
@@ -186,7 +185,14 @@ window.WheelKit = (() => {
         star: Math.random() < 0.3,                        // часть — четырёхлучевые искры
       };
     }
-    for (let i = 0; i < COUNT; i++) parts.push(spawn());
+    // Сколько блёсток — из админки (wheel_glitter), 0 — без блёсток
+    function setCount(n) {
+      if (reduceMotion) n = 0;
+      while (parts.length < n) parts.push(spawn());
+      parts.length = Math.max(0, n);
+    }
+    setCount(settings.wheel_glitter);
+    glitters.push(setCount);
 
     // Искры из-под стрелки, когда колесо встало
     function burst() {
@@ -294,7 +300,7 @@ window.WheelKit = (() => {
       ctx.globalAlpha = 1;
     }
 
-    if (COUNT) {
+    if (!reduceMotion) {
       new ResizeObserver(resize).observe(cv);
       resize();
       requestAnimationFrame(frame);
@@ -326,12 +332,13 @@ window.WheelKit = (() => {
     const KEY = 'wheel.clickSound';
     const CHOICES = ['wood', 'soft', 'ball', 'off'];
     const BALL_SOUNDS = [2, 3, 4, 5].map(n => `sounds/click-${n}.wav`);
-    let choice = 'wood';
+    let choice = 'wood', own = false;   // own — выбрал сам в этом браузере
     try {
       // раньше выбор жил только в рулетке заказов
       const s = localStorage.getItem(KEY) || localStorage.getItem('picker.clickSound');
-      if (CHOICES.includes(s)) choice = s;
+      if (CHOICES.includes(s)) { choice = s; own = true; }
     } catch (e) {}
+    const painters = [];
 
     let ctx = null, noiseBuf = null, ballBufs = null, lastClickAt = 0;
     function ensure() {
@@ -424,8 +431,10 @@ window.WheelKit = (() => {
     function bind(root) {
       const btns = root.querySelectorAll('[data-sound]');
       const paint = () => btns.forEach(b => b.classList.toggle('active', b.dataset.sound === choice));
+      painters.push(paint);
       btns.forEach(btn => btn.addEventListener('click', () => {
         choice = btn.dataset.sound;
+        own = true;
         try { localStorage.setItem(KEY, choice); } catch (e) {}
         paint();
         if (choice === 'off') return;
@@ -444,18 +453,15 @@ window.WheelKit = (() => {
       enabled: () => choice !== 'off',
       get choice() { return choice; },
       set choice(v) { if (CHOICES.includes(v)) choice = v; },
+      // звук по умолчанию из админки — только тем, кто ещё не выбирал сам
+      setDefault(v) { if (!own && CHOICES.includes(v)) { choice = v; painters.forEach(f => f()); } },
     };
   })();
 
   // Авто-выбывание: чем меньше осталось, тем дольше крутка и пауза перед ней.
   // Темп выбирается по числу вариантов перед круткой. Последняя крутка
-  // (двое на колесе) — особая, см. finalSpin.
-  const AUTO_PHASES = [
-    { upTo: 2,        final: true, pause: 3 },
-    { upTo: 5,        spin: 10, pause: 3 },
-    { upTo: 10,       spin: 5,  pause: 2 },
-    { upTo: Infinity, spin: 3,  pause: 2 },
-  ];
+  // (двое на колесе) — особая, см. finalSpin. Цифры — из админки, applySettings().
+  const AUTO_PHASES = [];
   const autoPhase = n => AUTO_PHASES.find(p => n <= p.upTo);
 
   const random = () => { const b = new Uint32Array(1); crypto.getRandomValues(b); return b[0] / 4294967296; };
@@ -477,6 +483,7 @@ window.WheelKit = (() => {
   // segments — кусочки колеса; keyOf(seg) — чей кусочек; target — чей
   // кусочек в итоге окажется под стрелкой. Возвращает итоговый угол колеса.
   // ============================================================
+  // speed, brakeFrom/To, holdBeforeSlip, slipChance — из админки, applySettings()
   const FINAL = {
     speed: 320,          // °/с — крейсерская скорость, без замедления
     spinUp: 1.5,         // с — разгон
@@ -564,5 +571,81 @@ window.WheelKit = (() => {
     })();
   }
 
-  return { WHEEL_R, RIM_R, shade, builder, mount, flash, sound, AUTO_PHASES, autoPhase, finalSpin, FINAL, random };
+  // ============================================================
+  // Настройки рулеток — вкладка «Настройки» в админке, data/config.json.
+  // Пустое поле = значение по умолчанию отсюда (его же показывает админка).
+  // Файл грузится при открытии страницы; пока не пришёл — работают умолчания.
+  // ============================================================
+  const DEFAULTS = {
+    // авто-выбывание: пока вариантов больше mid_from — many, до mid_from — mid, до late_from — late
+    wheel_auto_spin_many: 3,  wheel_auto_pause_many: 2,
+    wheel_auto_mid_from: 10,  wheel_auto_spin_mid: 5,   wheel_auto_pause_mid: 2,
+    wheel_auto_late_from: 5,  wheel_auto_spin_late: 10, wheel_auto_pause_late: 3,
+    wheel_auto_pause_final: 3,
+    // финал: surprise — без замедления и с тормозом (finalSpin), classic — обычная крутка
+    wheel_final_mode: 'surprise', wheel_final_classic_spin: 60,
+    wheel_final_brake_from: 30, wheel_final_brake_to: 60,
+    wheel_final_speed: 0.9,           // оборотов в секунду
+    wheel_final_slip_chance: 25,      // %
+    wheel_final_slip_after: 5,        // с
+    wheel_final_manual: 'FALSE',      // такой же финал и в ручном выбывании
+    // вид и звук
+    wheel_glitter: 340,
+    wheel_sound_default: 'wood',
+    // рулетка заказов: что включено при открытии и слово для сбора из чата
+    picker_sources: 'anime,movies,series',
+    picker_statuses: 'pending',
+    picker_join_words: 'я',
+  };
+  const settings = { ...DEFAULTS };
+  const glitters = [];
+
+  function applySettings(c) {
+    const num = (k, min, max) => {
+      const v = parseFloat(String(c[k] ?? '').replace(',', '.'));
+      return isFinite(v) ? Math.min(max, Math.max(min, v)) : DEFAULTS[k];
+    };
+    const str = k => String(c[k] ?? '').trim() || DEFAULTS[k];
+    for (const k of Object.keys(DEFAULTS)) settings[k] = typeof DEFAULTS[k] === 'number' ? num(k, 0, 100000) : str(k);
+
+    const midFrom = Math.max(4, Math.round(num('wheel_auto_mid_from', 4, 500)));
+    const lateFrom = Math.min(midFrom - 1, Math.max(3, Math.round(num('wheel_auto_late_from', 3, 500))));
+    const classic = settings.wheel_final_mode === 'classic';
+    AUTO_PHASES.length = 0;
+    AUTO_PHASES.push(
+      classic
+        ? { upTo: 2, spin: num('wheel_final_classic_spin', 1, 300), pause: num('wheel_auto_pause_final', 0, 60) }
+        : { upTo: 2, final: true, pause: num('wheel_auto_pause_final', 0, 60) },
+      { upTo: lateFrom, spin: num('wheel_auto_spin_late', 1, 300), pause: num('wheel_auto_pause_late', 0, 60) },
+      { upTo: midFrom,  spin: num('wheel_auto_spin_mid', 1, 300),  pause: num('wheel_auto_pause_mid', 0, 60) },
+      { upTo: Infinity, spin: num('wheel_auto_spin_many', 1, 300), pause: num('wheel_auto_pause_many', 0, 60) },
+    );
+
+    const from = num('wheel_final_brake_from', 3, 600);
+    FINAL.brakeFrom = from;
+    FINAL.brakeTo = Math.max(from, num('wheel_final_brake_to', 3, 600) - 1);   // до секунды добирает точная остановка
+    FINAL.speed = num('wheel_final_speed', 0.2, 3) * 360;
+    FINAL.slipChance = num('wheel_final_slip_chance', 0, 100) / 100;
+    FINAL.holdBeforeSlip = num('wheel_final_slip_after', 0, 60);
+
+    settings.wheel_glitter = Math.round(num('wheel_glitter', 0, 1500));
+    glitters.forEach(set => set(settings.wheel_glitter));
+    sound.setDefault(settings.wheel_sound_default);
+  }
+  applySettings({});
+
+  // Страница может дождаться настроек: await WheelKit.ready
+  const ready = fetch('data/config.json', { cache: 'no-cache' })
+    .then(r => r.json())
+    .then(d => Object.fromEntries((d.items || []).map(r => [r.key, r.value])))
+    .catch(() => ({}))
+    .then(c => { applySettings(c); return settings; });
+
+  const truthy = v => /^(true|1|да|yes)$/i.test(String(v).trim());
+  // Особый финал и в ручном выбывании, если так настроено в админке
+  const finalInManual = () => settings.wheel_final_mode !== 'classic' && truthy(settings.wheel_final_manual);
+  const list = k => String(settings[k]).split(',').map(x => x.trim()).filter(Boolean);
+
+  return { WHEEL_R, RIM_R, shade, builder, mount, flash, sound, AUTO_PHASES, autoPhase, finalSpin, FINAL, random,
+    DEFAULTS, settings, ready, applySettings, finalInManual, list };
 })();
