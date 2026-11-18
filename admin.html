@@ -17,6 +17,7 @@
 
   /* ---------- вкладки разделов ---------- */
   .tabs { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 22px; }
+  a.chip { text-decoration: none; }
   .chip[disabled] { opacity: .4; cursor: default; }
   .chip[disabled]:hover { background: transparent; color: rgba(255,255,255,0.72); }
 
@@ -1344,10 +1345,16 @@ let current = SECTIONS[0];
 const views = {}; // id → { filter, sort, q }
 
 // ===================== вкладки =====================
+// Страницы со своими настройками (не из data/*.json) — ссылкой рядом с вкладками
+const EXTERNAL_TABS = [
+  { group: 'Стрим', href: 'cards.html', icon: 'zap', label: 'Рулетка хаоса' },
+];
 function renderTabs() {
-  const groups = [...new Set(SECTIONS.map(s => s.group))];
+  const groups = [...new Set(SECTIONS.map(s => s.group).concat(EXTERNAL_TABS.map(x => x.group)))];
   $('tabs').innerHTML = groups.map(g => `<div class="tabs__group"><span class="tabs__label">${g}</span>${SECTIONS.filter(s => s.group === g)
-    .map(s => `<button type="button" class="chip${s === current ? ' is-active' : ''}" data-tab="${s.id}">${icon(s.icon)}${esc(s.label)}</button>`).join('')}</div>`).join('');
+    .map(s => `<button type="button" class="chip${s === current ? ' is-active' : ''}" data-tab="${s.id}">${icon(s.icon)}${esc(s.label)}</button>`).join('')
+    + EXTERNAL_TABS.filter(x => x.group === g)
+      .map(x => `<a class="chip" href="${x.href}" target="_blank" rel="noopener" title="Настройки рулетки хаоса — на отдельной странице">${icon(x.icon)}${esc(x.label)}${icon('external')}</a>`).join('')}</div>`).join('');
 }
 $('tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) location.hash = b.dataset.tab; });
 window.addEventListener('hashchange', () => open(location.hash.slice(1)));
