@@ -2287,8 +2287,9 @@ function announceMod(it) {
     durationSec: it.durationSec || 0, startedAt: now, endsAt: it.durationSec ? now + it.durationSec * 1000 : null
   };
   modsAdopt(modsReadLocal());
-  // та же карточка выпала ещё раз — таймер начинается заново
-  modsPublish([mod, ...modsBox.mods.filter(m => m.cardId !== it.id)]);
+  // новый модификатор сменяет прошлый (на оверлее всегда одна плашка модификатора);
+  // карточки с таймером других типов висят рядом. Та же карточка ещё раз — таймер заново.
+  modsPublish([mod, ...modsBox.mods.filter(m => m.cardId !== it.id && !(it.kind === 'mod' && m.kind === 'mod'))]);
 }
 function modsRemove(id) { modsPublish(modsBox.mods.filter(m => m.id !== id)); }
 function modsAddTime(id, sec) {

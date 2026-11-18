@@ -10,7 +10,7 @@
   Оверлей активных модификаторов для OBS: browser source 1920×1080, прозрачный фон.
     mods.html            — карточки в правом верхнем углу
     mods.html?pos=tl     — угол: tl / tr / bl / br, или tc — сверху по центру
-    mods.html?scale=1.2  — крупнее/мельче
+    mods.html?scale=2    — крупнее/мельче (по умолчанию 1.7)
     mods.html?demo       — предпросмотр с ненастоящими модификаторами
 
   Откуда берутся карточки: cards.html (менеджер или ?stream) после крутки кладёт выпавший
@@ -22,7 +22,7 @@
 <style>
   :root {
     --font: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
-    --scale: 1;
+    --scale: 1.7; /* базовый размер плашки; ?scale=1.2 и т.п. задаёт свой */
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   /* 1rem = 16px на ширине 1920 — оверлей одинаково выглядит в любом размере источника */
@@ -142,7 +142,8 @@
   .mod.is-over .mod__time { font-size: 1.05rem; letter-spacing: .2em; text-transform: uppercase; color: rgba(255, 255, 255, .8); text-shadow: none; animation: none; min-width: 0; }
   .mod.is-over .mod__bar { display: none; }
   .mod.is-over .mod__timer { justify-content: center; }
-  .mod.is-out { animation: mod-out .7s ease-in both; }
+  .mod.is-out { animation: mod-out .7s ease-in both; position: absolute; z-index: 0; }
+  .mod { z-index: 1; }
 
   @keyframes mod-in   { from { opacity: 0; transform: translateX(115%) scale(.92); } to { opacity: 1; transform: none; } }
   @keyframes mod-in-l { from { opacity: 0; transform: translateX(-115%) scale(.92); } to { opacity: 1; transform: none; } }
@@ -160,7 +161,7 @@
 <div class="stack stack--tr" id="stack"></div>
 
 <script>
-const VERSION = '2026-11-18.1';
+const VERSION = '2026-11-18.2';
 const qs = new URLSearchParams(location.search);
 const MODS_KEY = 'ppk_mods_v1';
 // ?bridge=http://127.0.0.1:3799 — другой порт моста, ?bridge=0 — без моста
@@ -195,9 +196,15 @@ function adopt(next) {
   render();
 }
 
-// какие моды сейчас должны быть на экране: живые + закончившиеся не раньше OVER_HOLD назад
+// какие моды сейчас должны быть на экране: живые + закончившиеся не раньше OVER_HOLD назад.
+// Модификатор всегда один — самый свежий (список идёт от новых к старым), он сменяет прошлый.
 function visibleMods(now) {
-  return box.mods.filter(m => !m.endsAt || m.endsAt > now - OVER_HOLD).slice(0, MAX_SHOWN);
+  let modSeen = false;
+  return box.mods.filter(m => {
+    if (m.endsAt && m.endsAt <= now - OVER_HOLD) return false;
+    if (m.kind === 'mod') { if (modSeen) return false; modSeen = true; }
+    return true;
+  }).slice(0, MAX_SHOWN);
 }
 
 function cardHTML(m) {
@@ -224,6 +231,8 @@ function render() {
   for (const [id, v] of shown) {
     if (ids.has(id) || v.leaving) continue;
     v.leaving = true;
+    // уходящая плашка тает на своём месте, не толкая новую
+    Object.assign(v.el.style, { top: v.el.offsetTop + 'px', left: v.el.offsetLeft + 'px', width: v.el.offsetWidth + 'px' });
     v.el.classList.add('is-out');
     setTimeout(() => { v.el.remove(); shown.delete(id); }, 700);
   }
@@ -291,9 +300,9 @@ function demo() {
   adopt({
     updatedAt: now,
     mods: [
-      { id: 'd1', text: 'Говорить о себе в третьем лице', kindLabel: 'Модификатор', group: 'Модификатор',
+      { id: 'd1', kind: 'mod', text: 'Говорить о себе в третьем лице', kindLabel: 'Модификатор', group: 'Модификатор',
         rarity: 'Необычная', color: '#5FD68A', target: 'Стример', durationSec: 180, startedAt: now - 40000, endsAt: now + 140000 },
-      { id: 'd2', text: '«Моё почтение» с приподниманием цилиндра после каждой фразы', kindLabel: 'Модификатор',
+      { id: 'd2', kind: 'mod', text: '«Моё почтение» с приподниманием цилиндра после каждой фразы', kindLabel: 'Модификатор',
         rarity: 'Необычная', color: '#5FD68A', target: 'Стример', durationSec: 0, startedAt: now, endsAt: null },
       { id: 'd3', text: 'Запрещённая кнопка на 5 минут', kindLabel: 'Наказание', group: 'Игры',
         rarity: 'Редкая', color: '#56A8F5', target: 'Стример', durationSec: 300, startedAt: now - 288000, endsAt: now + 12000 }
