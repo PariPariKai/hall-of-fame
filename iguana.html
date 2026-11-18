@@ -11,11 +11,15 @@
     iguana.html              — проходит при загрузке и каждый раз, когда источник снова становится видимым
                                (включил глазик / переключил сцену — игуана пошла)
     iguana.html?every=10     — ещё и сама каждые 10 минут
+    iguana.html?first=7&every=10
+                             — по расписанию: первый раз через 7 минут после запуска сцены, потом каждые 10.
+                               Сразу при показе не выходит; смена сцены туда-обратно начинает отсчёт заново,
+                               пока сцена не в эфире — расписание стоит
     iguana.html?loop         — ходит без остановки, одна за другой
     iguana.html?size=640     — ширина игуаны в пикселях кадра 1920 (по умолчанию 640)
     iguana.html?bottom=20    — поднять над нижним краем на 20 px
     iguana.html?speed=1.5    — быстрее/медленнее (1 — лапы не проскальзывают)
-    iguana.html?delay=2      — пауза перед выходом, секунд
+    iguana.html?delay=2      — пауза перед каждым выходом, секунд
     iguana.html?dir=rtl      — справа налево (зеркально)
   Параметры складываются: iguana.html?every=15&size=480&bottom=40
 -->
@@ -34,7 +38,7 @@
 <body>
 <img class="iguana" id="iguana" src="img/iguana.gif?v=1" alt="">
 <script>
-const VERSION = '2026-11-18.1';
+const VERSION = '2026-11-19.1';
 const qs = new URLSearchParams(location.search);
 const num = (k, d) => { const v = parseFloat(qs.get(k)); return Number.isFinite(v) ? v : d; };
 
@@ -44,6 +48,7 @@ const BOTTOM = num('bottom', 0);
 const SPEED = Math.max(0.05, num('speed', 1));
 const DELAY = Math.max(0, num('delay', 0)) * 1000;
 const EVERY = Math.max(0, num('every', 0)) * 60000;
+const FIRST = qs.has('first') ? Math.max(0, num('first', 0)) * 60000 : -1; // -1 — без расписания
 const LOOP = qs.has('loop');
 const RTL = qs.get('dir') === 'rtl';
 // Шаг в гифке: за секунду опорная лапа уезжает назад на ~0.29 ширины спрайта.
@@ -82,11 +87,31 @@ function walk() {
   return walking;
 }
 
+// ---------- расписание ?first=…&every=… ----------
+let firstTimer = 0, everyTimer = 0;
+function stopSchedule() {
+  clearTimeout(firstTimer); clearInterval(everyTimer);
+  firstTimer = everyTimer = 0;
+}
+function startSchedule() {
+  stopSchedule();
+  firstTimer = setTimeout(() => {
+    walk();
+    if (EVERY) everyTimer = setInterval(walk, EVERY);
+  }, FIRST);
+}
+
+// Сцену показали (глазик или смена сцены): без расписания — сразу проход,
+// с расписанием — отсчёт с нуля. Убрали из эфира — расписание стоит.
+function onShown(shown) {
+  if (FIRST < 0) { if (shown) walk(); return; }
+  if (shown) startSchedule(); else stopSchedule();
+}
+
 addEventListener('resize', layout);
-// OBS: источник снова показан (глазик или смена сцены) — новый проход.
-addEventListener('obsSourceVisibleChanged', e => { if (e.detail && e.detail.visible) walk(); });
-addEventListener('obsSourceActiveChanged', e => { if (e.detail && e.detail.active) walk(); });
-if (EVERY) setInterval(walk, EVERY);
+addEventListener('obsSourceVisibleChanged', e => onShown(!!(e.detail && e.detail.visible)));
+addEventListener('obsSourceActiveChanged', e => onShown(!!(e.detail && e.detail.active)));
+if (EVERY && FIRST < 0) setInterval(walk, EVERY);
 
 // ---------- обновление самой страницы ----------
 // Свежая копия с сайта (мимо кэша) с другой VERSION — перезагружаемся с меткой в адресе, которой нет в кэше.
@@ -105,7 +130,8 @@ async function checkVersion() {
 setInterval(checkVersion, 10 * 60 * 1000);
 
 // ---------- запуск ----------
-if (el.complete) walk(); else el.addEventListener('load', walk, { once: true });
+if (FIRST >= 0) startSchedule();
+else if (el.complete) walk(); else el.addEventListener('load', walk, { once: true });
 </script>
 </body>
 </html>
