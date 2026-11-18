@@ -2244,15 +2244,24 @@ function modsAdopt(box) {
   }
 }
 // подтягиваем свежий список из моста — вдруг его меняли из другого браузера
+// а если у нас список свежее (мост перезапускали или он был выключен) — отдаём ему свой
 async function modsPull() {
   modsAdopt(modsReadLocal());
   try {
     const r = await fetch(MODS_BRIDGE, { cache: 'no-store' });
-    modsAdopt(await r.json());
+    if (!r.ok) throw new Error('мост без /api/mods — старая версия');
+    const remote = await r.json();
+    modsAdopt(remote);
     bridgeOk = true;
+    if ((modsBox.updatedAt || 0) > (remote.updatedAt || 0)) {
+      fetch(MODS_BRIDGE, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Pain-Bridge': '1' }, body: JSON.stringify(modsBox)
+      }).catch(() => {});
+    }
   } catch (e) { bridgeOk = false; }
   renderMods();
 }
+setInterval(modsPull, 30000);
 function modsPublish(mods) {
   const now = Date.now();
   // закончившиеся больше минуты назад выкидываем — оверлей их уже убрал
@@ -2306,7 +2315,7 @@ function modsListHTML() {
     </div>`;
   }).join('');
   const bridge = bridgeOk === true ? 'мост на связи'
-    : bridgeOk === false ? 'мост не отвечает — оверлей увидит награду, только если он в этом же браузере' : '';
+    : bridgeOk === false ? 'мост не отвечает или старой версии (перезапусти его) — оверлей в OBS награду не увидит' : '';
   return `<div class="mods-list">${rows || '<div class="mods-empty">Сейчас на оверлее пусто.</div>'}</div>
     <div class="mods-foot"><span>${bridge}</span>${live.length ? '<button class="btn btn--sm" data-mod-clear="1">Снять все</button>' : ''}</div>`;
 }
