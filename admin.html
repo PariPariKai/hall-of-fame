@@ -153,7 +153,6 @@
   .sch-shift .hint-inline { flex: 1 1 280px; line-height: 1.5; }
   /* Настройки рулеток (во вкладке «Настройки») */
   .wh { margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--line); }
-  .wh-title { display: flex; align-items: center; gap: 9px; font-size: 16px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold); font-weight: 600; margin-bottom: 16px; }
   .wh-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
   .wh-row .sch-name { min-width: 210px; display: inline-flex; align-items: center; gap: 8px; }
   .wh-row .check-line { min-height: 0; }
@@ -1053,7 +1052,6 @@ function wheelSettingsHTML(c) {
   const classic = v('wheel_final_mode') === 'classic';
   return `
     <div class="wh">
-      <h2 class="wh-title">${icon('wheel')}Рулетки</h2>
       <div class="cfg-group"><h3>Открыть</h3>
         <div class="quick">${WHEEL_LINKS.map(([href, ic, label]) =>
           `<a class="btn btn--ghost" href="${href}" target="_blank" rel="noopener">${icon(ic)}${label}</a>`).join('')}</div>
@@ -1149,13 +1147,13 @@ function wheelSettingsBind(sec, box, c) {
     const now = k => (c[k] != null && String(c[k]).trim() !== '' ? String(c[k]).trim() : String(D[k]));
     const changed = Object.keys(vals).filter(k => now(k) !== vals[k]);
     if (!changed.length) return toast('Ничего не поменялось');
-    const ok = await save(sec, 'рулетки — ' + changed.join(', '), data => {
+    const ok = await save({ ...sec, id: 'config' }, changed.join(', '), data => {
       changed.forEach(k => {
         const row = data.items.find(r => r.key === k);
         if (row) row.value = vals[k]; else data.items.push({ key: k, value: vals[k] });
       });
     }, e.currentTarget);
-    if (ok && current === sec) render();
+    if (ok && current.id === sec.id) render();
   });
 }
 
@@ -1187,9 +1185,8 @@ const configSection = {
     box.innerHTML = CONFIG_GROUPS.map(([title, keys], i) => `<div class="cfg-group"><h3>${title}</h3><div class="row">${keys.map(input).join('')}</div></div>` + (i === 0
       ? `<div class="cfg-group"><h3>Расписание стримов</h3><p class="hint-inline">Дни, рулетка и кино — на вкладке <a href="#schedule" style="color:var(--gold)">«Расписание»</a>.</p></div>` : '')).join('') +
       (Object.keys(c).some(k => !known.has(k)) ? `<div class="cfg-group"><h3>Прочее</h3><div class="row">${Object.keys(c).filter(k => !known.has(k)).map(k => input([k, k])).join('')}</div></div>` : '') +
-      `<div class="row"><button type="button" class="btn btn--solid" id="cfg-save">${icon('check')}Сохранить настройки</button></div>` +
-      wheelSettingsHTML(c);
-    wheelSettingsBind(sec, box, c);
+      `<div class="cfg-group"><h3>Рулетки</h3><p class="hint-inline">Настройки всех рулеток — на вкладке <a href="#wheels" style="color:var(--gold)">«Рулетки»</a>.</p></div>` +
+      `<div class="row"><button type="button" class="btn btn--solid" id="cfg-save">${icon('check')}Сохранить настройки</button></div>`;
     $('cfg-save').addEventListener('click', e => {
       const vals = {};
       box.querySelectorAll('[data-k]').forEach(el => {
@@ -1316,6 +1313,18 @@ const scheduleSection = {
 };
 
 // ===================== список разделов =====================
+// ===================== рулетки =====================
+// Правят тот же data/config.json, что и «Настройки», — одна копия на оба.
+const wheelsSection = {
+  id: 'wheels', data: 'config', label: 'Рулетки', icon: 'wheel', group: 'Сайт', path: 'data/config.json', form: true,
+  panel(sec, box) {
+    $('panel-title').innerHTML = icon('wheel') + 'Настройки рулеток';
+    const c = config();
+    box.innerHTML = wheelSettingsHTML(c);
+    wheelSettingsBind(sec, box, c);
+  },
+};
+
 const SECTIONS = [
   ordersSection({ id: 'movies', list: 'movies', label: 'Фильмы', icon: 'film', page: 'movies.html', one: 'Фильм', statuses: WATCH, year: true, format: true, scheduled: true, tonight: true,
     types: { movie: 'Фильм', youtube: 'YouTube', other: 'Другое' }, urlHint: 'пусто: робот сам найдёт Кинопоиск', urlPh: 'https://www.kinopoisk.ru/film/...' }),
@@ -1327,7 +1336,7 @@ const SECTIONS = [
     urlHint: 'пусто: робот сам найдёт Steam', urlPh: 'https://store.steampowered.com/app/...' }),
   painSection,
   ticketsSection, viewersSection, winnersSection,
-  prizesSection, friendsSection, scheduleSection, configSection,
+  prizesSection, friendsSection, scheduleSection, configSection, wheelsSection,
   templatesSection, screensSection,
 ];
 const SEC = Object.fromEntries(SECTIONS.map(s => [s.id, s]));
