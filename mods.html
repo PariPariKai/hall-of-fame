@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Модификаторы — оверлей</title>
+<meta name="robots" content="noindex,nofollow">
+<!--
+  Оверлей активных модификаторов для OBS: browser source 1920×1080, прозрачный фон.
+    mods.html            — карточки в правом верхнем углу
+    mods.html?pos=tl     — угол: tl / tr / bl / br, или tc — сверху по центру
+    mods.html?scale=1.2  — крупнее/мельче
+    mods.html?demo       — предпросмотр с ненастоящими модификаторами
+
+  Откуда берутся карточки: cards.html (менеджер или ?stream) после крутки кладёт выпавший
+  модификатор в список и рассылает его:
+    • localStorage + BroadcastChannel — если рулетка открыта в том же браузере (в OBS);
+    • мост localhost:3777 (/api/mods) — если рулетка открыта в обычном браузере.
+  Побеждает более свежий список (updatedAt). Снять / продлить — кнопка с таймером в cards.html.
+-->
+<style>
+  :root {
+    --font: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+    --scale: 1;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  /* 1rem = 16px на ширине 1920 — оверлей одинаково выглядит в любом размере источника */
+  html { font-size: calc(100vw / 120 * var(--scale)); }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
+  body { font-family: var(--font); color: #fff; -webkit-font-smoothing: antialiased; }
+
+  .stack {
+    position: absolute; display: flex; flex-direction: column; gap: 1.6rem;
+    width: 27rem; padding-top: 1rem;
+  }
+  .stack--tr { top: 2.4rem; right: 2.4rem; align-items: flex-end; }
+  .stack--tl { top: 2.4rem; left: 2.4rem; }
+  .stack--br { bottom: 2.4rem; right: 2.4rem; flex-direction: column-reverse; }
+  .stack--bl { bottom: 2.4rem; left: 2.4rem; flex-direction: column-reverse; }
+  .stack--tc { top: 2.4rem; left: 50%; transform: translateX(-50%); width: 34rem; }
+
+  /* ---------- карточка ---------- */
+  .mod {
+    --rc: #FAC775;
+    --rc-a: color-mix(in srgb, var(--rc) 55%, transparent);
+    --rc-b: color-mix(in srgb, var(--rc) 22%, transparent);
+    position: relative; width: 100%;
+    padding: 1.9rem 1.7rem 1.35rem;
+    border-radius: .9rem;
+    border: .14rem solid var(--rc-a);
+    background:
+      radial-gradient(120% 80% at 50% -10%, var(--rc-b), transparent 60%),
+      linear-gradient(180deg, rgba(16, 21, 38, .92), rgba(9, 12, 24, .94));
+    box-shadow:
+      0 0 1.6rem color-mix(in srgb, var(--rc) 30%, transparent),
+      0 .6rem 2rem rgba(0, 0, 0, .55),
+      inset 0 0 1.4rem color-mix(in srgb, var(--rc) 10%, transparent);
+    animation: mod-in .9s cubic-bezier(.2, 1.2, .3, 1) both;
+  }
+  .stack--tl .mod, .stack--bl .mod { animation-name: mod-in-l; }
+  .stack--tc .mod { animation-name: mod-in-t; }
+
+  /* внутренняя тонкая рамка */
+  .mod::before {
+    content: ""; position: absolute; inset: .42rem; border-radius: .55rem; pointer-events: none;
+    border: .07rem solid color-mix(in srgb, var(--rc) 35%, transparent);
+  }
+  /* блик, пробегающий при появлении */
+  .mod__shine {
+    position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none;
+  }
+  .mod__shine::after {
+    content: ""; position: absolute; top: -20%; bottom: -20%; width: 35%; left: -60%;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .22), transparent);
+    transform: skewX(-18deg);
+    animation: shine 1.3s .55s ease-out both;
+  }
+
+  /* ромбики по углам */
+  .mod__c {
+    position: absolute; width: .8rem; height: .8rem; transform: rotate(45deg);
+    background: var(--rc); box-shadow: 0 0 .7rem var(--rc);
+    border: .12rem solid rgba(9, 12, 24, .95);
+  }
+  .mod__c--tl { top: -.42rem; left: -.42rem; }
+  .mod__c--tr { top: -.42rem; right: -.42rem; }
+  .mod__c--bl { bottom: -.42rem; left: -.42rem; }
+  .mod__c--br { bottom: -.42rem; right: -.42rem; }
+
+  /* табличка на верхней кромке */
+  .mod__plate {
+    position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%);
+    display: flex; align-items: center; gap: .55rem; white-space: nowrap;
+    padding: .34rem 1.15rem .38rem;
+    background: linear-gradient(180deg, #1a2140, #0d1124);
+    border: .12rem solid var(--rc-a); border-radius: 2rem;
+    font-size: .78rem; font-weight: 600; letter-spacing: .28em; text-transform: uppercase;
+    color: var(--rc); text-shadow: 0 0 .8rem var(--rc-a);
+    box-shadow: 0 0 1rem color-mix(in srgb, var(--rc) 25%, transparent);
+  }
+  .mod__plate i {
+    width: .38rem; height: .38rem; transform: rotate(45deg); background: currentColor; flex: 0 0 auto;
+  }
+
+  .mod__text {
+    font-size: 1.55rem; line-height: 1.28; font-weight: 600; text-align: center;
+    text-wrap: balance; word-break: break-word;
+    text-shadow: 0 .1rem .6rem rgba(0, 0, 0, .6);
+  }
+
+  .mod__foot {
+    display: flex; align-items: center; justify-content: center; gap: .9rem;
+    margin-top: .95rem; font-size: .8rem; letter-spacing: .14em; text-transform: uppercase;
+    color: rgba(255, 255, 255, .55);
+  }
+  .mod__foot b { color: var(--rc); font-weight: 600; }
+  .mod__foot span + span::before { content: "·"; margin-right: .9rem; color: rgba(255, 255, 255, .3); }
+
+  /* таймер */
+  .mod__timer { display: flex; align-items: center; gap: .9rem; margin-top: 1rem; }
+  .mod__time {
+    flex: 0 0 auto; min-width: 5.2rem; text-align: right;
+    font-size: 1.7rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .02em;
+    color: #fff; text-shadow: 0 0 .9rem var(--rc-a);
+  }
+  .mod__bar {
+    position: relative; flex: 1 1 auto; height: .55rem; border-radius: 1rem;
+    background: rgba(255, 255, 255, .08); overflow: hidden;
+    box-shadow: inset 0 0 0 .06rem rgba(255, 255, 255, .06);
+  }
+  .mod__bar i {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 100%; border-radius: inherit;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--rc) 60%, #000), var(--rc));
+    box-shadow: 0 0 .7rem var(--rc);
+    transition: width .5s linear;
+  }
+
+  .mod.is-hurry .mod__time { color: #FF8A80; animation: hurry 1s ease-in-out infinite; }
+  .mod.is-hurry .mod__bar i { background: linear-gradient(90deg, #8a2a25, #FF6B5E); box-shadow: 0 0 .8rem #FF6B5E; }
+  .mod.is-over { animation: over-flash .9s ease-out both; }
+  .mod.is-over .mod__time { font-size: 1.05rem; letter-spacing: .2em; text-transform: uppercase; color: rgba(255, 255, 255, .8); text-shadow: none; animation: none; min-width: 0; }
+  .mod.is-over .mod__bar { display: none; }
+  .mod.is-over .mod__timer { justify-content: center; }
+  .mod.is-out { animation: mod-out .7s ease-in both; }
+
+  @keyframes mod-in   { from { opacity: 0; transform: translateX(115%) scale(.92); } to { opacity: 1; transform: none; } }
+  @keyframes mod-in-l { from { opacity: 0; transform: translateX(-115%) scale(.92); } to { opacity: 1; transform: none; } }
+  @keyframes mod-in-t { from { opacity: 0; transform: translateY(-60%) scale(.92); } to { opacity: 1; transform: none; } }
+  @keyframes mod-out  { to { opacity: 0; transform: scale(.9); filter: blur(.2rem); } }
+  @keyframes shine    { from { left: -60%; } to { left: 130%; } }
+  @keyframes hurry    { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+  @keyframes over-flash {
+    0% { box-shadow: 0 0 3.5rem var(--rc), 0 .6rem 2rem rgba(0,0,0,.55); }
+    100% { box-shadow: 0 0 1.6rem color-mix(in srgb, var(--rc) 30%, transparent), 0 .6rem 2rem rgba(0,0,0,.55); }
+  }
+</style>
+</head>
+<body>
+<div class="stack stack--tr" id="stack"></div>
+
+<script>
+const VERSION = '2026-11-18.1';
+const qs = new URLSearchParams(location.search);
+const MODS_KEY = 'ppk_mods_v1';
+// ?bridge=http://127.0.0.1:3799 — другой порт моста, ?bridge=0 — без моста
+const BRIDGE = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(qs.get('bridge') || '') ? qs.get('bridge') : 'http://127.0.0.1:3777';
+const OVER_HOLD = 5000;   // сколько висит «Время вышло», потом карточка уходит
+const HURRY_MS = 10000;   // последние 10 секунд — красный пульс
+const MAX_SHOWN = 5;
+
+const pos = (qs.get('pos') || 'tr').toLowerCase();
+const stack = document.getElementById('stack');
+if (['tr', 'tl', 'br', 'bl', 'tc'].includes(pos)) stack.className = 'stack stack--' + pos;
+const scale = parseFloat(qs.get('scale'));
+if (scale > 0.3 && scale < 4) document.documentElement.style.setProperty('--scale', scale);
+
+let box = { mods: [], updatedAt: 0 };
+const shown = new Map(); // id мода → { el, mod }
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function safeColor(c) { return /^#[0-9a-f]{3,8}$/i.test(c || '') ? c : '#FAC775'; }
+function fmtClock(ms) {
+  const t = Math.max(0, Math.ceil(ms / 1000));
+  const h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), s = t % 60;
+  return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(s).padStart(2, '0');
+}
+
+function adopt(next) {
+  if (!next || !Array.isArray(next.mods)) return;
+  if ((next.updatedAt || 0) <= (box.updatedAt || 0)) return;
+  box = { mods: next.mods, updatedAt: next.updatedAt };
+  render();
+}
+
+// какие моды сейчас должны быть на экране: живые + закончившиеся не раньше OVER_HOLD назад
+function visibleMods(now) {
+  return box.mods.filter(m => !m.endsAt || m.endsAt > now - OVER_HOLD).slice(0, MAX_SHOWN);
+}
+
+function cardHTML(m) {
+  const label = m.kindLabel || 'Модификатор';
+  const foot = [`<span><b>${esc(m.rarity || '')}</b></span>`];
+  if (m.group && m.group.toLowerCase() !== label.toLowerCase()) foot.push(`<span>${esc(m.group)}</span>`);
+  if (m.target) foot.push(`<span>${esc(m.target)}</span>`);
+  return `
+    <div class="mod__shine"></div>
+    <i class="mod__c mod__c--tl"></i><i class="mod__c mod__c--tr"></i>
+    <i class="mod__c mod__c--bl"></i><i class="mod__c mod__c--br"></i>
+    <div class="mod__plate"><i></i>${esc(label)}<i></i></div>
+    <div class="mod__text">${esc(m.text)}</div>
+    ${m.endsAt ? `<div class="mod__timer"><div class="mod__bar"><i></i></div><span class="mod__time"></span></div>` : ''}
+    <div class="mod__foot">${foot.join('')}</div>`;
+}
+
+function render() {
+  const now = Date.now();
+  const want = visibleMods(now);
+  const ids = new Set(want.map(m => m.id));
+
+  // ушедшие — плавно убираем
+  for (const [id, v] of shown) {
+    if (ids.has(id) || v.leaving) continue;
+    v.leaving = true;
+    v.el.classList.add('is-out');
+    setTimeout(() => { v.el.remove(); shown.delete(id); }, 700);
+  }
+  // новые и изменившиеся (например, +1 мин)
+  want.forEach((m, i) => {
+    let v = shown.get(m.id);
+    if (v && v.leaving) { v.el.remove(); shown.delete(m.id); v = null; }
+    if (!v) {
+      const el = document.createElement('div');
+      el.className = 'mod';
+      el.style.setProperty('--rc', safeColor(m.color));
+      el.innerHTML = cardHTML(m);
+      v = { el, mod: m };
+      shown.set(m.id, v);
+    } else if (!!v.mod.endsAt !== !!m.endsAt || v.mod.text !== m.text) {
+      v.el.innerHTML = cardHTML(m);
+    }
+    v.mod = m;
+    // порядок: свежие первыми (в нижних углах column-reverse — свежие ближе к краю)
+    const at = stack.children[i];
+    if (at !== v.el) stack.insertBefore(v.el, at || null);
+  });
+  tick();
+}
+
+function tick() {
+  const now = Date.now();
+  let changed = false;
+  for (const [, v] of shown) {
+    const m = v.mod;
+    if (v.leaving || !m.endsAt) continue;
+    const left = m.endsAt - now;
+    const total = Math.max(1, m.endsAt - (m.startedAt || m.endsAt - m.durationSec * 1000));
+    const time = v.el.querySelector('.mod__time'), bar = v.el.querySelector('.mod__bar i');
+    const over = left <= 0;
+    if (over && !v.el.classList.contains('is-over')) { v.el.classList.remove('is-hurry'); v.el.classList.add('is-over'); }
+    if (!over) { v.el.classList.remove('is-over'); v.el.classList.toggle('is-hurry', left <= HURRY_MS); }
+    if (time) time.textContent = over ? 'Время вышло' : fmtClock(left);
+    if (bar) bar.style.width = Math.max(0, Math.min(100, left / total * 100)) + '%';
+    if (left < -OVER_HOLD) changed = true;
+  }
+  if (changed) render();
+}
+setInterval(tick, 250);
+
+// ---------- источники ----------
+function readLocal() {
+  try { return JSON.parse(localStorage.getItem(MODS_KEY)); } catch (e) { return null; }
+}
+window.addEventListener('storage', e => {
+  if (e.key === MODS_KEY && e.newValue) { try { adopt(JSON.parse(e.newValue)); } catch (_) {} }
+});
+try { new BroadcastChannel('ppk-mods').onmessage = e => adopt(e.data); } catch (e) {}
+
+// мост: поток событий; сам переподключается, если мост перезапустили
+function connectBridge() {
+  if (qs.get('bridge') === '0' || typeof EventSource === 'undefined') return;
+  const es = new EventSource(BRIDGE + '/api/mods/events');
+  es.onmessage = e => { try { adopt(JSON.parse(e.data)); } catch (_) {} };
+}
+
+// ---------- демо ----------
+function demo() {
+  const now = Date.now();
+  adopt({
+    updatedAt: now,
+    mods: [
+      { id: 'd1', text: 'Говорить о себе в третьем лице', kindLabel: 'Модификатор', group: 'Модификатор',
+        rarity: 'Необычная', color: '#5FD68A', target: 'Стример', durationSec: 180, startedAt: now - 40000, endsAt: now + 140000 },
+      { id: 'd2', text: '«Моё почтение» с приподниманием цилиндра после каждой фразы', kindLabel: 'Модификатор',
+        rarity: 'Необычная', color: '#5FD68A', target: 'Стример', durationSec: 0, startedAt: now, endsAt: null },
+      { id: 'd3', text: 'Запрещённая кнопка на 5 минут', kindLabel: 'Наказание', group: 'Игры',
+        rarity: 'Редкая', color: '#56A8F5', target: 'Стример', durationSec: 300, startedAt: now - 288000, endsAt: now + 12000 }
+    ]
+  });
+}
+
+// ---------- обновление самой страницы ----------
+// Свежая копия с сайта (мимо кэша) с другой VERSION — перезагружаемся с меткой в адресе, которой нет в кэше.
+async function checkVersion() {
+  if (location.protocol === 'file:') return;
+  try {
+    const html = await (await fetch(location.pathname + '?t=' + Date.now(), { cache: 'no-store' })).text();
+    const m = /const VERSION = '([^']+)'/.exec(html);
+    if (!m || m[1] === VERSION) return;
+    if (Date.now() - (+qs.get('_v') || 0) < 120000) return;
+    qs.set('_v', Date.now());
+    location.replace(location.pathname + '?' + qs.toString());
+  } catch (e) { /* сайт недоступен — работаем на том, что есть */ }
+}
+
+// ---------- запуск ----------
+if (qs.has('demo')) demo();
+else { adopt(readLocal()); connectBridge(); }
+setInterval(checkVersion, 10 * 60 * 1000);
+</script>
+</body>
+</html>

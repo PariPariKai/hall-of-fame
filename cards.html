@@ -567,6 +567,31 @@
   .stream__tools { position: absolute; top: 14px; right: 16px; z-index: 5; display: flex; gap: 6px; opacity: .35; transition: opacity .2s; }
   .stream__tools:hover { opacity: 1; }
   body.is-transparent .stream__hist span { background: rgba(0,0,0,0.45); }
+  .stream__tools .btn b { margin-left: 5px; font-weight: 600; }
+  .stream__tools .btn b:empty { display: none; }
+
+  /* ========== МОДИФИКАТОРЫ НА ОВЕРЛЕЕ ========== */
+  .mods-pop {
+    position: absolute; top: 52px; right: 16px; z-index: 6; width: min(420px, 92vw);
+    background: #121829; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px;
+    padding: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  }
+  .mods-list { display: flex; flex-direction: column; gap: 8px; }
+  .mods-row {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px;
+    background: rgba(255,255,255,0.04); border-left: 3px solid var(--rc);
+  }
+  .mods-row__text { flex: 1 1 auto; min-width: 0; font-size: 13px; line-height: 1.4; }
+  .mods-row__time { flex: 0 0 auto; font-variant-numeric: tabular-nums; font-size: 13px; color: var(--rc); min-width: 52px; text-align: right; }
+  .mods-row__time.is-over { color: rgba(255,255,255,0.35); }
+  .mods-empty { font-size: 13px; color: rgba(255,255,255,0.4); padding: 6px 2px; }
+  .mods-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 10px; font-size: 11.5px; color: rgba(255,255,255,0.4); }
+  .chip--timer { display: inline-flex; align-items: center; gap: 4px; }
+  .chip--timer .ic { width: 11px; height: 11px; }
+  .row--timer { align-items: flex-end; }
+  .row--timer .field { flex: 0 1 150px; }
+  .row--timer .btn { margin-bottom: 14px; }
+  .field-hint { font-size: 12px; color: rgba(255,255,255,0.42); margin: -6px 0 14px; }
 
   .kbd {
     display: inline-block; padding: 1px 6px; border-radius: 5px; font-size: 11px;
@@ -646,9 +671,11 @@
 <!-- ===== СТРИМ-РЕЖИМ: ЛОТОТРОН (cards.html?stream) ===== -->
 <div class="stream" id="stream" style="display:none">
   <div class="stream__tools">
+    <button class="btn btn--sm" id="s-mods" title="Модификаторы на оверлее"><svg class="ic" aria-hidden="true"><use href="#i-timer"></use></svg><b id="s-mods-n"></b></button>
     <button class="btn btn--sm" id="s-full" title="На весь экран (F)"><svg class="ic" aria-hidden="true"><use href="#i-maximize"></use></svg></button>
     <a class="btn btn--sm" href="cards.html" title="Открыть менеджер"><svg class="ic" aria-hidden="true"><use href="#i-sliders"></use></svg></a>
   </div>
+  <div class="mods-pop" id="s-mods-pop" hidden></div>
   <div class="lotto" id="lotto">
     <canvas id="s-canvas"></canvas>
     <div class="capsule" id="capsule">
@@ -795,6 +822,15 @@
         </div>
         <div class="spin-meta">Стрим-режим — отдельное окно без меню и служебных панелей, только карточка и кнопка. Под захват окна в OBS.</div>
       </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__title">На оверлее модификаторов
+        <a class="btn btn--sm" href="mods.html?demo" target="_blank" style="float:right">Пример оверлея ↗</a></div>
+      <div id="mods-panel"></div>
+      <div class="note">Browser source для OBS: <code>https://pariparikai.github.io/hall-of-fame/mods.html</code>, 1920×1080.
+        Сюда попадают карточки типа «Модификатор» и все карточки с таймером. Если рулетка открыта не в OBS, а в обычном браузере,
+        оверлей получает награды через мост (localhost:3777) — он должен быть запущен.</div>
     </div>
 
     <div class="row">
@@ -986,7 +1022,7 @@ function seedState() {
     groups: GROUP_SEED.map(g => ({ ...g })),
     items: ITEM_SEED.map(([text, rarity, group, kind, target]) => ({
       id: uid(), text, rarity, group, kind, target,
-      weight: 1, active: true, pinned: false, tags: [], note: '',
+      weight: 1, active: true, pinned: false, tags: [], note: '', durationSec: 0,
       createdAt: now, activatedAt: now, benchedAt: null, rolls: 0, lastRoll: null
     })),
     history: [],
@@ -1070,6 +1106,7 @@ function normalize(obj) {
     active: it.active !== false,
     pinned: !!it.pinned,
     pausedByGroup: !!it.pausedByGroup,
+    durationSec: Math.max(0, Math.min(86400, Math.round(Number(it.durationSec) || 0))),
     tags: Array.isArray(it.tags) ? it.tags.map(String) : [],
     note: String(it.note || ''),
     createdAt: Number(it.createdAt) || now,
@@ -1263,6 +1300,7 @@ function cardHTML(it) {
   if (!g || normText(g.name) !== normText(KIND_LABEL[it.kind])) {
     chips.push(`<span class="chip">${KIND_LABEL[it.kind]}</span>`);
   }
+  if (it.durationSec) chips.push(`<span class="chip chip--timer" title="таймер на оверлее"><svg class="ic" aria-hidden="true"><use href="#i-timer"></use></svg>${fmtDur(it.durationSec)}</span>`);
   if (it.rolls) chips.push(`<span class="chip" title="сколько раз выпадало">⟳ ${it.rolls}</span>`);
   if (ui.sort === 'age') chips.push(`<span class="chip" title="в базе">${ageLabel(it.createdAt)}</span>`);
   it.tags.forEach(t => chips.push(`<span class="chip">#${esc(t)}</span>`));
@@ -1511,6 +1549,14 @@ function openEditor(it) {
       <label class="field"><span>Вес внутри редкости</span>
         <input type="number" id="f-weight" min="0.1" step="0.1" value="${it.weight}"></label>
     </div>
+    <div class="row row--timer">
+      <label class="field"><span>Таймер: минуты</span>
+        <input type="number" id="f-dmin" min="0" max="1440" step="1" value="${Math.floor((it.durationSec || 0) / 60) || ''}" placeholder="0"></label>
+      <label class="field"><span>секунды</span>
+        <input type="number" id="f-dsec" min="0" max="59" step="1" value="${(it.durationSec || 0) % 60 || ''}" placeholder="0"></label>
+      <button class="btn btn--sm" id="f-dguess" type="button" hidden></button>
+    </div>
+    <div class="field-hint" id="f-dhint"></div>
     <label class="field"><span>Теги через запятую</span>
       <input type="text" id="f-tags" value="${esc(it.tags.join(', '))}" placeholder="например: голос, физуха, долгое"></label>
     <label class="field"><span>Заметка для себя</span>
@@ -1531,6 +1577,25 @@ function openEditor(it) {
   const grpSel = m.el.querySelector('#f-group');
 
   rarSel.onchange = () => { grpSel.innerHTML = groupOptions(rarSel.value, null); refreshStats(); };
+
+  // Таймер: подсказка из текста («3 минуты», «60 секунд», «на час») и пояснение про оверлей
+  const dMin = m.el.querySelector('#f-dmin'), dSec = m.el.querySelector('#f-dsec');
+  const dGuess = m.el.querySelector('#f-dguess'), dHint = m.el.querySelector('#f-dhint');
+  const kindSel = m.el.querySelector('#f-kind'), textEl = m.el.querySelector('#f-text');
+  const readDur = () => Math.max(0, Math.round((Number(dMin.value) || 0) * 60 + (Number(dSec.value) || 0)));
+  function refreshTimer() {
+    const cur = readDur(), guess = guessDuration(textEl.value);
+    dGuess.hidden = !guess || guess === cur;
+    dGuess.textContent = 'Из текста: ' + fmtDur(guess);
+    const onOverlay = kindSel.value === 'mod' || cur > 0;
+    dHint.textContent = onOverlay
+      ? (cur ? `На оверлее модификаторов с таймером ${fmtDur(cur)}, потом сама исчезнет.` : 'На оверлее модификаторов без таймера — висит, пока не снимешь.')
+      : 'Без таймера и не модификатор — на оверлей не попадает.';
+  }
+  dGuess.onclick = () => { const g = guessDuration(textEl.value); dMin.value = Math.floor(g / 60) || ''; dSec.value = g % 60 || ''; refreshTimer(); };
+  [dMin, dSec, textEl].forEach(el => el.addEventListener('input', refreshTimer));
+  kindSel.addEventListener('change', refreshTimer);
+  refreshTimer();
   grpSel.onchange = () => {
     if (grpSel.value !== '__new') return;
     const name = prompt('Название новой категории внутри редкости «' + rarity(rarSel.value).name + '»:');
@@ -1571,6 +1636,7 @@ function openEditor(it) {
     it.weight = Math.max(0.1, Number(m.el.querySelector('#f-weight').value) || 1);
     it.tags = m.el.querySelector('#f-tags').value.split(',').map(s => s.trim()).filter(Boolean);
     it.note = m.el.querySelector('#f-note').value.trim();
+    it.durationSec = Math.min(86400, readDur());
     it.pinned = m.el.querySelector('#f-pinned').checked;
     setActive(it, m.el.querySelector('#f-active').checked);
     if (isNew) state.items.push(it);
@@ -1585,7 +1651,7 @@ function newCard() {
   openEditor({
     id: uid(), text: '', rarity: ui.rarityFilter || 'common', group: null,
     kind: 'chaos', target: 'streamer', weight: 1, active: true, pinned: false,
-    tags: [], note: '', createdAt: now, activatedAt: now, benchedAt: null, rolls: 0, lastRoll: null
+    tags: [], note: '', durationSec: 0, createdAt: now, activatedAt: now, benchedAt: null, rolls: 0, lastRoll: null
   });
 }
 
@@ -2090,6 +2156,7 @@ function runSpin(targets, duration, onDone) {
     if (g) parts.push(g.name);
     if (!g || normText(g.name) !== normText(KIND_LABEL[result.item.kind])) parts.push(KIND_LABEL[result.item.kind]);
     parts.push(TARGET_LABEL[result.item.target], 'шанс был ' + fmtPct(ch));
+    if (result.item.durationSec) parts.push('таймер ' + fmtDur(result.item.durationSec));
     metaEl.textContent = parts.join(' · ');
 
     stage.classList.add('is-done');
@@ -2099,6 +2166,7 @@ function runSpin(targets, duration, onDone) {
     state.history.unshift({ id: result.item.id, text: result.item.text, rarity: result.rarityId, at: Date.now(), chance: itemChance(result.item) });
     state.history = state.history.slice(0, 100);
     save();
+    announceMod(result.item);
     spinning = false;
     targets.button.disabled = false;
     if (onDone) onDone(result);
@@ -2113,6 +2181,174 @@ function doSpin() {
     meta: $('#spin-meta'), button: $('#btn-spin')
   }, 1800, renderHistory);
 }
+
+// ============================================================
+// ОВЕРЛЕЙ МОДИФИКАТОРОВ (mods.html — browser source в OBS)
+// Выпавший модификатор (тип «Модификатор» или любая карточка с таймером) кладём в список
+// активных и рассылаем тремя путями: localStorage + BroadcastChannel — если оверлей в том же
+// браузере (OBS: рулетка как источник/док), и мост localhost:3777 — если рулетка в обычном браузере.
+// Шлём список целиком, побеждает более свежий updatedAt.
+// ============================================================
+const MODS_KEY = 'ppk_mods_v1';
+// ?bridge=http://127.0.0.1:3799 — другой порт моста (для проверки)
+const MODS_BRIDGE = (/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(new URLSearchParams(location.search).get('bridge') || '')
+  ? new URLSearchParams(location.search).get('bridge') : 'http://127.0.0.1:3777') + '/api/mods';
+let modsChan = null;
+try { modsChan = new BroadcastChannel('ppk-mods'); } catch (e) {}
+let modsBox = { mods: [], updatedAt: 0 };
+let bridgeOk = null; // null — ещё не знаем
+
+function fmtDur(sec) {
+  sec = Math.round(sec);
+  if (sec >= 3600 && sec % 60 === 0) {
+    const h = Math.floor(sec / 3600), m = (sec % 3600) / 60;
+    return h + ' ч' + (m ? ' ' + m + ' мин' : '');
+  }
+  if (sec >= 60) { const m = Math.floor(sec / 60), s = sec % 60; return s ? `${m}:${String(s).padStart(2, '0')}` : m + ' мин'; }
+  return sec + ' сек';
+}
+function fmtClock(ms) {
+  const t = Math.max(0, Math.ceil(ms / 1000));
+  const h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), s = t % 60;
+  return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(s).padStart(2, '0');
+}
+
+// «3 минуты», «60 секунд», «30 сек», «на час», «10 мин» → секунды (0 — не нашли)
+function guessDuration(text) {
+  const t = String(text || '').toLowerCase().replace(/ё/g, 'е');
+  if (/до конца стрима/.test(t)) return 0;
+  let m = t.match(/(\d+(?:[.,]\d+)?)\s*(?:секунд|сек(?![а-я])|с(?![а-я]))/);
+  if (m) return Math.round(parseFloat(m[1].replace(',', '.')));
+  m = t.match(/(\d+(?:[.,]\d+)?)\s*мин/);
+  if (m) return Math.round(parseFloat(m[1].replace(',', '.')) * 60);
+  m = t.match(/(\d+(?:[.,]\d+)?)\s*час/);
+  if (m) return Math.round(parseFloat(m[1].replace(',', '.')) * 3600);
+  if (/(?:^|[^а-я])час(?![а-я])/.test(t)) return 3600;
+  if (/(?:^|[^а-я])минуту(?![а-я])/.test(t)) return 60;
+  return 0;
+}
+
+function showsOnOverlay(it) { return it.kind === 'mod' || it.durationSec > 0; }
+
+function modsReadLocal() {
+  try {
+    const o = JSON.parse(localStorage.getItem(MODS_KEY));
+    if (o && Array.isArray(o.mods)) return o;
+  } catch (e) {}
+  return { mods: [], updatedAt: 0 };
+}
+function modsAdopt(box) {
+  if (box && Array.isArray(box.mods) && (box.updatedAt || 0) > (modsBox.updatedAt || 0)) {
+    modsBox = { mods: box.mods, updatedAt: box.updatedAt };
+    renderMods();
+  }
+}
+// подтягиваем свежий список из моста — вдруг его меняли из другого браузера
+async function modsPull() {
+  modsAdopt(modsReadLocal());
+  try {
+    const r = await fetch(MODS_BRIDGE, { cache: 'no-store' });
+    modsAdopt(await r.json());
+    bridgeOk = true;
+  } catch (e) { bridgeOk = false; }
+  renderMods();
+}
+function modsPublish(mods) {
+  const now = Date.now();
+  // закончившиеся больше минуты назад выкидываем — оверлей их уже убрал
+  const box = {
+    mods: mods.filter(m => !m.endsAt || m.endsAt > now - 60000).slice(0, 12),
+    updatedAt: Math.max(now, (modsBox.updatedAt || 0) + 1)
+  };
+  modsBox = box;
+  try { localStorage.setItem(MODS_KEY, JSON.stringify(box)); } catch (e) {}
+  try { modsChan && modsChan.postMessage(box); } catch (e) {}
+  fetch(MODS_BRIDGE, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Pain-Bridge': '1' }, body: JSON.stringify(box)
+  }).then(r => { bridgeOk = r.ok; renderMods(); }).catch(() => { bridgeOk = false; renderMods(); });
+  renderMods();
+}
+
+function announceMod(it) {
+  if (!showsOnOverlay(it)) return;
+  const r = rarity(it.rarity), g = group(it.group), now = Date.now();
+  const mod = {
+    id: uid(), cardId: it.id, text: it.text, kind: it.kind, kindLabel: KIND_LABEL[it.kind],
+    group: g ? g.name : '', rarity: r.name, color: r.color, target: TARGET_LABEL[it.target],
+    durationSec: it.durationSec || 0, startedAt: now, endsAt: it.durationSec ? now + it.durationSec * 1000 : null
+  };
+  modsAdopt(modsReadLocal());
+  // та же карточка выпала ещё раз — таймер начинается заново
+  modsPublish([mod, ...modsBox.mods.filter(m => m.cardId !== it.id)]);
+}
+function modsRemove(id) { modsPublish(modsBox.mods.filter(m => m.id !== id)); }
+function modsAddTime(id, sec) {
+  const now = Date.now();
+  modsPublish(modsBox.mods.map(m => {
+    if (m.id !== id || !m.endsAt) return m;
+    // если время уже вышло — считаем от «сейчас», полоска на оверлее начнётся заново
+    if (m.endsAt <= now) return { ...m, startedAt: now, endsAt: now + sec * 1000, durationSec: sec };
+    return { ...m, endsAt: m.endsAt + sec * 1000, durationSec: m.durationSec + sec };
+  }));
+}
+
+function modsListHTML() {
+  const now = Date.now();
+  const live = modsBox.mods.filter(m => !m.endsAt || m.endsAt > now - 6000);
+  const rows = live.map(m => {
+    const left = m.endsAt ? m.endsAt - now : null;
+    const time = left == null ? 'без таймера' : left > 0 ? fmtClock(left) : 'вышло';
+    return `<div class="mods-row" style="--rc:${esc(m.color)}">
+      <div class="mods-row__text">${esc(m.text)}</div>
+      <span class="mods-row__time${left != null && left <= 0 ? ' is-over' : ''}" data-mod-time="${esc(m.id)}">${time}</span>
+      ${m.endsAt ? `<button class="btn btn--sm" data-mod-plus="${esc(m.id)}" title="Добавить минуту">+1 мин</button>` : ''}
+      <button class="btn btn--sm btn--danger" data-mod-del="${esc(m.id)}" title="Снять с оверлея">✕</button>
+    </div>`;
+  }).join('');
+  const bridge = bridgeOk === true ? 'мост на связи'
+    : bridgeOk === false ? 'мост не отвечает — оверлей увидит награду, только если он в этом же браузере' : '';
+  return `<div class="mods-list">${rows || '<div class="mods-empty">Сейчас на оверлее пусто.</div>'}</div>
+    <div class="mods-foot"><span>${bridge}</span>${live.length ? '<button class="btn btn--sm" data-mod-clear="1">Снять все</button>' : ''}</div>`;
+}
+function modsLiveCount() {
+  const now = Date.now();
+  return modsBox.mods.filter(m => !m.endsAt || m.endsAt > now).length;
+}
+function renderMods() {
+  const badge = document.getElementById('s-mods-n');
+  if (badge) badge.textContent = modsLiveCount() || '';
+  for (const box of [document.getElementById('mods-panel'), document.getElementById('s-mods-pop')]) {
+    if (box && !box.hidden) box.innerHTML = modsListHTML();
+  }
+}
+// раз в секунду обновляем только цифры, без перерисовки кнопок
+setInterval(() => {
+  const now = Date.now();
+  let gone = false;
+  document.querySelectorAll('[data-mod-time]').forEach(el => {
+    const m = modsBox.mods.find(x => x.id === el.dataset.modTime);
+    if (!m || !m.endsAt) return;
+    const left = m.endsAt - now;
+    if (left < -6000) gone = true;
+    el.textContent = left > 0 ? fmtClock(left) : 'вышло';
+    el.classList.toggle('is-over', left <= 0);
+  });
+  const badge = document.getElementById('s-mods-n');
+  if (badge) badge.textContent = modsLiveCount() || '';
+  if (gone) renderMods();
+}, 1000);
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-mod-del],[data-mod-plus],[data-mod-clear]');
+  if (!t) return;
+  e.stopImmediatePropagation(); // список сейчас перерисуется — не даём закрыть всплывашку
+  if (t.dataset.modDel) modsRemove(t.dataset.modDel);
+  else if (t.dataset.modPlus) modsAddTime(t.dataset.modPlus, 60);
+  else modsPublish([]);
+});
+window.addEventListener('storage', e => {
+  if (e.key === MODS_KEY && e.newValue) { try { modsAdopt(JSON.parse(e.newValue)); } catch (_) {} }
+});
+if (modsChan) modsChan.onmessage = e => modsAdopt(e.data);
 
 // ============================================================
 // СТРИМ-РЕЖИМ: ЛОТОТРОН (cards.html?stream, для OBS — ?stream&bg=transparent)
@@ -2564,6 +2800,7 @@ function streamSpin() {
     if (g) parts.push(g.name);
     if (!g || normText(g.name) !== normText(KIND_LABEL[result.item.kind])) parts.push(KIND_LABEL[result.item.kind]);
     parts.push(TARGET_LABEL[result.item.target], 'шанс ' + fmtPct(itemChance(result.item)));
+    if (result.item.durationSec) parts.push('таймер ' + fmtDur(result.item.durationSec));
     paper.style.setProperty('--rcd', shade(r.color, -0.35));
     $('#p-rarity').textContent = r.name;
     $('#p-text').textContent = result.item.text;
@@ -2577,6 +2814,7 @@ function streamSpin() {
     state.history.unshift({ id: result.item.id, text: result.item.text, rarity: result.rarityId, at: Date.now(), chance: itemChance(result.item) });
     state.history = state.history.slice(0, 100);
     save();
+    announceMod(result.item);
     renderStreamHistory();
     spinning = false;
     $('#s-spin').disabled = false;
@@ -2713,6 +2951,16 @@ function startStream() {
   lottoInit();
 
   $('#s-spin').onclick = streamSpin;
+  $('#s-mods').onclick = e => {
+    e.stopPropagation();
+    const pop = $('#s-mods-pop');
+    pop.hidden = !pop.hidden;
+    if (!pop.hidden) modsPull();
+  };
+  document.addEventListener('click', e => {
+    const pop = $('#s-mods-pop');
+    if (!pop.hidden && !pop.contains(e.target) && !e.target.closest('#s-mods')) pop.hidden = true;
+  });
   $('#capsule').onclick = capsuleTap;
   $('#paper').onclick = dismissResult;
   $('#s-full').onclick = () => {
@@ -3017,6 +3265,7 @@ async function tryEnter() {
 function startApp() {
   $('#gate').style.display = 'none';
   if (!load()) { state = seedState(); save(); }
+  modsPull();
   if (IS_STREAM) { startStream(); return; }
   $('#app').style.display = 'block';
   wireApp();
