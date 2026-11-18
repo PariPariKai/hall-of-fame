@@ -107,7 +107,7 @@
     padding: 9px 12px; border-radius: 10px; background: rgba(var(--ember-rgb),0.1); border: 1px solid rgba(var(--ember-rgb),0.3);
   }
   .xcard__warn .ic { flex: 0 0 auto; margin-top: 1px; color: #ffb27a; }
-  /* «Развернуть»: полное пояснение прячется под кнопку, чтобы карточка оставалась короткой */
+  /* Кнопки-раскрывашки: "Что внутри" и полное пояснение прячутся, чтобы карточка оставалась короткой */
   .xcard__story summary {
     cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 7px; user-select: none;
     padding: 7px 13px; border-radius: 999px; font-size: 13px; color: var(--gold);
@@ -124,6 +124,9 @@
     font-size: 13.5px; line-height: 1.6; color: rgba(255,255,255,0.75);
   }
   .xcard__story-title { font-size: 15px; font-weight: 700; line-height: 1.35; color: #fff; }
+  .xcard__more { display: flex; flex-wrap: wrap; gap: 8px; }
+  .xcard__more details[open] { flex-basis: 100%; }
+  .xcard__story-text .xcard__list { color: rgba(255,255,255,0.78); }
   .xcard__actions { margin-top: auto; padding-top: 4px; display: flex; flex-wrap: wrap; gap: 8px; }
   .xcard__actions .btn { padding: 10px 16px; font-size: 13.5px; }
   .btn--main { background: linear-gradient(120deg, #F09F58, var(--gold)); color: #1a1208; border-color: transparent; box-shadow: 0 6px 18px rgba(var(--ember-rgb),0.25); }
@@ -295,19 +298,26 @@ function buildCard(x) {
   if (meta.childNodes.length) head.append(meta);
   body.append(head);
   if (x.summary) body.append(el('p', 'xcard__summary', x.summary));
-  if (list(x.features).length) body.append(buildList('Что внутри', list(x.features), 'check'));
   if (list(x.requirements).length) body.append(buildList('Что нужно', list(x.requirements), 'chevron'));
-  if (list(x.story).length) {
+  // "Что внутри" и "Как это сделано" спрятаны под кнопки в один ряд, чтобы карточка не вываливала всё сразу
+  const more = el('div', 'xcard__more');
+  const toggle = (label, content) => {
     const d = el('details', 'xcard__story');
-    const label = x.storyLabel || 'Как это сделано', labelText = document.createTextNode(label);
-    const sum = el('summary'); sum.append(iconEl('chevron'), labelText);
-    d.addEventListener('toggle', () => { labelText.data = d.open ? 'Свернуть' : label; });
-    const text = el('div', 'xcard__story-text');
-    if (x.storyTitle) text.append(el('h3', 'xcard__story-title', x.storyTitle));
-    list(x.story).forEach(p => text.append(el('p', '', p)));
-    d.append(sum, text);
-    body.append(d);
+    const sum = el('summary'); sum.append(iconEl('chevron'), label);
+    const box = el('div', 'xcard__story-text'); box.append(...content);
+    d.append(sum, box); more.append(d);
+  };
+  if (list(x.features).length) {
+    const ul = el('ul', 'xcard__list');
+    list(x.features).forEach(t => { const li = el('li'); li.append(iconEl('check'), el('span', '', t)); ul.append(li); });
+    toggle('Что внутри', [ul]);
   }
+  if (list(x.story).length) {
+    const parts = x.storyTitle ? [el('h3', 'xcard__story-title', x.storyTitle)] : [];
+    list(x.story).forEach(t => parts.push(el('p', '', t)));
+    toggle(x.storyLabel || 'Как это сделано', parts);
+  }
+  if (more.childNodes.length) body.append(more);
 
   if (x.warning) { const w = el('div', 'xcard__warn'); w.append(iconEl('alert'), el('span', '', x.warning)); body.append(w); }
 
