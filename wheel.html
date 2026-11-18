@@ -494,7 +494,7 @@
     }
   </style>
   <script src="site.js?v=17"></script>
-<script src="github.js?v=2"></script>
+<script src="github.js?v=3"></script>
 
   <!-- Экран входа -->
   <div class="gate" id="gate">
@@ -828,7 +828,7 @@ function unlock() {
 // Токен из админки — входим без кода
 siteGit.hasAccess().then(async ok => {
   if (!ok || dataLoaded) return;
-  if (!(await loadData())) return;
+  if (!(await loadData())) { siteGit.showGate(); return; }
   dataLoaded = true;
   unlock();
 });

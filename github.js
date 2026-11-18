@@ -73,25 +73,40 @@
   const user = () => fetch('https://api.github.com/user', { headers: { Authorization: 'Bearer ' + token } })
     .then(r => r.ok ? r.json() : {}).catch(() => ({}));
 
+  // Пока проверяется сохранённый токен, экран кода спрятан — иначе он мелькает при каждом открытии.
+  // Не подошёл (или GitHub молчит дольше 8 секунд) — показываем.
+  const showGate = () => document.documentElement.classList.remove('gh-wait');
+  if (token) {
+    const st = document.createElement('style');
+    st.textContent = '.gh-wait .gate{visibility:hidden!important}';
+    document.head.appendChild(st);
+    document.documentElement.classList.add('gh-wait');
+    setTimeout(showGate, 8000);
+  }
+
   // Вход на страницы стримера (рулетки, карточки): токен с правом записи в репозиторий открывает их сам.
   // candidate — токен, вставленный в поле кода (так его подключают в OBS и на другом компьютере); подошёл — запоминаем.
   async function hasAccess(candidate) {
     const t = candidate || token;
+    const ok = await canPush(t);
+    if (ok && candidate) setToken(candidate);
+    if (!candidate && !ok) showGate();
+    return ok;
+  }
+  async function canPush(t) {
     if (!t) return false;
     try {
       const res = await fetch('https://api.github.com/repos/' + REPO, { cache: 'no-store',
         headers: { Authorization: 'Bearer ' + t, Accept: 'application/vnd.github+json' } });
       if (!res.ok) return false;
       const repo = await res.json();
-      if (!(repo.permissions && repo.permissions.push)) return false;
-      if (candidate) setToken(candidate);
-      return true;
+      return !!(repo.permissions && repo.permissions.push);
     } catch (e) { return false; }
   }
   const isToken = s => /^(github_pat_|ghp_)/.test(s);
 
   window.siteGit = {
     get token() { return token; },
-    setToken, readFile, writeFile, user, hasAccess, isToken,
+    setToken, readFile, writeFile, user, hasAccess, isToken, showGate,
   };
 })();
