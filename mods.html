@@ -136,6 +136,27 @@
     transition: width .5s linear;
   }
 
+  /* другие награды с таймером (наказания, хаос...) — серая плашка, скромнее модификатора */
+  .mod--plain {
+    --rc: #A3AAB8;
+    --rc-a: rgba(163, 170, 184, .45);
+    --rc-b: rgba(163, 170, 184, .1);
+    padding: 1.6rem 1.5rem 1.15rem;
+    background: linear-gradient(180deg, rgba(34, 37, 45, .92), rgba(20, 22, 28, .94));
+    box-shadow: 0 .6rem 2rem rgba(0, 0, 0, .55), inset 0 0 1.2rem rgba(255, 255, 255, .03);
+  }
+  .mod--plain .mod__shine { display: none; }
+  .mod--plain .mod__c { box-shadow: none; width: .6rem; height: .6rem; }
+  .mod--plain .mod__c--tl, .mod--plain .mod__c--tr { top: -.32rem; }
+  .mod--plain .mod__c--bl, .mod--plain .mod__c--br { bottom: -.32rem; }
+  .mod--plain .mod__c--tl, .mod--plain .mod__c--bl { left: -.32rem; }
+  .mod--plain .mod__c--tr, .mod--plain .mod__c--br { right: -.32rem; }
+  .mod--plain .mod__plate { background: linear-gradient(180deg, #2a2e38, #1a1d24); text-shadow: none; box-shadow: none; }
+  .mod--plain .mod__text { font-size: 1.3rem; }
+  .mod--plain .mod__time { font-size: 1.45rem; text-shadow: none; }
+  .mod--plain .mod__bar i { background: linear-gradient(90deg, #5d6370, #B9C0CD); box-shadow: none; }
+  .mod--plain .mod__foot b { color: var(--rar, var(--rc)); }
+
   .mod.is-hurry .mod__time { color: #FF8A80; animation: hurry 1s ease-in-out infinite; }
   .mod.is-hurry .mod__bar i { background: linear-gradient(90deg, #8a2a25, #FF6B5E); box-shadow: 0 0 .8rem #FF6B5E; }
   .mod.is-over { animation: over-flash .9s ease-out both; }
@@ -161,7 +182,7 @@
 <div class="stack stack--tr" id="stack"></div>
 
 <script>
-const VERSION = '2026-11-18.2';
+const VERSION = '2026-11-18.3';
 const qs = new URLSearchParams(location.search);
 const MODS_KEY = 'ppk_mods_v1';
 // ?bridge=http://127.0.0.1:3799 — другой порт моста, ?bridge=0 — без моста
@@ -242,8 +263,14 @@ function render() {
     if (v && v.leaving) { v.el.remove(); shown.delete(m.id); v = null; }
     if (!v) {
       const el = document.createElement('div');
-      el.className = 'mod';
-      el.style.setProperty('--rc', safeColor(m.color));
+      // рамка цвета редкости — только у модификатора; остальные с таймером — серые
+      if (m.kind === 'mod') {
+        el.className = 'mod';
+        el.style.setProperty('--rc', safeColor(m.color));
+      } else {
+        el.className = 'mod mod--plain';
+        el.style.setProperty('--rar', safeColor(m.color));
+      }
       el.innerHTML = cardHTML(m);
       v = { el, mod: m };
       shown.set(m.id, v);
@@ -304,7 +331,7 @@ function demo() {
         rarity: 'Необычная', color: '#5FD68A', target: 'Стример', durationSec: 180, startedAt: now - 40000, endsAt: now + 140000 },
       { id: 'd2', kind: 'mod', text: '«Моё почтение» с приподниманием цилиндра после каждой фразы', kindLabel: 'Модификатор',
         rarity: 'Необычная', color: '#5FD68A', target: 'Стример', durationSec: 0, startedAt: now, endsAt: null },
-      { id: 'd3', text: 'Запрещённая кнопка на 5 минут', kindLabel: 'Наказание', group: 'Игры',
+      { id: 'd3', kind: 'punish', text: 'Запрещённая кнопка на 5 минут', kindLabel: 'Наказание', group: 'Игры',
         rarity: 'Редкая', color: '#56A8F5', target: 'Стример', durationSec: 300, startedAt: now - 288000, endsAt: now + 12000 }
     ]
   });
