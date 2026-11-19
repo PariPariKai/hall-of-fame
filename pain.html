@@ -94,13 +94,186 @@
   }
 
 .site-nav__links{overflow:visible}.site-nav__dd:last-child>.site-nav__menu{left:auto;right:0;transform:translateY(-6px)}.site-nav__dd:last-child:hover>.site-nav__menu,.site-nav__dd:last-child.is-open>.site-nav__menu,.site-nav__dd:last-child:focus-within>.site-nav__menu{transform:none}.site-nav__menu{min-width:270px}.site-nav__links .site-nav__menu a{white-space:normal}
-main{max-width:1200px;margin:auto}header{text-align:center;padding:8px 0 24px}.eyebrow{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#ef9eae}h1{font-size:clamp(28px,4vw,46px);letter-spacing:-1px;margin:10px 0;font-weight:800}h1 span{color:var(--gold, #FAC775)}p{line-height:1.6;color:#aeb6cd}.price{display:inline-block;border:1px solid rgba(var(--gold-rgb, 250, 199, 117), 0.31);border-radius:30px;padding:6px 16px;color:var(--gold, #FAC775);font-size:13px;margin-top:8px}.arena{display:grid;grid-template-columns:1.45fr 1fr;gap:24px;align-items:center}.panel{background:#141929b3;border:1px solid #ffffff12;border-radius:24px;padding:24px;text-align:center;min-width:0}.step{display:flex;align-items:center;justify-content:center;gap:10px;color:#d4d8e5;font-size:14px}.step b{display:grid;place-items:center;width:28px;height:28px;border:1px solid #ef9eae70;border-radius:50%;color:#ef9eae}.wheel-box{position:relative;margin:20px auto;width:min(100%,510px);aspect-ratio:1;filter:drop-shadow(0 10px 30px #0005)}.small .wheel-box{width:min(100%,300px)}canvas{display:block;width:100%;height:100%;border-radius:50%;border:7px solid #34354a;box-shadow:0 0 0 1px #ffffff25}.pointer{position:absolute;z-index:2;top:-8px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:30px solid var(--gold, #FAC775);filter:drop-shadow(0 3px 3px #0008)}.hub{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:grid;place-items:center;width:17%;aspect-ratio:1;border-radius:50%;background:#171d30;border:3px solid #ffffff35;color:var(--gold, #FAC775);font-size:clamp(18px,3vw,32px);font-weight:800;box-shadow:0 4px 15px #0008}.wheel-result{font-size:22px;font-weight:700;min-height:32px;margin:10px 0;overflow-wrap:anywhere}.hint{font-size:13px;color:#aeb6cd;min-height:20px}.controls{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin:24px 0 12px}button,.text-link{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.4}.primary{background:linear-gradient(120deg,#f3ad79,var(--gold, #FAC775));color:#261b27;font-weight:800;border:0;border-radius:12px;padding:16px 28px;min-width:245px;font-size:16px}.secondary,.text-link{border:1px solid #ffffff24;border-radius:10px;background:#ffffff06;color:#d9dceb;padding:10px 16px;text-decoration:none;font-size:13px}button:not(:disabled):hover,.text-link:hover{filter:brightness(1.15)}:focus-visible{outline:3px solid var(--gold, #FAC775);outline-offset:4px}.toolbar{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin:20px 0}.status{text-align:center;font-size:13px;color:#aeb6cd;min-height:22px;line-height:1.6}.status.error{color:#ffacba}.verdict{text-align:center;border:1px solid rgba(var(--gold-rgb, 250, 199, 117), 0.38);border-radius:18px;padding:24px;background:rgba(var(--gold-rgb, 250, 199, 117), 0.03);margin:22px 0}.verdict-label{font-size:11px;letter-spacing:3px;color:var(--gold, #FAC775)}.verdict h2{font-size:clamp(22px,3vw,34px);margin:10px 0;overflow-wrap:anywhere}.verdict p{margin:0}.details{margin-top:24px;border-top:1px solid #ffffff14;padding-top:20px}summary{cursor:pointer;color:#b9c0d3;font-size:14px}.entries{display:flex;flex-wrap:wrap;gap:8px;padding:0;list-style:none}.entries li{padding:6px 12px;background:#ffffff07;border:1px solid #ffffff12;border-radius:8px;font-size:13px;overflow-wrap:anywhere;max-width:100%}.history{padding-left:22px;color:#b9c0d3;font-size:14px;line-height:1.8;overflow-wrap:anywhere}[hidden]{display:none!important}.stream-mode .site-nav,.stream-mode header p,.stream-mode .toolbar,.stream-mode .details{display:none}.stream-mode main{max-width:1100px}.stream-mode header{padding:12px 0}.stream-mode h1{font-size:30px}.stream-mode .wheel-box{width:min(100%,36vh,420px)}.stream-mode .small .wheel-box{width:min(100%,26vh,270px)}
-@media(max-width:720px){.site-nav__dd:last-child>.site-nav__menu{left:16px;right:16px}body{padding:0 12px 24px}.site-nav{margin:0 -12px 20px}.arena{grid-template-columns:1fr;gap:16px}.panel{padding:18px}.small .wheel-box{width:230px}.wheel-box{max-width:390px}h1{letter-spacing:-.5px}.primary{width:100%}.controls{gap:8px}.site-nav__links{flex-wrap:wrap}.site-nav__menu{min-width:0}.stream-mode .arena{grid-template-columns:1fr}}
+
+  /* ========== СТРАНИЦА: бордовая «кожа» рулетки боли ==========
+     Раскладка как у рулетки заказов (picker.html), колесо — wheel-kit.
+     Переменные на .pain перебивают и золото, и зимний лёд из wheel-kit.css. */
+  /* html body.pain-page — сильнее зимней темы (winter.css подключается позже), снег и лёд остаются */
+  html body.pain-page {
+    background-color: #0b0810;
+    background-image:
+      radial-gradient(ellipse at 18% 12%, rgba(150, 28, 52, 0.30), transparent 55%),
+      radial-gradient(ellipse at 82% 88%, rgba(110, 18, 40, 0.28), transparent 55%),
+      radial-gradient(ellipse at 50% 45%, rgba(70, 10, 25, 0.35), transparent 70%);
+    background-attachment: fixed;
+  }
+  .pain, .pain-skin {
+    --pain: #E8697C; --pain-rgb: 232, 105, 124;
+    --gold: #E8697C; --gold-rgb: 232, 105, 124; /* wheel-kit красит кнопки и ступицу через --gold */
+    --ember-rgb: 225, 50, 80;
+    --rim-1: #ffe3e7; --rim-2: #c9455d; --rim-3: #4a0b19; --rim-4: #f4a9b6;
+    --ptr-1: #ffe8ec; --ptr-2: #e0607a; --ptr-3: #7a1428;
+    --gem-1: #ffffff; --gem-2: #ff6b85; --gem-3: #8f0f2a;
+  }
+  main.pain { max-width: 1400px; margin: 0 auto; overflow-x: clip;
+  }
+
+  .header { text-align: center; margin-bottom: 22px; }
+  .title {
+    display: inline-flex; align-items: center; gap: 14px; margin: 0 0 6px;
+    font-size: 30px; font-weight: 500; letter-spacing: 4px; text-transform: uppercase;
+    color: var(--pain); text-shadow: 0 0 22px rgba(var(--ember-rgb), 0.55);
+  }
+  .title .ic { width: 26px; height: 26px; }
+  .subtitle { font-size: 13px; color: rgba(255,255,255,0.5); letter-spacing: 1px; margin: 0; }
+  .subtitle b { color: #fff; font-weight: 600; }
+
+  .layout { display: grid; grid-template-columns: 280px minmax(0, 1fr) 320px; gap: 18px; align-items: start; }
+
+  /* ---------- панели ---------- */
+  .pain .panel {
+    background: linear-gradient(180deg, rgba(48, 16, 28, 0.62), rgba(22, 12, 22, 0.72));
+    border: 1px solid rgba(var(--pain-rgb), 0.16);
+    border-radius: 14px; padding: 13px; margin-bottom: 13px;
+    backdrop-filter: blur(10px);
+  }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
+  .panel-title { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--pain); font-weight: 600; }
+  .panel-count { font-size: 11px; color: rgba(255,255,255,0.4); }
+  .mini-btn {
+    background: transparent; border: 1px solid rgba(255,255,255,0.14); color: rgba(255,255,255,0.5);
+    border-radius: 6px; padding: 3px 8px; font-family: inherit; font-size: 10px; cursor: pointer;
+    text-decoration: none; white-space: nowrap; transition: all .15s ease;
+  }
+  .mini-btn:hover { color: var(--pain); border-color: var(--pain); }
+
+  .pool-search {
+    width: 100%; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
+    padding: 7px 10px; color: #fff; font-family: inherit; font-size: 12.5px; outline: none; margin-bottom: 8px;
+  }
+  .pool-search:focus { border-color: var(--pain); }
+  .pool-list { list-style: none; margin: 0; padding: 0; max-height: 420px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(var(--pain-rgb),0.4) transparent; }
+  .pool-list li {
+    display: flex; align-items: center; gap: 9px; padding: 5px 6px; border-radius: 8px;
+    font-size: 13px; color: rgba(255,255,255,0.82); min-width: 0;
+  }
+  .pool-list li:hover { background: rgba(255,255,255,0.04); }
+  .pool-ava {
+    flex: 0 0 auto; width: 26px; height: 26px; border-radius: 6px; background: rgba(255,255,255,0.08) center / cover no-repeat;
+    display: grid; place-items: center; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.7);
+  }
+  .pool-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pool-empty { font-size: 12.5px; color: rgba(255,255,255,0.4); padding: 6px; }
+
+  .rules { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 12.5px; color: rgba(255,255,255,0.72); line-height: 1.45; }
+  .rules code {
+    display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 6px; font-family: inherit; font-weight: 700;
+    color: var(--pain); background: rgba(var(--pain-rgb), 0.12); border: 1px solid rgba(var(--pain-rgb), 0.3);
+  }
+  .rules b { color: #fff; }
+
+  /* ---------- колёса ---------- */
+  .wheel-col { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+  .wheel-area { position: relative; width: 100%; max-width: 600px; aspect-ratio: 1 / 1; margin: 10px 0 24px; }
+  .wheel-area--small { max-width: 260px; margin: 6px auto 14px; }
+  .wheel-svg { width: 100%; height: 100%; display: block; }
+  .wheel-pointer {
+    position: absolute; right: -10px; top: 50%; transform: translateY(-50%); z-index: 10;
+    transform-origin: 88% 50%; transition: transform 0.05s ease-out;
+  }
+  .wheel-area--small .wheel-pointer { width: 40px; height: 35px; right: -6px; }
+  .wheel-pointer svg { width: 100%; height: 100%; }
+  @keyframes pointerTick { 0% { transform: translateY(-50%) rotate(0deg); } 30% { transform: translateY(-50%) rotate(-16deg); } 100% { transform: translateY(-50%) rotate(0deg); } }
+  .wheel-pointer.ticking { animation: pointerTick 0.18s ease-out; }
+  .wheel-empty {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    text-align: center; padding: 40px; color: rgba(255,255,255,0.4); font-size: 14px; line-height: 1.6; z-index: 2;
+  }
+  .result { text-align: center; font-size: 15px; font-weight: 700; min-height: 22px; color: #fff; }
+  .result--wait { color: rgba(255,255,255,0.45); font-weight: 500; }
+
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 12px; }
+  .ctrl-btn { padding: 11px 20px; font-family: inherit; font-size: 12.5px; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; }
+  .ctrl-btn .ic { width: 15px; height: 15px; }
+  .spin-btn { padding: 15px 38px; font-size: 14.5px; letter-spacing: 2px; }
+  .spin-btn .ic { width: 18px; height: 18px; }
+  .duration-label { font-size: 11px; color: rgba(255,255,255,0.35); padding: 0 6px; }
+  .duration-btn {
+    background: transparent; border: none; color: rgba(255,255,255,0.55);
+    padding: 6px 11px; font-family: inherit; font-size: 12.5px; border-radius: 6px; cursor: pointer; transition: all 0.15s ease;
+  }
+  .status { text-align: center; font-size: 13px; color: rgba(255,255,255,0.5); min-height: 20px; margin: 0 0 6px; }
+  .status.error { color: #f2a0a0; }
+
+  /* ---------- история ---------- */
+  .log-entry { font-size: 14px; line-height: 1.35; padding: 8px 9px; color: rgba(255,255,255,0.72); border-bottom: 1px solid rgba(255,255,255,0.06); border-radius: 8px; }
+  .log-entry:last-child { border-bottom: none; }
+  .log-entry.latest { font-size: 17px; font-weight: 700; color: #fff; }
+  .log-time { display: block; font-size: 12px; font-weight: 500; color: var(--pain); margin-top: 2px; }
+  .log-empty { font-size: 12.5px; color: rgba(255,255,255,0.4); padding: 4px 6px; }
+
+  /* ---------- приговор ---------- */
+  .winner-overlay {
+    position: fixed; inset: 0; background: rgba(10, 3, 8, 0.9); display: none;
+    align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(10px);
+  }
+  .winner-overlay.show { display: flex; animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+  .winner-card {
+    text-align: center; padding: 42px 58px; border-radius: 20px; position: relative;
+    max-width: min(92vw, 680px); max-height: 92vh; overflow-y: auto;
+    background: linear-gradient(180deg, #2a0f1a 0%, #12070d 100%);
+    border: 3px solid var(--pain);
+    box-shadow: 0 0 60px rgba(var(--ember-rgb), 0.4), 0 0 140px rgba(var(--ember-rgb), 0.18);
+    animation: winIn 0.55s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes winIn { from { transform: scale(0.6) rotateY(150deg); opacity: 0 } to { transform: scale(1) rotateY(0); opacity: 1 } }
+  .winner-label { font-size: 14px; letter-spacing: 6px; color: var(--pain); text-transform: uppercase; margin-bottom: 18px; text-shadow: 0 0 18px rgba(var(--ember-rgb), 0.6); }
+  .winner-cover {
+    display: none; max-height: 260px; max-width: 180px; border-radius: 12px; margin: 0 auto 18px;
+    border: 2px solid rgba(var(--pain-rgb), 0.45); box-shadow: 0 14px 36px rgba(0,0,0,0.6);
+  }
+  .winner-cover.show { display: block; }
+  .winner-title { font-size: 36px; font-weight: 600; line-height: 1.2; margin-bottom: 14px; color: #fff; text-shadow: 0 0 20px rgba(var(--ember-rgb), 0.5); overflow-wrap: anywhere; }
+  .winner-time {
+    display: inline-flex; align-items: center; gap: 8px; padding: 7px 18px; border-radius: 999px;
+    font-size: 18px; font-weight: 700; color: #fff; background: rgba(var(--pain-rgb), 0.18); border: 1px solid rgba(var(--pain-rgb), 0.45);
+  }
+  .winner-quip { margin: 16px auto 0; max-width: 460px; font-size: 14px; font-style: italic; color: #ffd6dc; line-height: 1.5; }
+  .winner-close { margin-top: 24px; }
+
+  .confetti-container { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 199; display: none; }
+  .confetti-container.active { display: block; }
+  .confetti-piece { position: absolute; width: 12px; height: 12px; top: -20px; opacity: 0; animation: confettiFall linear forwards; }
+  @keyframes confettiFall { 0% { opacity: 1; transform: translateY(0) rotate(0deg); } 100% { opacity: 1; transform: translateY(110vh) rotate(720deg) translateX(var(--drift, 0px)); } }
+
+  /* ---------- режим для стрима: только колёса и кнопка ---------- */
+  .stream-mode .site-nav, .stream-mode .side-left, .stream-mode .header .subtitle, .stream-mode .tools { display: none !important; }
+  .stream-mode .layout { grid-template-columns: minmax(0, 1fr) 300px; }
+
+  [hidden] { display: none !important; }
+
+  @media (max-width: 1150px) {
+    .layout { grid-template-columns: 250px minmax(0, 1fr); }
+    .side-right { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 13px; align-items: start; }
+  }
+  @media (max-width: 780px) {
+    body { padding: 0 12px 40px; }
+    .layout, .stream-mode .layout { grid-template-columns: 1fr; }
+    .side-right { grid-template-columns: 1fr; }
+    .side-left { order: 3; }
+    .title { font-size: 22px; letter-spacing: 2px; }
+    .winner-card { padding: 30px 20px; }
+    .winner-title { font-size: 26px; }
+    .pool-list { max-height: 240px; }
+  }
 .gate{margin-top:12vh;text-align:center}.gate-title{font-size:14px;letter-spacing:4px;color:#ffffff80;text-transform:uppercase;margin-bottom:18px}.gate-input{background:transparent;border:1px solid #ffffff33;border-radius:8px;padding:12px 16px;color:#fff;font-family:inherit;font-size:18px;width:260px;max-width:100%;outline:none;text-align:center;letter-spacing:4px}.gate-input:focus{border-color:rgba(var(--gold-rgb, 250, 199, 117), 0.5)}.gate-error{color:#f09595;font-size:13px;margin-top:12px;min-height:18px}.gate-hint{color:#ffffff73;font-size:12px;margin-top:10px}.gate-button{margin-top:14px;background:transparent;border:1px solid rgba(var(--gold-rgb, 250, 199, 117), 0.4);color:var(--gold, #FAC775);padding:10px 24px;font-family:inherit;font-size:13px;letter-spacing:2px;text-transform:uppercase;border-radius:8px;cursor:pointer}.gate-button:hover{background:rgba(var(--gold-rgb, 250, 199, 117), 0.1)}
 </style>
-</head><body>
+<link rel="stylesheet" href="wheel-kit.css?v=1">
+</head><body class="pain-page">
 <script src="site.js?v=17"></script>
 <script src="github.js?v=3"></script>
+<script src="wheel-kit.js?v=3"></script>
 <div class="gate" id="gate">
   <div class="gate-title">Введите код</div>
   <form id="gate-form">
@@ -110,19 +283,87 @@ main{max-width:1200px;margin:auto}header{text-align:center;padding:8px 0 24px}.e
     <button type="submit" class="gate-button">Войти</button>
   </form>
 </div>
-<main id="pain-main" hidden>
-<header><div class="eyebrow">Зрители заказывают · стример страдает</div><h1>Боль стримера <span>за шекели</span></h1><p>Одна рулетка решает, во что играть. Вторая — сколько терпеть.</p><div class="price">1 000 ₽ · один запуск двух рулеток</div></header>
-<div class="arena">
-<section class="panel"><div class="step"><b>1</b> Во что играем</div><div class="wheel-box"><div class="pointer"></div><canvas id="gameWheel" width="1000" height="1000" role="img" aria-label="Рулетка игр"></canvas><div class="hub" aria-hidden="true">₪</div></div><div class="wheel-result" id="gameResult">Судьба ещё не решена</div><div class="hint" id="gameHint">Загружаем игры…</div></section>
-<section class="panel small"><div class="step"><b>2</b> Сколько терпим</div><div class="wheel-box"><div class="pointer"></div><canvas id="timeWheel" width="700" height="700" role="img" aria-label="Рулетка времени"></canvas><div class="hub" aria-hidden="true">◷</div></div><div class="wheel-result" id="timeResult">Сначала выберем игру</div><div class="hint" id="timeHint">Вторая рулетка запустится следом</div></section>
-</div>
-<div class="controls"><button class="primary" id="spin" disabled>Крутить за 1 000 ₽</button><button class="secondary" id="stream" aria-pressed="false">Режим для стрима</button><button class="secondary" id="sound" aria-pressed="true">Звук: вкл.</button></div>
-<div class="status" id="status" role="status" aria-live="polite">Загружаем список…</div>
-<section class="verdict" id="verdict" hidden aria-live="polite"><div class="verdict-label">ШЕКЕЛИ ПРИНЯТЫ · СУДЬБА РЕШЕНА</div><h2 id="verdictText"></h2><p>Зрители довольны. Стример держится.</p></section>
-<div class="toolbar"><button class="secondary" id="refresh">Обновить список</button><a class="text-link" href="admin.html#pain" target="_blank" rel="noopener">Править список ↗</a></div>
-<details class="details"><summary id="listSummary">Игры и правила</summary><p>Игры добавляются в админке сайта, вкладка «Боль». Время задано на сайте: 1, 4 или 8 часов с равными шансами. Пустые строки и повторы пропускаются. У каждого уникального варианта равный шанс; игры остаются в рулетке после выпадения.</p><ul class="entries" id="entries"></ul><p>После правки в админке подожди минуту и нажми «Обновить список». Донат проверяется стримером, запуск — вручную.</p></details>
-<details class="details" id="historySection" hidden><summary>История этой сессии</summary><ol class="history" id="history"></ol></details>
+
+<main class="pain" id="pain-main" hidden>
+  <div class="header">
+    <h1 class="title"><svg class="ic" aria-hidden="true"><use href="#i-flame"></use></svg>Боль стримера<svg class="ic" aria-hidden="true"><use href="#i-flame"></use></svg></h1>
+    <p class="subtitle" id="top-stats">Загрузка…</p>
+  </div>
+
+  <div class="layout">
+    <!-- ===== Пул и правила ===== -->
+    <div class="side-left wheel-side">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Пул игр</div>
+          <a class="mini-btn" href="admin.html#pain" target="_blank" rel="noopener">править</a>
+        </div>
+        <input type="search" class="pool-search" id="pool-search" placeholder="Поиск игры…" aria-label="Поиск игры">
+        <ul class="pool-list" id="pool-list"></ul>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">Как наказать</div></div>
+        <ul class="rules">
+          <li><code>#боль</code> донаты копятся, <b>1 000 ₽</b> — крутка игры и времени</li>
+          <li><code>#время</code> каждые <b>250 ₽</b> — добавка времени к игре</li>
+          <li>Время: <b>1, 4 или 8 часов</b>, шансы равные. Игры остаются в пуле после выпадения.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ===== Колесо игр ===== -->
+    <div class="wheel-col">
+      <div class="wheel-area" id="game-area">
+        <svg class="wheel-svg" id="game-wheel" viewBox="0 0 100 100" role="img" aria-label="Колесо игр"></svg>
+        <div class="wheel-pointer"></div>
+        <div class="wheel-empty" id="game-empty" hidden></div>
+      </div>
+      <p class="status" id="status" role="status" aria-live="polite">Загружаем список…</p>
+      <div class="controls">
+        <button class="ctrl-btn primary spin-btn" id="spin" disabled><svg class="ic" aria-hidden="true"><use href="#i-dice"></use></svg>Крутить боль</button>
+      </div>
+      <div class="controls tools">
+        <div class="duration-group sound-group" title="Звук щелчка стрелки (нажми — услышишь)">
+          <span class="duration-label"><svg class="ic" aria-hidden="true"><use href="#i-volume"></use></svg></span>
+          <button class="duration-btn" data-sound="wood">Дерево</button>
+          <button class="duration-btn" data-sound="soft">Мягкий</button>
+          <button class="duration-btn" data-sound="ball">Шарик</button>
+          <button class="duration-btn" data-sound="off">Выкл</button>
+        </div>
+        <button class="ctrl-btn" id="stream" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-maximize"></use></svg>Для стрима</button>
+        <button class="ctrl-btn" id="refresh"><svg class="ic" aria-hidden="true"><use href="#i-refresh"></use></svg>Обновить</button>
+      </div>
+    </div>
+
+    <!-- ===== Время и история ===== -->
+    <div class="side-right wheel-side">
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">Сколько терпим</div></div>
+        <div class="wheel-area wheel-area--small" id="time-area">
+          <svg class="wheel-svg" id="time-wheel" viewBox="0 0 100 100" role="img" aria-label="Колесо времени"></svg>
+          <div class="wheel-pointer"></div>
+        </div>
+        <div class="result result--wait" id="time-result">Сначала выберем игру</div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">История</div></div>
+        <div id="log"><div class="log-empty">Пока ничего не крутили</div></div>
+      </div>
+    </div>
+  </div>
 </main>
+
+<div class="confetti-container" id="confetti"></div>
+<div class="winner-overlay pain-skin" id="winner-overlay" role="dialog" aria-modal="true" aria-labelledby="winner-title">
+  <div class="winner-card">
+    <div class="winner-label">✦ Боль назначена ✦</div>
+    <img class="winner-cover" id="winner-cover" alt="" referrerpolicy="no-referrer">
+    <div class="winner-title" id="winner-title"></div>
+    <div class="winner-time" id="winner-time"></div>
+    <p class="winner-quip" id="winner-quip" hidden></p>
+    <div><button class="ctrl-btn primary winner-close" id="winner-close">Принято</button></div>
+  </div>
+</div>
 <script>
   // Вход по коду — тот же SHA-256 хэш, что у остальных рулеток «Для стримера» (сам код в файле не хранится).
   (function () {
@@ -149,5 +390,5 @@ main{max-width:1200px;margin:auto}header{text-align:center;padding:8px 0 24px}.e
     input.focus();
   })();
 </script>
-<script src="pain.js"></script>
+<script src="pain.js?v=4"></script>
 </body></html>
