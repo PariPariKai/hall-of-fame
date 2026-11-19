@@ -197,6 +197,30 @@
   .ctrl-btn .ic { width: 15px; height: 15px; }
   .spin-btn { padding: 15px 38px; font-size: 14.5px; letter-spacing: 2px; }
   .spin-btn .ic { width: 18px; height: 18px; }
+  /* Кнопка наливается «кровью» по мере накопления #боль: --blood — высота жидкости вместе с волной */
+  .ctrl-btn.spin-btn { position: relative; overflow: hidden; isolation: isolate; color: #ffe3e7; text-shadow: 0 1px 3px rgba(0,0,0,0.7); --blood: 0px; }
+  .ctrl-btn.spin-btn::before {
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0; z-index: -1; height: var(--blood);
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='8' viewBox='0 0 40 8'%3E%3Cpath d='M0 4 Q10 0 20 4 T40 4 V8 H0Z' fill='%23b3132e'/%3E%3C/svg%3E") repeat-x 0 0 / 40px 8px,
+      linear-gradient(180deg, #b3132e, #5a0613) no-repeat 0 7px / 100% calc(100% - 7px);
+    transition: height .9s cubic-bezier(.3,.9,.3,1);
+    animation: bloodWave 2.4s linear infinite;
+  }
+  @keyframes bloodWave { to { background-position: 40px 0, 0 7px; } }
+  .ctrl-btn.spin-btn:disabled { opacity: 1; color: rgba(255,227,231,0.6); }
+  .ctrl-btn.spin-btn:disabled .ic { opacity: .6; }
+  .ctrl-btn.spin-btn.is-paid { color: #fff; border-color: #ff8fa0; animation: bloodPulse 1.6s ease-in-out infinite; }
+  @keyframes bloodPulse { 0%, 100% { box-shadow: 0 0 14px rgba(225,40,70,0.35); } 50% { box-shadow: 0 0 30px rgba(225,40,70,0.75); } }
+  @media (prefers-reduced-motion: reduce) { .ctrl-btn.spin-btn::before, .ctrl-btn.spin-btn.is-paid { animation: none; } }
+
+  /* Выход из режима для стрима: невидим, пока мышь не в правом верхнем углу (в OBS его не видно) */
+  .stream-corner { display: none; }
+  .stream-mode .stream-corner {
+    display: flex; justify-content: flex-end; align-items: flex-start; position: fixed; top: 0; right: 0; z-index: 150;
+    width: 240px; height: 100px; padding: 12px; opacity: 0; transition: opacity .2s ease;
+  }
+  .stream-mode .stream-corner:hover, .stream-mode .stream-corner:focus-within { opacity: 1; }
   .duration-label { font-size: 11px; color: rgba(255,255,255,0.35); padding: 0 6px; }
   .duration-btn {
     background: transparent; border: none; color: rgba(255,255,255,0.55);
@@ -307,6 +331,7 @@
 </div>
 
 <main class="pain" id="pain-main" hidden>
+  <div class="stream-corner"><button class="ctrl-btn" id="stream-exit" title="Или нажми Esc"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg>Обычный режим</button></div>
   <div class="header">
     <h1 class="title"><svg class="ic" aria-hidden="true"><use href="#i-flame"></use></svg>Боль стримера<svg class="ic" aria-hidden="true"><use href="#i-flame"></use></svg></h1>
     <p class="subtitle" id="top-stats">Загрузка…</p>
@@ -347,7 +372,7 @@
       </div>
       <p class="status" id="status" role="status" aria-live="polite">Загружаем список…</p>
       <div class="controls">
-        <button class="ctrl-btn primary spin-btn" id="spin" disabled><svg class="ic" aria-hidden="true"><use href="#i-dice"></use></svg>Крутить боль</button>
+        <button class="ctrl-btn primary spin-btn" id="spin" disabled><svg class="ic" aria-hidden="true"><use href="#i-dice"></use></svg><span id="spin-label">Крутить боль</span></button>
       </div>
       <div class="controls tools">
         <div class="duration-group sound-group" title="Звук щелчка стрелки (нажми — услышишь)">
@@ -430,5 +455,5 @@
     input.focus();
   })();
 </script>
-<script src="pain.js?v=7"></script>
+<script src="pain.js?v=8"></script>
 </body></html>

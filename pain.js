@@ -261,7 +261,13 @@ function controls() {
   const bridge = live.online === true && live.s;
   const block = bridge ? spinBlock() : '';
   $('spin').disabled = busy || loading || !games.length || !!block;
-  $('spin').lastChild.textContent = bridge && live.s.painCredits > 1 ? `Крутить боль · ${live.s.painCredits}` : 'Крутить боль';
+  $('spin-label').textContent = bridge && live.s.painCredits > 1 ? `Крутить боль · ${live.s.painCredits}` : 'Крутить боль';
+  // Кровь в кнопке: доля копилки #боль, оплаченная крутка — до краёв
+  const paid = !!(bridge && live.s.painCredits > 0);
+  const fill = bridge ? (paid ? 100 : Math.min(100, live.s.painBank / live.s.config.painPrice * 100)) : 0;
+  $('spin').style.setProperty('--blood', fill > 0 ? `calc(${fill.toFixed(1)}% + 7px)` : '0px');
+  $('spin').classList.toggle('is-paid', paid);
+  $('spin').title = bridge ? `Копилка ${live.s.config.painTag}: ${rub(live.s.painBank)} из ${rub(live.s.config.painPrice)}` : '';
   $('refresh').disabled = busy || loading;
   if (busy || loading || live.playing) return;
   if (!games.length) return;
@@ -464,7 +470,11 @@ $('stream').addEventListener('click', () => setStream(!stream()));
 $('pool-search').addEventListener('input', renderPool);
 $('winner-close').addEventListener('click', hideWinner);
 $('winner-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) hideWinner(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') hideWinner(); });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if ($('winner-overlay').classList.contains('show')) hideWinner(); else if (stream()) setStream(false);
+});
+$('stream-exit').addEventListener('click', () => setStream(false));
 if (new URLSearchParams(location.search).has('stream')) setStream(true);
 
 timeWheel.render(MINUTES.map(formatTime));
