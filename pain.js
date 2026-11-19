@@ -155,8 +155,12 @@ function makeWheel({svg, area, colors, hubIcon, maxFont = 2.7}) {
     group.style.transition = `transform ${seconds}s cubic-bezier(0.17, 0.67, 0.2, 1)`;
     group.style.transform = `rotate(${to}deg)`;
     const bounds = w.segments.map(s => normalizeAngle(s.start)), t0 = performance.now();
-    let last = normalizeAngle(POINTER_ANGLE - from);
+    let last = normalizeAngle(POINTER_ANGLE - from), done = false;
+    // Кадры могут не идти (вкладка за другим окном) — тогда крутку завершает таймер
+    const finish = () => { if (done) return; done = true; w.spinning = false; w.live = to; orient(to); fx.burst(); resolve(); };
+    setTimeout(finish, seconds * 1000 + 250);
     (function frame(now) {
+      if (done) return;
       const t = Math.min((now - t0) / 1000 / seconds, 1);
       const rot = from + (to - from) * easeOut(t);
       w.live = rot; orient(rot);
@@ -166,8 +170,7 @@ function makeWheel({svg, area, colors, hubIcon, maxFont = 2.7}) {
         WheelKit.sound.click();
       }
       last = onWheel;
-      if (t < 1) requestAnimationFrame(frame);
-      else { w.spinning = false; w.live = to; fx.burst(); resolve(); }
+      if (t < 1) requestAnimationFrame(frame); else finish();
     })(t0);
   });
   return w;
@@ -177,13 +180,93 @@ const gameWheel = makeWheel({svg: $('game-wheel'), area: $('game-area'), colors:
 const timeWheel = makeWheel({svg: $('time-wheel'), area: $('time-area'), colors: TIME_COLORS, hubIcon: 'hourglass', maxFont: 4.2});
 WheelKit.sound.bind(document.querySelector('.sound-group'));
 
+
+// ============================================================
+// Мост донатов (pain-bridge на ПК стримера): копилки, крутки, таймер.
+// Есть мост — крутить можно только оплаченную крутку, результат пишется в мост, таймер ставит он.
+// Добавку времени по #время мост крутит сам, пока идёт таймер, — страница её показывает.
+// Нет моста (страница открыта не на ПК стримера) — крутка как раньше, без учёта донатов.
+// ============================================================
+const BRIDGE = (() => {
+  const b = new URLSearchParams(location.search).get('bridge') || '';
+  return /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(b) ? b : 'http://127.0.0.1:3777';
+})();
+const live = {s: null, at: 0, skew: 0, online: null, lastSpin: null, queue: [], playing: false};
+const timerLeft = () => { const s = live.s; return s ? Math.max(0, s.timer.remainingMs - (s.timer.running ? performance.now() - live.at : 0)) : 0; };
+const revealing = () => !!(live.s && live.s.spin && Date.now() - live.skew < live.s.spin.revealAt);
+const clock = ms => { const t = Math.ceil(ms / 1000); return `${Math.floor(t / 3600)}:${String(Math.floor(t / 60) % 60).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`; };
+const rub = n => Number(n).toLocaleString('ru-RU', {maximumFractionDigits: 2}) + ' ₽';
+function bridgePost(path) {
+  return fetch(BRIDGE + path, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-Pain-Bridge': '1'}, body: '{}'})
+    .then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Мост ответил ' + r.status); return j; },
+      () => { throw new Error('Мост не отвечает.'); });
+}
+function listenBridge() {
+  let es;
+  try { es = new EventSource(BRIDGE + '/api/events'); } catch (_) { live.online = false; paintBridge(); return; }
+  es.onerror = () => { live.online = false; paintBridge(); controls(); };
+  es.onmessage = e => {
+    const s = JSON.parse(e.data), first = !live.s;
+    live.s = s; live.at = performance.now(); live.skew = Date.now() - s.now; live.online = true;
+    const spin = s.spin;
+    if (spin && spin.id !== live.lastSpin) {
+      live.lastSpin = spin.id;
+      // Свежую крутку проигрываем; ту, что была до открытия страницы, — только показываем итог
+      if (revealing()) { live.queue.push(spin); playQueue(); }
+      else if (first) showSpinStatic(spin);
+    }
+    paintBridge(); renderLog(); controls();
+  };
+}
+
+function paintBridge() {
+  const on = live.online === true && !!live.s;
+  $('bank-panel').hidden = !on;
+  $('bridge-dot').classList.toggle('on', on);
+  if (!on) { $('timer-box').hidden = true; return; }
+  const s = live.s, c = s.config;
+  $('pain-sum').textContent = `${rub(s.painBank)} / ${rub(c.painPrice)}`;
+  $('time-sum').textContent = `${rub(s.timeBank)} / ${rub(c.timePrice)}`;
+  $('pain-bar').style.width = Math.min(100, s.painBank / c.painPrice * 100) + '%';
+  $('time-bar').style.width = Math.min(100, s.timeBank / c.timePrice * 100) + '%';
+  $('pain-cred').innerHTML = `Оплачено круток: <b class="${s.painCredits ? 'on' : ''}">${s.painCredits}</b>`;
+  $('time-cred').innerHTML = `Оплачено добавок: <b class="${s.timeCredits ? 'on' : ''}">${s.timeCredits}</b>` +
+    (s.timeCredits && !s.timer.running ? ' · прокрутятся после «Старт»' : '');
+  tickTimer();
+}
+function tickTimer() {
+  const s = live.s;
+  if (!live.online || !s) return;
+  const box = $('timer-box'), hide = revealing() || live.playing, left = timerLeft();
+  box.hidden = !s.game;
+  box.classList.toggle('running', s.timer.running && !hide);
+  $('timer-game').textContent = hide ? 'Крутим…' : s.game ? s.game.name : '';
+  $('timer-clock').textContent = hide ? '?:??:??' : clock(left);
+  $('timer-state').textContent = hide ? '' : s.timer.running ? 'идёт' : left > 0 ? 'на паузе' : 'отыграно';
+}
+setInterval(() => { tickTimer(); if (live.online) { controls(); renderLog(); } }, 500);
+
 // ============================================================
 // Список, пул, история
 // ============================================================
 function status(message, error = false) { $('status').textContent = message; $('status').classList.toggle('error', error); }
+function spinBlock() {   // почему нельзя крутить через мост (пусто — можно)
+  const s = live.s;
+  if (revealing() || live.playing) return 'Рулетка крутится…';
+  if (!s.painCredits) return `Ждём ${rub(s.config.painPrice)} с меткой ${s.config.painTag}: копилка ${rub(s.painBank)}`;
+  if (timerLeft() > 0) return `Крутка оплачена, но сначала доиграй «${s.game ? s.game.name : ''}»`;
+  return '';
+}
 function controls() {
-  $('spin').disabled = busy || loading || !games.length;
+  const bridge = live.online === true && live.s;
+  const block = bridge ? spinBlock() : '';
+  $('spin').disabled = busy || loading || !games.length || !!block;
+  $('spin').lastChild.textContent = bridge && live.s.painCredits > 1 ? `Крутить боль · ${live.s.painCredits}` : 'Крутить боль';
   $('refresh').disabled = busy || loading;
+  if (busy || loading || live.playing) return;
+  if (!games.length) return;
+  if (bridge) status(block || 'Крутка оплачена! Жми, когда все смотрят.');
+  else if (live.online === false) status('Мост донатов не отвечает — крутка без учёта донатов.');
 }
 function renderPool() {
   const q = key($('pool-search').value);
@@ -193,6 +276,7 @@ function renderPool() {
     return `<li title="${esc(g.name)}"><span class="pool-ava"${cover ? ` style="background-image:url('${esc(cover)}')"` : ''}>${cover ? '' : esc([...g.name][0].toUpperCase())}</span><span class="pool-name">${esc(g.name)}</span></li>`;
   }).join('') || `<li class="pool-empty">${games.length ? 'Такой игры в пуле нет' : 'Пул пока пуст'}</li>`;
 }
+const formatCount = n => { const t = n % 100, d = n % 10; return t >= 11 && t <= 14 ? 'игр' : d === 1 ? 'игра' : d >= 2 && d <= 4 ? 'игры' : 'игр'; };
 function renderGames() {
   gameWheel.render(games.map(g => g.name));
   $('game-empty').hidden = !!games.length;
@@ -202,11 +286,13 @@ function renderGames() {
     : 'Пул пока пуст';
   renderPool();
 }
-const formatCount = n => { const t = n % 100, d = n % 10; return t >= 11 && t <= 14 ? 'игр' : d === 1 ? 'игра' : d >= 2 && d <= 4 ? 'игры' : 'игр'; };
-const history = [];
+const localHistory = [];
 function renderLog() {
-  $('log').innerHTML = history.length ? history.map((h, i) =>
-    `<div class="log-entry${i === 0 ? ' latest' : ''}">${esc(h.game)}<span class="log-time">${esc(h.time)}</span></div>`).join('')
+  // С мостом — его история (крутки, добавки, «отыграно»), без моста — крутки этой вкладки
+  // Пока колесо крутится, свежую запись моста не показываем — иначе спойлер
+  const hideFrom = (revealing() || live.playing) && live.s && live.s.spin ? live.s.spin.at : Infinity;
+  const list = live.online && live.s ? live.s.history.filter(h => h.at < hideFrom).slice(0, 15).map(h => h.text) : localHistory.map(h => `${h.game} — ${h.time}`);
+  $('log').innerHTML = list.length ? list.map((t, i) => `<div class="log-entry${i === 0 ? ' latest' : ''}">${esc(t)}</div>`).join('')
     : '<div class="log-empty">Пока ничего не крутили</div>';
 }
 
@@ -223,7 +309,8 @@ async function load() {
     games = readGames(await res.text());
     meta = (m && m.games) || {};
     renderGames();
-    status(games.length ? 'Всё готово. После доната запусти рулетки одной кнопкой.' : 'Пул пока пуст. Добавь игры в админке и нажми «Обновить».', !games.length);
+    if (!games.length) status('Пул пока пуст. Добавь игры в админке и нажми «Обновить».', true);
+    else status('Всё готово.');
   } catch (error) {
     // Не даём крутить по старому списку, если обновить не вышло
     games = []; renderGames();
@@ -232,48 +319,105 @@ async function load() {
 }
 
 // ============================================================
-// Крутка: сначала игра, потом время — и приговор
+// Крутка
 // ============================================================
-async function spin() {
+const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const pause = ms => new Promise(r => setTimeout(r, ms));
+async function onSpinClick() {
   if (busy || loading || !games.length) return;
-  busy = true; controls();
   WheelKit.sound.ensure();
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const g = randomIndex(games.length), t = randomIndex(MINUTES.length);
+  if (live.online && live.s) {
+    // Решает мост: он вычтет крутку и поставит таймер, а анимацию пришлёт всем открытым страницам
+    busy = true; controls();
+    try { await bridgePost('/api/spin/game'); }
+    catch (error) { status(error.message, true); }
+    finally { busy = false; controls(); }
+    return;
+  }
+  // Без моста: крутим здесь же
+  busy = true; controls();
   try {
-    $('time-result').textContent = 'Сначала выберем игру'; $('time-result').classList.add('result--wait');
-    status('Выбираем твою боль…');
-    await gameWheel.spin(g, reduced ? 0.4 : 6);
-    status(`Игра: ${games[g].name}. Теперь — сколько терпеть.`);
-    await new Promise(r => setTimeout(r, reduced ? 100 : 900));
-    $('time-result').textContent = 'Сколько терпеть?..';
-    await timeWheel.spin(t, reduced ? 0.4 : 4.5);
-    $('time-result').textContent = formatTime(MINUTES[t]); $('time-result').classList.remove('result--wait');
-    history.unshift({game: games[g].name, time: formatTime(MINUTES[t])});
-    if (history.length > 30) history.length = 30;
+    const g = randomIndex(games.length), t = randomIndex(MINUTES.length);
+    await playGame(games, g, MINUTES, t);
+    localHistory.unshift({game: games[g].name, time: formatTime(MINUTES[t])});
+    if (localHistory.length > 30) localHistory.length = 30;
     renderLog();
+    showWinner({label: 'Боль назначена', game: games[g], title: games[g].name, chip: formatTime(MINUTES[t])});
     status('Приговор вынесен. Следующий донат — новая крутка.');
-    showWinner(games[g], MINUTES[t]);
   } catch (error) {
-    console.error(error);
-    status('Не удалось докрутить. Попробуй ещё раз.', true);
+    console.error(error); status('Не удалось докрутить. Попробуй ещё раз.', true);
   } finally { busy = false; controls(); }
 }
+// Игра, пауза, время. list — игры колеса (объекты с name), options — минуты колеса времени
+async function playGame(list, g, options, t) {
+  $('time-result').textContent = 'Сначала выберем игру'; $('time-result').classList.add('result--wait');
+  status('Выбираем твою боль…');
+  await gameWheel.spin(g, reduced() ? 0.4 : 6);
+  status(`Игра: ${list[g].name}. Теперь — сколько терпеть.`);
+  await pause(reduced() ? 100 : 900);
+  timeWheel.render(options.map(formatTime));
+  $('time-result').textContent = 'Сколько терпеть?..';
+  await timeWheel.spin(t, reduced() ? 0.4 : 4.5);
+  $('time-result').textContent = formatTime(options[t]); $('time-result').classList.remove('result--wait');
+}
+// Крутки из моста проигрываем по очереди
+async function playQueue() {
+  if (live.playing) return;
+  live.playing = true; controls();
+  try {
+    while (live.queue.length) {
+      const spin = live.queue.shift();
+      hideWinner();
+      if (spin.kind === 'game') {
+        // Колесо — ровно тот список, по которому крутил мост
+        if (spin.games.join('\n') !== games.map(g => g.name).join('\n')) {
+          games = spin.games.map(name => games.find(g => key(g.name) === key(name)) || {name, quip: '', override: ''});
+          renderGames();
+        }
+        await playGame(games, spin.gameIndex, spin.options, spin.timeIndex);
+        status('Приговор вынесен. Таймер ждёт «Старт».');
+        showWinner({label: 'Боль назначена', game: games[spin.gameIndex], title: spin.game, chip: formatTime(spin.minutes)}, stream() ? 15000 : 0);
+      } else {
+        timeWheel.render(spin.options.map(formatTime));
+        status(`Додеп! Докидываем время к «${spin.game}»`);
+        $('time-result').textContent = 'Сколько докинуть?..'; $('time-result').classList.add('result--wait');
+        await timeWheel.spin(spin.timeIndex, reduced() ? 0.4 : 4.5);
+        $('time-result').textContent = '+' + formatTime(spin.minutes); $('time-result').classList.remove('result--wait');
+        const game = games.find(g => key(g.name) === key(spin.game)) || {name: spin.game, quip: '', override: ''};
+        showWinner({label: spin.auto ? 'Додеп по донату' : 'Додеп принят', game, title: '+' + formatTime(spin.minutes), chip: `к «${spin.game}»`, noQuip: true}, 7000);
+        status('Время добавлено.');
+      }
+    }
+  } catch (error) { console.error(error); }
+  finally { live.playing = false; controls(); renderLog(); }
+}
+// Открыли страницу после крутки — ставим колёса на последний итог без анимации
+function showSpinStatic(spin) {
+  timeWheel.render(spin.options.map(formatTime));
+  timeWheel.rotation = normalizeAngle(POINTER_ANGLE - timeWheel.segments[spin.timeIndex].mid);
+  timeWheel.render(spin.options.map(formatTime));
+  $('time-result').textContent = (spin.kind === 'time' ? '+' : '') + formatTime(spin.minutes);
+  $('time-result').classList.remove('result--wait');
+}
 
-function showWinner(game, minutes) {
-  $('winner-title').textContent = game.name;
-  $('winner-time').textContent = formatTime(minutes);
-  const quip = quipOf(game);
+let winnerTimer = 0;
+function showWinner({label, game, title, chip, noQuip}, autoHideMs = 0) {
+  $('winner-label').textContent = `✦ ${label} ✦`;
+  $('winner-title').textContent = title;
+  $('winner-time').textContent = chip;
+  const quip = noQuip ? '' : quipOf(game);
   $('winner-quip').hidden = !quip; $('winner-quip').textContent = quip;
   const cover = $('winner-cover'), url = coverOf(game);
   cover.classList.remove('show'); cover.removeAttribute('src');
   if (url) { cover.onload = () => cover.classList.add('show'); cover.onerror = () => cover.classList.remove('show'); cover.src = url; }
   $('winner-overlay').classList.add('show');
-  $('winner-close').focus();
+  if (!stream()) $('winner-close').focus();
   confetti();
   fanfare();
+  clearTimeout(winnerTimer);
+  if (autoHideMs) winnerTimer = setTimeout(hideWinner, autoHideMs);
 }
-function hideWinner() { $('winner-overlay').classList.remove('show'); }
+function hideWinner() { clearTimeout(winnerTimer); $('winner-overlay').classList.remove('show'); }
 function confetti() {
   const box = $('confetti');
   box.innerHTML = ''; box.classList.add('active');
@@ -308,14 +452,15 @@ function fanfare() {
   });
 }
 
+const stream = () => document.body.classList.contains('stream-mode');
 function setStream(on) {
   document.body.classList.toggle('stream-mode', on);
   $('stream').setAttribute('aria-pressed', String(on));
   $('stream').lastChild.textContent = on ? 'Обычный режим' : 'Для стрима';
 }
-$('spin').addEventListener('click', spin);
+$('spin').addEventListener('click', onSpinClick);
 $('refresh').addEventListener('click', load);
-$('stream').addEventListener('click', () => setStream(!document.body.classList.contains('stream-mode')));
+$('stream').addEventListener('click', () => setStream(!stream()));
 $('pool-search').addEventListener('input', renderPool);
 $('winner-close').addEventListener('click', hideWinner);
 $('winner-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) hideWinner(); });
@@ -325,6 +470,7 @@ if (new URLSearchParams(location.search).has('stream')) setStream(true);
 timeWheel.render(MINUTES.map(formatTime));
 renderLog();
 load();
+listenBridge();
 // Подписи меряются по факту отрисовки — когда страницу открыли после входа по коду, перемеряем
-new MutationObserver(() => { if (!$('pain-main').hidden) { renderGames(); timeWheel.render(MINUTES.map(formatTime)); } })
+new MutationObserver(() => { if (!$('pain-main').hidden) { renderGames(); timeWheel.render(timeWheel.segments.map(s => s.label)); } })
   .observe($('pain-main'), {attributes: true, attributeFilter: ['hidden']});

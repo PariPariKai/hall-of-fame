@@ -825,14 +825,14 @@ function painPanel(sec, box) {
           <div class="pl-head"><span>Копилка боли <b class="pl-tag" id="pl-ptag">#боль</b></span><b id="pl-psum"></b></div>
           <div class="pl-bar"><i id="pl-pbar"></i></div>
           <div class="pl-credits" id="pl-pcred"></div>
-          <button type="button" class="btn btn--solid pl-spin" id="pl-spin-game">${icon('dice')}Крутить игру</button>
+          <a class="btn btn--solid pl-spin" id="pl-spin-game" href="pain.html" target="_blank" rel="noopener">${icon('dice')}Открыть рулетку${icon('external')}</a>
           <p class="pl-why" id="pl-why-game"></p>
         </div>
         <div class="pl-card">
           <div class="pl-head"><span>Копилка времени <b class="pl-tag" id="pl-ttag">#время</b></span><b id="pl-tsum"></b></div>
           <div class="pl-bar pl-bar--time"><i id="pl-tbar"></i></div>
           <div class="pl-credits" id="pl-tcred"></div>
-          <button type="button" class="btn btn--solid pl-spin" id="pl-spin-time">${icon('hourglass')}Крутить время</button>
+          <button type="button" class="btn btn--solid pl-spin" id="pl-spin-time">${icon('hourglass')}Докрутить вручную</button>
           <p class="pl-why" id="pl-why-time"></p>
         </div>
         <div class="pl-card pl-timer" id="pl-timer">
@@ -871,7 +871,7 @@ function painPanel(sec, box) {
         <summary>Последние донаты с метками</summary>
         <div class="pl-dons" id="pl-dons"></div>
       </details>
-      <p class="hint-inline pl-foot">Крутки анимируются на <a href="${PAIN_BRIDGE}/pain?stream" target="_blank" rel="noopener">рулетке для OBS</a>,
+      <p class="hint-inline pl-foot">Крутки анимируются на <a href="pain.html" target="_blank" rel="noopener">рулетке</a> (в OBS — <code>${PAIN_BRIDGE.replace('http://', '')}/pain?stream</code>),
         «Боль подана» и таймер — на <a href="${PAIN_BRIDGE}/widget" target="_blank" rel="noopener">виджете</a>.
         Ключ DonationAlerts — на <a href="${PAIN_BRIDGE}/admin" target="_blank" rel="noopener">странице моста</a>, на сайт он не попадает.</p>
     </div>`;
@@ -880,7 +880,6 @@ function painPanel(sec, box) {
       try { await fn(); if (ok) toast(ok); } catch (err) { toast(err.message, true); }
       finally { btn.disabled = false; painPaint(); }
     };
-    $('pl-spin-game').addEventListener('click', e => busy(e.currentTarget, () => painApi('/api/spin/game'), 'Крутим! Смотри рулетку в OBS'));
     $('pl-spin-time').addEventListener('click', e => busy(e.currentTarget, () => painApi('/api/spin/time'), 'Крутим время!'));
     $('pl-toggle').addEventListener('click', e => busy(e.currentTarget, () => painApi('/api/timer', { action: painLive.s && painLive.s.timer.running ? 'pause' : 'start' })));
     $('pl-reset').addEventListener('click', e => {
@@ -912,7 +911,7 @@ function painPaint() {
     $('pl-status').innerHTML = painLive.online === false
       ? `<span class="pl-dot is-error"></span><span>Мост не отвечает. Он должен работать на этом ПК (<a href="${PAIN_BRIDGE}/admin" target="_blank" rel="noopener">${PAIN_BRIDGE.replace('http://', '')}</a>) — запусти его и обнови страницу.</span>`
       : '<span>Подключаюсь к мосту...</span>';
-    ['pl-spin-game', 'pl-spin-time', 'pl-toggle', 'pl-reset', 'pl-set', 'pl-e-save', 'pl-d-add'].forEach(id => { $(id).disabled = true; });
+    ['pl-spin-time', 'pl-toggle', 'pl-reset', 'pl-set', 'pl-e-save', 'pl-d-add'].forEach(id => { $(id).disabled = true; });
     if (!s) return;
   } else {
     const dot = st => st === 'online' ? 'is-ok' : st === 'connecting' ? 'is-warn' : st === 'error' ? 'is-error' : '';
@@ -934,10 +933,11 @@ function painPaint() {
   $('pl-tbar').style.width = Math.min(100, s.timeBank / c.timePrice * 100) + '%';
   $('pl-pcred').innerHTML = `Оплачено круток игры: <b class="${s.painCredits ? 'is-on' : ''}">${s.painCredits}</b>`;
   $('pl-tcred').innerHTML = `Оплачено круток времени: <b class="${s.timeCredits ? 'is-on' : ''}">${s.timeCredits}</b>`;
-  const whyGame = hidden ? 'Рулетка ещё крутится' : !s.painCredits ? 'Нет оплаченных круток' : left > 0 ? `Сначала доиграй «${s.game ? s.game.name : ''}»` : '';
-  const whyTime = hidden ? 'Рулетка ещё крутится' : !s.timeCredits ? 'Нет оплаченных круток' : !s.game ? 'Ещё не выпало ни одной игры' : '';
-  $('pl-spin-game').disabled = !live || !!whyGame; $('pl-why-game').textContent = whyGame;
-  $('pl-spin-time').disabled = !live || !!whyTime; $('pl-why-time').textContent = whyTime;
+  const whyGame = hidden ? 'Рулетка ещё крутится' : !s.painCredits ? 'Нет оплаченных круток' : left > 0 ? `Сначала доиграй «${s.game ? s.game.name : ''}»` : 'Крутка оплачена — открой рулетку и крути при всех';
+  const whyTime = hidden ? 'Рулетка ещё крутится' : !s.timeCredits ? 'Крутится сама, пока идёт таймер' : !s.game ? 'Ещё не выпало ни одной игры'
+    : s.timer.running ? 'Сейчас прокрутится сама' : 'Таймер на паузе: прокрутится после «Старт» (или вручную)';
+  $('pl-why-game').textContent = whyGame;
+  $('pl-spin-time').disabled = !live || hidden || !s.timeCredits || !s.game || s.timer.running; $('pl-why-time').textContent = whyTime;
   $('pl-timer').classList.toggle('is-running', s.timer.running && !hidden);
   $('pl-game').textContent = hidden ? 'Крутим...' : s.game ? s.game.name : 'Игра ещё не выбрана';
   $('pl-clock').textContent = hidden ? '?:??:??' : painClock(left);

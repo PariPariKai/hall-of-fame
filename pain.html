@@ -205,6 +205,28 @@
   .status { text-align: center; font-size: 13px; color: rgba(255,255,255,0.5); min-height: 20px; margin: 0 0 6px; }
   .status.error { color: #f2a0a0; }
 
+  /* ---------- копилки и таймер (данные из моста донатов) ---------- */
+  .bridge-dot { width: 8px; height: 8px; border-radius: 50%; background: #6b7280; }
+  .bridge-dot.on { background: #97C459; box-shadow: 0 0 8px rgba(151,196,89,0.6); }
+  .bank + .bank { margin-top: 12px; }
+  .bank-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; }
+  .bank-top code {
+    padding: 1px 7px; border-radius: 6px; font-family: inherit; font-weight: 700;
+    color: var(--pain); background: rgba(var(--pain-rgb), 0.12); border: 1px solid rgba(var(--pain-rgb), 0.3);
+  }
+  .bank-top b { font-variant-numeric: tabular-nums; color: #fff; }
+  .bank-bar { height: 8px; border-radius: 6px; background: rgba(255,255,255,0.07); overflow: hidden; margin: 7px 0 5px; }
+  .bank-bar i { display: block; height: 100%; width: 0; border-radius: 6px; background: linear-gradient(90deg, #8f1b33, var(--pain)); transition: width .6s ease; }
+  .bank-bar--time i { background: linear-gradient(90deg, #6e1828, #f2a3b0); }
+  .bank-cred { font-size: 12px; color: rgba(255,255,255,0.5); }
+  .bank-cred b { color: #fff; } .bank-cred b.on { color: var(--pain); }
+  .timer { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08); text-align: center; }
+  .timer-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--pain); }
+  .timer-game { font-size: 13px; font-weight: 600; margin-top: 4px; overflow-wrap: anywhere; }
+  .timer-clock { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.15; }
+  .timer.running .timer-clock { color: #ff9fae; text-shadow: 0 0 14px rgba(var(--ember-rgb), 0.5); }
+  .timer-state { font-size: 11.5px; color: rgba(255,255,255,0.45); min-height: 15px; }
+
   /* ---------- история ---------- */
   .log-entry { font-size: 14px; line-height: 1.35; padding: 8px 9px; color: rgba(255,255,255,0.72); border-bottom: 1px solid rgba(255,255,255,0.06); border-radius: 8px; }
   .log-entry:last-child { border-bottom: none; }
@@ -293,6 +315,11 @@
   <div class="layout">
     <!-- ===== Пул и правила ===== -->
     <div class="side-left wheel-side">
+      <div class="panel" id="bank-panel" hidden>
+        <div class="panel-head"><div class="panel-title">Копилки</div><span class="bridge-dot" id="bridge-dot" title="Мост донатов"></span></div>
+        <div class="bank"><div class="bank-top"><code>#боль</code><b id="pain-sum"></b></div><div class="bank-bar"><i id="pain-bar"></i></div><div class="bank-cred" id="pain-cred"></div></div>
+        <div class="bank"><div class="bank-top"><code>#время</code><b id="time-sum"></b></div><div class="bank-bar bank-bar--time"><i id="time-bar"></i></div><div class="bank-cred" id="time-cred"></div></div>
+      </div>
       <div class="panel">
         <div class="panel-head">
           <div class="panel-title">Пул игр</div>
@@ -344,6 +371,12 @@
           <div class="wheel-pointer"></div>
         </div>
         <div class="result result--wait" id="time-result">Сначала выберем игру</div>
+        <div class="timer" id="timer-box" hidden>
+          <div class="timer-label">Осталось терпеть</div>
+          <div class="timer-game" id="timer-game"></div>
+          <div class="timer-clock" id="timer-clock">0:00:00</div>
+          <div class="timer-state" id="timer-state"></div>
+        </div>
       </div>
       <div class="panel">
         <div class="panel-head"><div class="panel-title">История</div></div>
@@ -356,7 +389,7 @@
 <div class="confetti-container" id="confetti"></div>
 <div class="winner-overlay pain-skin" id="winner-overlay" role="dialog" aria-modal="true" aria-labelledby="winner-title">
   <div class="winner-card">
-    <div class="winner-label">✦ Боль назначена ✦</div>
+    <div class="winner-label" id="winner-label">✦ Боль назначена ✦</div>
     <img class="winner-cover" id="winner-cover" alt="" referrerpolicy="no-referrer">
     <div class="winner-title" id="winner-title"></div>
     <div class="winner-time" id="winner-time"></div>
@@ -378,17 +411,24 @@
       const entered = input.value.trim();
       if (!entered) { error.textContent = 'Введите код'; return; }
       const ok = siteGit.isToken(entered) ? await siteGit.hasAccess(entered) : await sha256Hex(entered) === ACCESS_HASH;
-      if (ok) unlock();
+      if (ok) {
+        // Верный код запоминаем в этом браузере (OBS не будет спрашивать на каждом запуске)
+        if (!siteGit.isToken(entered)) { try { localStorage.setItem('pain.code', ACCESS_HASH); } catch (_) {} }
+        unlock();
+      }
       else { error.textContent = siteGit.isToken(entered) ? 'GitHub не принял токен' : 'Неверный код'; input.value = ''; input.focus(); }
     });
     function unlock() {
       document.getElementById('gate').hidden = true;
       document.getElementById('pain-main').hidden = false;
     }
-    // Токен из админки — входим без кода
-    siteGit.hasAccess().then(ok => { if (ok) unlock(); });
+    // Код уже вводили в этом браузере или есть токен из админки — входим без кода
+    let remembered = false;
+    try { remembered = localStorage.getItem('pain.code') === ACCESS_HASH; } catch (_) {}
+    if (remembered) unlock();
+    else siteGit.hasAccess().then(ok => { if (ok) unlock(); });
     input.focus();
   })();
 </script>
-<script src="pain.js?v=4"></script>
+<script src="pain.js?v=7"></script>
 </body></html>
