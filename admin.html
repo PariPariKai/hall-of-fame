@@ -138,6 +138,43 @@
   .tickets-pill--silver { background: rgba(192,192,208,0.15); color: #D8D8E0; }
   .tickets-pill--gold { background: rgba(var(--gold-rgb),0.15); color: var(--gold); }
 
+  /* «Боль»: пульт моста */
+  .pl-status { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 14px; font-size: 13px; color: var(--muted); }
+  .pl-status a { color: var(--gold); }
+  .pl-src { display: inline-flex; align-items: center; gap: 6px; color: #fff; font-weight: 600; }
+  .pl-src-text { flex: 1 1 260px; font-size: 12.5px; }
+  .pl-dot { width: 9px; height: 9px; border-radius: 50%; background: #6b7280; flex: 0 0 auto; }
+  .pl-dot.is-ok { background: var(--green); } .pl-dot.is-warn { background: var(--gold); } .pl-dot.is-error { background: var(--red); }
+  .pl-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .pl-card { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,0.02); min-width: 0; }
+  .pl-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 14px; font-weight: 600; }
+  .pl-head > b { color: var(--gold); font-variant-numeric: tabular-nums; }
+  .pl-tag { color: var(--gold); font-weight: 700; }
+  .pl-bar { height: 10px; border-radius: 6px; background: rgba(255,255,255,0.07); overflow: hidden; }
+  .pl-bar i { display: block; height: 100%; width: 0; border-radius: 6px; background: linear-gradient(90deg, #ef9eae, var(--gold)); transition: width .6s ease; }
+  .pl-bar--time i { background: linear-gradient(90deg, #7d86e8, #9fd0e8); }
+  .pl-credits { font-size: 13px; color: var(--muted); }
+  .pl-credits b { color: #fff; font-size: 15px; } .pl-credits b.is-on { color: var(--gold); }
+  .pl-spin { margin-top: auto; justify-content: center; }
+  .pl-why { font-size: 12px; color: var(--muted); min-height: 16px; margin: 0; }
+  .pl-timer.is-running { border-color: rgba(151,196,89,0.45); }
+  .pl-state { font-size: 12px; font-weight: 500; color: var(--muted); }
+  .pl-game { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+  .pl-clock { font-size: 34px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .pl-timer.is-running .pl-clock { color: var(--green); }
+  .pl-row { gap: 6px; align-items: center; flex-wrap: wrap; }
+  .pl-num { width: 64px; flex: 0 0 auto; text-align: center; }
+  .pl-unit { font-size: 13px; color: var(--muted); }
+  .pl-more { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .pl-more summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+  .pl-dons { margin-top: 10px; overflow-x: auto; }
+  .pl-dons table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .pl-dons td { padding: 7px 6px; border-bottom: 1px solid rgba(255,255,255,0.06); vertical-align: top; }
+  .pl-don-pain { color: var(--gold); } .pl-don-time { color: #9fd0e8; }
+  .pl-foot { margin-top: 14px; line-height: 1.6; }
+  .pl-foot a { color: var(--gold); }
+  @media (max-width: 900px) { .pl-grid { grid-template-columns: 1fr; } }
+
   /* настройки сайта */
   .cfg-group { margin-bottom: 20px; }
   .cfg-group h3 { font-size: 12px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
@@ -745,7 +782,180 @@ const painSection = {
     { id: 'hours', label: 'Наиграно', fn: (a, b) => (num(b.hours) || 0) - (num(a.hours) || 0) },
   ],
   match: (it, q) => low(it.name).includes(q),
+  panel: painPanel,
 };
+
+// ===================== «Боль»: пульт моста (донаты, крутки, таймер) =====================
+// Мост pain-bridge работает на ПК стримера (localhost:3777): ловит донаты #боль/#время, хранит копилки и таймер,
+// крутит рулетку (анимация — на /pain?stream в OBS). Здесь только управление; ключи сервисов — на локальной странице моста.
+const PAIN_BRIDGE = (() => {
+  const b = new URLSearchParams(location.search).get('bridge') || '';
+  return /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(b) ? b : 'http://127.0.0.1:3777';
+})();
+const painLive = { es: null, s: null, at: 0, skew: 0, online: null, donKey: null };
+function painApi(path, body) {
+  return fetch(PAIN_BRIDGE + path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Pain-Bridge': '1' }, body: JSON.stringify(body || {}) })
+    .then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Мост ответил ' + r.status); return j; },
+      () => { throw new Error('Мост не отвечает. Он запущен?'); });
+}
+function painListen() {
+  if (painLive.es) return;
+  const es = painLive.es = new EventSource(PAIN_BRIDGE + '/api/events');
+  es.onopen = () => { painLive.online = true; painPaint(); };
+  es.onerror = () => { painLive.online = false; painPaint(); };
+  es.onmessage = e => {
+    const s = JSON.parse(e.data);
+    painLive.s = s; painLive.at = performance.now(); painLive.skew = Date.now() - s.now; painLive.online = true;
+    painPaint();
+  };
+}
+const painLeft = () => { const s = painLive.s; return s ? Math.max(0, s.timer.remainingMs - (s.timer.running ? performance.now() - painLive.at : 0)) : 0; };
+const painRevealing = () => { const s = painLive.s; return !!(s && s.spin && Date.now() - painLive.skew < s.spin.revealAt); };
+const painClock = ms => { const t = Math.ceil(ms / 1000); return `${Math.floor(t / 3600)}:${String(Math.floor(t / 60) % 60).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`; };
+const painRub = n => Number(n).toLocaleString('ru-RU', { maximumFractionDigits: 2 }) + ' ₽';
+const PAIN_SOURCES = { da: 'DonationAlerts', dx: 'DonateX', manual: 'Вручную' };
+
+function painPanel(sec, box) {
+  $('panel-title').innerHTML = icon('flame') + 'Пульт боли';
+  if (!box.querySelector('#pl')) {
+    box.innerHTML = `<div id="pl">
+      <div class="pl-status" id="pl-status"></div>
+      <div class="pl-grid">
+        <div class="pl-card">
+          <div class="pl-head"><span>Копилка боли <b class="pl-tag" id="pl-ptag">#боль</b></span><b id="pl-psum"></b></div>
+          <div class="pl-bar"><i id="pl-pbar"></i></div>
+          <div class="pl-credits" id="pl-pcred"></div>
+          <button type="button" class="btn btn--solid pl-spin" id="pl-spin-game">${icon('dice')}Крутить игру</button>
+          <p class="pl-why" id="pl-why-game"></p>
+        </div>
+        <div class="pl-card">
+          <div class="pl-head"><span>Копилка времени <b class="pl-tag" id="pl-ttag">#время</b></span><b id="pl-tsum"></b></div>
+          <div class="pl-bar pl-bar--time"><i id="pl-tbar"></i></div>
+          <div class="pl-credits" id="pl-tcred"></div>
+          <button type="button" class="btn btn--solid pl-spin" id="pl-spin-time">${icon('hourglass')}Крутить время</button>
+          <p class="pl-why" id="pl-why-time"></p>
+        </div>
+        <div class="pl-card pl-timer" id="pl-timer">
+          <div class="pl-head"><span>Таймер</span><span class="pl-state" id="pl-state"></span></div>
+          <div class="pl-game" id="pl-game"></div>
+          <div class="pl-clock" id="pl-clock">0:00:00</div>
+          <div class="row pl-row">
+            <button type="button" class="btn" id="pl-toggle">${icon('play')}Старт</button>
+            <button type="button" class="btn btn--danger" id="pl-reset">${icon('x')}Сброс</button>
+          </div>
+          <div class="row pl-row">
+            <input class="inp pl-num" id="pl-h" type="number" min="0" max="999" value="0" aria-label="Часы"><span class="pl-unit">ч</span>
+            <input class="inp pl-num" id="pl-m" type="number" min="0" max="59" value="0" aria-label="Минуты"><span class="pl-unit">мин</span>
+            <button type="button" class="btn btn--sm" id="pl-set">Задать</button>
+          </div>
+        </div>
+      </div>
+      <details class="pl-more">
+        <summary>Ручная правка и донат мимо сервисов</summary>
+        <div class="quick" style="margin-top:12px">
+          <label class="field"><span>Копилка боли, ₽</span><input class="inp" id="pl-e-pb" type="number" min="0" step="0.01"></label>
+          <label class="field"><span>Крутки игры</span><input class="inp" id="pl-e-pc" type="number" min="0"></label>
+          <label class="field"><span>Копилка времени, ₽</span><input class="inp" id="pl-e-tb" type="number" min="0" step="0.01"></label>
+          <label class="field"><span>Крутки времени</span><input class="inp" id="pl-e-tc" type="number" min="0"></label>
+          <button type="button" class="btn" id="pl-e-fill">Подставить текущие</button>
+          <button type="button" class="btn btn--solid" id="pl-e-save">Применить</button>
+        </div>
+        <div class="quick" style="margin-top:12px">
+          <label class="field"><span>Ник</span><input class="inp" id="pl-d-nick" list="nicks" autocomplete="off" placeholder="Вручную"></label>
+          <label class="field"><span>Сумма, ₽</span><input class="inp" id="pl-d-sum" type="number" min="1"></label>
+          <label class="field"><span>Куда</span><select class="inp" id="pl-d-tag"><option value="pain">Копилка боли</option><option value="time">Копилка времени</option></select></label>
+          <button type="button" class="btn btn--solid" id="pl-d-add">${icon('plus')}Добавить донат</button>
+        </div>
+      </details>
+      <details class="pl-more">
+        <summary>Последние донаты с метками</summary>
+        <div class="pl-dons" id="pl-dons"></div>
+      </details>
+      <p class="hint-inline pl-foot">Крутки анимируются на <a href="${PAIN_BRIDGE}/pain?stream" target="_blank" rel="noopener">рулетке для OBS</a>,
+        «Боль подана» и таймер — на <a href="${PAIN_BRIDGE}/widget" target="_blank" rel="noopener">виджете</a>.
+        Ключи DonationAlerts и DonateX — на <a href="${PAIN_BRIDGE}/admin" target="_blank" rel="noopener">странице моста</a>, на сайт они не попадают.</p>
+    </div>`;
+    const busy = async (btn, fn, ok) => {
+      btn.disabled = true;
+      try { await fn(); if (ok) toast(ok); } catch (err) { toast(err.message, true); }
+      finally { btn.disabled = false; painPaint(); }
+    };
+    $('pl-spin-game').addEventListener('click', e => busy(e.currentTarget, () => painApi('/api/spin/game'), 'Крутим! Смотри рулетку в OBS'));
+    $('pl-spin-time').addEventListener('click', e => busy(e.currentTarget, () => painApi('/api/spin/time'), 'Крутим время!'));
+    $('pl-toggle').addEventListener('click', e => busy(e.currentTarget, () => painApi('/api/timer', { action: painLive.s && painLive.s.timer.running ? 'pause' : 'start' })));
+    $('pl-reset').addEventListener('click', e => {
+      if (confirm('Сбросить таймер в ноль? Игра будет считаться отыгранной.')) busy(e.currentTarget, () => painApi('/api/timer', { action: 'reset' }), 'Таймер сброшен');
+    });
+    $('pl-set').addEventListener('click', e => busy(e.currentTarget, () => painApi('/api/timer', { action: 'set', hours: $('pl-h').value || 0, minutes: $('pl-m').value || 0 }), 'Таймер задан, он на паузе'));
+    const fill = () => { const s = painLive.s; if (!s) return; $('pl-e-pb').value = s.painBank; $('pl-e-pc').value = s.painCredits; $('pl-e-tb').value = s.timeBank; $('pl-e-tc').value = s.timeCredits; };
+    $('pl-e-fill').addEventListener('click', fill);
+    box.querySelector('details').addEventListener('toggle', e => { if (e.target.open) fill(); });
+    $('pl-e-save').addEventListener('click', e => busy(e.currentTarget, () => painApi('/api/admin/set',
+      { painBank: $('pl-e-pb').value, painCredits: $('pl-e-pc').value, timeBank: $('pl-e-tb').value, timeCredits: $('pl-e-tc').value }), 'Применено'));
+    $('pl-d-add').addEventListener('click', e => {
+      if (!(+$('pl-d-sum').value > 0)) return toast('Впиши сумму', true);
+      busy(e.currentTarget, () => painApi('/api/admin/donate', { username: $('pl-d-nick').value, amount: $('pl-d-sum').value, tag: $('pl-d-tag').value })
+        .then(() => { $('pl-d-sum').value = ''; }), 'Донат добавлен');
+    });
+    $('pl-status').addEventListener('click', e => { if (e.target.closest('#pl-reconnect')) busy(e.target.closest('#pl-reconnect'), () => painApi('/api/reconnect'), 'Переподключаю'); });
+    painLive.donKey = null;
+  }
+  painListen();
+  painPaint();
+}
+
+function painPaint() {
+  if (!$('pl')) return;
+  const s = painLive.s;
+  if (painLive.online === false || !s) {
+    $('pl-status').dataset.html = '';
+    $('pl-status').innerHTML = painLive.online === false
+      ? `<span class="pl-dot is-error"></span><span>Мост не отвечает. Он должен работать на этом ПК (<a href="${PAIN_BRIDGE}/admin" target="_blank" rel="noopener">${PAIN_BRIDGE.replace('http://', '')}</a>) — запусти его и обнови страницу.</span>`
+      : '<span>Подключаюсь к мосту...</span>';
+    ['pl-spin-game', 'pl-spin-time', 'pl-toggle', 'pl-reset', 'pl-set', 'pl-e-save', 'pl-d-add'].forEach(id => { $(id).disabled = true; });
+    if (!s) return;
+  } else {
+    const dot = st => st === 'online' ? 'is-ok' : st === 'connecting' ? 'is-warn' : st === 'error' ? 'is-error' : '';
+    const html = [['da', 'DonationAlerts'], ['dx', 'DonateX'], ['sheet', 'Список игр']]
+      .map(([k, name]) => `<span class="pl-src" title="${esc(s.status[k].text)}"><span class="pl-dot ${dot(s.status[k].state)}"></span>${name}</span>`).join('') +
+      (['da', 'dx'].some(k => s.status[k].state !== 'online') ? `<button type="button" class="btn btn--sm btn--ghost" id="pl-reconnect">${icon('refresh')}Переподключить</button>` : '') +
+      `<span class="pl-src-text">${esc(['da', 'dx'].map(k => s.status[k].state !== 'online' ? s.status[k].text : '').filter(Boolean)[0] || '')}</span>`;
+    // Перерисовываем, только если что-то поменялось — иначе кнопка «Переподключить» пересоздаётся под курсором
+    if ($('pl-status').dataset.html !== html) { $('pl-status').innerHTML = html; $('pl-status').dataset.html = html; }
+    ['pl-set', 'pl-e-save', 'pl-d-add'].forEach(id => { $(id).disabled = false; });
+  }
+  const c = s.config, hidden = painRevealing(), left = painLeft(), live = painLive.online !== false;
+  $('pl-ptag').textContent = c.painTag; $('pl-ttag').textContent = c.timeTag;
+  $('pl-psum').textContent = `${painRub(s.painBank)} / ${painRub(c.painPrice)}`;
+  $('pl-tsum').textContent = `${painRub(s.timeBank)} / ${painRub(c.timePrice)}`;
+  $('pl-pbar').style.width = Math.min(100, s.painBank / c.painPrice * 100) + '%';
+  $('pl-tbar').style.width = Math.min(100, s.timeBank / c.timePrice * 100) + '%';
+  $('pl-pcred').innerHTML = `Оплачено круток игры: <b class="${s.painCredits ? 'is-on' : ''}">${s.painCredits}</b>`;
+  $('pl-tcred').innerHTML = `Оплачено круток времени: <b class="${s.timeCredits ? 'is-on' : ''}">${s.timeCredits}</b>`;
+  const whyGame = hidden ? 'Рулетка ещё крутится' : !s.painCredits ? 'Нет оплаченных круток' : left > 0 ? `Сначала доиграй «${s.game ? s.game.name : ''}»` : '';
+  const whyTime = hidden ? 'Рулетка ещё крутится' : !s.timeCredits ? 'Нет оплаченных круток' : !s.game ? 'Ещё не выпало ни одной игры' : '';
+  $('pl-spin-game').disabled = !live || !!whyGame; $('pl-why-game').textContent = whyGame;
+  $('pl-spin-time').disabled = !live || !!whyTime; $('pl-why-time').textContent = whyTime;
+  $('pl-timer').classList.toggle('is-running', s.timer.running && !hidden);
+  $('pl-game').textContent = hidden ? 'Крутим...' : s.game ? s.game.name : 'Игра ещё не выбрана';
+  $('pl-clock').textContent = hidden ? '?:??:??' : painClock(left);
+  $('pl-state').textContent = hidden || !s.game ? '' : s.timer.running ? 'идёт' : left > 0 ? 'на паузе' : 'отыграно';
+  $('pl-toggle').innerHTML = s.timer.running ? icon('pause') + 'Пауза' : icon('play') + 'Старт';
+  $('pl-toggle').disabled = !live || hidden || (!s.timer.running && left <= 0);
+  $('pl-reset').disabled = !live || hidden;
+  const donKey = s.donations.map(d => d.key).join();
+  if (donKey !== painLive.donKey) {
+    painLive.donKey = donKey;
+    $('pl-dons').innerHTML = s.donations.length ? '<table><tbody>' + s.donations.slice(0, 15).map(d => {
+      const result = [d.painCredits && `+${d.painCredits} крутка игры`, d.overflow && `остаток ${painRub(d.overflow)} во время`,
+        d.timeCredits && `+${d.timeCredits} крутка времени`].filter(Boolean).join(', ') || 'в копилку';
+      return `<tr title="${esc(d.message || '')}"><td>${esc(new Date(d.at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }))}</td>
+        <td>${esc(PAIN_SOURCES[d.source] || d.source)}</td><td>${esc(d.username)}</td>
+        <td class="pl-don-${d.tag}">${esc(painRub(d.rub))} ${esc(d.tag === 'pain' ? c.painTag : c.timeTag)}</td><td>${esc(result)}</td></tr>`;
+    }).join('') + '</tbody></table>' : '<p class="hint-inline">Пока ни одного доната с меткой.</p>';
+  }
+}
+setInterval(() => { if (current === painSection && painLive.s) painPaint(); }, 500);
 
 // ===================== билеты =====================
 const ticketsSection = {
