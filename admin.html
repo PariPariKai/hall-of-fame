@@ -873,7 +873,7 @@ function painPanel(sec, box) {
       </details>
       <p class="hint-inline pl-foot">Крутки анимируются на <a href="${PAIN_BRIDGE}/pain?stream" target="_blank" rel="noopener">рулетке для OBS</a>,
         «Боль подана» и таймер — на <a href="${PAIN_BRIDGE}/widget" target="_blank" rel="noopener">виджете</a>.
-        Ключи DonationAlerts и DonateX — на <a href="${PAIN_BRIDGE}/admin" target="_blank" rel="noopener">странице моста</a>, на сайт они не попадают.</p>
+        Ключ DonationAlerts — на <a href="${PAIN_BRIDGE}/admin" target="_blank" rel="noopener">странице моста</a>, на сайт он не попадает.</p>
     </div>`;
     const busy = async (btn, fn, ok) => {
       btn.disabled = true;
@@ -916,10 +916,12 @@ function painPaint() {
     if (!s) return;
   } else {
     const dot = st => st === 'online' ? 'is-ok' : st === 'connecting' ? 'is-warn' : st === 'error' ? 'is-error' : '';
-    const html = [['da', 'DonationAlerts'], ['dx', 'DonateX'], ['sheet', 'Список игр']]
+    // Отключённые сервисы (без ключа в мосте) не показываем — сейчас это DonateX
+    const used = ['da', 'dx'].filter(k => s.status[k] && s.status[k].state !== 'disabled');
+    const html = [['da', 'DonationAlerts'], ['dx', 'DonateX'], ['sheet', 'Список игр']].filter(([k]) => k === 'sheet' || used.includes(k))
       .map(([k, name]) => `<span class="pl-src" title="${esc(s.status[k].text)}"><span class="pl-dot ${dot(s.status[k].state)}"></span>${name}</span>`).join('') +
-      (['da', 'dx'].some(k => s.status[k].state !== 'online') ? `<button type="button" class="btn btn--sm btn--ghost" id="pl-reconnect">${icon('refresh')}Переподключить</button>` : '') +
-      `<span class="pl-src-text">${esc(['da', 'dx'].map(k => s.status[k].state !== 'online' ? s.status[k].text : '').filter(Boolean)[0] || '')}</span>`;
+      (used.some(k => s.status[k].state !== 'online') ? `<button type="button" class="btn btn--sm btn--ghost" id="pl-reconnect">${icon('refresh')}Переподключить</button>` : '') +
+      `<span class="pl-src-text">${esc(used.map(k => s.status[k].state !== 'online' ? s.status[k].text : '').filter(Boolean)[0] || '')}</span>`;
     // Перерисовываем, только если что-то поменялось — иначе кнопка «Переподключить» пересоздаётся под курсором
     if ($('pl-status').dataset.html !== html) { $('pl-status').innerHTML = html; $('pl-status').dataset.html = html; }
     ['pl-set', 'pl-e-save', 'pl-d-add'].forEach(id => { $(id).disabled = false; });
