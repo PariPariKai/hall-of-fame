@@ -828,6 +828,14 @@
       <div class="panel__title">На оверлее модификаторов
         <a class="btn btn--sm" href="mods.html?demo" target="_blank" style="float:right">Пример оверлея ↗</a></div>
       <div id="mods-panel"></div>
+      <div class="row" style="align-items:center;margin-top:12px">
+        <label class="field" style="flex:0 0 220px;margin:0"><span>Убирать модификатор без таймера через, мин</span>
+          <input type="number" id="mod-hide" min="0" max="1440" step="5"></label>
+        <div class="note" style="flex:1 1 300px;margin:0">
+          Модификатор без своего таймера сам уйдёт с оверлея через столько минут после выпадения — чтобы
+          новый стрим не начался со вчерашним. 0 — не убирать (только вручную).
+        </div>
+      </div>
       <div class="note">Browser source для OBS: <code>https://pariparikai.github.io/hall-of-fame/mods.html</code>, 1920×1080.
         Сюда попадают карточки типа «Модификатор» и все карточки с таймером. Если рулетка открыта не в OBS, а в обычном браузере,
         оверлей получает награды через мост (localhost:3777) — он должен быть запущен.</div>
@@ -1026,7 +1034,7 @@ function seedState() {
       createdAt: now, activatedAt: now, benchedAt: null, rolls: 0, lastRoll: null
     })),
     history: [],
-    settings: { cooldown: 5 },
+    settings: { cooldown: 5, modHideMin: 60 },
     lastBackup: null
   };
 }
@@ -1082,7 +1090,12 @@ function normalize(obj) {
     groups: Array.isArray(obj.groups) ? obj.groups : [],
     items: [],
     history: Array.isArray(obj.history) ? obj.history.slice(0, 200) : [],
-    settings: { cooldown: Math.max(0, Math.min(50, Number(obj.settings && obj.settings.cooldown) || 0)) },
+    settings: {
+      cooldown: Math.max(0, Math.min(50, Number(obj.settings && obj.settings.cooldown) || 0)),
+      // через сколько минут модификатор без таймера сам уходит с оверлея (0 — никогда)
+      modHideMin: obj.settings && obj.settings.modHideMin != null
+        ? Math.max(0, Math.min(1440, Math.round(Number(obj.settings.modHideMin)) || 0)) : 60
+    },
     lastBackup: obj.lastBackup || null
   };
   if (!obj.settings) s.settings.cooldown = 5;
@@ -2230,6 +2243,19 @@ function guessDuration(text) {
 
 function showsOnOverlay(it) { return it.kind === 'mod' || it.durationSec > 0; }
 
+// Модификатор без таймера сам уходит через settings.modHideMin минут после выпадения.
+// Считаем от startedAt, а не от сохранённого hideAt — так настройка действует и на уже висящие.
+function modHideAt(m) {
+  const min = state.settings.modHideMin;
+  return !m.endsAt && min > 0 && m.startedAt ? m.startedAt + min * 60000 : null;
+}
+// закончившиеся по таймеру больше минуты назад (оверлей их уже убрал) и скрытые по настройке
+function modGone(m, now) {
+  if (m.endsAt) return m.endsAt <= now - 60000;
+  const h = modHideAt(m);
+  return h != null && h <= now;
+}
+
 function modsReadLocal() {
   try {
     const o = JSON.parse(localStorage.getItem(MODS_KEY));
@@ -2264,9 +2290,9 @@ async function modsPull() {
 setInterval(modsPull, 30000);
 function modsPublish(mods) {
   const now = Date.now();
-  // закончившиеся больше минуты назад выкидываем — оверлей их уже убрал
+  // hideAt — подсказка оверлею, когда убрать плашку самому (если рулетку к тому времени закроют)
   const box = {
-    mods: mods.filter(m => !m.endsAt || m.endsAt > now - 60000).slice(0, 12),
+    mods: mods.filter(m => !modGone(m, now)).slice(0, 12).map(m => ({ ...m, hideAt: modHideAt(m) })),
     updatedAt: Math.max(now, (modsBox.updatedAt || 0) + 1)
   };
   modsBox = box;
@@ -2304,10 +2330,11 @@ function modsAddTime(id, sec) {
 
 function modsListHTML() {
   const now = Date.now();
-  const live = modsBox.mods.filter(m => !m.endsAt || m.endsAt > now - 6000);
+  const live = modsBox.mods.filter(m => !modGone(m, now) && (!m.endsAt || m.endsAt > now - 6000));
   const rows = live.map(m => {
-    const left = m.endsAt ? m.endsAt - now : null;
-    const time = left == null ? 'без таймера' : left > 0 ? fmtClock(left) : 'вышло';
+    const left = m.endsAt ? m.endsAt - now : null, hide = modHideAt(m);
+    const time = left != null ? (left > 0 ? fmtClock(left) : 'вышло')
+      : hide ? 'уйдёт в ' + new Date(hide).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : 'без таймера';
     return `<div class="mods-row" style="--rc:${esc(m.color)}">
       <div class="mods-row__text">${esc(m.text)}</div>
       <span class="mods-row__time${left != null && left <= 0 ? ' is-over' : ''}" data-mod-time="${esc(m.id)}">${time}</span>
@@ -2322,7 +2349,7 @@ function modsListHTML() {
 }
 function modsLiveCount() {
   const now = Date.now();
-  return modsBox.mods.filter(m => !m.endsAt || m.endsAt > now).length;
+  return modsBox.mods.filter(m => !modGone(m, now) && (!m.endsAt || m.endsAt > now)).length;
 }
 function renderMods() {
   const badge = document.getElementById('s-mods-n');
@@ -2345,7 +2372,9 @@ setInterval(() => {
   });
   const badge = document.getElementById('s-mods-n');
   if (badge) badge.textContent = modsLiveCount() || '';
-  if (gone) renderMods();
+  // модификатор без таймера отвисел своё — снимаем его везде (и с оверлея через мост)
+  if (modsBox.mods.some(m => !m.endsAt && modGone(m, now))) modsPublish(modsBox.mods);
+  else if (gone) renderMods();
 }, 1000);
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-mod-del],[data-mod-plus],[data-mod-clear]');
@@ -3157,7 +3186,7 @@ function switchTab(name) {
 function renderAll() {
   if (ui.tab === 'board') { renderStrip(); renderBoard(); updatePauseButton(); }
   else if (ui.tab === 'balance') renderBalance();
-  else if (ui.tab === 'spin') renderHistory();
+  else if (ui.tab === 'spin') { renderHistory(); $('#mod-hide').value = state.settings.modHideMin; }
   else if (ui.tab === 'data') renderData();
 }
 
@@ -3206,6 +3235,12 @@ function wireApp() {
     state.settings.cooldown = Math.max(0, Math.min(50, Number(e.target.value) || 0));
     e.target.value = state.settings.cooldown;
     save();
+  };
+  $('#mod-hide').onchange = e => {
+    state.settings.modHideMin = Math.max(0, Math.min(1440, Math.round(Number(e.target.value)) || 0));
+    e.target.value = state.settings.modHideMin;
+    save();
+    modsPublish(modsBox.mods); // пересчитать, когда уйдут уже висящие
   };
 
   $('#btn-reset-rolls').onclick = () => {
