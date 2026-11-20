@@ -43,6 +43,7 @@
     {"nick":"SI_ve","prize":"личное сообщение/аудио от стримера","chance":"0.14","rank":"legendary","quote":"сыграй мне на гитаре","date":"01.10.2026","unique":"","prize_image_url":"","id":"08ff00de"},
     {"nick":"Rebel_dragons","prize":"распечатанное присутствие на стриме","chance":"0.12","rank":"artifact","quote":"ничёси","date":"02.10.2026","unique":"","prize_image_url":"","id":"1daccb78"},
     {"nick":"AzamatUK11","prize":"личное сообщение/аудио от стримера","chance":"0.14","rank":"legendary","quote":"Ниче себе","date":"06.10.2026","unique":"","prize_image_url":"","id":"7d11646a"},
-    {"nick":"65_hamieav_shalom_66","prize":"Добавить постоянный элемент на стрим","chance":"0.14","rank":"legendary","quote":"Плакат с мемов 67 И надпись 65_hamieav_shalom_66 БОСС","date":"20.10.2026","unique":"","prize_image_url":"","id":"2fd099f3"}
+    {"nick":"65_hamieav_shalom_66","prize":"Добавить постоянный элемент на стрим","chance":"0.14","rank":"legendary","quote":"Плакат с мемов 67 И надпись 65_hamieav_shalom_66 БОСС","date":"20.10.2026","unique":"","prize_image_url":"","id":"2fd099f3"},
+    {"nick":"SI_ve","prize":"Играть в игру на выбор","chance":"0.13","rank":"legendary","quote":"","date":"20.11.2026","unique":"FALSE","prize_image_url":"","id":"1da1b660"}
   ]
 }
