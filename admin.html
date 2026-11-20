@@ -343,7 +343,7 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="github.js?v=3"></script>
+<script src="github.js?v=4"></script>
 <script>
 (function () {
 'use strict';
@@ -1296,7 +1296,10 @@ function screensPanel(sec, box) {
 // Значения по умолчанию и описание полей — в chat-kit.js (их же берёт оверлей). Правки сразу видны в предпросмотре,
 // в OBS — после «Сохранить» примерно через минуту.
 const chatSection = { id: 'chat', label: 'Чат', icon: 'message', group: 'Стрим', path: 'data/chat.json', form: true, panel: chatPanel };
-const ck = { draft: null, base: null, sel: null, dirty: false, bg: 'busy', root: null, frame: null, sendQ: 0 };
+const ck = { draft: null, base: null, sel: null, dirty: false, bg: 'busy', root: null, frame: null, sendQ: 0,
+  sounds: [], blobs: {} }; // свои звуки из sounds/chat/ и только что загруженные (blob, пока сайт не обновился)
+const CK_SND_DIR = 'sounds/chat/';
+const CK_SND_EXT = /\.(wav|mp3|ogg|m4a|webm)$/i;
 
 function chatDraft() {
   if (!ck.draft || ck.base !== files.chat) {
@@ -1310,12 +1313,13 @@ function chatDraft() {
   return ck.draft;
 }
 const ckCur = () => chatDraft().overlays.find(o => o.id === ck.sel);
+function ckSendNow() {
+  const w = ck.frame && ck.frame.contentWindow;
+  if (w) w.postMessage({ type: 'chatkit:set', overlay: ckCur(), events: chatDraft().events, sounds: ck.blobs }, location.origin);
+}
 function ckSend() {
   cancelAnimationFrame(ck.sendQ);
-  ck.sendQ = requestAnimationFrame(() => {
-    const w = ck.frame && ck.frame.contentWindow;
-    if (w) w.postMessage({ type: 'chatkit:set', overlay: ckCur(), events: chatDraft().events }, location.origin);
-  });
+  ck.sendQ = requestAnimationFrame(ckSendNow);
 }
 function ckDirty() {
   ck.dirty = true;
@@ -1364,6 +1368,10 @@ function chatPanel(sec, box) {
     ck.root = box.querySelector('#ck-root');
     ck.frame = box.querySelector('#ck-frame');
     ck.frame.src = 'chat.html?embed&bg=' + ck.bg;
+    siteGit.listDir(CK_SND_DIR).then(list => {
+      ck.sounds = list.filter(f => CK_SND_EXT.test(f.name)).map(f => ({ path: f.path, name: f.name.replace(CK_SND_EXT, '') }));
+      if (ck.sounds.length) ckEvents();
+    }).catch(() => { /* список не пришёл: выбранные звуки всё равно видны */ });
     const stage = box.querySelector('#ck-stage');
     new ResizeObserver(() => { ck.frame.style.transform = `scale(${stage.clientWidth / 1920})`; }).observe(stage);
     ckBind(sec, box);
@@ -1436,6 +1444,13 @@ function ckForm() {
 function ckEvents() {
   const d = chatDraft();
   const opt = (list, v) => list.map(([id, t]) => `<option value="${id}"${id === v ? ' selected' : ''}>${esc(t)}</option>`).join('');
+  const sndOpts = cur => {
+    const own = ck.sounds.slice();
+    if (String(cur).includes('/') && !own.some(x => x.path === cur)) own.push({ path: cur, name: cur.split('/').pop().replace(CK_SND_EXT, '') });
+    return opt(ChatKit.SOUNDS, cur) +
+      (own.length ? `<optgroup label="Свои">${own.map(x => `<option value="${esc(x.path)}"${x.path === cur ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</optgroup>` : '') +
+      '<option value="__upload">Загрузить свой...</option>';
+  };
   ck.root.querySelector('#ck-events').innerHTML = ChatKit.EVENTS.map(e => {
     const v = d.events[e.id];
     const a = `data-ev="${e.id}"`;
@@ -1452,7 +1467,7 @@ function ckEvents() {
       <div class="ck-ev__row">
         <input type="color" class="ck-color" ${a} data-k="color" value="${esc(v.color)}" title="Цвет">
         <select class="inp" ${a} data-k="anim" style="width:auto" title="Анимация">${opt(ChatKit.ANIMS, v.anim)}</select>
-        <select class="inp" ${a} data-k="sound" style="width:auto" title="Звук">${opt(ChatKit.SOUNDS, v.sound)}</select>
+        <select class="inp" ${a} data-k="sound" style="width:auto;max-width:190px" title="Звук">${sndOpts(v.sound)}</select>
         <label class="ck-f" style="border:0;min-height:0;padding:0;gap:6px"><input class="inp" type="number" ${a} data-k="dur" value="${esc(v.dur)}" min="2" max="30" step="1" style="width:62px" title="Сколько секунд"><em>сек</em></label>
       </div>
       ${e.minLabel ? `<label class="ck-f" style="border:0;min-height:0;padding:0"><span>${esc(e.minLabel)}</span><input class="inp" type="number" ${a} data-k="min" value="${esc(v.min)}" min="0" step="1" style="flex:0 0 90px"><em>ниже: как обычное сообщение</em></label>` : ''}
@@ -1468,8 +1483,31 @@ function ckValue(def, el) {
   return el.value;
 }
 
+// Свой звук: файл уходит в репозиторий (sounds/chat/), событие сразу на него переключается
+async function ckUpload(file, evId) {
+  const ext = (CK_SND_EXT.exec(file.name) || [])[1];
+  if (!ext) return toast('Нужен звуковой файл: wav, mp3 или ogg', true);
+  if (file.size > 3 * 1024 * 1024) return toast('Файл больше 3 МБ. Для алерта хватит пары секунд звука', true);
+  const base = file.name.replace(CK_SND_EXT, '').toLowerCase().replace(/[^\p{L}\p{N}_-]+/gu, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'sound';
+  const path = CK_SND_DIR + base + '.' + ext.toLowerCase();
+  toast('Загружаю звук...');
+  try { await siteGit.putFile(path, await file.arrayBuffer(), 'Чат: звук ' + base); }
+  catch (err) { return toast(err.message, true); }
+  if (ck.blobs[path]) URL.revokeObjectURL(ck.blobs[path]);
+  ck.blobs[path] = URL.createObjectURL(file);
+  if (!ck.sounds.some(x => x.path === path)) ck.sounds.push({ path, name: base });
+  chatDraft().events[evId].sound = path;
+  ckEvents(); ckDirty();
+  ckSendNow();
+  ck.frame.contentWindow.postMessage({ type: 'chatkit:test', event: evId }, location.origin);
+  toast('Звук загружен. Чтобы он играл в OBS, нажми «Сохранить»');
+}
+
 function ckBind(sec, box) {
   const root = ck.root;
+  const sndIn = Object.assign(document.createElement('input'), { type: 'file', accept: 'audio/*,.wav,.mp3,.ogg', hidden: true });
+  sndIn.addEventListener('change', () => { if (sndIn.files[0]) ckUpload(sndIn.files[0], sndIn.dataset.ev); });
+  root.appendChild(sndIn);
   root.addEventListener('input', e => {
     const el = e.target;
     if (el.dataset.ck) {
@@ -1488,6 +1526,13 @@ function ckBind(sec, box) {
       ckDirty(); ckSend();
     } else if (el.dataset.ev) {
       const v = chatDraft().events[el.dataset.ev], k = el.dataset.k;
+      if (k === 'sound' && el.value === '__upload') { // выбор файла, звук пока прежний
+        el.value = v.sound;
+        sndIn.dataset.ev = el.dataset.ev;
+        sndIn.value = '';
+        sndIn.click();
+        return;
+      }
       v[k] = ckValue(ChatKit.EVENT[el.dataset.ev].d[k], el);
       const card = el.closest('.ck-ev');
       if (k === 'on') card.classList.toggle('is-off', !v.on);

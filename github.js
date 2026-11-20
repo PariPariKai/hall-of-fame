@@ -69,6 +69,25 @@
     throw new Error('Файл одновременно меняют с другого устройства. Обнови страницу и повтори.');
   }
 
+  // Папка репозитория: [{name, path, sha, size}], пустая или нет папки — []
+  const enc = path => path.split('/').map(encodeURIComponent).join('/');
+  async function listDir(path) {
+    try {
+      const r = await gh('/contents/' + enc(path) + '?ref=' + BRANCH);
+      return Array.isArray(r) ? r : [];
+    } catch (err) { if (err.status === 404) return []; throw err; }
+  }
+  // Файл как есть (звук, картинка): bytes — ArrayBuffer. Такой уже есть — заменяем.
+  async function putFile(path, bytes, message) {
+    let sha;
+    try { sha = (await gh('/contents/' + enc(path) + '?ref=' + BRANCH)).sha; } catch (err) { if (err.status !== 404) throw err; }
+    const u8 = new Uint8Array(bytes);
+    let bin = '';
+    for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+    const res = await gh('/contents/' + enc(path), { method: 'PUT', body: JSON.stringify({ message, branch: BRANCH, sha, content: btoa(bin) }) });
+    return res.content;
+  }
+
   // Чей токен — для подписи «Вход: …» (пустой объект, если не вышло)
   const user = () => fetch('https://api.github.com/user', { headers: { Authorization: 'Bearer ' + token } })
     .then(r => r.ok ? r.json() : {}).catch(() => ({}));
@@ -107,6 +126,6 @@
 
   window.siteGit = {
     get token() { return token; },
-    setToken, readFile, writeFile, user, hasAccess, isToken, showGate,
+    setToken, readFile, writeFile, listDir, putFile, user, hasAccess, isToken, showGate,
   };
 })();

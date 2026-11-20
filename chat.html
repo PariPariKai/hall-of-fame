@@ -257,7 +257,7 @@ const EMBED = qs.has('embed');            // предпросмотр в адм�
 const DEMO = qs.has('demo') || EMBED;     // ненастоящий чат
 // Версия страницы. Менять при каждой правке chat.html или chat-kit.js (и ?v= у chat-kit.js):
 // OBS держит копию страницы до 10 минут, а так оверлей сам замечает новую версию и перезагружается.
-const VERSION = '2026-11-20.1';
+const VERSION = '2026-11-20.2';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -304,6 +304,8 @@ function apply(next, events) {
   const prevMode = mode;
   S = next;
   if (events) EV = events;
+  // свои звуки грузим заранее, чтобы алерт не ждал файл
+  if (S.alerts && S.volume > 0) Object.values(EV).forEach(ev => { if (ev.on && ev.alert && String(ev.sound).includes('/')) soundFile(ev.sound); });
   const r = document.documentElement.style;
   r.setProperty('--fs', S.size);
   r.setProperty('--w', S.weight);
@@ -629,10 +631,26 @@ function nextAlert() {
   }, dur);
 }
 
-// Звуки — синтезом, без файлов
+// Звуки: свои файлы (sounds/chat/..., загружаются в админке) или синтез
 let actx = null;
+let soundUrls = {}; // в админке: только что загруженный файл, пока GitHub Pages его не выложил
+const audioCache = new Map();
+function soundFile(path) {
+  const url = soundUrls[path] || encodeURI(path);
+  let a = audioCache.get(url);
+  if (!a) { a = new Audio(url); a.preload = 'auto'; audioCache.set(url, a); }
+  return a;
+}
 function sound(kind) {
   if (!kind || kind === 'off' || !(S.volume > 0)) return;
+  if (kind.includes('/')) {
+    try {
+      const a = soundFile(kind).cloneNode();
+      a.volume = Math.min(1, S.volume / 100);
+      a.play().catch(() => {});
+    } catch (e) { /* без звука */ }
+    return;
+  }
   try {
     actx = actx || new (window.AudioContext || window.webkitAudioContext)();
     if (actx.state === 'suspended') actx.resume();
@@ -908,11 +926,13 @@ function frameDown(e) {
   const move = ev => {
     const dx = (ev.clientX - start.x) / innerWidth * 100, dy = (ev.clientY - start.y) / innerHeight * 100;
     const a = Object.assign({}, start.a);
-    if (h === 'move') { a.x += dx; a.y += dy; }
-    if (h.includes('w')) { a.x += dx; a.w -= dx; }
-    if (h.includes('e')) a.w += dx;
-    if (h.includes('n')) { a.y += dy; a.h -= dy; }
-    if (h.includes('s')) a.h += dy;
+    if (h === 'move') { a.x += dx; a.y += dy; } // форма та же, рамка только едет
+    else {
+      if (h.includes('w')) { a.x += dx; a.w -= dx; }
+      if (h.includes('e')) a.w += dx;
+      if (h.includes('n')) { a.y += dy; a.h -= dy; }
+      if (h.includes('s')) a.h += dy;
+    }
     a.w = Math.max(3, Math.min(100, a.w)); a.h = Math.max(3, Math.min(100, a.h));
     a.x = Math.max(0, Math.min(100 - a.w, a.x)); a.y = Math.max(0, Math.min(100 - a.h, a.y));
     Object.keys(a).forEach(k => { a[k] = r1(a[k]); });
@@ -973,6 +993,7 @@ function checkSize() {
 addEventListener('message', e => {
   if (e.origin !== location.origin || !e.data) return;
   const d = e.data;
+  if (d.type === 'chatkit:set') soundUrls = d.sounds || {};
   if (d.type === 'chatkit:set') apply(ChatKit.overlay(d.overlay), Object.fromEntries(ChatKit.EVENTS.map(x => [x.id, ChatKit.event(x.id, d.events && d.events[x.id])])));
   if (d.type === 'chatkit:test') fakeEvent(d.event);
   if (d.type === 'chatkit:clear') { mode = null; apply(S); alertsBox.innerHTML = ''; alertQ.length = 0; alertOn = false; }
