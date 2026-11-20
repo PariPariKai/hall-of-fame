@@ -246,7 +246,7 @@
 <div class="area" id="area"><div class="feed" id="feed"></div></div>
 <div class="alerts" id="alerts"></div>
 
-<script src="chat-kit.js?v=1"></script>
+<script src="chat-kit.js?v=2"></script>
 <script>
 (function () {
 'use strict';
@@ -257,7 +257,7 @@ const EMBED = qs.has('embed');            // предпросмотр в адм�
 const DEMO = qs.has('demo') || EMBED;     // ненастоящий чат
 // Версия страницы. Менять при каждой правке chat.html или chat-kit.js (и ?v= у chat-kit.js):
 // OBS держит копию страницы до 10 минут, а так оверлей сам замечает новую версию и перезагружается.
-const VERSION = '2026-11-20.2';
+const VERSION = '2026-11-20.3';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -513,15 +513,19 @@ function tkAdd(el, idle) {
   const x = Math.max(V, lastIt ? lastIt.x + lastIt.w + gap : V);
   tk.items.push({ el, x, w, idle });
   el.style.transform = `translate(${x}px, -50%)`;
-  // чат несётся быстрее ленты — не копим хвост больше чем на пару экранов
-  const waiting = tk.items.filter(it => it.x > V);
-  if (waiting.length > 12) {
-    const it = waiting[0];
+  // чат несётся быстрее ленты: очередь не длиннее ~8 секунд ходу (на полной скорости),
+  // лишнее — самые старые из ждущих, чтобы на экране было свежее
+  const maxTail = tkMax() * 8;
+  let waiting = tk.items.filter(it => it.x > V);
+  while (waiting.length > 1 && waiting[waiting.length - 1].x + waiting[waiting.length - 1].w - V > maxTail) {
+    const it = waiting.shift();
     it.el.remove();
     tk.items.splice(tk.items.indexOf(it), 1);
     tkRepack();
   }
 }
+const tkBase = () => Math.max(10, S.tickerSpeed) * U();
+const tkMax = () => tkBase() * (S.tickerBoost ? 2.5 : 1);
 // после удаления из очереди сдвигаем ждущих, чтобы не было дыры
 function tkRepack() {
   const V = tk.view.clientWidth, gap = S.size * U() * 1.6;
@@ -535,7 +539,17 @@ function tkStep() {
   const now = performance.now();
   const dt = Math.min(0.1, (now - tk.last) / 1000);
   tk.last = now;
-  const v = Math.max(10, S.tickerSpeed) * U();
+  const base = tkBase();
+  // Чат пишет быстрее ленты: разгоняемся по длине очереди (за ~4 с её съесть), но не больше чем в 2.5 раза,
+  // чат затих — плавно возвращаемся к обычной скорости
+  let want = base;
+  if (S.tickerBoost) {
+    const V = tk.view.clientWidth, lastIt = tk.items[tk.items.length - 1];
+    const tail = lastIt && !lastIt.idle ? lastIt.x + lastIt.w - V : 0;
+    if (tail > 0) want = Math.min(tkMax(), base + tail / 4);
+  }
+  tk.v = tk.v ? tk.v + (want - tk.v) * Math.min(1, dt * 1.5) : want;
+  const v = tk.v;
   for (let i = tk.items.length - 1; i >= 0; i--) {
     const it = tk.items[i];
     it.x -= v * dt;
