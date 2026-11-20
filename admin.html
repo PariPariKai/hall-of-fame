@@ -1434,7 +1434,7 @@ function ckForm() {
     <div class="ck-modes">${ChatKit.MODES.map(([id, label, hint]) =>
       `<button type="button" class="ck-mode${o.mode === id ? ' is-active' : ''}" data-ck-mode="${id}"><b>${esc(label)}</b><span>${esc(hint)}</span></button>`).join('')}</div>
     ${groups}
-    ${o.alerts && others.length ? `<p class="hint-inline" style="color:var(--gold);margin:-6px 0 12px">Алерты включены и в «${esc(others.join('», «'))}». Если оба стоят в OBS, анимации покажутся дважды.</p>` : ''}
+    ${o.alerts && others.length ? `<p class="hint-inline" style="margin:-6px 0 12px">Алерты включены и в «${esc(others.join('», «'))}». Дважды не покажутся: алерт рисует тот оверлей, что сейчас в эфире.</p>` : ''}
     <div class="row">
       <button type="button" class="btn btn--ghost" id="ck-dup">${icon('copy')}Копия</button>
       ${d.overlays.length > 1 ? `<button type="button" class="btn btn--danger" id="ck-del">${icon('x')}Удалить оверлей</button>` : ''}
@@ -1563,7 +1563,6 @@ function ckBind(sec, box) {
       const base = b.id === 'ck-dup' ? ckCur() : {};
       const o = Object.assign(ChatKit.overlay(base), base, { id: newId() });
       o.name = b.id === 'ck-dup' ? (ckCur().name || 'Оверлей') + ' (копия)' : 'Оверлей ' + (d.overlays.length + 1);
-      if (d.overlays.some(x => x.alerts)) o.alerts = false; // алерты обычно нужны в одном оверлее
       d.overlays.push(o);
       ck.sel = o.id;
       ckTabs(); ckForm(); ckObs(); ckDirty(); ckSend();

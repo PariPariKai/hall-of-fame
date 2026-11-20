@@ -257,7 +257,7 @@ const EMBED = qs.has('embed');            // предпросмотр в адм�
 const DEMO = qs.has('demo') || EMBED;     // ненастоящий чат
 // Версия страницы. Менять при каждой правке chat.html или chat-kit.js (и ?v= у chat-kit.js):
 // OBS держит копию страницы до 10 минут, а так оверлей сам замечает новую версию и перезагружается.
-const VERSION = '2026-11-20.3';
+const VERSION = '2026-11-20.4';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -601,7 +601,7 @@ function onEvent(id, base, n, extra) {
     if (S.highlights && ev.hl) pushChat(Object.assign({}, base, { cap: ChatKit.fill(ev.cap, vars), acc: ev.color, sys: !base.html }));
     else plain();
   }
-  if (S.alerts && ev.alert) {
+  if (S.alerts && ev.alert && alertMine()) {
     const hv = { msg: base.html || '' };
     queueAlert({ anim: ev.anim, color: ev.color, sound: ev.sound, dur: ev.dur,
       text: fillHTML(ev.text, vars, hv), sub: fillHTML(ev.sub, vars, hv), plainText: ChatKit.fill(ev.text, vars) });
@@ -609,6 +609,39 @@ function onEvent(id, base, n, extra) {
 }
 
 // ===================== алерты =====================
+// Несколько оверлеев с алертами в одном OBS: алерт рисует только один. Оверлеи перекликаются через
+// BroadcastChannel; приоритет у того, что сейчас в эфире (OBS сообщает obsSourceActiveChanged),
+// не в эфире — молчит. OBS ещё не сказал — средний приоритет. Ничего не слышно от других — показываем сами.
+const INST = Math.random().toString(36).slice(2, 10);
+let obsActive = null;
+let bc = null;
+const peers = new Map();
+const alertRank = () => (obsActive === true ? 2 : obsActive === false ? 0 : 1);
+function heartbeat() { if (bc) bc.postMessage({ inst: INST, alerts: !!S.alerts, rank: alertRank() }); }
+if (!DEMO && 'BroadcastChannel' in window) {
+  bc = new BroadcastChannel('chatkit-alerts');
+  bc.onmessage = e => {
+    const d = e.data;
+    if (!d || !d.inst || d.inst === INST) return;
+    if (d.bye) peers.delete(d.inst);
+    else peers.set(d.inst, { alerts: d.alerts, rank: d.rank, at: Date.now() });
+  };
+  setInterval(heartbeat, 2000);
+  addEventListener('pagehide', () => bc.postMessage({ inst: INST, bye: true }));
+}
+addEventListener('obsSourceActiveChanged', e => { obsActive = !!(e.detail && e.detail.active); heartbeat(); });
+function alertMine() {
+  if (!bc) return true;
+  const me = alertRank();
+  if (me === 0) return false;
+  const now = Date.now();
+  for (const [id, p] of peers) {
+    if (now - p.at > 5000) { peers.delete(id); continue; }
+    if (!p.alerts || p.rank === 0) continue;
+    if (p.rank > me || (p.rank === me && id < INST)) return false;
+  }
+  return true;
+}
 const alertQ = [];
 let alertOn = false;
 function queueAlert(a) {
