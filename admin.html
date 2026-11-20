@@ -199,6 +199,56 @@
   .wh-num .inp { flex: 0 0 auto; }
   .wh-num em { font-style: normal; font-size: 13px; color: var(--muted); }
 
+  /* Чат-оверлей: настройки слева, живой предпросмотр справа */
+  .ck-top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
+  .ck-grid { display: grid; grid-template-columns: 410px minmax(0, 1fr); gap: 22px; align-items: start; }
+  .ck-main { position: sticky; top: 66px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .ck-stage { position: relative; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: #000; }
+  .ck-stage iframe { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; border: 0; transform-origin: 0 0; }
+  .ck-tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .ck-tools .tabs__label { margin-right: 4px; }
+  .ck-tools .chip { padding: 5px 11px; font-size: 12.5px; }
+  .ck-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 14px; }
+  .ck-mode {
+    text-align: left; padding: 9px 12px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,255,255,0.02);
+    color: var(--text); cursor: pointer; font: inherit; transition: border-color .12s ease, background .12s ease;
+  }
+  .ck-mode:hover { border-color: rgba(var(--gold-rgb),0.4); }
+  .ck-mode b { display: block; font-size: 14px; margin-bottom: 2px; }
+  .ck-mode span { display: block; font-size: 11.5px; color: var(--muted); line-height: 1.35; }
+  .ck-mode.is-active { border-color: rgba(var(--gold-rgb),0.75); background: rgba(var(--gold-rgb),0.1); }
+  .ck-mode.is-active b { color: var(--gold); }
+  .ck-group { margin-bottom: 14px; }
+  .ck-group h3 { font-size: 11.5px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+  .ck-f { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .ck-f > span:first-child { flex: 0 0 130px; font-size: 13px; color: var(--muted); }
+  .ck-f input[type=range] { flex: 1; min-width: 0; accent-color: var(--gold); }
+  .ck-f output { flex: 0 0 auto; min-width: 58px; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .ck-f .inp { flex: 1; min-width: 0; padding-top: 7px; padding-bottom: 7px; }
+  .ck-f .check-line { min-height: 0; flex: 1; font-size: 13.5px; }
+  .ck-f em { font-style: normal; font-size: 12px; color: var(--dim); }
+  .ck-color { width: 44px; height: 32px; padding: 0 2px; border: 1px solid var(--line); border-radius: 8px; background: none; cursor: pointer; flex: 0 0 auto; }
+  .ck-area { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .ck-area .field span { font-size: 12px; color: var(--muted); }
+  .ck-events { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; }
+  .ck-ev {
+    display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-left: 4px solid var(--evc, var(--gold));
+    border-radius: 14px; background: rgba(255,255,255,0.02); min-width: 0;
+  }
+  .ck-ev.is-off > :not(.ck-ev__head) { opacity: .4; }
+  .ck-ev__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .ck-ev__head .check-line { min-height: 0; color: var(--text); font-weight: 600; font-size: 14.5px; }
+  .ck-ev__row { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+  .ck-ev__row .check-line { min-height: 0; font-size: 13px; }
+  .ck-ev .field span { font-size: 12px; color: var(--muted); }
+  .ck-ev .inp { padding-top: 7px; padding-bottom: 7px; }
+  .ck-ev__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ck-ev__vars { font-size: 11.5px; color: var(--dim); }
+  .ck-save { position: sticky; bottom: 10px; z-index: 5; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 18px;
+    padding: 10px 12px; border-radius: 14px; background: rgba(20,25,41,0.92); border: 1px solid var(--line); backdrop-filter: blur(6px); }
+  .ck-dirty { font-size: 13px; color: var(--gold); }
+  @media (max-width: 1000px) { .ck-grid { grid-template-columns: 1fr; } .ck-main { position: static; order: -1; } }
+
   @media (max-width: 900px) {
     .tonight { grid-template-columns: 1fr; }
     .item { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 4px 12px; }
@@ -220,6 +270,7 @@
 <body>
 <script src="site.js?v=17"></script>
 <script src="wheel-kit.js?v=3"></script>
+<script src="chat-kit.js?v=1"></script>
 
 <div class="wrap">
   <header class="header">
@@ -1240,6 +1291,264 @@ function screensPanel(sec, box) {
   });
 }
 
+// ===================== чат-оверлей (chat.html) =====================
+// data/chat.json: оверлеи (kind 'overlay', каждый — свой источник OBS chat.html?o=<id>) и события (kind 'event').
+// Значения по умолчанию и описание полей — в chat-kit.js (их же берёт оверлей). Правки сразу видны в предпросмотре,
+// в OBS — после «Сохранить» примерно через минуту.
+const chatSection = { id: 'chat', label: 'Чат', icon: 'message', group: 'Стрим', path: 'data/chat.json', form: true, panel: chatPanel };
+const ck = { draft: null, base: null, sel: null, dirty: false, bg: 'busy', root: null, frame: null, sendQ: 0 };
+
+function chatDraft() {
+  if (!ck.draft || ck.base !== files.chat) {
+    const r = ChatKit.read(files.chat.data);
+    if (!r.overlays.length) r.overlays.push(Object.assign(ChatKit.overlay({}), { id: 'main', name: 'Чат' }));
+    ck.draft = r;
+    ck.base = files.chat;
+    ck.dirty = false;
+    if (!r.overlays.some(o => o.id === ck.sel)) ck.sel = r.overlays[0].id;
+  }
+  return ck.draft;
+}
+const ckCur = () => chatDraft().overlays.find(o => o.id === ck.sel);
+function ckSend() {
+  cancelAnimationFrame(ck.sendQ);
+  ck.sendQ = requestAnimationFrame(() => {
+    const w = ck.frame && ck.frame.contentWindow;
+    if (w) w.postMessage({ type: 'chatkit:set', overlay: ckCur(), events: chatDraft().events }, location.origin);
+  });
+}
+function ckDirty() {
+  ck.dirty = true;
+  const d = ck.root && ck.root.querySelector('.ck-dirty');
+  if (d) d.hidden = false;
+}
+window.addEventListener('beforeunload', e => { if (ck.dirty) { e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('message', e => {
+  if (e.origin !== location.origin || !e.data || !ck.frame || e.source !== ck.frame.contentWindow) return;
+  if (e.data.type === 'chatkit:ready') ckSend();
+  if (e.data.type === 'chatkit:area') {
+    const o = ckCur();
+    Object.assign(o, e.data.area);
+    ['x', 'y', 'w', 'h'].forEach(k => { const el = ck.root.querySelector(`[data-ck="${k}"]`); if (el) el.value = o[k]; });
+    ckDirty();
+  }
+});
+
+function chatPanel(sec, box) {
+  $('panel-title').innerHTML = icon('message') + 'Чат на экране';
+  chatDraft();
+  // Каркас с предпросмотром строим один раз: iframe при перестройке перезагрузился бы
+  if (!box.querySelector('#ck-root')) {
+    box.innerHTML = `<div id="ck-root">
+      <div class="ck-top" id="ck-tabs"></div>
+      <div class="ck-grid">
+        <div id="ck-form"></div>
+        <div class="ck-main">
+          <div class="ck-stage" id="ck-stage"><iframe id="ck-frame" title="Предпросмотр чата" allow="autoplay"></iframe></div>
+          <div class="ck-tools"><span class="tabs__label">Проверить</span>${ChatKit.EVENTS.map(e =>
+            `<button type="button" class="chip" data-ck-test="${e.id}">${esc(e.short)}</button>`).join('')}</div>
+          <div class="ck-tools"><span class="tabs__label">Фон</span>${[['busy', 'Пёстрый'], ['dark', 'Тёмный'], ['light', 'Светлый']].map(([id, l]) =>
+            `<button type="button" class="chip${ck.bg === id ? ' is-active' : ''}" data-ck-bg="${id}">${l}</button>`).join('')}
+            <button type="button" class="chip" id="ck-clear">${icon('refresh')}Очистить</button></div>
+          <div class="quick" id="ck-obs"></div>
+          <p class="hint-inline">В предпросмотре чат ненастоящий. Рамку можно тащить мышкой и тянуть за углы. В OBS: Browser source 1920×1080 на весь экран.</p>
+        </div>
+      </div>
+      <div class="cfg-group" style="margin-top:26px"><h3>События чата <em class="hint-inline" style="text-transform:none;letter-spacing:0">— общие для всех оверлеев</em></h3>
+        <div class="ck-events" id="ck-events"></div></div>
+      <div class="ck-save">
+        <button type="button" class="btn btn--solid" id="ck-save">${icon('check')}Сохранить</button>
+        <span class="ck-dirty" hidden>Есть несохранённые правки</span>
+        <span class="hint-inline">В OBS подхватится примерно через минуту после сохранения.</span>
+      </div></div>`;
+    ck.root = box.querySelector('#ck-root');
+    ck.frame = box.querySelector('#ck-frame');
+    ck.frame.src = 'chat.html?embed&bg=' + ck.bg;
+    const stage = box.querySelector('#ck-stage');
+    new ResizeObserver(() => { ck.frame.style.transform = `scale(${stage.clientWidth / 1920})`; }).observe(stage);
+    ckBind(sec, box);
+  }
+  ck.root.querySelector('.ck-dirty').hidden = !ck.dirty;
+  ckTabs();
+  ckForm();
+  ckEvents();
+  ckObs();
+  ckSend();
+}
+
+function ckTabs() {
+  const d = chatDraft();
+  ck.root.querySelector('#ck-tabs').innerHTML = d.overlays.map(o =>
+    `<button type="button" class="chip${o.id === ck.sel ? ' is-active' : ''}" data-ck-sel="${esc(o.id)}">${esc(o.name || 'Без названия')}</button>`).join('') +
+    `<button type="button" class="chip" id="ck-add">${icon('plus')}Ещё оверлей</button>`;
+}
+
+function ckObs() {
+  const o = ckCur();
+  const saved = ChatKit.read(files.chat.data).overlays.some(x => x.id === o.id);
+  const url = new URL('chat.html?o=' + encodeURIComponent(o.id), location.href).href;
+  ck.root.querySelector('#ck-obs').innerHTML = saved
+    ? `<label class="field"><span>Ссылка для OBS</span><input class="inp" id="ck-url" value="${esc(url)}" readonly></label>
+       <button type="button" class="btn" id="ck-copy">${icon('copy')}Копировать</button>`
+    : '<p class="hint-inline">Ссылка для OBS появится после сохранения.</p>';
+}
+
+// Поле настройки по описанию из ChatKit.GROUPS
+function ckField(f, v) {
+  const k = `data-ck="${f.k}"`;
+  const label = `<span>${esc(f.label)}${f.hint ? ` <em>· ${esc(f.hint)}</em>` : ''}</span>`;
+  const out = val => (f.zero && Number(val) === 0 ? f.zero : val + ' ' + (f.unit || ''));
+  switch (f.type) {
+    case 'range': return `<label class="ck-f">${label}<input type="range" ${k} min="${f.min}" max="${f.max}" step="${f.step}" value="${esc(v)}"><output>${esc(out(v))}</output></label>`;
+    case 'select': return `<label class="ck-f">${label}<select class="inp" ${k}>${f.opts.map(([id, t]) =>
+      `<option value="${esc(id)}"${String(id) === String(v) ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`;
+    case 'bool': return `<div class="ck-f">${label}<label class="check-line"><input type="checkbox" ${k}${v ? ' checked' : ''}>${esc(f.on || '')}</label></div>`;
+    case 'color': return `<label class="ck-f">${label}<input type="color" class="ck-color" ${k} value="${esc(v)}"><em>${esc(v)}</em></label>`;
+    default: return `<label class="ck-f"${f.wide ? ' style="flex-wrap:wrap"' : ''}>${label}<input class="inp" ${k} value="${esc(v)}" placeholder="${esc(f.ph || '')}"${f.wide ? ' style="flex-basis:100%"' : ''}></label>`;
+  }
+}
+
+function ckForm() {
+  const o = ckCur();
+  const d = chatDraft();
+  const showIn = x => !x.modes || x.modes.includes(o.mode);
+  const groups = ChatKit.GROUPS.filter(showIn).map(g => {
+    if (g.area) {
+      return `<div class="ck-group"><h3>${esc(g.title)}, % экрана</h3><div class="ck-area">${g.fields.map(f =>
+        `<label class="field"><span>${esc(f.label)}</span><input class="inp" type="number" data-ck="${f.k}" min="${f.min}" max="${f.max}" step="${f.step}" value="${esc(o[f.k])}"></label>`).join('')}</div></div>`;
+    }
+    const fields = g.fields.filter(showIn);
+    return fields.length ? `<div class="ck-group"><h3>${esc(g.title)}</h3>${fields.map(f => ckField(f, o[f.k])).join('')}</div>` : '';
+  }).join('');
+  const others = d.overlays.filter(x => x.id !== o.id && x.alerts).map(x => x.name);
+  ck.root.querySelector('#ck-form').innerHTML = `
+    <div class="ck-group"><label class="field"><span>Название оверлея</span><input class="inp" data-ck="name" value="${esc(o.name)}" placeholder="Чат сбоку, Новости..."></label></div>
+    <div class="ck-modes">${ChatKit.MODES.map(([id, label, hint]) =>
+      `<button type="button" class="ck-mode${o.mode === id ? ' is-active' : ''}" data-ck-mode="${id}"><b>${esc(label)}</b><span>${esc(hint)}</span></button>`).join('')}</div>
+    ${groups}
+    ${o.alerts && others.length ? `<p class="hint-inline" style="color:var(--gold);margin:-6px 0 12px">Алерты включены и в «${esc(others.join('», «'))}». Если оба стоят в OBS, анимации покажутся дважды.</p>` : ''}
+    <div class="row">
+      <button type="button" class="btn btn--ghost" id="ck-dup">${icon('copy')}Копия</button>
+      ${d.overlays.length > 1 ? `<button type="button" class="btn btn--danger" id="ck-del">${icon('x')}Удалить оверлей</button>` : ''}
+    </div>`;
+}
+
+function ckEvents() {
+  const d = chatDraft();
+  const opt = (list, v) => list.map(([id, t]) => `<option value="${id}"${id === v ? ' selected' : ''}>${esc(t)}</option>`).join('');
+  ck.root.querySelector('#ck-events').innerHTML = ChatKit.EVENTS.map(e => {
+    const v = d.events[e.id];
+    const a = `data-ev="${e.id}"`;
+    const inp = (k, label, extra) => `<label class="field"><span>${label}</span><input class="inp" ${a} data-k="${k}" value="${esc(v[k])}"${extra || ''}></label>`;
+    return `<div class="ck-ev${v.on ? '' : ' is-off'}" style="--evc:${esc(v.color)}">
+      <div class="ck-ev__head"><label class="check-line"><input type="checkbox" ${a} data-k="on"${v.on ? ' checked' : ''}>${esc(e.label)}</label>
+        <button type="button" class="chip" data-ck-test="${e.id}">${icon('play')}Тест</button></div>
+      <div class="ck-ev__row">
+        <label class="check-line"><input type="checkbox" ${a} data-k="hl"${v.hl ? ' checked' : ''}>Выделить в чате</label>
+        <label class="check-line"><input type="checkbox" ${a} data-k="alert"${v.alert ? ' checked' : ''}>Алерт на экране</label>
+      </div>
+      ${inp('cap', 'Метка у сообщения')}
+      <div class="ck-ev__grid">${inp('text', 'Алерт: крупно')}${inp('sub', 'Алерт: строка ниже')}</div>
+      <div class="ck-ev__row">
+        <input type="color" class="ck-color" ${a} data-k="color" value="${esc(v.color)}" title="Цвет">
+        <select class="inp" ${a} data-k="anim" style="width:auto" title="Анимация">${opt(ChatKit.ANIMS, v.anim)}</select>
+        <select class="inp" ${a} data-k="sound" style="width:auto" title="Звук">${opt(ChatKit.SOUNDS, v.sound)}</select>
+        <label class="ck-f" style="border:0;min-height:0;padding:0;gap:6px"><input class="inp" type="number" ${a} data-k="dur" value="${esc(v.dur)}" min="2" max="30" step="1" style="width:62px" title="Сколько секунд"><em>сек</em></label>
+      </div>
+      ${e.minLabel ? `<label class="ck-f" style="border:0;min-height:0;padding:0"><span>${esc(e.minLabel)}</span><input class="inp" type="number" ${a} data-k="min" value="${esc(v.min)}" min="0" step="1" style="flex:0 0 90px"><em>ниже: как обычное сообщение</em></label>` : ''}
+      <div class="ck-ev__vars">Можно вставить: ${esc(e.vars)}</div>
+    </div>`;
+  }).join('');
+}
+
+// Тип значения берём из умолчаний: число, флажок или строка
+function ckValue(def, el) {
+  if (el.type === 'checkbox') return el.checked;
+  if (typeof def === 'number') { const n = parseFloat(el.value); return isFinite(n) ? n : def; }
+  return el.value;
+}
+
+function ckBind(sec, box) {
+  const root = ck.root;
+  root.addEventListener('input', e => {
+    const el = e.target;
+    if (el.dataset.ck) {
+      const o = ckCur(), k = el.dataset.ck;
+      o[k] = ckValue(k === 'name' ? '' : ChatKit.OVERLAY[k], el);
+      if (['x', 'y', 'w', 'h'].includes(k)) {
+        const lim = { x: [0, 100 - o.w], y: [0, 100 - o.h], w: [3, 100], h: [3, 100] }[k];
+        o[k] = Math.max(lim[0], Math.min(lim[1], o[k]));
+      }
+      const f = ChatKit.GROUPS.flatMap(g => g.fields).find(x => x.k === k);
+      const out = el.parentElement.querySelector('output');
+      if (out && f) out.textContent = f.zero && Number(o[k]) === 0 ? f.zero : o[k] + ' ' + (f.unit || '');
+      const em = el.type === 'color' && el.parentElement.querySelector('em');
+      if (em) em.textContent = el.value;
+      if (k === 'name') { const tab = root.querySelector(`[data-ck-sel="${CSS.escape(o.id)}"]`); if (tab) tab.textContent = o.name || 'Без названия'; }
+      ckDirty(); ckSend();
+    } else if (el.dataset.ev) {
+      const v = chatDraft().events[el.dataset.ev], k = el.dataset.k;
+      v[k] = ckValue(ChatKit.EVENT[el.dataset.ev].d[k], el);
+      const card = el.closest('.ck-ev');
+      if (k === 'on') card.classList.toggle('is-off', !v.on);
+      if (k === 'color') card.style.setProperty('--evc', v.color);
+      ckDirty(); ckSend();
+    }
+  });
+  root.addEventListener('click', async e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    const d = chatDraft();
+    if (b.dataset.ckSel) { ck.sel = b.dataset.ckSel; ckTabs(); ckForm(); ckObs(); ckSend(); }
+    else if (b.dataset.ckMode) {
+      const o = ckCur();
+      if (o.mode === b.dataset.ckMode) return;
+      o.mode = b.dataset.ckMode;
+      Object.assign(o, ChatKit.AREAS[o.mode]); // у каждого режима своё место на экране — дальше можно подвинуть
+      ckForm(); ckDirty(); ckSend();
+    } else if (b.dataset.ckTest) {
+      ck.frame.contentWindow.postMessage({ type: 'chatkit:test', event: b.dataset.ckTest }, location.origin);
+    } else if (b.dataset.ckBg) {
+      ck.bg = b.dataset.ckBg;
+      root.querySelectorAll('[data-ck-bg]').forEach(x => x.classList.toggle('is-active', x === b));
+      ck.frame.src = 'chat.html?embed&bg=' + ck.bg;
+    } else if (b.id === 'ck-clear') {
+      ck.frame.contentWindow.postMessage({ type: 'chatkit:clear' }, location.origin);
+    } else if (b.id === 'ck-add' || b.id === 'ck-dup') {
+      const base = b.id === 'ck-dup' ? ckCur() : {};
+      const o = Object.assign(ChatKit.overlay(base), base, { id: newId() });
+      o.name = b.id === 'ck-dup' ? (ckCur().name || 'Оверлей') + ' (копия)' : 'Оверлей ' + (d.overlays.length + 1);
+      if (d.overlays.some(x => x.alerts)) o.alerts = false; // алерты обычно нужны в одном оверлее
+      d.overlays.push(o);
+      ck.sel = o.id;
+      ckTabs(); ckForm(); ckObs(); ckDirty(); ckSend();
+    } else if (b.id === 'ck-del') {
+      const o = ckCur();
+      if (!confirm(`Удалить оверлей «${o.name}»?\nЕсли он стоит в OBS, там останется вид по умолчанию. Удаление случится после «Сохранить».`)) return;
+      d.overlays = d.overlays.filter(x => x !== o);
+      ck.sel = d.overlays[0].id;
+      ckTabs(); ckForm(); ckObs(); ckDirty(); ckSend();
+    } else if (b.id === 'ck-copy') {
+      const url = root.querySelector('#ck-url');
+      try { await navigator.clipboard.writeText(url.value); } catch (err) { url.select(); document.execCommand('copy'); }
+      b.innerHTML = icon('check') + 'Скопировано';
+    } else if (b.id === 'ck-save') {
+      if (!ck.dirty) return toast('Ничего не поменялось');
+      const items = d.overlays.map(o => {
+        const row = { id: o.id, kind: 'overlay' };
+        Object.keys(ChatKit.OVERLAY).concat(['x', 'y', 'w', 'h']).forEach(k => { row[k] = o[k]; });
+        return row;
+      }).concat(ChatKit.EVENTS.map(e => Object.assign({ id: 'ev-' + e.id, kind: 'event', event: e.id }, d.events[e.id])));
+      const names = d.overlays.map(o => o.name).join(', ');
+      const ok = await save(sec, 'настройки (' + names + ')', data => {
+        data.columns = ['id', 'kind', 'name', 'event'];
+        data.items = items;
+      }, b);
+      if (ok) { ck.dirty = false; ck.root.querySelector('.ck-dirty').hidden = true; }
+    }
+  });
+}
+
 // ===================== настройки рулеток (data/config.json, ключи wheel_* и picker_*) =====================
 // Значения по умолчанию — в wheel-kit.js (WheelKit.DEFAULTS): их же берут сами рулетки,
 // если поле пустое. Колёса читают настройки при открытии страницы.
@@ -1550,7 +1859,7 @@ const SECTIONS = [
   painSection,
   ticketsSection, viewersSection, winnersSection,
   prizesSection, friendsSection, scheduleSection, configSection, wheelsSection,
-  templatesSection, screensSection,
+  templatesSection, screensSection, chatSection,
 ];
 const SEC = Object.fromEntries(SECTIONS.map(s => [s.id, s]));
 let current = SECTIONS[0];
