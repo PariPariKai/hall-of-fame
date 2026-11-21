@@ -1454,6 +1454,8 @@ const CONFIG_GROUPS = [
   ['Стример', [['streamer_name', 'Имя (в меню и на главной)'], ['streamer_twitch_url', 'Ссылка на Twitch (канал для чата и рулеток)', 'url'], ['streamer_avatar_url', 'Аватарка', 'url'],
     ['streamer_timezone', 'Часовой пояс (время на сайте)', 'select', TIMEZONES], ['streamer_donate_url', 'Ссылка на донат', 'url'], ['streamer_steam_id', 'SteamID64 (часы в играх)'], ['streamer_intro', 'Приветствие на главной', 'textarea']]],
   ['Оформление', [['site_season', 'Сезонная тема', 'select', [['winter', 'Зима: лёд и снег'], ['', 'Без сезона']]]]],
+  // На сайт уходит только SHA-256 хэш кода; пустое поле — код не меняется
+  ['Доступ к рулеткам', [['streamer_code_hash', 'Новый код для рулеток, карточек и «Боли»', 'code']]],
   ['Розыгрыш', [['raffle_active', 'Розыгрыш идёт', 'bool'], ['raffle_title', 'Подпись таймера'], ['raffle_date', 'Дата розыгрыша', 'raffle'], ['tickets_banner_url', 'Баннер над билетами', 'url']]],
 ];
 const configSection = {
@@ -1471,6 +1473,8 @@ const configSection = {
         const opts = options.some(o => o[0] === v) ? options : options.concat([[v, v]]);
         return `<label class="field" style="flex:1 1 240px"><span>${esc(label)}</span><select class="inp" data-k="${k}">${opts.map(([val, text]) => `<option value="${esc(val)}"${val === v ? ' selected' : ''}>${esc(text)}</option>`).join('')}</select></label>`;
       }
+      if (type === 'code') return `<label class="field" style="flex:1 1 300px"><span>${esc(label)}</span><input class="inp" type="password" data-k="${k}" data-code="1" autocomplete="new-password" placeholder="${v ? 'код задан, впиши новый, чтобы сменить' : 'код не задан: вход только по токену'}"></label>
+        <p class="hint-inline" style="flex:1 1 100%">Верный код помнится в браузере. Сменишь код, и все браузеры и OBS спросят новый.</p>`;
       if (type === 'textarea') return `<label class="field" style="flex:1 1 100%"><span>${esc(label)}</span><textarea class="inp" data-k="${k}" rows="3">${esc(v)}</textarea></label>`;
       if (type === 'bool') return `<div class="field" style="flex:1 1 160px"><span>${esc(label)}</span><label class="check-line"><input type="checkbox" data-k="${k}"${truthy(v) ? ' checked' : ''}>Да</label></div>`;
       if (type === 'raffle') { // в Config дата розыгрыша — «YYYY-MM-DD HH:MM»
@@ -1485,10 +1489,19 @@ const configSection = {
       (Object.keys(c).some(k => !known.has(k)) ? `<div class="cfg-group"><h3>Прочее</h3><div class="row">${Object.keys(c).filter(k => !known.has(k)).map(k => input([k, k])).join('')}</div></div>` : '') +
       `<div class="cfg-group"><h3>Рулетки</h3><p class="hint-inline">Настройки всех рулеток — на вкладке <a href="#wheels" style="color:var(--gold)">«Рулетки»</a>.</p></div>` +
       `<div class="row"><button type="button" class="btn btn--solid" id="cfg-save">${icon('check')}Сохранить настройки</button></div>`;
-    $('cfg-save').addEventListener('click', e => {
+    $('cfg-save').addEventListener('click', async e => {
+      const btn = e.currentTarget;
       const vals = {};
+      for (const el of box.querySelectorAll('[data-code]')) {
+        const code = el.value.trim();
+        if (!code) continue;
+        if (code.length < 4) return toast('Код для рулеток: хотя бы 4 символа', true);
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(code));
+        vals[el.dataset.k] = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+      }
       box.querySelectorAll('[data-k]').forEach(el => {
         const k = el.dataset.k;
+        if (el.dataset.code) return;
         if (el.type === 'checkbox') vals[k] = el.checked ? 'TRUE' : 'FALSE';
         else if (el.dataset.part === 'd') vals[k] = el.value ? el.value + (box.querySelector(`[data-k="${k}"][data-part="t"]`).value ? ' ' + box.querySelector(`[data-k="${k}"][data-part="t"]`).value : '') : '';
         else if (el.dataset.part !== 't') vals[k] = el.value.trim();
@@ -1500,7 +1513,7 @@ const configSection = {
           const row = data.items.find(r => r.key === k);
           if (row) row.value = vals[k]; else data.items.push({ key: k, value: vals[k] });
         });
-      }, e.currentTarget);
+      }, btn);
     });
   },
 };

@@ -43,7 +43,7 @@ code{background:#ffffff10;padding:2px 6px;border-radius:6px;font-size:13px;overf
 <body>
 <main>
 <h1>Мост <span>боли</span></h1>
-<p>Работает в фоне на этом ПК и ловит донаты. Копилки, крутки и таймер — в <a href="https://pariparikai.github.io/hall-of-fame/admin.html#pain" target="_blank" rel="noopener">админке сайта</a>, здесь только подключение и правила.</p>
+<p>Работает в фоне на этом ПК и ловит донаты. Копилки, крутки и таймер — в <a id="siteAdmin" href="#" target="_blank" rel="noopener">админке сайта</a>, здесь только подключение и правила.</p>
 
 <section class="card">
   <div class="status" id="st-da"><span class="dot"></span><b>DonationAlerts</b><span class="text">Проверяю...</span>
@@ -67,6 +67,14 @@ code{background:#ffffff10;padding:2px 6px;border-radius:6px;font-size:13px;overf
       <span class="msg" id="keysMsg"></span>
     </div>
   </details>
+</section>
+
+<section class="card">
+  <h2>Сайт</h2>
+  <div class="grid">
+    <label>Адрес сайта (GitHub Pages)<input id="siteUrl" placeholder="https://ник.github.io/репозиторий/" autocomplete="off"></label>
+  </div>
+  <div class="actions"><button class="primary" id="saveSite">Сохранить</button><span class="msg" id="siteMsg"></span></div>
 </section>
 
 <section class="card">
@@ -103,6 +111,8 @@ async function loadConfig() {
   $('daClientId').value = c.donationAlerts.clientId;
   $('daClientSecret').placeholder = c.donationAlerts.hasSecret ? 'сохранён — впиши новый, чтобы заменить' : '';
   if (!c.donationAlerts.clientId || !c.donationAlerts.hasSecret) $('keys').open = true;
+  $('siteUrl').value = c.siteUrl || '';
+  $('siteAdmin').href = c.siteUrl ? c.siteUrl + 'admin.html#pain' : '#';   // мост хранит адрес со слешем на конце
   $('painPrice').value = c.painPrice; $('timePrice').value = c.timePrice;
   $('painTag').value = c.painTag; $('timeTag').value = c.timeTag;
   $('gameMinutes').value = c.gameMinutes.join(', '); $('extraMinutes').value = c.extraMinutes.join(', ');
@@ -122,6 +132,10 @@ $('saveRules').onclick = () => run('rulesMsg', async () => {
     timeTag: $('timeTag').value, gameMinutes: $('gameMinutes').value, extraMinutes: $('extraMinutes').value});
   await loadConfig();
 }, 'Правила сохранены.');
+$('saveSite').onclick = () => run('siteMsg', async () => {
+  await Bridge.api('/api/config', {siteUrl: $('siteUrl').value});
+  await loadConfig();
+}, 'Сохранено. Список игр и рулетка теперь берутся с этого сайта.');
 $('reconnect').onclick = () => Bridge.api('/api/reconnect', {});
 if (new URLSearchParams(location.search).get('da') === 'ok') { $('keys').open = true; msg('keysMsg', 'Вход в DonationAlerts выполнен.'); }
 loadConfig().catch(e => msg('keysMsg', e.message, true));

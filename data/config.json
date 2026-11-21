@@ -12,6 +12,7 @@
     {"key":"streamer_timezone","value":"Asia/Jerusalem"},
     {"key":"streamer_donate_url","value":"https://dalink.to/pariparikai"},
     {"key":"streamer_steam_id","value":"76561197995699569"},
+    {"key":"streamer_code_hash","value":"fc8ee83f14149d6acca42377fc006a9ed55198c380953f09067532fd5ee7fe09"},
     {"key":"site_season","value":"winter"},
     {"key":"schedule_sun","value":"17:00-22:00"},
     {"key":"schedule_mon","value":"17:00-22:00"},

@@ -143,24 +143,29 @@
   const isToken = s => /^(github_pat_|ghp_)/.test(s);
 
   // ===== Вход на страницы стримера (рулетки, карточки, «Боль») — один на все страницы =====
-  // Пускает по токену GitHub с правом записи или по коду стримера. В файле хранится только SHA-256 хэш кода.
-  // Верный код запоминается в этом браузере (OBS не спрашивает при каждом запуске).
-  // Сменить код: в консоли браузера
-  //   crypto.subtle.digest('SHA-256', new TextEncoder().encode('новый_код'))
-  //     .then(b => console.log([...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('')))
-  // и вставить результат в CODE_HASH.
-  const CODE_HASH = 'fc8ee83f14149d6acca42377fc006a9ed55198c380953f09067532fd5ee7fe09';
+  // Пускает по токену GitHub с правом записи или по коду стримера. Код задаётся в админке («Настройки» → «Доступ»),
+  // на сайте хранится только его SHA-256 хэш (ключ streamer_code_hash в data/config.json).
+  // Верный код запоминается в этом браузере (OBS не спрашивает при каждом запуске); сменили код — спросит заново.
+  // Кода в настройках нет — входят только по токену.
+  const CODE_HASH_FALLBACK = 'fc8ee83f14149d6acca42377fc006a9ed55198c380953f09067532fd5ee7fe09'; // до настройки в админке
   const CODE_KEY = 'hof-code';
   async function sha256Hex(str) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
-  function codeRemembered() {
+  async function codeHash() {
+    let c = null;
+    try { c = window.hof ? await hof.config({ fresh: true }) : null; } catch (e) { /* настройки не загрузились — запасной */ }
+    if (c && 'streamer_code_hash' in c) return String(c.streamer_code_hash || '').trim().toLowerCase();
+    return CODE_HASH_FALLBACK;
+  }
+  function codeRemembered(hash) {
+    if (!hash) return false;
     try {
-      if (localStorage.getItem(CODE_KEY) === CODE_HASH) return true;
+      if (localStorage.getItem(CODE_KEY) === hash) return true;
       // старые отметки: «Боль» помнила код в pain.code, карточки — до закрытия вкладки
-      if (localStorage.getItem('pain.code') === CODE_HASH || sessionStorage.getItem('ppk_cards_gate') === '1') {
-        localStorage.setItem(CODE_KEY, CODE_HASH);
+      if (localStorage.getItem('pain.code') === hash || sessionStorage.getItem('ppk_cards_gate') === '1') {
+        localStorage.setItem(CODE_KEY, hash);
         return true;
       }
     } catch (e) { /* без хранилища — спросим код */ }
@@ -181,8 +186,11 @@
       if (!ok) { entered = false; showGate(); }
       return ok;
     }
-    if (codeRemembered()) enter();
-    else hasAccess().then(ok => { if (ok) enter(); });
+    const hashReady = codeHash();
+    hashReady.then(hash => {
+      if (codeRemembered(hash)) enter();
+      else hasAccess().then(ok => { if (ok) enter(); });
+    });
     if (!form) return;
     form.addEventListener('submit', async e => {
       e.preventDefault();
@@ -193,7 +201,11 @@
       let ok;
       if (isToken(value)) ok = await hasAccess(value);
       else if (!crypto.subtle) { error.textContent = 'Проверка кода работает только по https: открой страницу по адресу сайта.'; ok = null; }
-      else if ((ok = await sha256Hex(value) === CODE_HASH)) { try { localStorage.setItem(CODE_KEY, CODE_HASH); } catch (e) { /* только до перезагрузки */ } }
+      else {
+        const hash = await hashReady;
+        if (!hash) { error.textContent = 'Код ещё не задан в админке. Вставь токен GitHub.'; ok = null; }
+        else if ((ok = await sha256Hex(value) === hash)) { try { localStorage.setItem(CODE_KEY, hash); } catch (e) { /* только до перезагрузки */ } }
+      }
       if (ok) ok = await enter();
       else if (ok === false) { error.textContent = isToken(value) ? 'GitHub не принял токен' : 'Неверный код'; input.value = ''; }
       if (button) button.disabled = false;

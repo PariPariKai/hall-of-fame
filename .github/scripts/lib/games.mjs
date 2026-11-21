@@ -2,7 +2,7 @@
 // Источники: Steam (поиск + appdetails на русском), запасной — Wikidata (Steam ID по названию),
 // последний — IGDB (нужны секреты репозитория TWITCH_CLIENT_ID и TWITCH_CLIENT_SECRET; без них пропускается).
 
-const UA = {'User-Agent': 'hall-of-fame-meta/1.0 (https://pariparikai.github.io/hall-of-fame/)'};
+const UA = {'User-Agent': `hall-of-fame-meta/1.0 (+https://github.com/${process.env.GITHUB_REPOSITORY || 'hall-of-fame'})`};
 const IGDB_ID = process.env.TWITCH_CLIENT_ID || '', IGDB_SECRET = process.env.TWITCH_CLIENT_SECRET || '';
 const IGDB_ON = !!(IGDB_ID && IGDB_SECRET);
 

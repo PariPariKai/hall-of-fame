@@ -65,8 +65,11 @@ const DEFAULT_CONFIG = {
   gameMinutes: [60, 240, 480],
   extraMinutes: [60, 240, 480],
   countTestDonations: false,
-  // Список игр «Боли» — data/pain.json на сайте (правится на admin.html). Старая ссылка на CSV таблицы тоже читается.
-  sheetCsv: 'https://pariparikai.github.io/hall-of-fame/data/pain.json?from=bridge',
+  // Адрес сайта (GitHub Pages) — отсюда мост берёт список игр «Боли», сюда отправляет /pain и только ему открывает API.
+  // Правится на localhost:3777/admin → «Сайт».
+  siteUrl: 'https://pariparikai.github.io/hall-of-fame/',
+  // Список игр «Боли»: пусто — data/pain.json на сайте из siteUrl. Старая ссылка на CSV таблицы тоже читается.
+  sheetCsv: '',
   donationAlerts: {clientId: '', clientSecret: ''},
   donatex: {token: ''},
 };
@@ -436,7 +439,9 @@ function parseCSV(text) {
 }
 async function loadGames() {
   try {
-    const res = await fetchWithTimeout(config.sheetCsv + '&cache=' + Date.now(), {cache: 'no-store'});
+    const src = painListUrl();
+    if (!src) throw new Error('Не задан адрес сайта (localhost:3777/admin → «Сайт»).');
+    const res = await fetchWithTimeout(src + (src.includes('?') ? '&' : '?') + 'cache=' + Date.now(), {cache: 'no-store'});
     if (!res.ok) throw new Error(`Список игр недоступен (HTTP ${res.status}).`);
     const text = await res.text();
     if (/^\s*</.test(text)) throw new Error('Вместо списка игр пришла веб-страница. Проверь ссылку на список.');
@@ -547,7 +552,10 @@ function readBody(req) {
 }
 const TYPES = {'.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.wav': 'audio/wav'};
 // Рулетка живёт на сайте (тот же дизайн, что у рулетки заказов); старая — запасной /pain-classic
-const SITE_PAIN = 'https://pariparikai.github.io/hall-of-fame/pain.html';
+// Адрес сайта из настроек: всегда со слешем на конце; пусто — сайта нет, работает только сам мост
+const siteUrl = () => { const u = String(config.siteUrl || '').trim(); return u ? u.replace(/\/*$/, '/') : ''; };
+const siteOrigin = () => { try { return new URL(siteUrl()).origin; } catch (_) { return ''; } };
+const painListUrl = () => config.sheetCsv || (siteUrl() ? siteUrl() + 'data/pain.json?from=bridge' : '');
 const PAGES = {'/pain-classic': 'pain.html', '/overlay': 'overlay.html', '/widget': 'widget.html', '/admin': 'admin.html'};
 function num(v, min, max) { const n = Number(v); if (!Number.isFinite(n) || n < min || n > max) throw new Error(`Число вне диапазона ${min}…${max}.`); return n; }
 function minutesList(v) {
@@ -602,7 +610,12 @@ const handlers = {
     if (body.gameMinutes !== undefined) next.gameMinutes = minutesList(body.gameMinutes);
     if (body.extraMinutes !== undefined) next.extraMinutes = minutesList(body.extraMinutes);
     if (body.countTestDonations !== undefined) next.countTestDonations = !!body.countTestDonations;
-    if (body.sheetCsv) next.sheetCsv = String(body.sheetCsv).trim();
+    if (body.sheetCsv !== undefined) next.sheetCsv = String(body.sheetCsv).trim();
+    if (body.siteUrl !== undefined) {
+      const u = String(body.siteUrl).trim();
+      if (u && !/^https?:\/\/[^/\s]+/i.test(u)) throw new Error('Адрес сайта должен начинаться с https://');
+      next.siteUrl = u ? u.replace(/\/*$/, '/') : '';
+    }
     if (body.daClientId !== undefined) next.donationAlerts.clientId = String(body.daClientId).trim();
     if (body.daClientSecret) next.donationAlerts.clientSecret = String(body.daClientSecret).trim();
     if (body.dxToken) next.donatex.token = String(body.dxToken).trim();
@@ -623,10 +636,9 @@ const handlers = {
 const MODS_FILE = path.join(DATA, 'mods.json');
 let mods = readJSON(MODS_FILE, {mods: [], updatedAt: 0});
 const modClients = new Set();
-const MODS_ORIGINS = ['https://pariparikai.github.io'];
 function modsCors(req) {
   const o = String(req.headers.origin || '');
-  if (MODS_ORIGINS.includes(o) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o)) return {'Access-Control-Allow-Origin': o, Vary: 'Origin'};
+  if ((o && o === siteOrigin()) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o)) return {'Access-Control-Allow-Origin': o, Vary: 'Origin'};
   return {};
 }
 function cleanMod(m) {
@@ -731,7 +743,9 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/pain')) {
       const q = new URLSearchParams(url.search);
       if (PORT !== 3777) q.set('bridge', `http://127.0.0.1:${PORT}`);
-      res.writeHead(302, {Location: SITE_PAIN + (String(q) ? '?' + String(q).replace(/=(&|$)/g, '$1') : '')});
+      // Адреса сайта нет — открываем рулетку самого моста
+      const target = siteUrl() ? siteUrl() + 'pain.html' : '/pain-classic';
+      res.writeHead(302, {Location: target + (String(q) ? '?' + String(q).replace(/=(&|$)/g, '$1') : '')});
       return res.end();
     }
     if (req.method === 'GET') {
