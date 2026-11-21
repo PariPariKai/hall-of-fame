@@ -1,0 +1,157 @@
+/* Стили страницы mods.html (раздел mods). Подключаются из mods.html. */
+:root {
+  --font: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --scale: 1.7; /* базовый размер плашки; ?scale=1.2 и т.п. задаёт свой */
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+/* 1rem = 16px на ширине 1920 — оверлей одинаково выглядит в любом размере источника */
+html { font-size: calc(100vw / 120 * var(--scale)); }
+html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
+body { font-family: var(--font); color: #fff; -webkit-font-smoothing: antialiased; }
+
+.stack {
+  position: absolute; display: flex; flex-direction: column; gap: 1.6rem;
+  width: 27rem; padding-top: 1rem;
+}
+.stack--tr { top: 2.4rem; right: 2.4rem; align-items: flex-end; }
+.stack--tl { top: 2.4rem; left: 2.4rem; }
+.stack--br { bottom: 2.4rem; right: 2.4rem; flex-direction: column-reverse; }
+.stack--bl { bottom: 2.4rem; left: 2.4rem; flex-direction: column-reverse; }
+.stack--tc { top: 2.4rem; left: 50%; transform: translateX(-50%); width: 34rem; }
+
+/* ---------- карточка ---------- */
+.mod {
+  --rc: #FAC775;
+  --rc-a: color-mix(in srgb, var(--rc) 55%, transparent);
+  --rc-b: color-mix(in srgb, var(--rc) 22%, transparent);
+  position: relative; width: 100%;
+  padding: 1.9rem 1.7rem 1.35rem;
+  border-radius: .9rem;
+  border: .14rem solid var(--rc-a);
+  background:
+    radial-gradient(120% 80% at 50% -10%, var(--rc-b), transparent 60%),
+    linear-gradient(180deg, rgba(16, 21, 38, .92), rgba(9, 12, 24, .94));
+  box-shadow:
+    0 0 1.6rem color-mix(in srgb, var(--rc) 30%, transparent),
+    0 .6rem 2rem rgba(0, 0, 0, .55),
+    inset 0 0 1.4rem color-mix(in srgb, var(--rc) 10%, transparent);
+  animation: mod-in .9s cubic-bezier(.2, 1.2, .3, 1) both;
+}
+.stack--tl .mod, .stack--bl .mod { animation-name: mod-in-l; }
+.stack--tc .mod { animation-name: mod-in-t; }
+
+/* внутренняя тонкая рамка */
+.mod::before {
+  content: ""; position: absolute; inset: .42rem; border-radius: .55rem; pointer-events: none;
+  border: .07rem solid color-mix(in srgb, var(--rc) 35%, transparent);
+}
+/* блик, пробегающий при появлении */
+.mod__shine {
+  position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none;
+}
+.mod__shine::after {
+  content: ""; position: absolute; top: -20%; bottom: -20%; width: 35%; left: -60%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .22), transparent);
+  transform: skewX(-18deg);
+  animation: shine 1.3s .55s ease-out both;
+}
+
+/* ромбики по углам */
+.mod__c {
+  position: absolute; width: .8rem; height: .8rem; transform: rotate(45deg);
+  background: var(--rc); box-shadow: 0 0 .7rem var(--rc);
+  border: .12rem solid rgba(9, 12, 24, .95);
+}
+.mod__c--tl { top: -.42rem; left: -.42rem; }
+.mod__c--tr { top: -.42rem; right: -.42rem; }
+.mod__c--bl { bottom: -.42rem; left: -.42rem; }
+.mod__c--br { bottom: -.42rem; right: -.42rem; }
+
+/* табличка на верхней кромке */
+.mod__plate {
+  position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%);
+  display: flex; align-items: center; gap: .55rem; white-space: nowrap;
+  padding: .34rem 1.15rem .38rem;
+  background: linear-gradient(180deg, #1a2140, #0d1124);
+  border: .12rem solid var(--rc-a); border-radius: 2rem;
+  font-size: .78rem; font-weight: 600; letter-spacing: .28em; text-transform: uppercase;
+  color: var(--rc); text-shadow: 0 0 .8rem var(--rc-a);
+  box-shadow: 0 0 1rem color-mix(in srgb, var(--rc) 25%, transparent);
+}
+.mod__plate i {
+  width: .38rem; height: .38rem; transform: rotate(45deg); background: currentColor; flex: 0 0 auto;
+}
+
+.mod__text {
+  font-size: 1.55rem; line-height: 1.28; font-weight: 600; text-align: center;
+  text-wrap: balance; word-break: break-word;
+  text-shadow: 0 .1rem .6rem rgba(0, 0, 0, .6);
+}
+
+.mod__foot {
+  display: flex; align-items: center; justify-content: center; gap: .9rem;
+  margin-top: .95rem; font-size: .8rem; letter-spacing: .14em; text-transform: uppercase;
+  color: rgba(255, 255, 255, .55);
+}
+.mod__foot b { color: var(--rc); font-weight: 600; }
+.mod__foot span + span::before { content: "·"; margin-right: .9rem; color: rgba(255, 255, 255, .3); }
+
+/* таймер */
+.mod__timer { display: flex; align-items: center; gap: .9rem; margin-top: 1rem; }
+.mod__time {
+  flex: 0 0 auto; min-width: 5.2rem; text-align: right;
+  font-size: 1.7rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .02em;
+  color: #fff; text-shadow: 0 0 .9rem var(--rc-a);
+}
+.mod__bar {
+  position: relative; flex: 1 1 auto; height: .55rem; border-radius: 1rem;
+  background: rgba(255, 255, 255, .08); overflow: hidden;
+  box-shadow: inset 0 0 0 .06rem rgba(255, 255, 255, .06);
+}
+.mod__bar i {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 100%; border-radius: inherit;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--rc) 60%, #000), var(--rc));
+  box-shadow: 0 0 .7rem var(--rc);
+  transition: width .5s linear;
+}
+
+/* другие награды с таймером (наказания, хаос...) — серая плашка, скромнее модификатора */
+.mod--plain {
+  --rc: #A3AAB8;
+  --rc-a: rgba(163, 170, 184, .45);
+  --rc-b: rgba(163, 170, 184, .1);
+  padding: 1.6rem 1.5rem 1.15rem;
+  background: linear-gradient(180deg, rgba(34, 37, 45, .92), rgba(20, 22, 28, .94));
+  box-shadow: 0 .6rem 2rem rgba(0, 0, 0, .55), inset 0 0 1.2rem rgba(255, 255, 255, .03);
+}
+.mod--plain .mod__shine { display: none; }
+.mod--plain .mod__c { box-shadow: none; width: .6rem; height: .6rem; }
+.mod--plain .mod__c--tl, .mod--plain .mod__c--tr { top: -.32rem; }
+.mod--plain .mod__c--bl, .mod--plain .mod__c--br { bottom: -.32rem; }
+.mod--plain .mod__c--tl, .mod--plain .mod__c--bl { left: -.32rem; }
+.mod--plain .mod__c--tr, .mod--plain .mod__c--br { right: -.32rem; }
+.mod--plain .mod__plate { background: linear-gradient(180deg, #2a2e38, #1a1d24); text-shadow: none; box-shadow: none; }
+.mod--plain .mod__text { font-size: 1.3rem; }
+.mod--plain .mod__time { font-size: 1.45rem; text-shadow: none; }
+.mod--plain .mod__bar i { background: linear-gradient(90deg, #5d6370, #B9C0CD); box-shadow: none; }
+.mod--plain .mod__foot b { color: var(--rar, var(--rc)); }
+
+.mod.is-hurry .mod__time { color: #FF8A80; animation: hurry 1s ease-in-out infinite; }
+.mod.is-hurry .mod__bar i { background: linear-gradient(90deg, #8a2a25, #FF6B5E); box-shadow: 0 0 .8rem #FF6B5E; }
+.mod.is-over { animation: over-flash .9s ease-out both; }
+.mod.is-over .mod__time { font-size: 1.05rem; letter-spacing: .2em; text-transform: uppercase; color: rgba(255, 255, 255, .8); text-shadow: none; animation: none; min-width: 0; }
+.mod.is-over .mod__bar { display: none; }
+.mod.is-over .mod__timer { justify-content: center; }
+.mod.is-out { animation: mod-out .7s ease-in both; position: absolute; z-index: 0; }
+.mod { z-index: 1; }
+
+@keyframes mod-in   { from { opacity: 0; transform: translateX(115%) scale(.92); } to { opacity: 1; transform: none; } }
+@keyframes mod-in-l { from { opacity: 0; transform: translateX(-115%) scale(.92); } to { opacity: 1; transform: none; } }
+@keyframes mod-in-t { from { opacity: 0; transform: translateY(-60%) scale(.92); } to { opacity: 1; transform: none; } }
+@keyframes mod-out  { to { opacity: 0; transform: scale(.9); filter: blur(.2rem); } }
+@keyframes shine    { from { left: -60%; } to { left: 130%; } }
+@keyframes hurry    { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+@keyframes over-flash {
+  0% { box-shadow: 0 0 3.5rem var(--rc), 0 .6rem 2rem rgba(0,0,0,.55); }
+  100% { box-shadow: 0 0 1.6rem color-mix(in srgb, var(--rc) 30%, transparent), 0 .6rem 2rem rgba(0,0,0,.55); }
+}

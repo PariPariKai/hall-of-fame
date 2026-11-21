@@ -1,0 +1,864 @@
+// Код страницы court.html (раздел court). Подключается из court.html.
+(function () {
+'use strict';
+const PATH = 'data/punishments.json';
+const CHANNEL = siteProfile.channel; // канал — из профиля (админка → «Настройки»)
+const BOTS = ['nightbot', 'streamelements', 'moobot', 'wizebot', 'streamlabs', 'fossabot', 'sery_bot', 'commanderroot'];
+const { OUTCOMES, LEVELS, SECTORS, MAX_LEVEL, esc } = court;
+const $ = id => document.getElementById(id);
+
+let rules = [];
+let file = null;            // { sha, data: {columns, items} } — data/punishments.json
+const pick = { nick: '', rule: null, repeat: false, repeatAuto: '' };
+let spinning = false, verdictShown = false;
+
+let toastTimer = 0;
+function toast(text, err) {
+  const t = $('toast');
+  t.className = 'toast is-on' + (err ? ' toast--err' : '');
+  t.innerHTML = icon(err ? 'alert' : 'check') + '<span>' + esc(text) + '</span>';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('is-on'), err ? 7000 : 4000);
+}
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch (e) { return false; }
+}
+const items = () => file ? file.data.items : [];
+const level = () => pick.rule ? Math.min(MAX_LEVEL, pick.rule.level + (pick.repeat ? 1 : 0)) : 0;
+const newId = () => Array.from(crypto.getRandomValues(new Uint8Array(4)), b => b.toString(16).padStart(2, '0')).join('');
+const rand = n => crypto.getRandomValues(new Uint32Array(1))[0] % n;
+
+// ===================== чат Twitch: кто пишет и кому дали мут =====================
+const chatters = new Map(); // login → { name, last } — кто писал в чат: для подсказок в поле ника и красивого написания ника
+const jailed = new Map();   // login → { name, dur, at } — кому дали мут или бан в чате (это и есть кнопки под полем)
+const PURGE = 60;           // мут короче минуты — это чистка сообщений или снятие мута (Twitch шлёт его как мут на 1 с), не дело
+// История чата за сутки (сервис recent-messages, им же пользуется Chatterino): кто писал и кого мутили ещё до открытия
+// страницы. Сервис слушает канал, пока к нему обращаются хотя бы раз в сутки — заставка screen.html заглядывает туда на старте стрима.
+const HISTORY = 'https://recent-messages.robotty.de/api/v2/recent-messages/' + CHANNEL;
+const JAIL_FRESH = 6 * 3600e3;   // муты из истории — только за последние 6 часов, вчерашний стрим не в счёт
+async function loadHistory(retries) {
+  try {
+    const res = await fetch(HISTORY + '?limit=800');
+    const j = await res.json();
+    (j.messages || []).forEach(line => onIrc(line, true));
+    renderChatters();
+    // Сервис только что начал слушать канал — истории ещё нет, заглянем позже
+    if (j.error_code === 'channel_not_joined' && retries) setTimeout(() => loadHistory(retries - 1), 30000);
+  } catch (e) { console.warn('История чата не загрузилась', e); }
+}
+let connState = { state: 'off', text: 'Чат: не подключён' };
+let hot = '';               // кому только что дали мут/бан в чате
+let ws = null, wsDelay = 1000;
+function connectChat() {
+  setConn('connecting', 'Чат: подключаюсь…');
+  ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
+  ws.onopen = () => {
+    ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands');
+    ws.send('NICK justinfan' + (10000 + rand(80000)));
+    ws.send('JOIN #' + CHANNEL);
+  };
+  ws.onmessage = ev => ev.data.split('\r\n').forEach(line => line && onIrc(line));
+  ws.onclose = () => {
+    setConn('connecting', 'Чат: переподключаюсь…');
+    setTimeout(connectChat, wsDelay);
+    wsDelay = Math.min(wsDelay * 2, 15000);
+  };
+}
+function onIrc(line, past) {
+  if (line.startsWith('PING')) { if (!past) ws.send('PONG :tmi.twitch.tv'); return; }
+  let tags = {};
+  if (line[0] === '@') {
+    const sp = line.indexOf(' ');
+    line.slice(1, sp).split(';').forEach(p => { const i = p.indexOf('='); tags[p.slice(0, i)] = p.slice(i + 1); });
+    line = line.slice(sp + 1);
+  }
+  const m = line.match(/^(?::(\S+) )?(\S+)(?: (.*))?$/);
+  if (!m) return;
+  const [, prefix = '', cmd, params = ''] = m;
+  const ts = past ? +tags['tmi-sent-ts'] || +tags['rm-received-ts'] || 0 : Date.now();
+  if (past && cmd !== 'PRIVMSG' && cmd !== 'CLEARCHAT') return;
+  if (cmd === '001') { setConn('online', 'Чат #' + CHANNEL); wsDelay = 1000; return; }
+  if (cmd === 'RECONNECT') { ws.close(); return; }
+  if (cmd === 'PRIVMSG') {
+    const login = prefix.split('!')[0].toLowerCase();
+    if (login === CHANNEL || BOTS.includes(login)) return;
+    if ((chatters.get(login) || {}).last >= ts) return;
+    chatters.set(login, { name: tags['display-name'] || login, last: ts });
+    if (!past) renderChatters();
+  }
+  // Мут или бан в чате: сразу заводим дело на этого зрителя
+  if (cmd === 'CLEARCHAT') {
+    const login = (params.split(' :')[1] || '').trim().toLowerCase();
+    const dur = +tags['ban-duration'];
+    if (!login || (dur && dur < PURGE)) return;
+    const name = (chatters.get(login) || {}).name || login;
+    if (past) {   // из истории — просто в список, без тоста и без подстановки ника
+      if (Date.now() - ts < JAIL_FRESH && !((jailed.get(login) || {}).at >= ts)) jailed.set(login, { name, dur, at: ts });
+      return;
+    }
+    jailed.set(login, { name, dur, at: ts });
+    if (spinning || verdictShown) { renderChatters(); return; }
+    hot = login;
+    renderChatters();
+    setNick(name);
+    toast(dur ? `${name} получил мут в чате (${Math.round(dur / 60)} мин) — дело заведено` : `${name} забанен в чате — дело заведено`);
+  }
+}
+function setConn(state, text) {
+  connState = { state, text };
+  renderChatters();
+}
+const term = d => !d ? 'бан' : d < 3600 ? Math.round(d / 60) + ' мин' : d < 86400 ? Math.round(d / 3600) + ' ч' : Math.round(d / 86400) + ' дн';
+const ago = ms => ms < 60e3 ? 'только что' : ms < 3600e3 ? Math.round(ms / 60e3) + ' мин назад' : Math.round(ms / 3600e3) + ' ч назад';
+function renderChatters() {
+  const recent = [...jailed.entries()].sort((a, b) => b[1].at - a[1].at).slice(0, 10);
+  $('chatters').innerHTML = `<span class="conn ${connState.state === 'online' ? 'is-online' : connState.state === 'connecting' ? 'is-connecting' : ''}"><i></i>${esc(connState.text)}</span>` +
+    (recent.length ? recent.map(([login, u]) => `<button type="button" class="chip chatter${login === hot ? ' is-hot' : ''}" data-nick="${esc(u.name)}"${spinning ? ' disabled' : ''}>${esc(u.name)}<small>${term(u.dur)}</small></button>`).join('')
+      : connState.state === 'online' ? '<span class="chat-empty">мутов пока не было</span>' : '');
+  if (!$('suggest').hidden) renderSuggest();
+}
+$('chatters').addEventListener('click', e => {
+  const b = e.target.closest('[data-nick]');
+  if (b && !spinning) setNick(b.dataset.nick);
+});
+// ---------- подсказки в поле ника: замученные в чате, писавшие в чат, бывшие подсудимые ----------
+let sugList = [], sugOn = -1;
+function suggestions(q) {
+  const now = Date.now(), all = new Map();   // login → { name, tag, score, jail }
+  const add = (login, c) => { const o = all.get(login); if (!o || o.score < c.score) all.set(login, c); };
+  const cases = new Map();
+  items().forEach(it => { const l = it.nick.toLowerCase(); cases.set(l, { name: it.nick, n: ((cases.get(l) || {}).n || 0) + 1 }); });
+  cases.forEach((c, l) => add(l, { name: c.name, tag: 'приговоров: ' + c.n, score: 1 }));
+  chatters.forEach((u, l) => add(l, { name: u.name, tag: 'писал ' + ago(now - u.last), score: 2 + u.last / 1e14 }));
+  jailed.forEach((u, l) => add(l, { name: u.name, tag: (u.dur ? 'мут ' + term(u.dur) : 'бан') + ', ' + ago(now - u.at), score: 3 + u.at / 1e14, jail: true }));
+  q = q.toLowerCase();
+  return [...all.entries()]
+    .filter(([l, c]) => !q || l.includes(q) || c.name.toLowerCase().includes(q))
+    .map(([l, c]) => Object.assign(c, { score: c.score + (q && (l.startsWith(q) || c.name.toLowerCase().startsWith(q)) ? 10 : 0) }))
+    .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
+    .slice(0, 8);
+}
+function renderSuggest() {
+  const q = $('nick').value.trim();
+  sugList = suggestions(q);
+  // Ник уже введён полностью и совпал с единственной подсказкой — список не нужен
+  if (sugList.length === 1 && sugList[0].name.toLowerCase() === q.toLowerCase()) sugList = [];
+  sugOn = Math.min(sugOn, sugList.length - 1);
+  const box = $('suggest');
+  box.innerHTML = sugList.map((c, i) => `<button type="button" class="suggest__item${c.jail ? ' is-jail' : ''}${i === sugOn ? ' is-on' : ''}" role="option" data-i="${i}" tabindex="-1">${esc(c.name)}<small>${esc(c.tag)}</small></button>`).join('') ||
+    (q ? '' : `<div class="suggest__empty">${chatters.size ? '' : 'В чате пока тихо — '}введи ник вручную</div>`);
+  box.hidden = !box.innerHTML;
+  $('nick').setAttribute('aria-expanded', String(!box.hidden));
+}
+function hideSuggest() { $('suggest').hidden = true; sugOn = -1; $('nick').setAttribute('aria-expanded', 'false'); }
+$('nick').addEventListener('focus', () => { sugOn = -1; renderSuggest(); });
+$('nick').addEventListener('blur', hideSuggest);
+$('nick').addEventListener('keydown', e => {
+  if ($('suggest').hidden || !sugList.length) return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    const n = sugList.length;
+    sugOn = e.key === 'ArrowDown' ? (sugOn + 1) % n : (sugOn <= 0 ? n : sugOn) - 1;
+    renderSuggest();
+  } else if (e.key === 'Enter' && sugOn >= 0) {
+    e.preventDefault();
+    setNick(sugList[sugOn].name);
+    hideSuggest();
+  } else if (e.key === 'Escape') hideSuggest();
+});
+// mousedown, а не click: иначе поле теряет фокус и список пропадает раньше, чем сработает выбор
+$('suggest').addEventListener('mousedown', e => {
+  e.preventDefault();
+  const b = e.target.closest('[data-i]');
+  if (b) { setNick(sugList[+b.dataset.i].name); hideSuggest(); }
+});
+
+// ===================== дело: подсудимый, статья, рецидив =====================
+function setNick(name) {
+  $('nick').value = name;
+  onNick();
+}
+function onNick() {
+  pick.nick = $('nick').value.trim();
+  // Рецидив отмечается сам, когда ник сменился; дальше — как решит стример
+  if (pick.repeatAuto !== pick.nick.toLowerCase()) {
+    pick.repeatAuto = pick.nick.toLowerCase();
+    pick.repeat = !!pick.nick && court.isRepeat(items(), pick.nick);
+  }
+  if (verdictShown) closeVerdict();
+  renderRecord();
+  renderCharge();
+}
+$('nick').addEventListener('input', () => { onNick(); sugOn = -1; renderSuggest(); });
+
+function renderRecord() {
+  const box = $('record');
+  if (!pick.nick) { box.innerHTML = ''; return; }
+  const past = court.record(items(), pick.nick);
+  if (!past.length) { box.innerHTML = 'Чистая биография — раньше не попадался.'; return; }
+  const last = past[0];
+  box.innerHTML = `Ранее: <b>${past.length}</b> ${plural(past.length, 'приговор', 'приговора', 'приговоров')}. Последний — <span class="tz">${esc(court.when(last.at))}</span>,
+    ${court.sentence(last)} за «${esc(last.rule_title)}».
+    <label class="repeat"><input type="checkbox" id="repeat"${pick.repeat ? ' checked' : ''}${spinning ? ' disabled' : ''}>
+    <span><b>Рецидив</b> — статья на ступень тяжелее${court.isRepeat(items(), pick.nick) ? ` (попался снова за ${court.REPEAT_DAYS} дней)` : ''}</span></label>`;
+  $('repeat').addEventListener('change', e => { pick.repeat = e.target.checked; if (verdictShown) closeVerdict(); renderCharge(); });
+}
+
+function renderArticles() {
+  $('rules-edit').hidden = !!draft;
+  $('rules-edit').disabled = spinning;
+  if (draft) { $('article-hint').innerHTML = ''; renderEditor(); return; }
+  const groups = [];
+  for (let l = 1; l <= MAX_LEVEL; l++) {
+    const list = rules.filter(r => r.level === l);
+    if (!list.length) continue;
+    groups.push(`<div class="articles__group">${court.levelBadge(l)}<div class="articles__list">${list.map(r =>
+      `<button type="button" class="article lvl--${l}${pick.rule === r ? ' is-on' : ''}" data-id="${esc(r.id)}" title="${esc(r.title)}"${spinning ? ' disabled' : ''}>${esc(r.article)}</button>`).join('')}</div></div>`);
+  }
+  $('articles').innerHTML = groups.join('') || '<p class="panel__note">Статей нет — проверь data/rules.json.</p>';
+  // Под списком — что говорит памятка по выбранной статье (или текст правила, если в памятке её нет)
+  const r = pick.rule;
+  let memo = null;
+  document.querySelectorAll('#hood-list li').forEach(li => {
+    const on = !!r && li.dataset.rules.split(' ').includes(r.id);
+    li.classList.toggle('is-on', on);
+    if (on) memo = li;
+  });
+  $('article-hint').innerHTML = !r ? '' : memo
+    ? `<p class="article-hint lvl--${r.level}"><b>Памятка:</b> ${esc(memo.querySelector('span').textContent)}</p>`
+    : r.text ? `<p class="article-hint lvl--${r.level}"><b>${esc(r.title)}.</b> ${esc(r.text)}</p>` : '';
+}
+// Памятка помнит, развёрнута ли она
+try { $('hood').open = localStorage.getItem('court-hood') === '1'; } catch (e) { /* без хранилища — свёрнута */ }
+$('hood').addEventListener('toggle', () => { try { localStorage.setItem('court-hood', $('hood').open ? '1' : ''); } catch (e) { /* ничего */ } });
+$('articles').addEventListener('click', e => {
+  const b = e.target.closest('.article');
+  if (!b || spinning) return;
+  const r = rules.find(x => x.id === b.dataset.id);
+  pick.rule = pick.rule === r ? null : r;
+  if (verdictShown) closeVerdict();
+  renderArticles();
+  renderCharge();
+});
+
+// ===================== правка статей (data/rules.json) =====================
+const RULES_PATH = 'data/rules.json';
+let rulesFile = null;  // { sha, data }
+let draft = null;      // черновик правки: [{ id, level, article, title, text, hidden }] или null
+const levelOptions = sel => Array.from({ length: MAX_LEVEL }, (_, i) => i + 1)
+  .map(l => `<option value="${l}"${l === sel ? ' selected' : ''}>${l} · ${esc(LEVELS[l].name)}</option>`).join('');
+function renderEditor() {
+  $('articles').innerHTML = `<div class="redit">${draft.map((r, i) => `<div class="redit__row lvl--${r.level}" data-i="${i}">
+      <select class="inp" data-f="level" aria-label="Тяжесть">${levelOptions(r.level)}</select>
+      <label class="redit__only" title="Статья есть на суде, но не показывается в правилах на сайте"><input type="checkbox" data-f="hidden"${r.hidden ? ' checked' : ''}>только суд</label>
+      <input class="inp" data-f="article" value="${esc(r.article)}" maxlength="60" placeholder="Статья на суде — коротко: «Флуд, спам»" aria-label="Статья">
+      <input class="inp" data-f="title" value="${esc(r.title)}" maxlength="60" placeholder="Правило для зрителей: «Не флуди и не спамь»" aria-label="Правило">
+      <button type="button" class="btn btn--sm btn--danger" data-del title="Удалить статью">${icon('x')}</button>
+      <textarea class="inp redit__text" data-f="text" rows="4" maxlength="600" placeholder="Текст правила — его видят зрители на странице правил" aria-label="Пояснение">${esc(r.text)}</textarea>
+    </div>`).join('') || '<p class="panel__note">Статей не осталось. Добавь хотя бы одну.</p>'}</div>
+    <div class="row redit__foot">
+      <button type="button" class="btn btn--ghost" id="redit-add">${icon('plus')}Статья</button>
+      <div><button type="button" class="btn btn--ghost" id="redit-cancel">Отмена</button>
+        <button type="button" class="btn btn--solid" id="redit-save">${icon('check')}Сохранить</button></div>
+    </div>`;
+}
+$('rules-edit').addEventListener('click', () => {
+  if (spinning) return;
+  draft = rules.map(r => ({ id: r.id, level: r.level, article: r.article || '', title: r.title || '', text: r.text || '', hidden: r.hidden === '1' }));
+  renderArticles();
+  renderCharge();
+});
+$('articles').addEventListener('input', e => {
+  const row = e.target.closest('.redit__row');
+  if (!row || !draft) return;
+  const r = draft[+row.dataset.i], f = e.target.dataset.f;
+  r[f] = f === 'level' ? +e.target.value : f === 'hidden' ? e.target.checked : e.target.value;
+  if (f === 'level') row.className = 'redit__row lvl--' + r.level;
+});
+$('articles').addEventListener('click', e => {
+  if (!draft) return;
+  const del = e.target.closest('[data-del]');
+  if (del) {
+    const i = +del.closest('.redit__row').dataset.i;
+    const name = (draft[i].article || draft[i].title).trim();
+    if (name && !confirm(`Удалить статью «${name}»?\nПрошлые приговоры по ней останутся в истории.`)) return;
+    draft.splice(i, 1);
+    renderEditor();
+  } else if (e.target.closest('#redit-add')) {
+    draft.push({ id: newId(), level: 2, article: '', title: '', text: '', hidden: false });
+    renderEditor();
+    $('articles').querySelector('.redit__row:last-child [data-f="article"]').focus();
+  } else if (e.target.closest('#redit-cancel')) {
+    draft = null;
+    renderArticles();
+    renderCharge();
+  } else if (e.target.closest('#redit-save')) saveRules(e.target.closest('#redit-save'));
+});
+async function saveRules(btn) {
+  // По ступеням, от лёгкого к тяжёлому — так их и нумерует страница правил
+  const list = draft.map(r => ({ id: r.id, level: r.level, article: r.article.trim(), title: r.title.trim(), text: r.text.trim(), hidden: r.hidden ? '1' : '' }))
+    .filter(r => r.article || r.title || r.text)
+    .sort((a, b) => a.level - b.level);
+  if (list.some(r => !r.article)) return toast('У каждой статьи должно быть название', true);
+  if (list.some(r => !r.title && !r.hidden)) return toast('У статьи в правилах должно быть правило для зрителей — или отметь «только суд»', true);
+  if (!list.length) return toast('Нужна хотя бы одна статья', true);
+  // Что поменялось — для сообщения коммита
+  const before = new Map(rules.map(r => [r.id, r]));
+  const added = list.filter(r => !before.has(r.id)).map(r => '+«' + r.article + '»');
+  const removed = rules.filter(r => !list.some(x => x.id === r.id)).map(r => '−«' + r.article + '»');
+  const changed = list.filter(r => { const o = before.get(r.id); return o && (o.article !== r.article || (o.title || '') !== r.title || (o.text || '') !== r.text || o.level !== r.level || (o.hidden || '') !== r.hidden); }).length;
+  const parts = [...added, ...removed].concat(changed ? ['изменено ' + changed] : []);
+  if (!parts.length) { draft = null; renderArticles(); renderCharge(); return; }
+  btn.disabled = true;
+  try {
+    rulesFile = await siteGit.writeFile(RULES_PATH, rulesFile, data => {
+      if (!data.columns.includes('article')) data.columns.splice(data.columns.indexOf('title'), 0, 'article');
+      data.items = list.map(r => Object.assign(Object.fromEntries(data.columns.map(c => [c, ''])), r, { level: String(r.level) }));
+    }, 'Суд: статьи — ' + parts.join(', '));
+    rules = court.normRules(rulesFile.data.items);
+    pick.rule = pick.rule && rules.find(r => r.id === pick.rule.id) || null;
+    draft = null;
+    renderArticles();
+    renderCharge();
+    toast('Статьи сохранены. На странице правил — примерно через минуту.');
+  } catch (err) {
+    console.error(err);
+    toast(err.message, true);
+    btn.disabled = false;
+  }
+}
+
+// Шапка над колесом + само колесо и шансы для текущей ступени
+let shownLevel = -1;
+function renderCharge() {
+  const lvl = level();
+  $('charge').innerHTML = (pick.nick ? `<div class="charge__who">${esc(pick.nick)}</div>` : `<div class="charge__who is-empty">Кто провинился?</div>`) +
+    (pick.rule ? `<div class="charge__rule">${court.levelBadge(lvl)}<span>${esc(pick.rule.article)}${pick.repeat && lvl > pick.rule.level ? ' · рецидив' : ''}</span></div>`
+      : '<div class="charge__rule">Выбери статью — от неё зависит колесо</div>');
+  if (lvl !== shownLevel && !spinning) {
+    shownLevel = lvl;
+    drawReel(lvl || 1);
+    if (lvl) loadSfx('music-' + lvl); // музыку прокрутки — заранее, пока выбирают
+    $('wheel-box').classList.toggle('is-idle', !lvl);
+    $('odds').innerHTML = lvl ? court.oddsHTML(lvl) : '';
+    setLive('');
+  }
+  $('spin').disabled = spinning || verdictShown || !!draft || !pick.nick || !pick.rule;
+  $('spin-hint').textContent = spinning || verdictShown ? ''
+    : draft ? 'Сначала сохрани или отмени правку статей'
+    : !pick.nick && !pick.rule ? 'Сначала укажи ник и выбери статью'
+    : !pick.nick ? 'Сначала укажи ник подсудимого'
+    : !pick.rule ? 'Сначала выбери статью' : '';
+}
+
+// ===================== барабан =====================
+// Вертикальный барабан из 20 ячеек по кругу (court.sectors). pos — сколько ячеек прокручено (в покое целое),
+// под стрелками — ячейка layout[pos mod 20]. Ячейки едут сверху вниз; рисуем только видимые — центр ± 4.
+let CELL = 58;            // шаг ячеек, px — sizeReel() подгоняет под экран
+const POOL = 9;
+const HALF = (POOL - 1) / 2;
+const PLATE = 'Рулетка наказаний';
+let layout = [];
+let pos = 0;
+let cellKey = [];         // какая ячейка (номер по кругу) сейчас в каждом слоте — чтобы не трогать DOM зря
+const mod = (n, m) => ((n % m) + m) % m;
+function drawReel(lvl) {
+  layout = court.sectors(lvl);
+  if (!$('reel-strip')) {
+    $('wheel-box').innerHTML = `<div class="reel-plate" id="reel-plate">${PLATE}</div>
+      <div class="reel">
+        <div class="reel__window" role="img" aria-label="Рулетка наказаний">
+          <div class="reel__strip" id="reel-strip">${('<div class="reel__cell"><span class="reel__txt"></span>' +
+            '<svg class="reel__ic reel__ic--shh" aria-hidden="true"><use href="#reel-shh"/></svg>' +
+            '<svg class="reel__ic reel__ic--skull" aria-hidden="true"><use href="#reel-skull"/></svg></div>').repeat(POOL)}</div>
+          <div class="reel__streaks" id="reel-streaks"></div>
+          <div class="reel__shade"></div>
+        </div>
+        <div class="reel__lens" id="reel-lens"></div>
+        <div class="reel__pawl reel__pawl--l" id="pawl-l"><i></i></div>
+        <div class="reel__pawl reel__pawl--r" id="pawl-r"><i></i></div>
+      </div>
+      <canvas class="reel__sparks" id="sparks"></canvas>
+      <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <filter id="reel-blur" x="0" y="-20%" width="100%" height="140%"><feGaussianBlur id="reel-blur-g" stdDeviation="0 0"/></filter>
+        <symbol id="reel-shh" viewBox="0 0 48 48">
+          <ellipse cx="9.8" cy="28" rx="2.6" ry="4" fill="currentColor"/><ellipse cx="38.2" cy="28" rx="2.6" ry="4" fill="currentColor"/>
+          <path fill="currentColor" d="M24 9.5c8 0 14 6 14 15v6c0 8.5-6.5 15-14 15s-14-6.5-14-15v-6c0-9 6-15 14-15z"/>
+          <path fill="#2a1712" d="M9.6 23 10.4 10.5 15 14.5 17 5.5 21.5 11.5 24.5 3.5 27.5 11 31.5 5 33 13.5 38 10 38.4 23C35.5 18 30.5 15.5 24 15.5S12.5 18 9.6 23Z"/>
+          <g fill="#fff" stroke="#2a1712" stroke-width="1.9"><circle cx="18.2" cy="25.5" r="5.2"/><circle cx="29.8" cy="25.5" r="5.2"/></g>
+          <circle cx="18.6" cy="25.7" r="2" fill="#2a1712"/><circle cx="29.4" cy="25.7" r="2" fill="#2a1712"/>
+          <g fill="#231513" stroke="#5c1812" stroke-width=".8"><rect x="13.5" y="35" width="21" height="4.8" rx=".8" transform="rotate(-17 24 37.4)"/>
+          <rect x="13.5" y="35" width="21" height="4.8" rx=".8" transform="rotate(17 24 37.4)"/></g></symbol>
+        <symbol id="reel-skull" viewBox="0 0 48 48"><path fill="currentColor" fill-rule="evenodd" d="M24 5C13.5 5 7 12.5 7 21c0 6 3 9.6 6.5 11.6V38c0 2 1.5 3.5 3.5 3.5h14c2 0 3.5-1.5 3.5-3.5v-5.4C38 30.6 41 27 41 21 41 12.5 34.5 5 24 5Z
+          M13 22a4.8 4.8 0 1 0 9.6 0a4.8 4.8 0 1 0-9.6 0Z M25.4 22a4.8 4.8 0 1 0 9.6 0a4.8 4.8 0 1 0-9.6 0Z M24 26.5l-2.6 4.5h5.2Z
+          M19.6 35h1.6v6.5h-1.6Z M23.2 35h1.6v6.5h-1.6Z M26.8 35h1.6v6.5h-1.6Z"/></symbol>
+      </svg>`;
+    $('wheel-box').classList.add('is-veiled');
+  }
+  cellKey = [];
+  sizeReel();
+  paintReel(pos, 0);
+}
+// Шаг ячейки — от ширины корпуса (барабан — главное на странице), но чтобы целиком влезал по высоте экрана
+function sizeReel() {
+  const w = $('wheel-box').clientWidth;
+  CELL = Math.round(Math.max(46, Math.min(112, w * 0.1285, (window.innerHeight - 350) / 6.3)));
+  $('wheel-box').style.setProperty('--cell', CELL + 'px');
+}
+let resizeRaf = 0;
+window.addEventListener('resize', () => {
+  if (resizeRaf || !$('reel-strip')) return;
+  resizeRaf = requestAnimationFrame(() => { resizeRaf = 0; sizeReel(); if (!spinning) paintReel(pos, 0); });
+});
+// p — положение барабана, speed — ячеек в секунду (от неё блюр и полосы)
+function paintReel(p, speed) {
+  const cells = $('reel-strip').children, base = Math.round(p);
+  for (let k = 0; k < POOL; k++) {
+    const v = base + k - HALF, d = p - v, el = cells[k];   // d > 0 — ячейка ниже центра
+    if (cellKey[k] !== v) {
+      cellKey[k] = v;
+      const o = OUTCOMES[layout[mod(v, SECTORS)]];
+      el.style.setProperty('--real', o.fill);
+      el.style.setProperty('--ink', o.ink);
+      el.dataset.kind = o.kind;
+      el.firstChild.textContent = o.short;
+    }
+    // Барабан круглый: к краям окна ячейки сплющиваются и темнеют
+    el.style.transform = `translateY(${(d * CELL).toFixed(2)}px) scaleY(${Math.cos(Math.min(1.4, Math.abs(d) * 0.5)).toFixed(3)})`;
+    el.style.opacity = (1 - Math.min(1, Math.abs(d) / 2.8) * 0.75).toFixed(3);
+  }
+  const blur = Math.max(0, Math.min(1, (speed - 5) / 14));
+  const strip = $('reel-strip');
+  strip.style.filter = blur > 0.03 ? 'url(#reel-blur)' : '';
+  $('reel-blur-g').setAttribute('stdDeviation', '0 ' + (blur * 16).toFixed(1));
+  strip.style.setProperty('--txt', (1 - blur * 0.9).toFixed(2));
+  $('reel-streaks').style.opacity = (blur * 0.85).toFixed(2);
+}
+function resetReel() {
+  if (!$('reel-strip')) return;
+  $('reel-plate').textContent = PLATE;
+  $('wheel-box').classList.add('is-veiled');
+  $('reel-lens').classList.remove('is-flash');
+  [...$('reel-strip').children].forEach(c => c.classList.remove('is-win'));
+}
+function setLive(id) {
+  const o = OUTCOMES[id];
+  $('live').textContent = o ? o.short : '';
+  $('live').style.setProperty('--ink', o ? o.ink : 'transparent');
+}
+
+// ---------- язычки на пружинке: каждая ячейка отбивает их вниз, пружина возвращает с покачиванием ----------
+const pawl = { a: 0, w: 0 };   // угол в градусах (плюс — вниз) и угловая скорость
+let pawlRaf = 0, pawlLast = 0;
+function kickPawls(power) {
+  pawl.w += 520 * power;
+  if (!pawlRaf) { pawlLast = 0; pawlRaf = requestAnimationFrame(stepPawls); }
+}
+function stepPawls(now) {
+  const dt = pawlLast ? Math.min(0.033, (now - pawlLast) / 1000) : 0.016;
+  pawlLast = now;
+  for (let i = 0; i < 2; i++) {          // жёсткость 900, затухание 16 — пара-тройка покачиваний после щелчка
+    pawl.w += (-900 * pawl.a - 16 * pawl.w) * dt / 2;
+    pawl.a += pawl.w * dt / 2;
+  }
+  pawl.a = Math.max(-10, Math.min(30, pawl.a));
+  $('pawl-l').style.transform = `rotate(${pawl.a.toFixed(2)}deg)`;
+  $('pawl-r').style.transform = `rotate(${(-pawl.a).toFixed(2)}deg)`;
+  if (Math.abs(pawl.a) > 0.05 || Math.abs(pawl.w) > 1) pawlRaf = requestAnimationFrame(stepPawls);
+  else { pawl.a = pawl.w = 0; pawlRaf = 0; $('pawl-l').style.transform = $('pawl-r').style.transform = ''; }
+}
+
+// ---------- искры из-под язычков ----------
+const sparks = [];
+let sparkRaf = 0, sparkLast = 0;
+function emitSparks(n, power) {
+  const c = $('sparks'), cr = c.getBoundingClientRect();
+  [['pawl-l', 1], ['pawl-r', -1]].forEach(([id, dir]) => {
+    const r = $(id).getBoundingClientRect();
+    const x = (dir > 0 ? r.right - 4 : r.left + 4) - cr.left, y = r.top + r.height / 2 - cr.top;
+    for (let i = 0; i < n; i++) sparks.push({
+      x, y, life: 0, max: 0.3 + Math.random() * 0.5, hue: 28 + Math.random() * 24,
+      vx: -dir * (30 + Math.random() * 170) * power, vy: (-70 + Math.random() * 230) * power,
+    });
+  });
+  if (!sparkRaf) sparkRaf = requestAnimationFrame(drawSparks);
+}
+function drawSparks(now) {
+  const c = $('sparks'), dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+  if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+  const dt = sparkLast ? Math.min(0.05, (now - sparkLast) / 1000) : 0.016;
+  sparkLast = now;
+  const g = c.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, w, h);
+  g.globalCompositeOperation = 'lighter';
+  g.lineCap = 'round';
+  for (let i = sparks.length - 1; i >= 0; i--) {
+    const s = sparks[i];
+    s.life += dt;
+    if (s.life >= s.max) { sparks.splice(i, 1); continue; }
+    s.vy += 760 * dt; s.vx *= 0.985; s.x += s.vx * dt; s.y += s.vy * dt;
+    const k = 1 - s.life / s.max;
+    g.strokeStyle = `hsla(${s.hue.toFixed(0)}, 100%, ${(58 + 30 * k).toFixed(0)}%, ${k.toFixed(2)})`;
+    g.lineWidth = 0.8 + 1.6 * k;
+    g.beginPath(); g.moveTo(s.x, s.y); g.lineTo(s.x - s.vx * 0.022, s.y - s.vy * 0.022); g.stroke();
+  }
+  if (sparks.length) sparkRaf = requestAnimationFrame(drawSparks);
+  else { sparkRaf = 0; sparkLast = 0; g.clearRect(0, 0, w, h); }
+}
+
+// ---------- звук: щелчки ячеек, удар остановки, приговор ----------
+let soundOn = true;
+try { soundOn = localStorage.getItem('court-sound') !== '0'; } catch (e) { /* по умолчанию со звуком */ }
+let audio = null;
+function ac() {
+  if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+  if (audio.state === 'suspended') audio.resume().catch(() => {});
+  return audio;
+}
+function tone(freq, t, dur, type, vol, to) {
+  const a = ac(), osc = a.createOscillator(), g = a.createGain(), t0 = a.currentTime + t;
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t0);
+  if (to) osc.frequency.exponentialRampToValueAtTime(to, t0 + dur);
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(vol, t0 + 0.005);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  osc.connect(g); g.connect(a.destination);
+  osc.start(t0); osc.stop(t0 + dur + 0.02);
+}
+const click = () => soundOn && tone(2400 + Math.random() * 500, 0, 0.04, 'square', 0.03, 800);
+const thunk = () => { if (!soundOn) return; tone(75, 0, 0.3, 'triangle', 0.7, 38); tone(1100, 0, 0.05, 'square', 0.12, 260); };
+function gavel(kind) {
+  if (!soundOn) return;
+  // Удар-удар; бан — ниже и тяжелее
+  const base = kind === 'mute' ? 150 : 90;
+  [0, 0.28].forEach(t => { tone(base, t, 0.35, 'triangle', 0.5, base / 3); tone(base * 6, t, 0.06, 'square', 0.08, base * 2); });
+  if (kind !== 'mute') tone(55, 0.6, 1.4, 'sawtooth', 0.12, 40);
+}
+function paintSound() { $('sound').innerHTML = icon(soundOn ? 'volume' : 'volume-off'); }
+$('sound').addEventListener('click', () => {
+  soundOn = !soundOn;
+  if (!soundOn) rollStop();
+  try { localStorage.setItem('court-sound', soundOn ? '1' : '0'); } catch (e) { /* не запомнится */ }
+  paintSound();
+});
+
+// Свои звуки — файлы sounds/court/*.mp3; каких нет, те заменяет синтезатор (шум вращения без файла просто молчит):
+//   tick-1, tick-2 — щелчок язычка, на каждую ячейку случайный (ещё варианты — дописать в TICKS); roll — петля вращения барабана, её высота и громкость
+//   идут за скоростью; stop — удар остановки; verdict-mute / verdict-ban / verdict-perma — приговор;
+//   music-1 … music-5 — музыка прокрутки для ступени (удар остановки — ровно через LEVELS[N].spin секунд от старта).
+const SFX_DIR = 'sounds/court/';
+const TICKS = ['tick-1', 'tick-2'];
+const SFX_ALL = [...TICKS, 'roll', 'stop', 'verdict-mute', 'verdict-ban', 'verdict-perma'];
+const sfxRaw = {}, sfxReady = {}, sfxBuf = {}, sfxLead = {};
+// Тишина в начале файла: щелчок и удар должны звучать ровно в момент события, а не с задержкой
+function leadOf(buf) {
+  const d = buf.getChannelData(0);
+  let peak = 0;
+  for (let i = 0; i < d.length; i++) if (Math.abs(d[i]) > peak) peak = Math.abs(d[i]);
+  for (let i = 0; i < d.length; i++) if (Math.abs(d[i]) > peak * 0.2) return Math.max(0, i / buf.sampleRate - 0.003);
+  return 0;
+}
+function loadSfx(name) {  // скачать сразу; раскодировать — когда уже есть AudioContext (после клика)
+  if (!sfxRaw[name]) sfxRaw[name] = fetch(SFX_DIR + name + '.mp3').then(r => r.ok ? r.arrayBuffer() : null).catch(() => null);
+  return sfxRaw[name];
+}
+const readySfx = names => Promise.all(names.map(n => sfxReady[n] || (sfxReady[n] = loadSfx(n)
+  .then(raw => raw ? ac().decodeAudioData(raw) : null).catch(() => null)
+  .then(buf => { sfxBuf[n] = buf; if (buf && n !== 'roll' && !n.startsWith('music')) sfxLead[n] = leadOf(buf); }))));
+function sfx(name, fallback, rate, vol) {
+  if (!soundOn) return;
+  const buf = sfxBuf[name];
+  if (!buf) { if (fallback) fallback(); return; }
+  const a = ac(), src = a.createBufferSource(), g = a.createGain();
+  src.buffer = buf;
+  if (rate) src.playbackRate.value = rate;
+  g.gain.value = vol || 1;
+  src.connect(g); g.connect(a.destination);
+  src.start(0, sfxLead[name] || 0);
+}
+// Щелчок язычка: случайный из имеющихся файлов, чуть другой высоты — чтобы не звучало как метроном
+function tickSound() {
+  const have = TICKS.filter(n => sfxBuf[n]);
+  if (!have.length) return click();
+  sfx(have[Math.floor(Math.random() * have.length)], null, 0.93 + Math.random() * 0.14, 0.5);
+}
+// Шум вращения: петля, которая разгоняется и тормозит вместе с барабаном
+let roll = null;
+function rollStart() {
+  if (!soundOn || !sfxBuf.roll || roll) return;
+  const a = ac(), src = a.createBufferSource(), gain = a.createGain();
+  src.buffer = sfxBuf.roll;
+  src.loop = true;
+  gain.gain.value = 0;
+  src.connect(gain); gain.connect(a.destination);
+  src.start();
+  roll = { src, gain };
+}
+function rollSpeed(v) {
+  if (!roll) return;
+  const t = ac().currentTime, k = Math.min(1, Math.max(0, v / TOP_SPEED)) || 0;
+  roll.src.playbackRate.setTargetAtTime(0.55 + 0.6 * k, t, 0.05);
+  roll.gain.gain.setTargetAtTime(1.6 * Math.sqrt(k), t, 0.06);   // сам файл тихий — это фон
+}
+function rollStop() {
+  if (!roll) return;
+  const r = roll, t = ac().currentTime;
+  roll = null;
+  r.gain.gain.setTargetAtTime(0, t, 0.06);
+  r.src.stop(t + 0.5);
+}
+SFX_ALL.forEach(loadSfx);
+// Звук включаем заранее — при первом клике или нажатии клавиши на странице (пока выбирают ник и статью).
+// Создание AudioContext на Windows с OBS и виртуальными устройствами может на секунду-другую подвесить страницу:
+// пусть это случится сейчас, а не на кнопке «Вынести приговор», когда барабан должен стартовать сразу.
+function warmAudio() {
+  document.removeEventListener('pointerdown', warmAudio, true);
+  document.removeEventListener('keydown', warmAudio, true);
+  try { ac(); readySfx(SFX_ALL); } catch (e) { /* без звука — не страшно */ }
+}
+document.addEventListener('pointerdown', warmAudio, true);
+document.addEventListener('keydown', warmAudio, true);
+
+// ---------- прокрутка ----------
+function lock(on) {
+  spinning = on;
+  $('nick').disabled = on;
+  $('note').disabled = on;
+  renderArticles();
+  renderChatters();
+  renderRecord();
+  renderCharge();
+}
+// Прокрутка: разгон → полный ход → торможение → удар (ровно через LEVELS[lvl].spin секунд) → покачивание.
+// Скорость подбирается так, чтобы барабан встал точно на ячейке idx.
+const RAMP = 0.4, BOUNCE = 0.9, TOP_SPEED = 24;
+function spinReel(lvl, idx, onStop) {
+  const L = LEVELS[lvl], brake = L.brake, hold = L.spin - RAMP - brake;
+  const k = RAMP / 2 + hold + brake / 3;           // путь при скорости 1: разгон + ход + торможение (v ~ (1-s)²)
+  const start = pos;
+  let dist = Math.ceil(TOP_SPEED * k);
+  dist += mod(idx - (start + dist), SECTORS);
+  const vmax = dist / k, p1 = vmax * RAMP / 2, p2 = p1 + vmax * hold;
+  return new Promise((done, fail) => {
+    const t0 = performance.now();
+    let tick = Math.floor(start - 0.5), stopped = false;
+    // Ошибка внутри кадра не должна навсегда оставить барабан «в процессе»
+    const frame = now => { try { step(now); } catch (err) { fail(err); } };
+    const step = now => {
+      const t = Math.max(0, (now - t0) / 1000);   // метка кадра бывает чуть раньше старта — без отрицательного времени
+      let p, v = 0;
+      if (t < RAMP) { v = vmax * t / RAMP; p = vmax * t * t / (2 * RAMP); }
+      else if (t < RAMP + hold) { v = vmax; p = p1 + vmax * (t - RAMP); }
+      else if (t < L.spin) { const s = (t - RAMP - hold) / brake; v = vmax * (1 - s) ** 2; p = p2 + vmax * brake * (1 - (1 - s) ** 3) / 3; }
+      else {
+        if (!stopped) { stopped = true; onStop(); }
+        const u = t - L.spin;   // по инерции чуть дальше, назад, и затихает — как спиннер в Hearthstone
+        p = dist + 0.22 * Math.exp(-u * 5.5) * Math.sin(u * 2 * Math.PI * 2.4);
+      }
+      if (v > 16) $('wheel-box').classList.remove('is-veiled');   // на ходу — уже сроки, но их не разглядеть
+      paintReel(start + p, v);
+      rollSpeed(v);
+      const tk = Math.floor(start + p - 0.5);
+      if (tk !== tick && !stopped) {   // ребро ячейки прошло под стрелками: щелчок, язычки вниз, искры
+        tick = tk;
+        tickSound();
+        kickPawls(v > 16 ? 0.55 : 1);
+        emitSparks(v > 16 ? 1 : 2, 0.55 + v / 40);
+      }
+      if (t < L.spin + BOUNCE) requestAnimationFrame(frame);
+      else { pos = mod(start + dist, SECTORS); paintReel(pos, 0); done(); }
+    };
+    requestAnimationFrame(frame);
+  });
+}
+const wait = ms => new Promise(r => setTimeout(r, ms));
+$('spin').addEventListener('click', async () => {
+  if (spinning || !pick.nick || !pick.rule) return;
+  const lvl = level(), rule = pick.rule, nick = pick.nick, repeat = pick.repeat && lvl > rule.level, note = $('note').value.trim();
+  lock(true);
+  resetReel();
+  $('reel-plate').textContent = 'Суд идёт';   // сразу видно, что кнопка сработала
+  try {
+    try { ac(); } catch (e) { /* без звука */ }
+    // Свои звуки, если есть, — но не ждём их дольше 0.6 с (обычно уже готовы: см. warmAudio)
+    await Promise.race([readySfx([...SFX_ALL, 'music-' + lvl]), wait(600)]);
+    await runSpin(lvl, rule, nick, repeat, note);
+  } catch (err) {
+    // Что бы ни сломалось — страница не остаётся заблокированной
+    console.error(err);
+    rollStop();
+    spinning = false;
+    lock(false);
+    resetReel();
+    toast('Рулетка споткнулась: ' + (err && err.message || err) + '. Попробуй ещё раз.', true);
+  }
+});
+async function runSpin(lvl, rule, nick, repeat, note) {
+  const idx = rand(SECTORS);   // все 20 ячеек равновероятны
+  const outcome = layout[idx], o = OUTCOMES[outcome];
+  if (!o) throw new Error('барабан не готов — выбери статью заново');
+  sfx('music-' + lvl);
+  rollStart();
+  await spinReel(lvl, idx, () => {
+    rollStop();
+    sfx('stop', thunk);
+    kickPawls(1.8);
+    emitSparks(16, 1.5);
+    $('reel-plate').textContent = 'Приговор';
+    $('reel-lens').style.setProperty('--win', o.ink);
+    $('reel-lens').classList.add('is-flash');
+    $('reel-strip').children[HALF].classList.add('is-win');
+  });
+  await wait(650);             // дать рассмотреть ячейку
+  const at = new Date();
+  const entry = {
+    id: newId(), at: court.stamp(at), nick, rule: rule.id, rule_title: rule.article, level: String(lvl), repeat: repeat ? '1' : '',
+    outcome, until: o.kind === 'mute' ? court.stamp(new Date(at.getTime() + o.sec * 1000)) : '', status: '', lifted_at: '', note,
+  };
+  sfx('verdict-' + o.kind, () => gavel(o.kind));
+  spinning = false;
+  showVerdict(entry);
+  lock(false);
+  saveVerdict(entry);
+}
+
+// ===================== приговор =====================
+let lastEntry = null;
+function showVerdict(entry) {
+  lastEntry = entry;
+  verdictShown = true;
+  const o = OUTCOMES[entry.outcome];
+  const cmd = court.command(entry);
+  const box = $('result');
+  box.hidden = false;
+  box.innerHTML = `<div class="result" style="--ink:${o.ink}">
+      <div class="result__label">Приговор</div>
+      <div class="result__sentence">${esc(o.label)}</div>
+      <div class="result__who"><b>${esc(entry.nick)}</b> · ${esc(entry.rule_title)}${entry.repeat ? ' · рецидив' : ''}</div>
+      <div class="cmd"><code id="cmd">${esc(cmd)}</code><button type="button" class="btn btn--ghost" id="cmd-copy" title="Скопировать">${icon('copy')}</button></div>
+      <div class="save-state" id="save-state"></div>
+      <button type="button" class="btn btn--ghost" id="next-case">${icon('refresh')}Следующее дело</button>
+    </div>`;
+  $('cmd-copy').addEventListener('click', async () => {
+    const ok = await copy(cmd);
+    toast(ok ? 'Команда скопирована — вставь в чат' : 'Не вышло скопировать — выдели текст вручную', !ok);
+  });
+  $('next-case').addEventListener('click', () => { closeVerdict(); pick.rule = null; hot = ''; $('note').value = ''; setNick(''); renderArticles(); renderChatters(); $('nick').focus(); });
+  copy(cmd).then(ok => ok && toast('Команда для чата уже скопирована'));
+  setLive(entry.outcome);
+}
+function closeVerdict() {
+  verdictShown = false;
+  $('result').hidden = true;
+  setLive('');
+  resetReel();
+  renderCharge();
+}
+function setSave(state, text) {
+  const el = $('save-state');
+  if (!el) return;
+  el.className = 'save-state' + (state === 'ok' ? ' is-ok' : state === 'err' ? ' is-err' : '');
+  el.innerHTML = (state === 'ok' ? icon('check') : state === 'err' ? icon('alert') : '') + '<span>' + esc(text) + '</span>' +
+    (state === 'err' ? '<button type="button" class="btn btn--sm btn--ghost" id="save-retry">Повторить</button>' : '');
+  if (state === 'err') $('save-retry').addEventListener('click', () => saveVerdict(lastEntry));
+}
+async function saveVerdict(entry) {
+  setSave('saving', 'Записываю в историю…');
+  const o = OUTCOMES[entry.outcome];
+  try {
+    file = await siteGit.writeFile(PATH, file, data => {
+      if (data.items.some(x => x.id === entry.id)) return; // уже записан (повтор после сбоя)
+      data.items.push(Object.assign(Object.fromEntries(data.columns.map(c => [c, ''])), entry));
+    }, `Суд: ${entry.nick} — ${o.label} («${entry.rule_title}»)`);
+    if (lastEntry === entry) setSave('ok', 'Записано в историю — на сайте примерно через минуту');
+    renderHistory();
+    renderRecord();
+  } catch (err) {
+    console.error(err);
+    if (lastEntry === entry) setSave('err', err.message);
+    else toast(err.message, true);
+  }
+}
+
+// ===================== история =====================
+const H_FILTERS = [{ id: 'active', label: 'Действуют' }, { id: 'all', label: 'Все' }];
+let hFilter = 'active';
+const isActive = it => ['muted', 'banned', 'perma'].includes(court.state(it).id);
+function renderHistory() {
+  const all = items().slice().sort((a, b) => (siteTime.parse(b.at) || 0) - (siteTime.parse(a.at) || 0));
+  const counts = { active: all.filter(isActive).length, all: all.length };
+  $('h-filter').innerHTML = H_FILTERS.map(f => `<button type="button" class="chip${hFilter === f.id ? ' is-active' : ''}" data-v="${f.id}">${f.label} <span class="count">${counts[f.id]}</span></button>`).join('');
+  const list = hFilter === 'active' ? all.filter(isActive) : all;
+  $('cases').innerHTML = list.map(it => {
+    const st = court.state(it).id;
+    const lift = st === 'muted' ? 'Снять мут' : st === 'banned' || st === 'perma' ? 'Разбанить' : '';
+    return court.caseHTML(it, `<div class="case__actions">${lift ? `<button type="button" class="btn btn--sm btn--ghost" data-lift="${esc(it.id)}">${lift}</button>` : ''}
+      <button type="button" class="btn btn--sm btn--danger" data-del="${esc(it.id)}" title="Удалить запись (ошибка)">${icon('x')}</button></div>`);
+  }).join('') || `<li class="empty-state" style="padding:20px">${hFilter === 'active' ? 'Сейчас никто не наказан. Чат в порядке.' : 'Приговоров ещё не было.'}</li>`;
+}
+$('h-filter').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) { hFilter = b.dataset.v; renderHistory(); } });
+$('cases').addEventListener('click', async e => {
+  const lift = e.target.closest('[data-lift]'), del = e.target.closest('[data-del]');
+  const btn = lift || del;
+  if (!btn) return;
+  const id = btn.dataset.lift || btn.dataset.del;
+  const it = items().find(x => x.id === id);
+  if (!it) return;
+  const o = court.outcomeOf(it);
+  if (lift && !confirm(`${o.kind === 'mute' ? 'Снять мут досрочно' : 'Разбанить'}: ${it.nick}?`)) return;
+  if (del && !confirm(`Удалить приговор ${it.nick} (${o.label}) из истории?\nТолько если это была ошибка — вернуть можно через историю git.`)) return;
+  btn.disabled = true;
+  try {
+    file = await siteGit.writeFile(PATH, file, data => {
+      const x = data.items.find(y => y.id === id);
+      if (!x) return;
+      if (lift) { x.status = 'lifted'; x.lifted_at = court.stamp(new Date()); }
+      else data.items = data.items.filter(y => y.id !== id);
+    }, lift ? `Суд: ${it.nick} — ${o.kind === 'mute' ? 'мут снят' : 'разбанен'}` : `Суд: удалён приговор ${it.nick} (${o.label})`);
+    renderHistory();
+    renderRecord();
+    if (lift) {
+      const cmd = court.undoCommand(it);
+      toast(await copy(cmd) ? `Готово. Скопировано для чата: ${cmd}` : `Готово. Не забудь в чате: ${cmd}`);
+    } else toast('Запись удалена');
+  } catch (err) {
+    console.error(err);
+    toast(err.message, true);
+    btn.disabled = false;
+  }
+});
+// «ещё N мин» и истёкшие муты — раз в минуту
+setInterval(() => { if (file && !spinning) renderHistory(); }, 60000);
+siteTime.onChange(() => { renderHistory(); renderRecord(); });
+
+// ===================== запуск =====================
+async function start() {
+  if (!siteGit.token) { $('loading').hidden = true; $('auth').hidden = false; return; }
+  try {
+    const [r, f, user] = await Promise.all([siteGit.readFile(RULES_PATH), siteGit.readFile(PATH), siteGit.user()]);
+    rulesFile = r;
+    rules = court.normRules(r.data.items);
+    file = f;
+    $('who').textContent = user.login ? 'Вход: ' + user.login : 'Токен подключён';
+  } catch (err) {
+    console.error(err);
+    $('loading').hidden = true;
+    $('auth').hidden = false;
+    $('auth-error').hidden = false;
+    $('auth-error').textContent = err.message;
+    return;
+  }
+  $('loading').hidden = true;
+  $('app').hidden = false;
+  paintSound();
+  renderArticles();
+  renderCharge();
+  renderHistory();
+  renderChatters();
+  connectChat();
+  loadHistory(4);
+}
+start();
+})();

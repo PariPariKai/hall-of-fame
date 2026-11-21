@@ -1,0 +1,1840 @@
+// Код страницы admin.html (раздел admin). Подключается из admin.html.
+(function () {
+'use strict';
+// Админка: каждый раздел сайта — файл data/<раздел>.json; схема раздела (поля, строка списка, фильтры) — в SECTIONS ниже.
+// Список, поиск, фильтры и редактор общие; у части разделов есть быстрая панель (вечер кино, «+1 серия», выдача билетов).
+const { readFile, writeFile } = siteGit;
+
+// ===================== мелочи =====================
+const $ = id => document.getElementById(id);
+// Имя репозитория в подсказке про токен — то, где лежит этот сайт
+document.querySelectorAll('.repo-name').forEach(el => { el.textContent = siteGit.repo.split('/')[1]; });
+const pad = n => String(n).padStart(2, '0');
+const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+const WEEKDAYS = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+let toastTimer = 0;
+function toast(text, err) {
+  const t = $('toast');
+  t.className = 'toast is-on' + (err ? ' toast--err' : '');
+  t.innerHTML = icon(err ? 'alert' : 'check') + '<span>' + esc(text) + '</span>';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('is-on'), err ? 7000 : 3500);
+}
+const newId = () => Array.from(crypto.getRandomValues(new Uint8Array(4)), b => b.toString(16).padStart(2, '0')).join('');
+const num = s => { const n = parseFloat(String(s == null ? '' : s).replace(',', '.')); return isFinite(n) ? n : null; };
+const fmtNum = n => String(Math.round(n * 10) / 10);
+const low = s => String(s || '').toLowerCase();
+const truthy = s => /^(true|yes|1|да)$/i.test(String(s || '').trim());
+
+// Даты в данных — по часам стримера: «DD.MM.YYYY» и «DD.MM.YYYY HH:MM»
+const today = () => { const p = siteTime.parts(new Date()); return { y: p.y, mo: p.mo, d: p.d, wd: p.wd }; };
+const todayStr = () => { const t = today(); return `${pad(t.d)}.${pad(t.mo + 1)}.${t.y}`; };
+function splitDate(s) { // → {date: 'YYYY-MM-DD', time: 'HH:MM'} для полей ввода
+  const m = String(s || '').match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  return m ? { date: `${m[3]}-${pad(m[2])}-${pad(m[1])}`, time: m[4] ? `${pad(m[4])}:${m[5]}` : '' } : { date: '', time: '' };
+}
+function joinDate(date, time) {
+  const m = String(date || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}.${m[2]}.${m[1]}` + (time ? ' ' + time : '') : '';
+}
+const dayNo = s => { const d = siteTime.parse(s); if (!d) return null; const p = siteTime.parts(d); return Date.UTC(p.y, p.mo, p.d) / 864e5; };
+const todayNo = () => { const t = today(); return Date.UTC(t.y, t.mo, t.d) / 864e5; };
+const ts = s => { const d = siteTime.parse(s); return d ? d.getTime() : 0; };
+function human(s) { // «сегодня в 20:00», «завтра в 20:00», «пт, 24 окт в 20:00»
+  const d = siteTime.parse(s);
+  if (!d) return s || '';
+  const p = siteTime.parts(d);
+  const hm = siteTime.hasTime(s) ? ` в ${pad(p.h)}:${pad(p.mi)}` : '';
+  const diff = dayNo(s) - todayNo();
+  if (diff === 0) return 'сегодня' + hm;
+  if (diff === 1) return 'завтра' + hm;
+  if (diff === -1) return 'вчера' + hm;
+  return `${WEEKDAYS[p.wd]}, ${p.d} ${MONTHS[p.mo]}${p.y !== today().y ? ' ' + p.y : ''}${hm}`;
+}
+const shortDay = s => { const d = siteTime.parse(s); if (!d) return s || ''; const p = siteTime.parts(d); return `${p.d} ${MONTHS[p.mo]} ${p.y}`; };
+const bg = url => url ? ` style="background-image:url(&quot;${esc(String(url).replace(/"/g, '%22'))}&quot;)"` : '';
+
+// ===================== общие данные: файлы разделов, обложки роботов, расписание =====================
+const files = {};          // id раздела → { sha, data }
+let ordersMeta = {}, painMeta = {};
+const metaKey = (list, title) => list + '|' + String(title || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('ru').replace(/ё/g, 'е');
+const painKey = name => String(name || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('ru');
+const items = id => files[id] ? files[id].data.items : [];
+
+const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+const DAY_NAMES = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+const config = () => Object.fromEntries(items('config').map(r => [r.key, r.value]));
+const schedule = () => {
+  const c = config();
+  return {
+    days: Object.fromEntries(DAY_KEYS.map(k => [k, ('schedule_' + k) in c ? c['schedule_' + k] : (k === 'sat' ? '' : '1')])),
+    movie: /^\d{1,2}:\d{2}$/.test(c.movie_time || '') ? c.movie_time.padStart(5, '0') : '20:00',
+  };
+};
+
+// Правка файла раздела → коммит → перерисовка
+async function save(sec, message, mutate, btn) {
+  const btns = btn ? [].concat(btn) : [];
+  btns.forEach(b => { b.disabled = true; });
+  try {
+    files[sec.id] = await writeFile(sec.path, files[sec.id], mutate, `${sec.label}: ${message}`);
+    if (sec.id === current.id) render();
+    toast('Сохранено. На сайте — примерно через минуту.');
+    return true;
+  } catch (err) {
+    console.error(err);
+    toast(err.message, true);
+    return false;
+  } finally {
+    btns.forEach(b => { b.disabled = false; });
+  }
+}
+const byId = (data, id) => {
+  const it = data.items.find(x => x.id === id);
+  if (!it) throw new Error('Запись не найдена — возможно, её удалили с другого устройства. Обнови страницу.');
+  return it;
+};
+const blankItem = (data, fields) => Object.assign(Object.fromEntries(data.columns.map(c => [c, ''])), fields, { id: newId() });
+
+// ===================== поля редактора =====================
+// type: text | number | url | textarea | select | nick | date | datetime | bool | cover
+function fieldHTML(f, v) {
+  const lab = `<span>${esc(f.label)}${f.hint ? ` <em class="hint-inline">— ${esc(f.hint)}</em>` : ''}</span>`;
+  const basis = f.type === 'textarea' || f.wide ? '100%' : (f.w || '160px');
+  const style = ` style="flex:1 1 ${basis}"`;
+  const ph = f.ph ? ` placeholder="${esc(f.ph)}"` : '';
+  const req = f.required ? ' required' : '';
+  const name = ` name="${f.k}"`;
+  switch (f.type) {
+    case 'textarea':
+      return `<label class="field"${style}>${lab}<textarea class="inp"${name} rows="${f.rows || 3}"${ph}${req}>${esc(v)}</textarea></label>`;
+    case 'select': {
+      const opts = f.options.map(([val, text]) => `<option value="${esc(val)}"${val === v ? ' selected' : ''}>${esc(text)}</option>`).join('');
+      const extra = v && !f.options.some(([val]) => val === v) ? `<option value="${esc(v)}" selected>${esc(v)}</option>` : '';
+      return `<label class="field"${style}>${lab}<select class="inp"${name}>${opts}${extra}</select></label>`;
+    }
+    case 'bool': {
+      const on = String(v).trim() === '' ? !!f.emptyOn : truthy(v);
+      return `<div class="field"${style}>${lab}<label class="check-line"><input type="checkbox"${name}${on ? ' checked' : ''}>${esc(f.on || 'Да')}</label></div>`;
+    }
+    case 'date':
+      return `<label class="field"${style}>${lab}<input class="inp" type="date"${name} value="${splitDate(v).date}"></label>`;
+    case 'datetime': {
+      const d = splitDate(v);
+      return `<label class="field"${style}>${lab}<input class="inp" type="date" name="${f.k}__d" value="${d.date}"></label>
+        <label class="field"${style}><span>Время</span><input class="inp" type="time" name="${f.k}__t" value="${d.time}"></label>`;
+    }
+    case 'cover':
+      return `<div class="cover-field"><div class="item__poster${f.shape ? ' item__poster--' + f.shape : ''}" data-preview="${f.k}"${bg(v)}></div>
+        <label class="field">${lab}<input class="inp" type="url"${name} value="${esc(v)}"${ph}></label></div>`;
+    default: {
+      const type = f.type === 'number' ? 'number' : f.type === 'url' ? 'url' : 'text';
+      const extra = (f.type === 'number' ? ` step="${f.step || 'any'}"${f.min != null ? ` min="${f.min}"` : ''}${f.max != null ? ` max="${f.max}"` : ''}` : '') +
+        (f.type === 'nick' ? ' list="nicks" autocomplete="off"' : f.suggest ? ` list="dl-${f.k}" autocomplete="off"` : '');
+      // suggest — подсказки из списка, но можно вписать и своё
+      const dl = f.suggest ? `<datalist id="dl-${f.k}">${f.suggest().map(s => `<option value="${esc(s)}">`).join('')}</datalist>` : '';
+      return `<label class="field"${style}>${lab}<input class="inp" type="${type}"${name} value="${esc(v)}"${ph}${req}${extra}>${dl}</label>`;
+    }
+  }
+}
+function readField(form, f) {
+  const el = form.elements;
+  switch (f.type) {
+    case 'bool': return el[f.k].checked ? 'TRUE' : 'FALSE';
+    case 'date': return joinDate(el[f.k].value);
+    case 'datetime': return joinDate(el[f.k + '__d'].value, el[f.k + '__t'].value);
+    case 'number': return el[f.k].value === '' ? '' : fmtNum(Math.min(f.max ?? Infinity, Math.max(f.min ?? -Infinity, num(el[f.k].value))));
+    default: return el[f.k].value.trim();
+  }
+}
+
+// ===================== заказы: фильмы, аниме, сериалы, игры =====================
+const WATCH = [
+  { id: 'watching', label: 'Смотрим', tone: 'active', active: true },
+  { id: 'pending', label: 'В очереди', tone: 'queue' },
+  { id: 'paused', label: 'На паузе', tone: 'paused' },
+  { id: 'watched', label: 'Просмотрено', tone: 'done', done: true },
+];
+const PLAY = [
+  { id: 'playing', label: 'Играем', tone: 'active', active: true },
+  { id: 'pending', label: 'В очереди', tone: 'queue' },
+  { id: 'completed', label: 'Пройдено', tone: 'done', done: true },
+  { id: 'played', label: 'Сыграно', tone: 'played', done: true },
+  { id: 'dropped', label: 'Дропнуто', tone: 'dropped', done: true },
+];
+const FORMAT = ['format', 'Озвучка', 'select', [['', '—'], ['dub', 'Озвучка (dub)'], ['sub', 'Субтитры (sub)']]];
+
+function ordersSection(o) {
+  const STATUS = Object.fromEntries(o.statuses.map(s => [s.id, s]));
+  const statusOf = it => STATUS[low(it.status)] ? low(it.status) : 'pending';
+  const isDone = it => !!STATUS[statusOf(it)].done;
+  const isActive = it => !!STATUS[statusOf(it)].active;
+  const isUpcoming = it => it.scheduled_at && !isDone(it) && statusOf(it) !== 'paused' && dayNo(it.scheduled_at) >= todayNo();
+  const cover = it => {
+    if (it.cover_url) return it.cover_url;
+    const m = ordersMeta[metaKey(o.list, it.title)];
+    if (m && m.found && m.cover) return m.cover;
+    const yt = (it.url || '').match(/(?:youtu\.be\/|[?&]v=|\/shorts\/|\/embed\/)([\w-]{11})/);
+    return yt ? `https://i.ytimg.com/vi/${yt[1]}/hqdefault.jpg` : '';
+  };
+  const progress = it => o.progress === 'episodes'
+    ? (it.episodes_watched || it.episodes_total ? `${it.episodes_watched || 0}/${it.episodes_total || '?'} сер.` : '')
+    : [it.progress_percent ? it.progress_percent + '%' : '', num(it.hours_played) ? fmtNum(num(it.hours_played)) + ' ч' : ''].filter(Boolean).join(' · ');
+  const added = it => ts(it.date_added);
+  const completed = it => ts(it.date_completed || it.scheduled_at);
+  const rank = it => isActive(it) ? 0 : isUpcoming(it) ? 1 : statusOf(it) === 'pending' ? (it.title ? 2 : 3) : statusOf(it) === 'paused' ? 4 : 5;
+
+  const fields = [
+    { k: 'title', label: 'Название', w: '260px', required: true },
+    o.year && { k: 'year', label: 'Год', w: '80px', ph: '2024' },
+    { k: 'nick', label: 'Заказчик', type: 'nick', required: true },
+    o.types && { k: 'type', label: 'Тип', type: 'select', options: Object.entries(o.types) },
+    { k: 'status', label: 'Статус', type: 'select', options: o.statuses.map(s => [s.id, s.label]) },
+    { k: 'url', label: 'Ссылка', type: 'url', wide: true, hint: o.urlHint, ph: o.urlPh },
+    { k: 'cover_url', label: 'Обложка', type: 'cover', hint: 'пусто: робот подберёт' },
+    o.progress === 'episodes' && { k: 'episodes_watched', label: 'Просмотрено серий', type: 'number', min: 0, step: 1 },
+    o.progress === 'episodes' && { k: 'episodes_total', label: 'Всего серий', type: 'number', min: 0, step: 1 },
+    o.progress === 'percent' && { k: 'progress_percent', label: 'Прогресс, %', type: 'number', min: 0, max: 100, step: 1, hint: 'пусто — без концовки' },
+    o.progress === 'percent' && { k: 'hours_played', label: 'Наиграно, ч', type: 'number', min: 0, step: 0.1 },
+    o.scheduled && { k: 'scheduled_at', label: 'Показ — дата', type: 'datetime' },
+    { k: 'rating', label: 'Оценка (0–10)', type: 'number', min: 0, max: 10, step: 0.1 },
+    o.format && { k: 'format', label: 'Озвучка', type: 'select', options: FORMAT[3] },
+    { k: 'notes', label: 'Вердикт стримера', type: 'textarea' },
+    { k: 'date_added', label: 'Заказан', type: 'date' },
+    { k: 'date_completed', label: o.doneDate || 'Досмотрен', type: 'date' },
+  ].filter(Boolean);
+
+  const sec = {
+    id: o.id, label: o.label, icon: o.icon, group: 'Заказы', path: `data/${o.id}.json`, page: o.page, one: o.one,
+    addLabel: 'Новый заказ', search: 'Название или заказчик...', fields,
+    title: it => it.title || 'Без названия',
+    defaults: () => ({ status: 'pending', type: o.types ? Object.keys(o.types)[0] : '', date_added: todayStr() }),
+    normalize: v => { if (STATUS[v.status] && STATUS[v.status].done && !v.date_completed) v.date_completed = todayStr(); },
+    row: it => {
+      const st = statusOf(it);
+      const up = isUpcoming(it) && !isActive(it);
+      return {
+        poster: cover(it), title: sec.title(it), small: it.year, blank: !it.title,
+        sub: [o.types ? o.types[it.type] : '', progress(it), it.notes ? '«' + it.notes + '»' : ''].filter(Boolean).join(' · '),
+        nick: it.nick,
+        tag: up ? { tone: 'show', label: 'Назначен' } : { tone: STATUS[st].tone, label: STATUS[st].label },
+        aux: it.rating ? String(it.rating).replace('.', ',') : '',
+        date: isUpcoming(it) ? icon('calendar') + ' ' + esc(human(it.scheduled_at))
+          : isDone(it) && (it.date_completed || it.scheduled_at) ? esc(shortDay(it.date_completed || it.scheduled_at))
+          : it.date_added ? 'заказан ' + esc(shortDay(it.date_added)) : '',
+      };
+    },
+    filters: [
+      { id: 'all', label: 'Все', fn: () => true },
+      { id: 'queue', label: 'В очереди', fn: it => it.title && statusOf(it) === 'pending' && !isUpcoming(it) },
+      { id: 'now', label: o.scheduled ? 'Сейчас и назначены' : 'Сейчас', fn: it => isActive(it) || isUpcoming(it) },
+      ...o.statuses.filter(s => s.id !== 'pending' && !s.active).map(s => ({ id: s.id, label: s.label, fn: it => statusOf(it) === s.id })),
+      { id: 'blank', label: 'Без названия', fn: it => !it.title },
+    ],
+    sorts: [
+      // Сначала то, что идёт и назначено, потом очередь по давности заказа, внизу — закрытое (свежие сверху)
+      { id: 'smart', label: 'По делу', fn: (a, b) => rank(a) - rank(b) ||
+        (rank(a) === 1 ? ts(a.scheduled_at) - ts(b.scheduled_at) : rank(a) === 5 ? completed(b) - completed(a) : added(a) - added(b)) },
+      { id: 'added', label: 'Новые', fn: (a, b) => added(b) - added(a) },
+      { id: 'rating', label: 'Оценка', fn: (a, b) => (num(b.rating) ?? -1) - (num(a.rating) ?? -1) },
+      { id: 'title', label: 'А–Я', fn: (a, b) => sec.title(a).localeCompare(sec.title(b), 'ru') },
+    ],
+    match: (it, q) => low(it.title).includes(q) || low(it.nick).includes(q),
+    // для вечера кино и «сейчас смотрим»
+    statusOf, isUpcoming, isActive, isDone, cover, STATUS, o,
+  };
+  sec.panel = sessionPanel;
+  return sec;
+}
+
+// Карточка заказа для панелей
+function filmBlock(sec, it, extra) {
+  const c = sec.cover(it);
+  return `<div class="film"><div class="film__poster"${bg(c)}>${c ? '' : icon(sec.icon)}</div>
+    <div class="film__body"><div class="film__title">${esc(sec.title(it))}${it.year ? ` <small style="color:var(--dim);font-weight:400">${esc(it.year)}</small>` : ''}</div>
+    <div class="film__meta"><span>${icon('user')} ${esc(it.nick)}</span>${extra || ''}</div></div></div>`;
+}
+
+// Ближайший стримовый день, на который в разделе ещё ничего не назначено
+function nextStreamDay(sec) {
+  const from = todayNo(), taken = new Set(), sch = schedule();
+  items(sec.id).forEach(it => {
+    if (it.scheduled_at && sec.statusOf(it) !== 'paused') taken.add(dayNo(it.scheduled_at));
+    if (it.date_completed) taken.add(dayNo(it.date_completed));
+  });
+  for (let n = from; n < from + 15; n++) {
+    const d = new Date(n * 864e5);
+    if (sch.days[DAY_KEYS[d.getUTCDay()]] && !taken.has(n)) return d.toISOString().slice(0, 10);
+  }
+  return new Date((from + 1) * 864e5).toISOString().slice(0, 10);
+}
+// ----- панель раздела: сейчас (оценка, вердикт, серии/часы) + следующий показ или новая игра -----
+const PANEL_WORDS = {
+  movies: { title: 'Вечер кино', now: 'Смотрим сейчас', next: 'Следующий фильм', pick: 'Фильм из очереди', done: 'Посмотрели', start: 'Начали смотреть', about: 'о фильме', none: 'фильм' },
+  anime:  { title: 'Аниме на стриме', now: 'Смотрим сейчас', next: 'Следующий показ', pick: 'Аниме из очереди', done: 'Досмотрели', start: 'Начали смотреть', about: 'об аниме', none: 'аниме' },
+  series: { title: 'Сериалы на стриме', now: 'Смотрим сейчас', next: 'Следующий показ', pick: 'Сериал из очереди', done: 'Досмотрели', start: 'Начали смотреть', about: 'о сериале', none: 'сериал' },
+  games:  { title: 'Игры на стриме', now: 'Играем сейчас', next: 'Начать новую игру', pick: 'Игра из очереди', done: 'Пройдено', start: 'Начали играть', about: 'об игре', none: 'игру' },
+};
+const GAME_ENDS = [['completed', 'Пройдено', 'check'], ['played', 'Сыграно', 'gamepad'], ['dropped', 'Дропнуто', 'x']];
+const picked = {}; // раздел → id заказа, выбранного переключателем «сейчас»
+function sessionPanel(sec, box) {
+  const W = PANEL_WORDS[sec.id];
+  const eps = sec.o.progress === 'episodes', game = sec.o.progress === 'percent', afisha = !!sec.o.scheduled;
+  $('panel-title').innerHTML = icon(sec.icon) + W.title;
+  box.innerHTML = '<div class="tonight"><div class="slot" id="slot-now"></div><div class="slot" id="slot-next"></div></div>';
+  const all = items(sec.id);
+  // Сейчас: то, что смотрим/играем, и назначенное на сегодня (или просроченное и не отмеченное)
+  const active = all.filter(sec.isActive);
+  const due = all.filter(it => it.scheduled_at && sec.statusOf(it) === 'pending' && dayNo(it.scheduled_at) <= todayNo())
+    .sort((a, b) => ts(b.scheduled_at) - ts(a.scheduled_at));
+  const candidates = active.concat(due.filter(it => !active.includes(it)));
+  const cur = candidates.find(it => it.id === picked[sec.id]) || candidates[0] || null;
+
+  const now = $('slot-now');
+  if (!cur) {
+    const seen = all.filter(it => sec.isDone(it) && it.date_completed && dayNo(it.date_completed) === todayNo()).pop();
+    const st = seen && sec.STATUS[sec.statusOf(seen)];
+    now.innerHTML = `<div class="slot__head">${icon('play')}Сегодня</div>` + (seen
+      ? filmBlock(sec, seen, `<span class="tag tag--${st.tone}">${st.label}</span>${seen.rating ? `<span class="tag tag--rating">${icon('star')} ${esc(String(seen.rating).replace('.', ','))}</span>` : ''}`) +
+        (seen.notes ? `<p class="empty-slot">«${esc(seen.notes)}»</p>` : '') +
+        `<div class="row"><button type="button" class="btn btn--ghost" data-edit="${esc(seen.id)}">${icon('pencil')}Изменить</button></div>`
+      : `<p class="empty-slot">${game ? 'Сейчас ни во что не играем. Начни игру справа — она появится на главной в «Продолжаем».'
+        : `На сегодня ничего не назначено. Назначь ${W.none} справа — появится в афише на главной.`}</p>`);
+  } else {
+    const st = sec.statusOf(cur);
+    const isAct = sec.isActive(cur);
+    const when = cur.scheduled_at && !game ? `<span>${icon('calendar')} ${esc(human(cur.scheduled_at))}</span>` : '';
+    const prog = eps ? `<span>${icon('tv')} серия ${esc(cur.episodes_watched || 0)} из ${esc(cur.episodes_total || '?')}</span>`
+      : game ? `<span>${icon('clock')} ${esc(fmtNum(num(cur.hours_played) || 0))} ч</span>${cur.progress_percent ? `<span>${esc(cur.progress_percent)}%</span>` : ''}` : '';
+    const switcher = candidates.length > 1 ? `<div class="chips">${candidates.map(it =>
+      `<button type="button" class="chip${it === cur ? ' is-active' : ''}" data-pick="${esc(it.id)}">${esc(sec.title(it))}</button>`).join('')}</div>` : '';
+    const stars = Array.from({ length: 10 }, (_, i) => `<button type="button" class="star-btn" data-r="${i + 1}">${i + 1}</button>`).join('');
+    const finish = game
+      ? GAME_ENDS.map(([id, label, ic], i) => `<button type="button" class="btn${i ? ' btn--ghost' : ' btn--solid'}" data-end="${id}">${icon(ic)}${label}</button>`).join('')
+      : `<button type="button" class="btn btn--solid" data-end="watched">${icon('check')}${W.done}</button>`;
+    now.innerHTML = `<div class="slot__head">${icon('play')}${isAct ? W.now : 'Сегодня'}</div>${switcher}
+      ${filmBlock(sec, cur, when + prog + `<span class="tag tag--${sec.STATUS[st].tone}">${sec.STATUS[st].label}</span>`)}
+      ${eps || game ? `<div class="row">
+        <button type="button" class="btn btn--sm" id="plus-btn">${icon('plus')}${eps ? '1 серия' : '1 час'}</button>
+        ${game ? `<label class="field" style="flex:0 1 150px"><span>Прогресс, %</span><input class="inp" id="prog-inp" type="number" min="0" max="100" step="1" value="${esc(cur.progress_percent)}" placeholder="без концовки"></label>` : ''}
+      </div>` : ''}
+      <div class="field"><span>Оценка <b class="rating-out" id="rating-out">—</b></span>
+        <div class="stars" id="stars">${stars}<button type="button" class="star-btn star-btn--half" data-half title="Добавить половинку">+½</button></div></div>
+      <label class="field"><span>Вердикт <em class="hint-inline">— зрители видят на обороте карточки</em></span>
+        <textarea class="inp" id="verdict" rows="3" placeholder="Пара слов ${W.about}...">${esc(cur.notes)}</textarea></label>
+      <div class="row">
+        ${finish}
+        ${!isAct ? `<button type="button" class="btn btn--ghost" id="start-btn">${icon('play')}${W.start}</button>` : ''}
+        ${eps || game ? `<button type="button" class="btn btn--ghost" id="keep-btn" title="Сохранить оценку и вердикт, не закрывая заказ">${icon('check')}Сохранить</button>` : ''}
+        <button type="button" class="btn btn--ghost" data-edit="${esc(cur.id)}">${icon('pencil')}Изменить</button>
+      </div>`;
+    let rating = num(cur.rating);
+    const paint = () => {
+      $('rating-out').textContent = rating == null ? '—' : String(rating).replace('.', ',') + ' / 10';
+      now.querySelectorAll('.star-btn[data-r]').forEach(b => b.classList.toggle('is-on', rating != null && +b.dataset.r <= Math.floor(rating)));
+      now.querySelector('[data-half]').classList.toggle('is-on', rating != null && rating % 1 !== 0);
+    };
+    paint();
+    $('stars').addEventListener('click', e => {
+      const b = e.target.closest('.star-btn');
+      if (!b) return;
+      if ('half' in b.dataset) { if (rating != null && rating < 10) rating = rating % 1 ? Math.floor(rating) : rating + 0.5; }
+      else rating = +b.dataset.r === rating ? null : +b.dataset.r;
+      paint();
+    });
+    now.querySelectorAll('[data-pick]').forEach(b => b.addEventListener('click', () => { picked[sec.id] = b.dataset.pick; sessionPanel(sec, box); }));
+    // Оценка, вердикт и прогресс игры — из полей панели
+    const fromPanel = () => {
+      const v = { rating: rating == null ? '' : String(rating), notes: $('verdict').value.trim() };
+      if (game) v.progress_percent = $('prog-inp').value === '' ? '' : fmtNum(Math.min(100, Math.max(0, num($('prog-inp').value))));
+      return v;
+    };
+    now.querySelectorAll('[data-end]').forEach(b => b.addEventListener('click', () => {
+      if (rating == null && !confirm('Закрыть без оценки?')) return;
+      const status = b.dataset.end, v = fromPanel();
+      save(sec, `«${sec.title(cur)}» — ${sec.STATUS[status].label.toLowerCase()}${rating != null ? ', ' + rating + '/10' : ''}`, data => {
+        const x = byId(data, cur.id);
+        Object.assign(x, v, { status, date_completed: todayStr() });
+        if (eps && parseInt(x.episodes_total, 10)) x.episodes_watched = x.episodes_total;
+        if (game && status === 'completed' && x.progress_percent !== '') x.progress_percent = '100';
+      }, b);
+    }));
+    if ($('keep-btn')) $('keep-btn').addEventListener('click', e => {
+      const v = fromPanel();
+      save(sec, `«${sec.title(cur)}» — оценка и вердикт`, data => { Object.assign(byId(data, cur.id), v); }, e.currentTarget);
+    });
+    if ($('start-btn')) $('start-btn').addEventListener('click', e => {
+      save(sec, `${W.start.toLowerCase()} «${sec.title(cur)}»`, data => { byId(data, cur.id).status = game ? 'playing' : 'watching'; }, e.currentTarget);
+    });
+    if ($('plus-btn')) $('plus-btn').addEventListener('click', e => {
+      if (eps) {
+        const n = (parseInt(cur.episodes_watched, 10) || 0) + 1, total = parseInt(cur.episodes_total, 10) || 0;
+        save(sec, `«${sec.title(cur)}» — серия ${n}`, data => {
+          const x = byId(data, cur.id);
+          x.episodes_watched = String(total ? Math.min(n, total) : n);
+          if (sec.statusOf(x) === 'pending') x.status = 'watching';
+        }, e.currentTarget).then(ok => { if (ok && total && n >= total) toast(`Это была последняя серия — оцени и нажми «${W.done}».`); });
+      } else {
+        save(sec, `«${sec.title(cur)}» +1 час`, data => {
+          const x = byId(data, cur.id);
+          x.hours_played = fmtNum((num(x.hours_played) || 0) + 1);
+        }, e.currentTarget);
+      }
+    });
+  }
+
+  const nx = $('slot-next');
+  const head = `<div class="slot__head">${icon(game ? 'gamepad' : 'calendar')}${W.next}</div>`;
+  // Очередь: заказы в ожидании; у аниме и сериалов — и то, что уже смотрим (назначить следующие серии)
+  const queue = () => all.filter(it => it.title && !sec.isDone(it) && !sec.isUpcoming(it) &&
+    (['pending', 'paused'].includes(sec.statusOf(it)) || (eps && sec.isActive(it))));
+  const picker = () => {
+    nx.innerHTML = head + `<div class="field pick"><span>${W.pick}</span>
+        <input class="inp" id="pick-q" placeholder="Начни вводить название или ник..." autocomplete="off">
+        <ul class="pick__list" id="pick-list" hidden></ul></div>
+      ${afisha ? `<div class="row">
+        <label class="field"><span>Дата</span><input class="inp" id="pick-date" type="date" value="${nextStreamDay(sec)}"></label>
+        <label class="field"><span>Время</span><input class="inp" id="pick-time" type="time" value="${schedule().movie}"></label>
+      </div>` : ''}
+      <div class="row"><button type="button" class="btn btn--solid" id="pick-btn" disabled>${icon(afisha ? 'calendar' : 'play')}${afisha ? 'Назначить' : W.start}</button>
+        <span class="hint-inline" id="pick-hint">${afisha ? `Выбери ${W.none} — появится в афише на главной` : 'Выбери игру — статус станет «Играем»'}</span></div>`;
+    bindPicker(sec, queue, (chosen, btn) => {
+      if (!afisha) return save(sec, `${W.start.toLowerCase()} «${chosen.title}»`, data => { byId(data, chosen.id).status = 'playing'; }, btn);
+      const when = joinDate($('pick-date').value, $('pick-time').value);
+      if (!when) return toast('Выбери дату', true);
+      save(sec, `«${chosen.title}» на ${when}`, data => {
+        const it = byId(data, chosen.id);
+        it.scheduled_at = when;
+        if (sec.statusOf(it) === 'paused') it.status = 'pending';
+      }, btn);
+    });
+  };
+  // Следующий показ в афише — назначенное позже текущего (у игр афиши нет — сразу выбор новой игры)
+  const next = afisha ? all.filter(it => it !== cur && sec.isUpcoming(it)).sort((a, b) => ts(a.scheduled_at) - ts(b.scheduled_at))[0] : null;
+  if (next) {
+    nx.innerHTML = head + filmBlock(sec, next, `<span>${icon('calendar')} ${esc(human(next.scheduled_at))}</span>`) +
+      `<div class="row"><button type="button" class="btn btn--ghost" data-edit="${esc(next.id)}">${icon('pencil')}Изменить</button>
+       <button type="button" class="btn btn--ghost" id="next-more">${icon('plus')}Назначить ещё</button></div>`;
+    $('next-more').addEventListener('click', picker);
+  } else picker();
+}
+// Поиск по очереди с выпадающим списком; action(выбранный заказ, кнопка) — что сделать по кнопке
+function bindPicker(sec, queue, action) {
+  let chosen = null, hl = 0, shown = [];
+  const q = $('pick-q'), list = $('pick-list');
+  const draw = () => {
+    const s = low(q.value.trim());
+    shown = queue().filter(it => !s || low(it.title).includes(s) || low(it.nick).includes(s)).slice(0, 40);
+    hl = Math.min(hl, Math.max(shown.length - 1, 0));
+    list.innerHTML = shown.length
+      ? shown.map((it, i) => `<li data-i="${i}" class="${i === hl ? 'is-hl' : ''}"><span>${esc(it.title)}</span><small>${esc(it.nick)}${sec.statusOf(it) === 'paused' ? ' · на паузе' : sec.isActive(it) ? ' · смотрим' : ''}</small></li>`).join('')
+      : '<li class="pick__none">В очереди ничего не нашлось</li>';
+    list.hidden = false;
+  };
+  const choose = it => {
+    chosen = it; q.value = it.title; list.hidden = true;
+    $('pick-btn').disabled = false;
+    $('pick-hint').textContent = 'Заказал ' + it.nick;
+  };
+  q.addEventListener('focus', draw);
+  q.addEventListener('input', () => { chosen = null; $('pick-btn').disabled = true; hl = 0; draw(); });
+  q.addEventListener('keydown', e => {
+    if (list.hidden) return;
+    if (e.key === 'ArrowDown') { hl = Math.min(hl + 1, shown.length - 1); draw(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { hl = Math.max(hl - 1, 0); draw(); e.preventDefault(); }
+    else if (e.key === 'Enter' && shown[hl]) { choose(shown[hl]); e.preventDefault(); }
+    else if (e.key === 'Escape') list.hidden = true;
+  });
+  list.addEventListener('mousedown', e => { const li = e.target.closest('li[data-i]'); if (li) { e.preventDefault(); choose(shown[+li.dataset.i]); } });
+  q.addEventListener('blur', () => { list.hidden = true; });
+  $('pick-btn').addEventListener('click', e => { if (chosen) action(chosen, e.currentTarget); });
+}
+
+// ===================== «Боль»: пул игр рулетки боли =====================
+const painSection = {
+  id: 'pain', label: 'Боль', icon: 'flame', group: 'Заказы', path: 'data/pain.json', page: 'pain-games.html', one: 'Игра',
+  addLabel: 'Добавить игру', search: 'Название игры...',
+  fields: [
+    { k: 'name', label: 'Название игры', w: '260px', required: true, hint: 'робот сам найдёт обложку в Steam' },
+    { k: 'override', label: 'Steam ID или картинка', w: '260px', hint: 'если робот нашёл не ту игру', ph: '211420 или https://...' },
+    { k: 'hours', label: 'Наиграно, ч', type: 'number', min: 0, step: 0.1 },
+    { k: 'last_played', label: 'Последний раз', type: 'date' },
+    { k: 'quip', label: 'Своя подпись', type: 'textarea', hint: 'пусто — подпись из pain-meta.json (робот или /podpisi)' },
+  ],
+  title: it => it.name || 'Без названия',
+  defaults: () => ({}),
+  meta: it => painMeta[painKey(it.name)] || {},
+  row: it => {
+    const m = painSection.meta(it);
+    const dup = items('pain').filter(x => painKey(x.name) === painKey(it.name)).length > 1;
+    return {
+      poster: m.cover || m.header || (/^https?:/i.test(it.override) ? it.override : ''), title: painSection.title(it), small: m.year,
+      sub: [(m.genres || []).join(', '), it.quip || m.quip ? '«' + (it.quip || m.quip) + '»' : ''].filter(Boolean).join(' · '),
+      tag: dup ? { tone: 'dropped', label: 'Дубль' } : m.found === false ? { tone: 'paused', label: 'Не найдена' } : !m.name ? { tone: 'queue', label: 'Ждёт робота' } : null,
+      aux: num(it.hours) ? fmtNum(num(it.hours)) + ' ч' : '',
+      date: it.last_played ? esc(shortDay(it.last_played)) : '',
+    };
+  },
+  filters: [
+    { id: 'all', label: 'Все', fn: () => true },
+    { id: 'played', label: 'Играли', fn: it => num(it.hours) > 0 },
+    { id: 'fresh', label: 'Ещё не страдал', fn: it => !num(it.hours) },
+    { id: 'noquip', label: 'Без подписи', fn: it => !it.quip && !painSection.meta(it).quip },
+    { id: 'problem', label: 'Дубли и ненайденные', fn: it => painSection.meta(it).found === false || items('pain').filter(x => painKey(x.name) === painKey(it.name)).length > 1 },
+  ],
+  sorts: [
+    { id: 'order', label: 'Как добавлены', fn: null },
+    { id: 'title', label: 'А–Я', fn: (a, b) => painSection.title(a).localeCompare(painSection.title(b), 'ru') },
+    { id: 'hours', label: 'Наиграно', fn: (a, b) => (num(b.hours) || 0) - (num(a.hours) || 0) },
+  ],
+  match: (it, q) => low(it.name).includes(q),
+  panel: painPanel,
+};
+
+// ===================== «Боль»: пульт моста (донаты, крутки, таймер) =====================
+// Мост pain-bridge работает на ПК стримера (localhost:3777): ловит донаты #боль/#время, хранит копилки и таймер,
+// крутит рулетку (анимация — на /pain?stream в OBS). Здесь только управление; ключи сервисов — на локальной странице моста.
+const PAIN_BRIDGE = (() => {
+  const b = new URLSearchParams(location.search).get('bridge') || '';
+  return /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(b) ? b : 'http://127.0.0.1:3777';
+})();
+const painLive = { es: null, s: null, at: 0, skew: 0, online: null, donKey: null };
+function painApi(path, body) {
+  return fetch(PAIN_BRIDGE + path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Pain-Bridge': '1' }, body: JSON.stringify(body || {}) })
+    .then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Мост ответил ' + r.status); return j; },
+      () => { throw new Error('Мост не отвечает. Он запущен?'); });
+}
+function painListen() {
+  if (painLive.es) return;
+  const es = painLive.es = new EventSource(PAIN_BRIDGE + '/api/events');
+  es.onopen = () => { painLive.online = true; painPaint(); };
+  es.onerror = () => { painLive.online = false; painPaint(); };
+  es.onmessage = e => {
+    const s = JSON.parse(e.data);
+    painLive.s = s; painLive.at = performance.now(); painLive.skew = Date.now() - s.now; painLive.online = true;
+    painPaint();
+  };
+}
+const painLeft = () => { const s = painLive.s; return s ? Math.max(0, s.timer.remainingMs - (s.timer.running ? performance.now() - painLive.at : 0)) : 0; };
+const painRevealing = () => { const s = painLive.s; return !!(s && s.spin && Date.now() - painLive.skew < s.spin.revealAt); };
+const painClock = ms => { const t = Math.ceil(ms / 1000); return `${Math.floor(t / 3600)}:${String(Math.floor(t / 60) % 60).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`; };
+const painRub = n => Number(n).toLocaleString('ru-RU', { maximumFractionDigits: 2 }) + ' ₽';
+const PAIN_SOURCES = { da: 'DonationAlerts', dx: 'DonateX', manual: 'Вручную' };
+
+function painPanel(sec, box) {
+  $('panel-title').innerHTML = icon('flame') + 'Пульт боли';
+  if (!box.querySelector('#pl')) {
+    box.innerHTML = `<div id="pl">
+      <div class="pl-status" id="pl-status"></div>
+      <div class="pl-grid">
+        <div class="pl-card">
+          <div class="pl-head"><span>Копилка боли <b class="pl-tag" id="pl-ptag">#боль</b></span><b id="pl-psum"></b></div>
+          <div class="pl-bar"><i id="pl-pbar"></i></div>
+          <div class="pl-credits" id="pl-pcred"></div>
+          <a class="btn btn--solid pl-spin" id="pl-spin-game" href="pain.html" target="_blank" rel="noopener">${icon('dice')}Открыть рулетку${icon('external')}</a>
+          <p class="pl-why" id="pl-why-game"></p>
+        </div>
+        <div class="pl-card">
+          <div class="pl-head"><span>Копилка времени <b class="pl-tag" id="pl-ttag">#время</b></span><b id="pl-tsum"></b></div>
+          <div class="pl-bar pl-bar--time"><i id="pl-tbar"></i></div>
+          <div class="pl-credits" id="pl-tcred"></div>
+          <button type="button" class="btn btn--solid pl-spin" id="pl-spin-time">${icon('hourglass')}Докрутить вручную</button>
+          <p class="pl-why" id="pl-why-time"></p>
+        </div>
+        <div class="pl-card pl-timer" id="pl-timer">
+          <div class="pl-head"><span>Таймер</span><span class="pl-state" id="pl-state"></span></div>
+          <div class="pl-game" id="pl-game"></div>
+          <div class="pl-clock" id="pl-clock">0:00:00</div>
+          <div class="row pl-row">
+            <button type="button" class="btn" id="pl-toggle">${icon('play')}Старт</button>
+            <button type="button" class="btn btn--danger" id="pl-reset">${icon('x')}Сброс</button>
+          </div>
+          <div class="row pl-row">
+            <input class="inp pl-num" id="pl-h" type="number" min="0" max="999" value="0" aria-label="Часы"><span class="pl-unit">ч</span>
+            <input class="inp pl-num" id="pl-m" type="number" min="0" max="59" value="0" aria-label="Минуты"><span class="pl-unit">мин</span>
+            <button type="button" class="btn btn--sm" id="pl-set">Задать</button>
+          </div>
+        </div>
+      </div>
+      <details class="pl-more">
+        <summary>Ручная правка и донат мимо сервисов</summary>
+        <div class="quick" style="margin-top:12px">
+          <label class="field"><span>Копилка боли, ₽</span><input class="inp" id="pl-e-pb" type="number" min="0" step="0.01"></label>
+          <label class="field"><span>Крутки игры</span><input class="inp" id="pl-e-pc" type="number" min="0"></label>
+          <label class="field"><span>Копилка времени, ₽</span><input class="inp" id="pl-e-tb" type="number" min="0" step="0.01"></label>
+          <label class="field"><span>Крутки времени</span><input class="inp" id="pl-e-tc" type="number" min="0"></label>
+          <button type="button" class="btn" id="pl-e-fill">Подставить текущие</button>
+          <button type="button" class="btn btn--solid" id="pl-e-save">Применить</button>
+        </div>
+        <div class="quick" style="margin-top:12px">
+          <label class="field"><span>Ник</span><input class="inp" id="pl-d-nick" list="nicks" autocomplete="off" placeholder="Вручную"></label>
+          <label class="field"><span>Сумма, ₽</span><input class="inp" id="pl-d-sum" type="number" min="1"></label>
+          <label class="field"><span>Куда</span><select class="inp" id="pl-d-tag"><option value="pain">Копилка боли</option><option value="time">Копилка времени</option></select></label>
+          <button type="button" class="btn btn--solid" id="pl-d-add">${icon('plus')}Добавить донат</button>
+        </div>
+      </details>
+      <details class="pl-more">
+        <summary>Последние донаты с метками</summary>
+        <div class="pl-dons" id="pl-dons"></div>
+      </details>
+      <p class="hint-inline pl-foot">Крутки анимируются на <a href="pain.html" target="_blank" rel="noopener">рулетке</a> (в OBS — <code>${PAIN_BRIDGE.replace('http://', '')}/pain?stream</code>),
+        «Боль подана» и таймер — на <a href="${PAIN_BRIDGE}/widget" target="_blank" rel="noopener">виджете</a>.
+        Ключ DonationAlerts — на <a href="${PAIN_BRIDGE}/admin" target="_blank" rel="noopener">странице моста</a>, на сайт он не попадает.</p>
+    </div>`;
+    const busy = async (btn, fn, ok) => {
+      btn.disabled = true;
+      try { await fn(); if (ok) toast(ok); } catch (err) { toast(err.message, true); }
+      finally { btn.disabled = false; painPaint(); }
+    };
+    $('pl-spin-time').addEventListener('click', e => busy(e.currentTarget, () => painApi('/api/spin/time'), 'Крутим время!'));
+    $('pl-toggle').addEventListener('click', e => busy(e.currentTarget, () => painApi('/api/timer', { action: painLive.s && painLive.s.timer.running ? 'pause' : 'start' })));
+    $('pl-reset').addEventListener('click', e => {
+      if (confirm('Сбросить таймер в ноль? Игра будет считаться отыгранной.')) busy(e.currentTarget, () => painApi('/api/timer', { action: 'reset' }), 'Таймер сброшен');
+    });
+    $('pl-set').addEventListener('click', e => busy(e.currentTarget, () => painApi('/api/timer', { action: 'set', hours: $('pl-h').value || 0, minutes: $('pl-m').value || 0 }), 'Таймер задан, он на паузе'));
+    const fill = () => { const s = painLive.s; if (!s) return; $('pl-e-pb').value = s.painBank; $('pl-e-pc').value = s.painCredits; $('pl-e-tb').value = s.timeBank; $('pl-e-tc').value = s.timeCredits; };
+    $('pl-e-fill').addEventListener('click', fill);
+    box.querySelector('details').addEventListener('toggle', e => { if (e.target.open) fill(); });
+    $('pl-e-save').addEventListener('click', e => busy(e.currentTarget, () => painApi('/api/admin/set',
+      { painBank: $('pl-e-pb').value, painCredits: $('pl-e-pc').value, timeBank: $('pl-e-tb').value, timeCredits: $('pl-e-tc').value }), 'Применено'));
+    $('pl-d-add').addEventListener('click', e => {
+      if (!(+$('pl-d-sum').value > 0)) return toast('Впиши сумму', true);
+      busy(e.currentTarget, () => painApi('/api/admin/donate', { username: $('pl-d-nick').value, amount: $('pl-d-sum').value, tag: $('pl-d-tag').value })
+        .then(() => { $('pl-d-sum').value = ''; }), 'Донат добавлен');
+    });
+    $('pl-status').addEventListener('click', e => { if (e.target.closest('#pl-reconnect')) busy(e.target.closest('#pl-reconnect'), () => painApi('/api/reconnect'), 'Переподключаю'); });
+    painLive.donKey = null;
+  }
+  painListen();
+  painPaint();
+}
+
+function painPaint() {
+  if (!$('pl')) return;
+  const s = painLive.s;
+  if (painLive.online === false || !s) {
+    $('pl-status').dataset.html = '';
+    $('pl-status').innerHTML = painLive.online === false
+      ? `<span class="pl-dot is-error"></span><span>Мост не отвечает. Он должен работать на этом ПК (<a href="${PAIN_BRIDGE}/admin" target="_blank" rel="noopener">${PAIN_BRIDGE.replace('http://', '')}</a>) — запусти его и обнови страницу.</span>`
+      : '<span>Подключаюсь к мосту...</span>';
+    ['pl-spin-time', 'pl-toggle', 'pl-reset', 'pl-set', 'pl-e-save', 'pl-d-add'].forEach(id => { $(id).disabled = true; });
+    if (!s) return;
+  } else {
+    const dot = st => st === 'online' ? 'is-ok' : st === 'connecting' ? 'is-warn' : st === 'error' ? 'is-error' : '';
+    // Отключённые сервисы (без ключа в мосте) не показываем — сейчас это DonateX
+    const used = ['da', 'dx'].filter(k => s.status[k] && s.status[k].state !== 'disabled');
+    const html = [['da', 'DonationAlerts'], ['dx', 'DonateX'], ['sheet', 'Список игр']].filter(([k]) => k === 'sheet' || used.includes(k))
+      .map(([k, name]) => `<span class="pl-src" title="${esc(s.status[k].text)}"><span class="pl-dot ${dot(s.status[k].state)}"></span>${name}</span>`).join('') +
+      (used.some(k => s.status[k].state !== 'online') ? `<button type="button" class="btn btn--sm btn--ghost" id="pl-reconnect">${icon('refresh')}Переподключить</button>` : '') +
+      `<span class="pl-src-text">${esc(used.map(k => s.status[k].state !== 'online' ? s.status[k].text : '').filter(Boolean)[0] || '')}</span>`;
+    // Перерисовываем, только если что-то поменялось — иначе кнопка «Переподключить» пересоздаётся под курсором
+    if ($('pl-status').dataset.html !== html) { $('pl-status').innerHTML = html; $('pl-status').dataset.html = html; }
+    ['pl-set', 'pl-e-save', 'pl-d-add'].forEach(id => { $(id).disabled = false; });
+  }
+  const c = s.config, hidden = painRevealing(), left = painLeft(), live = painLive.online !== false;
+  $('pl-ptag').textContent = c.painTag; $('pl-ttag').textContent = c.timeTag;
+  $('pl-psum').textContent = `${painRub(s.painBank)} / ${painRub(c.painPrice)}`;
+  $('pl-tsum').textContent = `${painRub(s.timeBank)} / ${painRub(c.timePrice)}`;
+  $('pl-pbar').style.width = Math.min(100, s.painBank / c.painPrice * 100) + '%';
+  $('pl-tbar').style.width = Math.min(100, s.timeBank / c.timePrice * 100) + '%';
+  $('pl-pcred').innerHTML = `Оплачено круток игры: <b class="${s.painCredits ? 'is-on' : ''}">${s.painCredits}</b>`;
+  $('pl-tcred').innerHTML = `Оплачено круток времени: <b class="${s.timeCredits ? 'is-on' : ''}">${s.timeCredits}</b>`;
+  const whyGame = hidden ? 'Рулетка ещё крутится' : !s.painCredits ? 'Нет оплаченных круток' : left > 0 ? `Сначала доиграй «${s.game ? s.game.name : ''}»` : 'Крутка оплачена — открой рулетку и крути при всех';
+  const whyTime = hidden ? 'Рулетка ещё крутится' : !s.timeCredits ? 'Крутится сама, пока идёт таймер' : !s.game ? 'Ещё не выпало ни одной игры'
+    : s.timer.running ? 'Сейчас прокрутится сама' : 'Таймер на паузе: прокрутится после «Старт» (или вручную)';
+  $('pl-why-game').textContent = whyGame;
+  $('pl-spin-time').disabled = !live || hidden || !s.timeCredits || !s.game || s.timer.running; $('pl-why-time').textContent = whyTime;
+  $('pl-timer').classList.toggle('is-running', s.timer.running && !hidden);
+  $('pl-game').textContent = hidden ? 'Крутим...' : s.game ? s.game.name : 'Игра ещё не выбрана';
+  $('pl-clock').textContent = hidden ? '?:??:??' : painClock(left);
+  $('pl-state').textContent = hidden || !s.game ? '' : s.timer.running ? 'идёт' : left > 0 ? 'на паузе' : 'отыграно';
+  $('pl-toggle').innerHTML = s.timer.running ? icon('pause') + 'Пауза' : icon('play') + 'Старт';
+  $('pl-toggle').disabled = !live || hidden || (!s.timer.running && left <= 0);
+  $('pl-reset').disabled = !live || hidden;
+  const donKey = s.donations.map(d => d.key).join();
+  if (donKey !== painLive.donKey) {
+    painLive.donKey = donKey;
+    $('pl-dons').innerHTML = s.donations.length ? '<table><tbody>' + s.donations.slice(0, 15).map(d => {
+      const result = [d.painCredits && `+${d.painCredits} крутка игры`, d.overflow && `остаток ${painRub(d.overflow)} во время`,
+        d.timeCredits && `+${d.timeCredits} крутка времени`].filter(Boolean).join(', ') || 'в копилку';
+      return `<tr title="${esc(d.message || '')}"><td>${esc(new Date(d.at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }))}</td>
+        <td>${esc(PAIN_SOURCES[d.source] || d.source)}</td><td>${esc(d.username)}</td>
+        <td class="pl-don-${d.tag}">${esc(painRub(d.rub))} ${esc(d.tag === 'pain' ? c.painTag : c.timeTag)}</td><td>${esc(result)}</td></tr>`;
+    }).join('') + '</tbody></table>' : '<p class="hint-inline">Пока ни одного доната с меткой.</p>';
+  }
+}
+setInterval(() => { if (current === painSection && painLive.s) painPaint(); }, 500);
+
+// ===================== билеты =====================
+const ticketsSection = {
+  id: 'tickets', label: 'Билеты', icon: 'ticket', group: 'Зрители', path: 'data/tickets.json', page: 'tickets.html', one: 'Билеты зрителя',
+  addLabel: 'Добавить зрителя', search: 'Ник...',
+  fields: [
+    { k: 'nick', label: 'Ник', type: 'nick', required: true, w: '220px' },
+    { k: 'silver', label: 'Серебряные', type: 'number', min: 0, step: 1 },
+    { k: 'gold', label: 'Золотые', type: 'number', min: 0, step: 1 },
+  ],
+  title: it => it.nick,
+  defaults: () => ({ silver: '1', gold: '' }),
+  row: it => ({
+    poster: avatarOf(it.nick), shape: 'round', title: it.nick,
+    sub: 'шанс ×' + ((parseInt(it.gold, 10) || 0) * 5 + (parseInt(it.silver, 10) || 0)),
+    tag: null,
+    aux: '', date: `${parseInt(it.silver, 10) ? `<span class="tickets-pill tickets-pill--silver">${icon('ticket')}${parseInt(it.silver, 10)}</span> ` : ''}${parseInt(it.gold, 10) ? `<span class="tickets-pill tickets-pill--gold">${icon('ticket')}${parseInt(it.gold, 10)}</span>` : ''}`,
+  }),
+  filters: [{ id: 'all', label: 'Все', fn: () => true }, { id: 'gold', label: 'С золотыми', fn: it => parseInt(it.gold, 10) > 0 }],
+  sorts: [
+    { id: 'score', label: 'Больше шансов', fn: (a, b) => score(b) - score(a) },
+    { id: 'title', label: 'А–Я', fn: (a, b) => a.nick.localeCompare(b.nick) },
+  ],
+  match: (it, q) => low(it.nick).includes(q),
+  panel: ticketsPanel,
+};
+const score = it => (parseInt(it.gold, 10) || 0) * 5 + (parseInt(it.silver, 10) || 0);
+function ticketsPanel(sec, box) {
+  $('panel-title').innerHTML = icon('ticket') + 'Выдать билет';
+  const total = items('tickets').reduce((a, it) => a + (parseInt(it.silver, 10) || 0) + (parseInt(it.gold, 10) || 0), 0);
+  box.innerHTML = `<div class="quick">
+      <label class="field"><span>Ник зрителя</span><input class="inp" id="t-nick" list="nicks" autocomplete="off" placeholder="Начни вводить ник..."></label>
+      <button type="button" class="btn" data-give="silver">${icon('plus')}Серебряный</button>
+      <button type="button" class="btn" data-give="gold">${icon('plus')}Золотой</button>
+      <button type="button" class="btn btn--danger" id="t-reset"${total ? '' : ' disabled'}>${icon('x')}Обнулить все</button>
+    </div>
+    <p class="hint-inline" style="margin-top:10px">Золотой билет = 5 серебряных по шансу. Новый ник добавится сам. Всего билетов: ${total}.</p>`;
+  box.querySelectorAll('[data-give]').forEach(b => b.addEventListener('click', () => {
+    const nick = $('t-nick').value.trim();
+    if (!nick) return toast('Впиши ник зрителя', true);
+    const kind = b.dataset.give;
+    save(sec, `${nick} +1 ${kind === 'gold' ? 'золотой' : 'серебряный'}`, data => {
+      let it = data.items.find(x => low(x.nick) === low(nick));
+      if (!it) { it = blankItem(data, { nick, silver: '0', gold: '0' }); data.items.push(it); }
+      it[kind] = String((parseInt(it[kind], 10) || 0) + 1);
+    }, b);
+  }));
+  $('t-reset').addEventListener('click', e => {
+    if (!confirm('Обнулить билеты у всех зрителей? Например, после розыгрыша.\nВернуть можно только через историю git.')) return;
+    save(sec, 'обнулены все билеты', data => { data.items = []; }, e.currentTarget);
+  });
+}
+
+// ===================== зрители =====================
+const avatarOf = nick => { const v = items('viewers').find(x => low(x.nick) === low(nick)); return v ? v.avatar_url : ''; };
+const viewersSection = {
+  id: 'viewers', label: 'Зрители', icon: 'user', group: 'Зрители', path: 'data/viewers.json', one: 'Зритель',
+  addLabel: 'Добавить зрителя', search: 'Ник...',
+  fields: [
+    { k: 'nick', label: 'Ник', required: true, w: '220px', hint: 'как в Twitch' },
+    { k: 'twitch_url', label: 'Ссылка на Twitch', type: 'url', w: '260px', hint: 'пусто — по нику' },
+    { k: 'avatar_url', label: 'Аватарка', type: 'cover', shape: 'round', hint: 'ссылка на картинку (ПКМ по аватарке в Twitch → копировать адрес)' },
+    { k: 'steam_nick', label: 'Ник в Steam', w: '200px' },
+  ],
+  title: it => it.nick,
+  defaults: () => ({}),
+  row: it => ({ poster: it.avatar_url, shape: 'round', title: it.nick, sub: [it.twitch_url, it.steam_nick && 'Steam: ' + it.steam_nick].filter(Boolean).join(' · '), tag: null, aux: '', date: '' }),
+  filters: [{ id: 'all', label: 'Все', fn: () => true }, { id: 'noava', label: 'Без аватарки', fn: it => !it.avatar_url }],
+  sorts: [{ id: 'title', label: 'А–Я', fn: (a, b) => a.nick.localeCompare(b.nick) }, { id: 'order', label: 'Как добавлены', fn: null }],
+  match: (it, q) => low(it.nick).includes(q) || low(it.steam_nick).includes(q),
+};
+
+// ===================== зал славы и призы =====================
+const RANKS = [['artifact', 'Артефакт'], ['legendary', 'Легендарный'], ['epic', 'Эпический']];
+const RANK_TONE = { artifact: 'active', legendary: 'show', epic: 'sub' };
+const winnersSection = {
+  id: 'winners', label: 'Зал славы', icon: 'trophy', group: 'Зрители', path: 'data/winners.json', page: 'hall.html', one: 'Победа',
+  addLabel: 'Добавить победу', search: 'Приз или ник...',
+  fields: [
+    { k: 'nick', label: 'Победитель', type: 'nick', required: true, w: '200px' },
+    { k: 'prize', label: 'Приз', required: true, w: '280px' },
+    { k: 'rank', label: 'Редкость', type: 'select', options: RANKS, hint: 'эпические на сайте не показываются' },
+    { k: 'chance', label: 'Шанс', w: '100px', ph: '2%' },
+    { k: 'date', label: 'Дата', type: 'date' },
+    { k: 'unique', label: 'Уникальный приз', type: 'bool', on: 'Карточка-перевёртыш' },
+    { k: 'quote', label: 'Цитата / комментарий', type: 'textarea', rows: 2 },
+    { k: 'prize_image_url', label: 'Картинка приза', type: 'cover', hint: 'для уникальных' },
+  ],
+  title: it => it.prize || 'Без приза',
+  defaults: () => ({ rank: 'artifact', date: todayStr(), unique: 'FALSE' }),
+  row: it => ({
+    poster: it.prize_image_url || avatarOf(it.nick), shape: it.prize_image_url ? '' : 'round', title: winnersSection.title(it),
+    small: truthy(it.unique) ? 'уникальный' : '', sub: it.quote ? '«' + it.quote + '»' : '', nick: it.nick,
+    tag: { tone: RANK_TONE[low(it.rank)] || 'queue', label: (RANKS.find(r => r[0] === low(it.rank)) || [0, it.rank || '—'])[1] },
+    aux: it.chance, date: it.date ? esc(shortDay(it.date)) : '',
+  }),
+  filters: [
+    { id: 'all', label: 'Все', fn: () => true },
+    ...RANKS.map(([id, label]) => ({ id, label, fn: it => low(it.rank) === id })),
+    { id: 'unique', label: 'Уникальные', fn: it => truthy(it.unique) },
+  ],
+  sorts: [
+    { id: 'new', label: 'Новые', fn: (a, b) => ts(b.date) - ts(a.date) },
+    { id: 'nick', label: 'По нику', fn: (a, b) => a.nick.localeCompare(b.nick) },
+  ],
+  match: (it, q) => low(it.prize).includes(q) || low(it.nick).includes(q),
+};
+const prizesSection = {
+  id: 'prizes', label: 'Призы', icon: 'gem', group: 'Сайт', path: 'data/prizes.json', page: 'hall.html', one: 'Баннер приза',
+  addLabel: 'Добавить баннер', search: 'Название...',
+  note: 'Баннеры «Текущие призы» над залом славы. Без картинки баннер не показывается.',
+  fields: [
+    { k: 'title', label: 'Подпись', w: '260px' },
+    { k: 'link', label: 'Ссылка по клику', type: 'url', w: '260px' },
+    { k: 'active', label: 'Показывать', type: 'bool', emptyOn: true, on: 'Виден на сайте' },
+    { k: 'image_url', label: 'Картинка баннера', type: 'cover', shape: 'wide' },
+  ],
+  title: it => it.title || it.link || 'Баннер',
+  defaults: () => ({ active: 'TRUE' }),
+  row: it => ({ poster: it.image_url, shape: 'wide', title: prizesSection.title(it), sub: it.link, tag: isOn(it) ? { tone: 'done', label: 'Показан' } : { tone: 'queue', label: 'Скрыт' }, aux: '', date: '' }),
+  filters: [{ id: 'all', label: 'Все', fn: () => true }],
+  sorts: [{ id: 'order', label: 'Как на сайте', fn: null }],
+  match: (it, q) => low(it.title).includes(q) || low(it.link).includes(q),
+};
+const isOn = it => String(it.active || '').trim() === '' || truthy(it.active);
+const friendsSection = {
+  id: 'friends', label: 'Рекомендую', icon: 'sparkles', group: 'Сайт', path: 'data/friends.json', page: 'index.html', one: 'Друг-стример',
+  addLabel: 'Добавить стримера', search: 'Ник...',
+  note: 'Баннеры друзей-стримеров на главной. Робот сам сожмёт картинку и положит копию на сайт.',
+  fields: [
+    { k: 'nick', label: 'Ник', required: true, w: '200px' },
+    { k: 'url', label: 'Ссылка', type: 'url', w: '260px', hint: 'пусто — Twitch по нику' },
+    { k: 'active', label: 'Показывать', type: 'bool', emptyOn: true, on: 'Виден на главной' },
+    { k: 'image_url', label: 'Баннер 5:1', type: 'cover', shape: 'wide' },
+  ],
+  title: it => it.nick,
+  defaults: () => ({ active: 'TRUE' }),
+  row: it => ({ poster: it.image_url, shape: 'wide', title: it.nick, sub: it.url, tag: isOn(it) ? { tone: 'done', label: 'Показан' } : { tone: 'queue', label: 'Скрыт' }, aux: '', date: '' }),
+  filters: [{ id: 'all', label: 'Все', fn: () => true }],
+  sorts: [{ id: 'order', label: 'Как на сайте', fn: null }],
+  match: (it, q) => low(it.nick).includes(q),
+};
+
+// ===================== шаблоны: пасты для рейдов, стили титров =====================
+// Вкладка на templates.html = значение tab: вписал новое имя — появилась новая вкладка
+const TPL_TABS = ['Паста', 'Титры'];
+const tplTabs = () => [...new Set(TPL_TABS.concat(items('templates').map(it => it.tab).filter(Boolean)))];
+const tplTitle = it => it.title || String(it.text || '').trim().split('\n')[0].slice(0, 60) || 'Без текста';
+const templatesSection = {
+  id: 'templates', label: 'Шаблоны', icon: 'copy', group: 'Стрим', path: 'data/templates.json', page: 'templates.html', one: 'Шаблон',
+  addLabel: 'Добавить шаблон', search: 'Текст или название...',
+  note: 'Пасты для рейдов, стили титров и прочие тексты под копирование.',
+  fields: [
+    { k: 'tab', label: 'Вкладка', required: true, w: '200px', suggest: tplTabs, hint: 'новое имя — новая вкладка' },
+    { k: 'title', label: 'Название', w: '300px', hint: 'необязательно' },
+    { k: 'text', label: 'Текст', type: 'textarea', rows: 8, required: true },
+  ],
+  title: tplTitle,
+  defaults: () => ({ tab: (views.templates && views.templates.filter !== 'all' && views.templates.filter) || TPL_TABS[0] }),
+  normalize: vals => { vals.text = vals.text.replace(/\r\n/g, '\n'); },
+  row: it => {
+    const n = [...String(it.text || '')].length;
+    return { // паста длиннее 500 символов не влезет в одно сообщение Twitch
+      poster: '', shape: 'none', title: tplTitle(it), sub: it.title ? String(it.text || '').replace(/\s+/g, ' ').slice(0, 140) : '',
+      tag: it.tab === 'Паста' && n > 500 ? { tone: 'dropped', label: 'Длиннее 500' } : { tone: 'queue', label: it.tab || '—' },
+      aux: '', date: n + ' симв.', copy: String(it.text || ''),
+    };
+  },
+  get filters() {
+    return [{ id: 'all', label: 'Все', fn: () => true }].concat(tplTabs().map(t => ({ id: t, label: t, fn: it => it.tab === t })));
+  },
+  sorts: [
+    { id: 'order', label: 'Как на сайте', fn: null },
+    { id: 'title', label: 'А–Я', fn: (a, b) => tplTitle(a).localeCompare(tplTitle(b), 'ru') },
+  ],
+  match: (it, q) => low(it.title).includes(q) || low(it.text).includes(q),
+};
+
+// ===================== заставки для OBS (screen.html) =====================
+// Фразы — data/screens.json (screen: start | brb | end | all), настройки экранов — data/config.json, ключи screen_*.
+// Значения по умолчанию те же, что в screen.html (DEFAULTS, COMMON).
+const SCREENS = [['start', 'Начало стрима'], ['brb', 'Отошёл'], ['end', 'Конец стрима']];
+const SCREEN_NAME = Object.fromEntries(SCREENS.concat([['all', 'Все экраны']]));
+const SCREEN_DEFAULTS = {
+  start: { title: 'Стрим начинается', sub: '', timer: '5', timer_done: 'Вот-вот начнём', chat: 'TRUE', every: '35', pos: 'top', bg: 'video' },
+  brb: { title: 'Скоро вернусь', sub: '', timer: '0', timer_done: 'Уже иду', chat: 'TRUE', every: '40', pos: 'top', bg: 'pixel' },
+  end: { title: 'Стрим окончен', sub: 'Спасибо, что были сегодня', timer: '0', timer_done: '', chat: 'TRUE', every: '45', pos: 'top', bg: 'video' },
+};
+const SCREEN_BGS = [['video', 'Прозрачный: видео в OBS под ним'], ['pixel', 'Пиксельный ночной город']];
+const SCREEN_COMMON = { life: '10', max: '7', ignore: 'nightbot, streamelements, moobot, fossabot, wizebot, streamlabs, soundalerts, sery_bot, commanderroot' };
+// Переносы строк сохраняем (шутки-диалоги), лишние пробелы внутри строк схлопываем
+const phraseTitle = it => String(it.text || '').trim().split('\n').map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean).join('\n').slice(0, 300) || 'Без текста';
+const screensSection = {
+  id: 'screens', label: 'Заставки', icon: 'video', group: 'Стрим', path: 'data/screens.json', one: 'Фраза',
+  addLabel: 'Добавить фразу', search: 'Текст фразы...',
+  note: 'Фразы всплывают облачками на заставке между сообщениями чата.',
+  fields: [
+    { k: 'screen', label: 'Экран', type: 'select', options: SCREENS.concat([['all', 'Все экраны']]) },
+    { k: 'label', label: 'Подпись сверху', w: '200px', hint: 'необязательно', ph: 'Факт, Новость...' },
+    { k: 'active', label: 'Показывать', type: 'bool', emptyOn: true, on: 'Включена' },
+    { k: 'text', label: 'Текст', type: 'textarea', rows: 3, required: true },
+  ],
+  title: phraseTitle,
+  normalize: vals => { vals.text = vals.text.replace(/\r\n/g, '\n'); },
+  defaults: () => ({ screen: SCREEN_NAME[views.screens && views.screens.filter] && views.screens.filter !== 'all' ? views.screens.filter : 'start', active: 'TRUE' }),
+  row: it => ({
+    poster: '', shape: 'none', title: phraseTitle(it), sub: '', lines: true,
+    tag: isOn(it) ? { tone: it.screen === 'all' ? 'show' : 'queue', label: SCREEN_NAME[it.screen] || it.screen || '—' } : { tone: 'paused', label: 'Выключена' },
+    aux: '', date: esc(it.label || ''),
+  }),
+  filters: [
+    { id: 'all', label: 'Все', fn: () => true },
+    ...SCREENS.map(([id, label]) => ({ id, label, fn: it => it.screen === id || it.screen === 'all' })),
+    { id: 'off', label: 'Выключенные', fn: it => !isOn(it) },
+  ],
+  sorts: [{ id: 'order', label: 'Как добавлены', fn: null }, { id: 'title', label: 'А–Я', fn: (a, b) => phraseTitle(a).localeCompare(phraseTitle(b), 'ru') }],
+  match: (it, q) => low(it.text).includes(q) || low(it.label).includes(q),
+  panel: screensPanel,
+};
+function screensPanel(sec, box) {
+  $('panel-title').innerHTML = icon('video') + 'Заставки для OBS';
+  const c = config();
+  const scr = SCREEN_DEFAULTS[views.screens.filter] ? views.screens.filter : 'start';
+  const val = (k, d) => (k in c ? c[k] : d);
+  const s = k => val(`screen_${scr}_${k}`, SCREEN_DEFAULTS[scr][k]);
+  const g = k => val('screen_' + k, SCREEN_COMMON[k]) || SCREEN_COMMON[k];
+  const url = new URL(`screen.html?s=${scr}`, location.href).href;
+  const inp = (k, label, w, extra) => `<label class="field" style="flex:1 1 ${w}"><span>${label}</span><input class="inp" data-k="${k}" value="${esc(k.startsWith('screen_' + scr) ? s(k.slice(8 + scr.length)) : g(k.slice(7)))}"${extra || ''}></label>`;
+  box.innerHTML = `
+    <div class="chips" style="margin-bottom:16px">${SCREENS.map(([id, label]) =>
+      `<button type="button" class="chip${id === scr ? ' is-active' : ''}" data-scr="${id}">${esc(label)}</button>`).join('')}</div>
+    <div class="cfg-group"><h3>Источник для OBS</h3>
+      <div class="quick">
+        <label class="field"><span>Browser source, 1920×1080 <em class="hint-inline">— ${s('bg') === 'pixel' ? 'фон рисуется сам, видео не нужно' : 'поставь поверх видео заставки'}</em></span><input class="inp" id="scr-url" value="${esc(url)}" readonly></label>
+        <button type="button" class="btn" id="scr-copy">${icon('copy')}Копировать</button>
+        <a class="btn btn--ghost" href="${esc(url)}&demo" target="_blank" rel="noopener">${icon('play')}Предпросмотр</a>
+      </div>
+      <p class="hint-inline" style="margin-top:8px">Отсчёт начинается, когда сцена становится активной в OBS. Правки ниже оверлей подхватывает сам примерно за минуту.</p>
+    </div>
+    <div class="cfg-group"><h3>${esc(SCREEN_NAME[scr])}</h3><div class="row">
+      ${inp(`screen_${scr}_title`, 'Надпись', '260px')}
+      ${inp(`screen_${scr}_sub`, 'Строка под надписью <em class="hint-inline">— необязательно</em>', '260px')}
+      <label class="field" style="flex:1 1 160px"><span>Где надпись</span><select class="inp" data-k="screen_${scr}_pos">${[['top', 'Сверху'], ['center', 'По центру'], ['bottom', 'Снизу']]
+        .map(([v, t]) => `<option value="${v}"${s('pos') === v ? ' selected' : ''}>${t}</option>`).join('')}</select></label>
+      <label class="field" style="flex:1 1 240px"><span>Фон</span><select class="inp" data-k="screen_${scr}_bg">${SCREEN_BGS
+        .map(([v, t]) => `<option value="${v}"${s('bg') === v ? ' selected' : ''}>${t}</option>`).join('')}</select></label>
+    </div><div class="row" style="margin-top:12px">
+      ${inp(`screen_${scr}_timer`, 'Отсчёт, мин <em class="hint-inline">— 0: без отсчёта</em>', '160px', ' type="number" min="0" max="120" step="0.5"')}
+      ${inp(`screen_${scr}_timer_done`, 'Когда отсчёт кончился', '220px')}
+      ${inp(`screen_${scr}_every`, 'Фраза раз в, сек <em class="hint-inline">— 0: без фраз</em>', '160px', ' type="number" min="0" max="600" step="5"')}
+      <div class="field" style="flex:1 1 160px"><span>Чат</span><label class="check-line"><input type="checkbox" data-k="screen_${scr}_chat"${truthy(s('chat')) ? ' checked' : ''}>Сообщения пузырями</label></div>
+    </div></div>
+    <div class="cfg-group"><h3>Пузыри — для всех экранов</h3><div class="row">
+      ${inp('screen_life', 'Живёт, сек', '120px', ' type="number" min="3" max="60" step="1"')}
+      ${inp('screen_max', 'Не больше на экране', '140px', ' type="number" min="1" max="20" step="1"')}
+      ${inp('screen_ignore', 'Не показывать ники <em class="hint-inline">— боты, через запятую</em>', '360px')}
+    </div><p class="hint-inline" style="margin-top:8px">Команды с «!» и сообщения со ссылками не показываются. Удалённые модератором сообщения пропадают с экрана.</p></div>
+    <div class="row"><button type="button" class="btn btn--solid" id="scr-save">${icon('check')}Сохранить «${esc(SCREEN_NAME[scr])}»</button></div>`;
+
+  box.querySelectorAll('[data-scr]').forEach(b => b.addEventListener('click', () => { views.screens.filter = b.dataset.scr; render(); }));
+  $('scr-copy').addEventListener('click', async e => {
+    try { await navigator.clipboard.writeText(url); } catch (err) { $('scr-url').select(); document.execCommand('copy'); }
+    e.currentTarget.innerHTML = icon('check') + 'Скопировано';
+  });
+  $('scr-save').addEventListener('click', async e => {
+    const vals = {};
+    box.querySelectorAll('[data-k]').forEach(el => { vals[el.dataset.k] = el.type === 'checkbox' ? (el.checked ? 'TRUE' : 'FALSE') : el.value.trim(); });
+    if (!vals[`screen_${scr}_title`]) return toast('Впиши надпись', true);
+    // Без изменений против того, что сейчас видит оверлей (с учётом значений по умолчанию), — не коммитим
+    const now = k => k.startsWith(`screen_${scr}_`) ? s(k.slice(8 + scr.length)) : g(k.slice(7));
+    const changed = Object.keys(vals).filter(k => String(now(k)) !== vals[k]);
+    if (!changed.length) return toast('Ничего не поменялось');
+    const ok = await save({ ...sec, id: 'config', path: 'data/config.json' }, `«${SCREEN_NAME[scr]}» — ${changed.join(', ')}`, data => {
+      changed.forEach(k => {
+        const row = data.items.find(r => r.key === k);
+        if (row) row.value = vals[k]; else data.items.push({ key: k, value: vals[k] });
+      });
+    }, e.currentTarget);
+    if (ok && current === sec) render();
+  });
+}
+
+// ===================== чат-оверлей (chat.html) =====================
+// data/chat.json: оверлеи (kind 'overlay', каждый — свой источник OBS chat.html?o=<id>) и события (kind 'event').
+// Значения по умолчанию и описание полей — в chat-kit.js (их же берёт оверлей). Правки сразу видны в предпросмотре,
+// в OBS — после «Сохранить» примерно через минуту.
+const chatSection = { id: 'chat', label: 'Чат', icon: 'message', group: 'Стрим', path: 'data/chat.json', form: true, panel: chatPanel };
+const ck = { draft: null, base: null, sel: null, dirty: false, bg: 'busy', root: null, frame: null, sendQ: 0,
+  sounds: [], blobs: {} }; // свои звуки из sounds/chat/ и только что загруженные (blob, пока сайт не обновился)
+const CK_SND_DIR = 'sounds/chat/';
+const CK_SND_EXT = /\.(wav|mp3|ogg|m4a|webm)$/i;
+
+function chatDraft() {
+  if (!ck.draft || ck.base !== files.chat) {
+    const r = ChatKit.read(files.chat.data);
+    if (!r.overlays.length) r.overlays.push(Object.assign(ChatKit.overlay({}), { id: 'main', name: 'Чат' }));
+    ck.draft = r;
+    ck.base = files.chat;
+    ck.dirty = false;
+    if (!r.overlays.some(o => o.id === ck.sel)) ck.sel = r.overlays[0].id;
+  }
+  return ck.draft;
+}
+const ckCur = () => chatDraft().overlays.find(o => o.id === ck.sel);
+function ckSendNow() {
+  const w = ck.frame && ck.frame.contentWindow;
+  if (w) w.postMessage({ type: 'chatkit:set', overlay: ckCur(), events: chatDraft().events, sounds: ck.blobs }, location.origin);
+}
+function ckSend() {
+  cancelAnimationFrame(ck.sendQ);
+  ck.sendQ = requestAnimationFrame(ckSendNow);
+}
+function ckDirty() {
+  ck.dirty = true;
+  const d = ck.root && ck.root.querySelector('.ck-dirty');
+  if (d) d.hidden = false;
+}
+window.addEventListener('beforeunload', e => { if (ck.dirty) { e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('message', e => {
+  if (e.origin !== location.origin || !e.data || !ck.frame || e.source !== ck.frame.contentWindow) return;
+  if (e.data.type === 'chatkit:ready') ckSend();
+  if (e.data.type === 'chatkit:area') {
+    const o = ckCur();
+    Object.assign(o, e.data.area);
+    ['x', 'y', 'w', 'h'].forEach(k => { const el = ck.root.querySelector(`[data-ck="${k}"]`); if (el) el.value = o[k]; });
+    ckDirty();
+  }
+});
+
+function chatPanel(sec, box) {
+  $('panel-title').innerHTML = icon('message') + 'Чат на экране';
+  chatDraft();
+  // Каркас с предпросмотром строим один раз: iframe при перестройке перезагрузился бы
+  if (!box.querySelector('#ck-root')) {
+    box.innerHTML = `<div id="ck-root">
+      <div class="ck-top" id="ck-tabs"></div>
+      <div class="ck-grid">
+        <div id="ck-form"></div>
+        <div class="ck-main">
+          <div class="ck-stage" id="ck-stage"><iframe id="ck-frame" title="Предпросмотр чата" allow="autoplay"></iframe></div>
+          <div class="ck-tools"><span class="tabs__label">Проверить</span>${ChatKit.EVENTS.map(e =>
+            `<button type="button" class="chip" data-ck-test="${e.id}">${esc(e.short)}</button>`).join('')}</div>
+          <div class="ck-tools"><span class="tabs__label">Фон</span>${[['busy', 'Пёстрый'], ['dark', 'Тёмный'], ['light', 'Светлый']].map(([id, l]) =>
+            `<button type="button" class="chip${ck.bg === id ? ' is-active' : ''}" data-ck-bg="${id}">${l}</button>`).join('')}
+            <button type="button" class="chip" id="ck-clear">${icon('refresh')}Очистить</button></div>
+          <div class="quick" id="ck-obs"></div>
+          <p class="hint-inline">В предпросмотре чат ненастоящий. Рамку можно тащить мышкой и тянуть за углы. В OBS: Browser source 1920×1080 на весь экран.</p>
+        </div>
+      </div>
+      <div class="cfg-group" style="margin-top:26px"><h3>События чата <em class="hint-inline" style="text-transform:none;letter-spacing:0">— общие для всех оверлеев</em></h3>
+        <div class="ck-events" id="ck-events"></div></div>
+      <div class="ck-save">
+        <button type="button" class="btn btn--solid" id="ck-save">${icon('check')}Сохранить</button>
+        <span class="ck-dirty" hidden>Есть несохранённые правки</span>
+        <span class="hint-inline">В OBS подхватится примерно через минуту после сохранения.</span>
+      </div></div>`;
+    ck.root = box.querySelector('#ck-root');
+    ck.frame = box.querySelector('#ck-frame');
+    ck.frame.src = 'chat.html?embed&bg=' + ck.bg;
+    siteGit.listDir(CK_SND_DIR).then(list => {
+      ck.sounds = list.filter(f => CK_SND_EXT.test(f.name)).map(f => ({ path: f.path, name: f.name.replace(CK_SND_EXT, '') }));
+      if (ck.sounds.length) ckEvents();
+    }).catch(() => { /* список не пришёл: выбранные звуки всё равно видны */ });
+    const stage = box.querySelector('#ck-stage');
+    new ResizeObserver(() => { ck.frame.style.transform = `scale(${stage.clientWidth / 1920})`; }).observe(stage);
+    ckBind(sec, box);
+  }
+  ck.root.querySelector('.ck-dirty').hidden = !ck.dirty;
+  ckTabs();
+  ckForm();
+  ckEvents();
+  ckObs();
+  ckSend();
+}
+
+function ckTabs() {
+  const d = chatDraft();
+  ck.root.querySelector('#ck-tabs').innerHTML = d.overlays.map(o =>
+    `<button type="button" class="chip${o.id === ck.sel ? ' is-active' : ''}" data-ck-sel="${esc(o.id)}">${esc(o.name || 'Без названия')}</button>`).join('') +
+    `<button type="button" class="chip" id="ck-add">${icon('plus')}Ещё оверлей</button>`;
+}
+
+function ckObs() {
+  const o = ckCur();
+  const saved = ChatKit.read(files.chat.data).overlays.some(x => x.id === o.id);
+  const url = new URL('chat.html?o=' + encodeURIComponent(o.id), location.href).href;
+  ck.root.querySelector('#ck-obs').innerHTML = saved
+    ? `<label class="field"><span>Ссылка для OBS</span><input class="inp" id="ck-url" value="${esc(url)}" readonly></label>
+       <button type="button" class="btn" id="ck-copy">${icon('copy')}Копировать</button>`
+    : '<p class="hint-inline">Ссылка для OBS появится после сохранения.</p>';
+}
+
+// Поле настройки по описанию из ChatKit.GROUPS
+function ckField(f, v) {
+  const k = `data-ck="${f.k}"`;
+  const label = `<span>${esc(f.label)}${f.hint ? ` <em>· ${esc(f.hint)}</em>` : ''}</span>`;
+  const out = val => (f.zero && Number(val) === 0 ? f.zero : val + ' ' + (f.unit || ''));
+  switch (f.type) {
+    case 'range': return `<label class="ck-f">${label}<input type="range" ${k} min="${f.min}" max="${f.max}" step="${f.step}" value="${esc(v)}"><output>${esc(out(v))}</output></label>`;
+    case 'select': return `<label class="ck-f">${label}<select class="inp" ${k}>${f.opts.map(([id, t]) =>
+      `<option value="${esc(id)}"${String(id) === String(v) ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`;
+    case 'bool': return `<div class="ck-f">${label}<label class="check-line"><input type="checkbox" ${k}${v ? ' checked' : ''}>${esc(f.on || '')}</label></div>`;
+    case 'color': return `<label class="ck-f">${label}<input type="color" class="ck-color" ${k} value="${esc(v)}"><em>${esc(v)}</em></label>`;
+    default: return `<label class="ck-f"${f.wide ? ' style="flex-wrap:wrap"' : ''}>${label}<input class="inp" ${k} value="${esc(v)}" placeholder="${esc(f.ph || '')}"${f.wide ? ' style="flex-basis:100%"' : ''}></label>`;
+  }
+}
+
+function ckForm() {
+  const o = ckCur();
+  const d = chatDraft();
+  const showIn = x => !x.modes || x.modes.includes(o.mode);
+  const groups = ChatKit.GROUPS.filter(showIn).map(g => {
+    if (g.area) {
+      return `<div class="ck-group"><h3>${esc(g.title)}, % экрана</h3><div class="ck-area">${g.fields.map(f =>
+        `<label class="field"><span>${esc(f.label)}</span><input class="inp" type="number" data-ck="${f.k}" min="${f.min}" max="${f.max}" step="${f.step}" value="${esc(o[f.k])}"></label>`).join('')}</div></div>`;
+    }
+    const fields = g.fields.filter(showIn);
+    return fields.length ? `<div class="ck-group"><h3>${esc(g.title)}</h3>${fields.map(f => ckField(f, o[f.k])).join('')}</div>` : '';
+  }).join('');
+  const others = d.overlays.filter(x => x.id !== o.id && x.alerts).map(x => x.name);
+  ck.root.querySelector('#ck-form').innerHTML = `
+    <div class="ck-group"><label class="field"><span>Название оверлея</span><input class="inp" data-ck="name" value="${esc(o.name)}" placeholder="Чат сбоку, Новости..."></label></div>
+    <div class="ck-modes">${ChatKit.MODES.map(([id, label, hint]) =>
+      `<button type="button" class="ck-mode${o.mode === id ? ' is-active' : ''}" data-ck-mode="${id}"><b>${esc(label)}</b><span>${esc(hint)}</span></button>`).join('')}</div>
+    ${groups}
+    ${o.alerts && others.length ? `<p class="hint-inline" style="margin:-6px 0 12px">Алерты включены и в «${esc(others.join('», «'))}». Дважды не покажутся: алерт рисует тот оверлей, что сейчас в эфире.</p>` : ''}
+    <div class="row">
+      <button type="button" class="btn btn--ghost" id="ck-dup">${icon('copy')}Копия</button>
+      ${d.overlays.length > 1 ? `<button type="button" class="btn btn--danger" id="ck-del">${icon('x')}Удалить оверлей</button>` : ''}
+    </div>`;
+}
+
+function ckEvents() {
+  const d = chatDraft();
+  const opt = (list, v) => list.map(([id, t]) => `<option value="${id}"${id === v ? ' selected' : ''}>${esc(t)}</option>`).join('');
+  const sndOpts = cur => {
+    const own = ck.sounds.slice();
+    if (String(cur).includes('/') && !own.some(x => x.path === cur)) own.push({ path: cur, name: cur.split('/').pop().replace(CK_SND_EXT, '') });
+    return opt(ChatKit.SOUNDS, cur) +
+      (own.length ? `<optgroup label="Свои">${own.map(x => `<option value="${esc(x.path)}"${x.path === cur ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</optgroup>` : '') +
+      '<option value="__upload">Загрузить свой...</option>';
+  };
+  ck.root.querySelector('#ck-events').innerHTML = ChatKit.EVENTS.map(e => {
+    const v = d.events[e.id];
+    const a = `data-ev="${e.id}"`;
+    const inp = (k, label, extra) => `<label class="field"><span>${label}</span><input class="inp" ${a} data-k="${k}" value="${esc(v[k])}"${extra || ''}></label>`;
+    return `<div class="ck-ev${v.on ? '' : ' is-off'}" style="--evc:${esc(v.color)}">
+      <div class="ck-ev__head"><label class="check-line"><input type="checkbox" ${a} data-k="on"${v.on ? ' checked' : ''}>${esc(e.label)}</label>
+        <button type="button" class="chip" data-ck-test="${e.id}">${icon('play')}Тест</button></div>
+      <div class="ck-ev__row">
+        <label class="check-line"><input type="checkbox" ${a} data-k="hl"${v.hl ? ' checked' : ''}>Выделить в чате</label>
+        <label class="check-line"><input type="checkbox" ${a} data-k="alert"${v.alert ? ' checked' : ''}>Алерт на экране</label>
+      </div>
+      ${inp('cap', 'Метка у сообщения')}
+      <div class="ck-ev__grid">${inp('text', 'Алерт: крупно')}${inp('sub', 'Алерт: строка ниже')}</div>
+      <div class="ck-ev__row">
+        <input type="color" class="ck-color" ${a} data-k="color" value="${esc(v.color)}" title="Цвет">
+        <select class="inp" ${a} data-k="anim" style="width:auto" title="Анимация">${opt(ChatKit.ANIMS, v.anim)}</select>
+        <select class="inp" ${a} data-k="sound" style="width:auto;max-width:190px" title="Звук">${sndOpts(v.sound)}</select>
+        <label class="ck-f" style="border:0;min-height:0;padding:0;gap:6px"><input class="inp" type="number" ${a} data-k="dur" value="${esc(v.dur)}" min="2" max="30" step="1" style="width:62px" title="Сколько секунд"><em>сек</em></label>
+      </div>
+      ${e.minLabel ? `<label class="ck-f" style="border:0;min-height:0;padding:0"><span>${esc(e.minLabel)}</span><input class="inp" type="number" ${a} data-k="min" value="${esc(v.min)}" min="0" step="1" style="flex:0 0 90px"><em>ниже: как обычное сообщение</em></label>` : ''}
+      <div class="ck-ev__vars">Можно вставить: ${esc(e.vars)}</div>
+    </div>`;
+  }).join('');
+}
+
+// Тип значения берём из умолчаний: число, флажок или строка
+function ckValue(def, el) {
+  if (el.type === 'checkbox') return el.checked;
+  if (typeof def === 'number') { const n = parseFloat(el.value); return isFinite(n) ? n : def; }
+  return el.value;
+}
+
+// Свой звук: файл уходит в репозиторий (sounds/chat/), событие сразу на него переключается
+async function ckUpload(file, evId) {
+  const ext = (CK_SND_EXT.exec(file.name) || [])[1];
+  if (!ext) return toast('Нужен звуковой файл: wav, mp3 или ogg', true);
+  if (file.size > 3 * 1024 * 1024) return toast('Файл больше 3 МБ. Для алерта хватит пары секунд звука', true);
+  const base = file.name.replace(CK_SND_EXT, '').toLowerCase().replace(/[^\p{L}\p{N}_-]+/gu, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'sound';
+  const path = CK_SND_DIR + base + '.' + ext.toLowerCase();
+  toast('Загружаю звук...');
+  try { await siteGit.putFile(path, await file.arrayBuffer(), 'Чат: звук ' + base); }
+  catch (err) { return toast(err.message, true); }
+  if (ck.blobs[path]) URL.revokeObjectURL(ck.blobs[path]);
+  ck.blobs[path] = URL.createObjectURL(file);
+  if (!ck.sounds.some(x => x.path === path)) ck.sounds.push({ path, name: base });
+  chatDraft().events[evId].sound = path;
+  ckEvents(); ckDirty();
+  ckSendNow();
+  ck.frame.contentWindow.postMessage({ type: 'chatkit:test', event: evId }, location.origin);
+  toast('Звук загружен. Чтобы он играл в OBS, нажми «Сохранить»');
+}
+
+function ckBind(sec, box) {
+  const root = ck.root;
+  const sndIn = Object.assign(document.createElement('input'), { type: 'file', accept: 'audio/*,.wav,.mp3,.ogg', hidden: true });
+  sndIn.addEventListener('change', () => { if (sndIn.files[0]) ckUpload(sndIn.files[0], sndIn.dataset.ev); });
+  root.appendChild(sndIn);
+  root.addEventListener('input', e => {
+    const el = e.target;
+    if (el.dataset.ck) {
+      const o = ckCur(), k = el.dataset.ck;
+      o[k] = ckValue(k === 'name' ? '' : ChatKit.OVERLAY[k], el);
+      if (['x', 'y', 'w', 'h'].includes(k)) {
+        const lim = { x: [0, 100 - o.w], y: [0, 100 - o.h], w: [3, 100], h: [3, 100] }[k];
+        o[k] = Math.max(lim[0], Math.min(lim[1], o[k]));
+      }
+      const f = ChatKit.GROUPS.flatMap(g => g.fields).find(x => x.k === k);
+      const out = el.parentElement.querySelector('output');
+      if (out && f) out.textContent = f.zero && Number(o[k]) === 0 ? f.zero : o[k] + ' ' + (f.unit || '');
+      const em = el.type === 'color' && el.parentElement.querySelector('em');
+      if (em) em.textContent = el.value;
+      if (k === 'name') { const tab = root.querySelector(`[data-ck-sel="${CSS.escape(o.id)}"]`); if (tab) tab.textContent = o.name || 'Без названия'; }
+      ckDirty(); ckSend();
+    } else if (el.dataset.ev) {
+      const v = chatDraft().events[el.dataset.ev], k = el.dataset.k;
+      if (k === 'sound' && el.value === '__upload') { // выбор файла, звук пока прежний
+        el.value = v.sound;
+        sndIn.dataset.ev = el.dataset.ev;
+        sndIn.value = '';
+        sndIn.click();
+        return;
+      }
+      v[k] = ckValue(ChatKit.EVENT[el.dataset.ev].d[k], el);
+      const card = el.closest('.ck-ev');
+      if (k === 'on') card.classList.toggle('is-off', !v.on);
+      if (k === 'color') card.style.setProperty('--evc', v.color);
+      ckDirty(); ckSend();
+    }
+  });
+  root.addEventListener('click', async e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    const d = chatDraft();
+    if (b.dataset.ckSel) { ck.sel = b.dataset.ckSel; ckTabs(); ckForm(); ckObs(); ckSend(); }
+    else if (b.dataset.ckMode) {
+      const o = ckCur();
+      if (o.mode === b.dataset.ckMode) return;
+      o.mode = b.dataset.ckMode;
+      Object.assign(o, ChatKit.AREAS[o.mode]); // у каждого режима своё место на экране — дальше можно подвинуть
+      ckForm(); ckDirty(); ckSend();
+    } else if (b.dataset.ckTest) {
+      ck.frame.contentWindow.postMessage({ type: 'chatkit:test', event: b.dataset.ckTest }, location.origin);
+    } else if (b.dataset.ckBg) {
+      ck.bg = b.dataset.ckBg;
+      root.querySelectorAll('[data-ck-bg]').forEach(x => x.classList.toggle('is-active', x === b));
+      ck.frame.src = 'chat.html?embed&bg=' + ck.bg;
+    } else if (b.id === 'ck-clear') {
+      ck.frame.contentWindow.postMessage({ type: 'chatkit:clear' }, location.origin);
+    } else if (b.id === 'ck-add' || b.id === 'ck-dup') {
+      const base = b.id === 'ck-dup' ? ckCur() : {};
+      const o = Object.assign(ChatKit.overlay(base), base, { id: newId() });
+      o.name = b.id === 'ck-dup' ? (ckCur().name || 'Оверлей') + ' (копия)' : 'Оверлей ' + (d.overlays.length + 1);
+      d.overlays.push(o);
+      ck.sel = o.id;
+      ckTabs(); ckForm(); ckObs(); ckDirty(); ckSend();
+    } else if (b.id === 'ck-del') {
+      const o = ckCur();
+      if (!confirm(`Удалить оверлей «${o.name}»?\nЕсли он стоит в OBS, там останется вид по умолчанию. Удаление случится после «Сохранить».`)) return;
+      d.overlays = d.overlays.filter(x => x !== o);
+      ck.sel = d.overlays[0].id;
+      ckTabs(); ckForm(); ckObs(); ckDirty(); ckSend();
+    } else if (b.id === 'ck-copy') {
+      const url = root.querySelector('#ck-url');
+      try { await navigator.clipboard.writeText(url.value); } catch (err) { url.select(); document.execCommand('copy'); }
+      b.innerHTML = icon('check') + 'Скопировано';
+    } else if (b.id === 'ck-save') {
+      if (!ck.dirty) return toast('Ничего не поменялось');
+      const items = d.overlays.map(o => {
+        const row = { id: o.id, kind: 'overlay' };
+        Object.keys(ChatKit.OVERLAY).concat(['x', 'y', 'w', 'h']).forEach(k => { row[k] = o[k]; });
+        return row;
+      }).concat(ChatKit.EVENTS.map(e => Object.assign({ id: 'ev-' + e.id, kind: 'event', event: e.id }, d.events[e.id])));
+      const names = d.overlays.map(o => o.name).join(', ');
+      const ok = await save(sec, 'настройки (' + names + ')', data => {
+        data.columns = ['id', 'kind', 'name', 'event'];
+        data.items = items;
+      }, b);
+      if (ok) { ck.dirty = false; ck.root.querySelector('.ck-dirty').hidden = true; }
+    }
+  });
+}
+
+// ===================== настройки рулеток (data/config.json, ключи wheel_* и picker_*) =====================
+// Значения по умолчанию — в wheel-kit.js (WheelKit.DEFAULTS): их же берут сами рулетки,
+// если поле пустое. Колёса читают настройки при открытии страницы.
+const WHEEL_LINKS = [
+  ['picker.html', 'dice', 'Рулетка заказов'],
+  ['chat-wheel.html', 'message', 'Чат-рулетка'],
+  ['wheel.html', 'ticket', 'Рулетка билетов'],
+  ['cards.html', 'sliders', 'Админка-рулетка'],
+  ['cards.html?stream', 'zap', 'Хаос-рулетка'],
+];
+const WHEEL_SOURCES = [['anime', 'Аниме'], ['movies', 'Фильмы'], ['series', 'Сериалы'], ['games', 'Игры']];
+const WHEEL_STATUSES = [['pending', 'Ещё не смотрели'], ['watching', 'Сейчас смотрим'], ['watched', 'Уже посмотрели']];
+const WHEEL_SOUNDS = [['wood', 'Дерево'], ['soft', 'Мягкий'], ['ball', 'Шарик'], ['off', 'Без звука']];
+
+function wheelSettingsHTML(c) {
+  const D = WheelKit.DEFAULTS;
+  const v = k => (c[k] != null && String(c[k]).trim() !== '' ? String(c[k]).trim() : String(D[k]));
+  const num = (k, unit, w, attrs) => `<span class="wh-num"><input class="inp" type="number" data-w="${k}" value="${esc(v(k))}" placeholder="${esc(D[k])}" style="width:${w || 78}px"${attrs || ' min="0" step="0.5"'}>${unit ? `<em>${unit}</em>` : ''}</span>`;
+  const checks = (k, opts) => {
+    const on = v(k).split(',').map(x => x.trim());
+    return opts.map(([id, label]) => `<label class="check-line"><input type="checkbox" data-wlist="${k}" value="${id}"${on.includes(id) ? ' checked' : ''}>${esc(label)}</label>`).join('');
+  };
+  const classic = v('wheel_final_mode') === 'classic';
+  return `
+    <div class="wh">
+      <div class="cfg-group"><h3>Открыть</h3>
+        <div class="quick">${WHEEL_LINKS.map(([href, ic, label]) =>
+          `<a class="btn btn--ghost" href="${href}" target="_blank" rel="noopener">${icon(ic)}${label}</a>`).join('')}</div>
+        <p class="hint-inline" style="margin-top:8px">Рулетка заказов и чат-рулетка берут настройки ниже при открытии: после сохранения подожди минуту и обнови страницу рулетки.</p>
+      </div>
+
+      <div class="cfg-group"><h3>Авто-выбывание</h3>
+        <div class="wh-row"><span class="sch-name">Много вариантов</span>
+          <span class="wh-lab">крутка</span>${num('wheel_auto_spin_many', 'с')}<span class="wh-lab">пауза перед</span>${num('wheel_auto_pause_many', 'с')}</div>
+        <div class="wh-row"><span class="sch-name">Осталось ${num('wheel_auto_mid_from', '', 64, ' min="4" step="1"')} и меньше</span>
+          <span class="wh-lab">крутка</span>${num('wheel_auto_spin_mid', 'с')}<span class="wh-lab">пауза перед</span>${num('wheel_auto_pause_mid', 'с')}</div>
+        <div class="wh-row"><span class="sch-name">Осталось ${num('wheel_auto_late_from', '', 64, ' min="3" step="1"')} и меньше</span>
+          <span class="wh-lab">крутка</span>${num('wheel_auto_spin_late', 'с')}<span class="wh-lab">пауза перед</span>${num('wheel_auto_pause_late', 'с')}</div>
+        <div class="wh-row"><span class="sch-name">Финал — двое</span>
+          <select class="inp" data-w="wheel_final_mode" style="width:auto">
+            <option value="surprise"${classic ? '' : ' selected'}>Без замедления, резкий тормоз</option>
+            <option value="classic"${classic ? ' selected' : ''}>Обычная крутка</option>
+          </select>
+          <span class="wh-classic"${classic ? '' : ' hidden'}><span class="wh-lab">крутка</span>${num('wheel_final_classic_spin', 'с')}</span>
+          <span class="wh-lab">пауза перед</span>${num('wheel_auto_pause_final', 'с')}</div>
+        <p class="hint-inline" style="margin-top:8px">Темп выбирается по тому, сколько вариантов осталось перед круткой. Пауза — перед круткой, после вылета предыдущего.</p>
+      </div>
+
+      <div class="cfg-group wh-final"${classic ? ' hidden' : ''}><h3>Финал без замедления</h3>
+        <div class="wh-row"><span class="sch-name">Тормоз</span>
+          <span class="wh-lab">в случайный момент между</span>${num('wheel_final_brake_from', 'с', 78, ' min="3" step="1"')}<span class="wh-lab">и</span>${num('wheel_final_brake_to', 'с', 78, ' min="3" step="1"')}</div>
+        <div class="wh-row"><span class="sch-name">Скорость</span>${num('wheel_final_speed', 'оборота в секунду', 78, ' min="0.2" max="3" step="0.1"')}</div>
+        <div class="wh-row"><span class="sch-name">Проскальзывание</span>
+          <span class="wh-lab">шанс</span>${num('wheel_final_slip_chance', '%', 70, ' min="0" max="100" step="5"')}<span class="wh-lab">через</span>${num('wheel_final_slip_after', 'с после остановки', 70, ' min="0" step="1"')}</div>
+        <div class="wh-row"><span class="sch-name"></span>
+          <label class="check-line"><input type="checkbox" data-wbool="wheel_final_manual"${truthy(v('wheel_final_manual')) ? ' checked' : ''}>Такой же финал и в ручном выбывании</label></div>
+        <p class="hint-inline" style="margin-top:8px">Кто окажется под стрелкой, решается заранее и честно, 50 на 50. Проскальзывание меняет только то, на ком колесо встанет сначала: шанс 0% — выключить.</p>
+      </div>
+
+      <div class="cfg-group"><h3>Вид и звук</h3>
+        <div class="wh-row"><span class="sch-name">Блёстки вокруг колеса</span>${num('wheel_glitter', 'штук · 0 — без блёсток', 90, ' min="0" max="1500" step="20"')}</div>
+        <div class="wh-row"><span class="sch-name">Звук щелчка</span>
+          <select class="inp" data-w="wheel_sound_default" style="width:auto">${WHEEL_SOUNDS.map(([id, label]) =>
+            `<option value="${id}"${v('wheel_sound_default') === id ? ' selected' : ''}>${label}</option>`).join('')}</select>
+          <span class="hint-inline">— по умолчанию; кто выбрал звук на самой рулетке, у того остаётся свой</span></div>
+      </div>
+
+      <div class="cfg-group"><h3>Рулетка заказов</h3>
+        <div class="wh-row"><span class="sch-name">Источники при открытии</span>${checks('picker_sources', WHEEL_SOURCES)}</div>
+        <div class="wh-row"><span class="sch-name">Статусы при открытии</span>${checks('picker_statuses', WHEEL_STATUSES)}</div>
+        <div class="wh-row"><span class="sch-name">Слово для сбора из чата</span>
+          <input class="inp" data-w="picker_join_words" value="${esc(v('picker_join_words'))}" placeholder="${esc(D.picker_join_words)}" style="width:160px">
+          <span class="hint-inline">— через запятую; засчитывается, если стоит первым в сообщении</span></div>
+      </div>
+
+      <div class="row">
+        <button type="button" class="btn btn--solid" id="wh-save">${icon('check')}Сохранить рулетки</button>
+        <button type="button" class="btn btn--ghost" id="wh-reset">Вернуть как было по умолчанию</button>
+      </div>
+    </div>`;
+}
+
+function wheelSettingsBind(sec, box, c) {
+  const D = WheelKit.DEFAULTS;
+  const root = box.querySelector('.wh');
+  const mode = root.querySelector('[data-w="wheel_final_mode"]');
+  const syncMode = () => {
+    const classic = mode.value === 'classic';
+    root.querySelector('.wh-classic').hidden = !classic;
+    root.querySelector('.wh-final').hidden = classic;
+  };
+  mode.addEventListener('change', syncMode);
+
+  $('wh-reset').addEventListener('click', () => {
+    root.querySelectorAll('[data-w]').forEach(el => { el.value = String(D[el.dataset.w]); });
+    root.querySelectorAll('[data-wbool]').forEach(el => { el.checked = truthy(D[el.dataset.wbool]); });
+    root.querySelectorAll('[data-wlist]').forEach(el => { el.checked = String(D[el.dataset.wlist]).split(',').includes(el.value); });
+    syncMode();
+    toast('Вернул значения по умолчанию — нажми «Сохранить рулетки»');
+  });
+
+  $('wh-save').addEventListener('click', async e => {
+    const vals = {};
+    root.querySelectorAll('[data-w]').forEach(el => { vals[el.dataset.w] = el.value.trim(); });
+    root.querySelectorAll('[data-wbool]').forEach(el => { vals[el.dataset.wbool] = el.checked ? 'TRUE' : 'FALSE'; });
+    const lists = {};
+    root.querySelectorAll('[data-wlist]').forEach(el => { (lists[el.dataset.wlist] = lists[el.dataset.wlist] || []); if (el.checked) lists[el.dataset.wlist].push(el.value); });
+    Object.entries(lists).forEach(([k, arr]) => { vals[k] = arr.join(','); });
+
+    if (!vals.picker_sources) return toast('Рулетка заказов: включи хотя бы один источник', true);
+    if (!vals.picker_statuses) return toast('Рулетка заказов: включи хотя бы один статус', true);
+    if (!vals.picker_join_words) return toast('Впиши слово для сбора из чата', true);
+    const n = k => parseFloat(String(vals[k]).replace(',', '.'));
+    if (n('wheel_auto_late_from') >= n('wheel_auto_mid_from')) return toast('Авто-выбывание: второй порог должен быть меньше первого', true);
+    if (n('wheel_final_brake_to') < n('wheel_final_brake_from')) return toast('Финал: «между … и …» — второе число не может быть меньше первого', true);
+
+    // Сравниваем с тем, что сейчас видят рулетки (пустое поле = по умолчанию)
+    const now = k => (c[k] != null && String(c[k]).trim() !== '' ? String(c[k]).trim() : String(D[k]));
+    const changed = Object.keys(vals).filter(k => now(k) !== vals[k]);
+    if (!changed.length) return toast('Ничего не поменялось');
+    const ok = await save({ ...sec, id: 'config' }, changed.join(', '), data => {
+      changed.forEach(k => {
+        const row = data.items.find(r => r.key === k);
+        if (row) row.value = vals[k]; else data.items.push({ key: k, value: vals[k] });
+      });
+    }, e.currentTarget);
+    if (ok && current.id === sec.id) render();
+  });
+}
+
+// ===================== разделы сайта (data/modules.json) =====================
+// Включить/выключить раздел, переименовать в меню, сменить группу, переставить. Меню на сайте строит site.js.
+// Выключенный раздел пропадает из меню, ссылки на него прячутся, а страница показывает «Раздел закрыт».
+const LOCKED_MODULES = ['admin'];   // админку не выключить, иначе сюда не попасть
+const modulesSection = {
+  id: 'modules', label: 'Разделы', icon: 'sliders', group: 'Сайт', path: 'data/modules.json', form: true,
+  panel(sec, box) {
+    $('panel-title').innerHTML = icon('sliders') + 'Разделы сайта';
+    const list = items('modules').map(m => Object.assign({}, m, { group: m.group || '' }));
+    const groups = [...new Set(list.map(m => m.group).filter(Boolean))];
+    // Свой контейнер: обработчики не цепляются к общей панели админки
+    const root = document.createElement('div');
+    box.replaceChildren(root);
+    const draw = () => {
+      root.innerHTML = `<p class="hint-inline" style="margin-bottom:14px">Выключенный раздел пропадает из меню и со всех страниц, а по прямой ссылке показывает «Раздел закрыт». Данные раздела не удаляются: включишь обратно, и всё на месте. Группа: выпадающий список в меню, пусто означает отдельную ссылку.</p>
+        <datalist id="mod-groups">${groups.map(g => `<option value="${esc(g)}">`).join('')}</datalist>
+        <div class="mods">${list.map((m, i) => {
+          const locked = LOCKED_MODULES.includes(m.id);
+          const on = siteModules.isOn(m);
+          return `<div class="mods__row${on ? '' : ' is-off'}" data-i="${i}">
+            <label class="check-line" title="${locked ? 'Админку не выключить' : 'Раздел на сайте'}"><input type="checkbox" data-f="on"${on ? ' checked' : ''}${locked ? ' disabled' : ''}>${on ? 'Включён' : 'Выключен'}</label>
+            <input class="inp" data-f="title" value="${esc(m.title)}" aria-label="Название в меню">
+            <input class="inp" data-f="group" value="${esc(m.group)}" list="mod-groups" placeholder="без группы" aria-label="Группа в меню">
+            <a class="mods__page" href="${esc(m.page)}" target="_blank" rel="noopener">${esc(m.page)}</a>
+            <span class="mods__move"><button type="button" class="btn btn--sm" data-move="-1" title="Выше"${i ? '' : ' disabled'}>↑</button><button type="button" class="btn btn--sm" data-move="1" title="Ниже"${i < list.length - 1 ? '' : ' disabled'}>↓</button></span>
+          </div>`;
+        }).join('')}</div>
+        <div class="row" style="margin-top:14px"><button type="button" class="btn btn--solid" id="mods-save">${icon('check')}Сохранить разделы</button>
+        <span class="hint-inline">Зрители увидят изменения примерно через минуту.</span></div>`;
+    };
+    draw();
+    const edit = e => {
+      const row = e.target.closest('[data-i]'); const f = e.target.dataset.f;
+      if (!row || !f) return;
+      const m = list[+row.dataset.i];
+      if (f === 'on') { if (e.type === 'change') { m.on = e.target.checked ? 'TRUE' : 'FALSE'; draw(); } }
+      else m[f] = e.target.value.trim();
+    };
+    root.addEventListener('input', edit);
+    root.addEventListener('change', edit);
+    root.addEventListener('click', e => {
+      const b = e.target.closest('[data-move]');
+      if (b) {
+        const i = +b.closest('[data-i]').dataset.i, j = i + +b.dataset.move;
+        [list[i], list[j]] = [list[j], list[i]];
+        return draw();
+      }
+      if (!e.target.closest('#mods-save')) return;
+      if (list.some(m => !m.title)) return toast('У каждого раздела должно быть название', true);
+      const before = items('modules');
+      const changed = list.map(m => {
+        const was = before.find(x => x.id === m.id) || {};
+        if (was.on !== m.on) return (siteModules.isOn(m) ? 'включён ' : 'выключен ') + m.title;
+        if (was.title !== m.title || (was.group || '') !== m.group) return 'изменён ' + m.title;
+        return '';
+      }).filter(Boolean);
+      const moved = list.map(m => m.id).join() !== before.map(m => m.id).join();
+      if (!changed.length && !moved) return toast('Ничего не поменялось');
+      save(sec, changed.concat(moved ? ['порядок'] : []).join(', '), data => {
+        // Порядок и значения — как в редакторе; разделы, которых тут нет (добавлены с другого устройства), — в конец
+        const fresh = list.map(m => Object.assign(data.items.find(x => x.id === m.id) || {}, m));
+        data.items = fresh.concat(data.items.filter(x => !list.some(m => m.id === x.id)));
+      }, e.target.closest('#mods-save'));
+    });
+  },
+};
+
+// ===================== настройки сайта (config) =====================
+// Часовые пояса на выбор (ключ streamer_timezone); нужного нет — впиши его в data/config.json, админка его покажет
+const TIMEZONES = [['Asia/Jerusalem', 'Израиль'], ['Europe/Moscow', 'Москва'], ['Europe/Kyiv', 'Киев'], ['Europe/Minsk', 'Минск'],
+  ['Europe/Berlin', 'Берлин'], ['Europe/London', 'Лондон'], ['Asia/Almaty', 'Алматы'], ['Asia/Yekaterinburg', 'Екатеринбург'],
+  ['Asia/Novosibirsk', 'Новосибирск'], ['Asia/Vladivostok', 'Владивосток'], ['America/New_York', 'Нью-Йорк'], ['UTC', 'UTC']];
+const CONFIG_GROUPS = [
+  ['Стример', [['streamer_name', 'Имя (в меню и на главной)'], ['streamer_twitch_url', 'Ссылка на Twitch (канал для чата и рулеток)', 'url'], ['streamer_avatar_url', 'Аватарка', 'url'],
+    ['streamer_timezone', 'Часовой пояс (время на сайте)', 'select', TIMEZONES], ['streamer_donate_url', 'Ссылка на донат', 'url'], ['streamer_steam_id', 'SteamID64 (часы в играх)'], ['streamer_intro', 'Приветствие на главной', 'textarea']]],
+  ['Оформление', [['site_season', 'Сезонная тема', 'select', [['winter', 'Зима: лёд и снег'], ['', 'Без сезона']]]]],
+  ['Розыгрыш', [['raffle_active', 'Розыгрыш идёт', 'bool'], ['raffle_title', 'Подпись таймера'], ['raffle_date', 'Дата розыгрыша', 'raffle'], ['tickets_banner_url', 'Баннер над билетами', 'url']]],
+];
+const configSection = {
+  id: 'config', label: 'Настройки', icon: 'sliders', group: 'Сайт', path: 'data/config.json', page: 'index.html', form: true,
+  panel(sec, box) {
+    $('panel-title').innerHTML = icon('sliders') + 'Настройки сайта';
+    const c = config();
+    // Расписание, рулетка и кино — на своей вкладке «Расписание»
+    const known = new Set(CONFIG_GROUPS.flatMap(g => g[1].map(x => x[0])).concat(DAY_KEYS.map(k => 'schedule_' + k), ['picker_time', 'movie_time'],
+      Object.keys(c).filter(k => k.startsWith('screen_')), // заставки — на своей вкладке
+      Object.keys(WheelKit.DEFAULTS))); // рулетки — своим блоком ниже
+    const input = ([k, label, type, options]) => {
+      const v = c[k] || '';
+      if (type === 'select') {
+        const opts = options.some(o => o[0] === v) ? options : options.concat([[v, v]]);
+        return `<label class="field" style="flex:1 1 240px"><span>${esc(label)}</span><select class="inp" data-k="${k}">${opts.map(([val, text]) => `<option value="${esc(val)}"${val === v ? ' selected' : ''}>${esc(text)}</option>`).join('')}</select></label>`;
+      }
+      if (type === 'textarea') return `<label class="field" style="flex:1 1 100%"><span>${esc(label)}</span><textarea class="inp" data-k="${k}" rows="3">${esc(v)}</textarea></label>`;
+      if (type === 'bool') return `<div class="field" style="flex:1 1 160px"><span>${esc(label)}</span><label class="check-line"><input type="checkbox" data-k="${k}"${truthy(v) ? ' checked' : ''}>Да</label></div>`;
+      if (type === 'raffle') { // в Config дата розыгрыша — «YYYY-MM-DD HH:MM»
+        const m = v.match(/^(\d{4}-\d{2}-\d{2})(?:[ T](\d{1,2}:\d{2}))?/) || [];
+        return `<label class="field" style="flex:1 1 160px"><span>${esc(label)}</span><input class="inp" type="date" data-k="${k}" data-part="d" value="${m[1] || ''}"></label>
+          <label class="field" style="flex:1 1 120px"><span>Время</span><input class="inp" type="time" data-k="${k}" data-part="t" value="${m[2] ? m[2].padStart(5, '0') : ''}"></label>`;
+      }
+      return `<label class="field" style="flex:1 1 ${type === 'time' ? '120px' : '240px'}"><span>${esc(label)}</span><input class="inp" type="${type || 'text'}" data-k="${k}" value="${esc(v)}"></label>`;
+    };
+    box.innerHTML = CONFIG_GROUPS.map(([title, keys], i) => `<div class="cfg-group"><h3>${title}</h3><div class="row">${keys.map(input).join('')}</div></div>` + (i === 0
+      ? `<div class="cfg-group"><h3>Расписание стримов</h3><p class="hint-inline">Дни, рулетка и кино — на вкладке <a href="#schedule" style="color:var(--gold)">«Расписание»</a>.</p></div>` : '')).join('') +
+      (Object.keys(c).some(k => !known.has(k)) ? `<div class="cfg-group"><h3>Прочее</h3><div class="row">${Object.keys(c).filter(k => !known.has(k)).map(k => input([k, k])).join('')}</div></div>` : '') +
+      `<div class="cfg-group"><h3>Рулетки</h3><p class="hint-inline">Настройки всех рулеток — на вкладке <a href="#wheels" style="color:var(--gold)">«Рулетки»</a>.</p></div>` +
+      `<div class="row"><button type="button" class="btn btn--solid" id="cfg-save">${icon('check')}Сохранить настройки</button></div>`;
+    $('cfg-save').addEventListener('click', e => {
+      const vals = {};
+      box.querySelectorAll('[data-k]').forEach(el => {
+        const k = el.dataset.k;
+        if (el.type === 'checkbox') vals[k] = el.checked ? 'TRUE' : 'FALSE';
+        else if (el.dataset.part === 'd') vals[k] = el.value ? el.value + (box.querySelector(`[data-k="${k}"][data-part="t"]`).value ? ' ' + box.querySelector(`[data-k="${k}"][data-part="t"]`).value : '') : '';
+        else if (el.dataset.part !== 't') vals[k] = el.value.trim();
+      });
+      const changed = Object.keys(vals).filter(k => (c[k] || '') !== vals[k]);
+      if (!changed.length) return toast('Ничего не поменялось');
+      save(sec, 'изменено ' + changed.join(', '), data => {
+        changed.forEach(k => {
+          const row = data.items.find(r => r.key === k);
+          if (row) row.value = vals[k]; else data.items.push({ key: k, value: vals[k] });
+        });
+      }, e.currentTarget);
+    });
+  },
+};
+
+// ===================== расписание стримов (data/config.json) =====================
+// Время — по часам стримера (siteTime.streamer, пояс из «Настроек»). Рядом с каждым днём — как это видят по Москве:
+// в РФ нет перехода на зимнее время, поэтому после перевода часов у стримера всё сдвигают на час кнопкой «−1 ч» / «+1 ч».
+// Кино «сразу после рулетки» хранится как movie_time = picker_time — так его понимают и главная, и быстрые панели.
+const MSK = 'Europe/Moscow';
+const scheduleSection = {
+  id: 'schedule', data: 'config', label: 'Расписание', icon: 'calendar', group: 'Сайт', path: 'data/config.json', page: 'index.html', form: true,
+  panel(sec, box) {
+    $('panel-title').innerHTML = icon('calendar') + 'Расписание стримов';
+    const c = config();
+    const range = v => (String(v || '').match(/(\d{1,2}:\d{2})\s*[-–—]\s*(\d{1,2}:\d{2})/) || []).slice(1).map(t => t.padStart(5, '0'));
+    const picker = /^\d{1,2}:\d{2}$/.test(c.picker_time || '') ? c.picker_time.padStart(5, '0') : '19:00';
+    const movie = /^\d{1,2}:\d{2}$/.test(c.movie_time || '') ? c.movie_time.padStart(5, '0') : '20:00';
+    const offs = tz => siteTime.offsetLabel(siteTime.offset(tz));
+    box.innerHTML = `
+      <div class="cfg-group"><h3>Дни <em class="hint-inline" style="text-transform:none;letter-spacing:0">— время по часам стримера (${offs(siteTime.streamer)}), справа — по Москве (${offs(MSK)})</em></h3>
+        <div class="sch-days">${[1, 2, 3, 4, 5, 6, 0].map(d => {
+          const [from, to] = range(c['schedule_' + DAY_KEYS[d]]);
+          return `<div class="sch-day${from ? '' : ' is-off'}" data-day="${d}">
+            <label class="check-line"><input type="checkbox" data-on${from ? ' checked' : ''}>${DAY_NAMES[d]}</label>
+            <input class="inp" type="time" data-from value="${from || '17:00'}" aria-label="${DAY_NAMES[d]}: начало">
+            <span class="sch-dash">до</span>
+            <input class="inp" type="time" data-to value="${to || '22:00'}" aria-label="${DAY_NAMES[d]}: конец">
+            <span class="sch-msk" data-msk></span></div>`;
+        }).join('')}</div></div>
+      <div class="cfg-group"><h3>Рулетка и кино</h3>
+        <div class="sch-day" data-day="picker">
+          <span class="sch-name">Рулетка заказов</span>
+          <input class="inp" type="time" id="sch-picker" value="${picker}"><span class="sch-msk" data-msk></span></div>
+        <div class="sch-day" data-day="movie">
+          <span class="sch-name">Кино</span>
+          <label class="check-line"><input type="checkbox" id="sch-after"${movie === picker ? ' checked' : ''}>Сразу после рулетки</label>
+          <input class="inp" type="time" id="sch-movie" value="${movie}"${movie === picker ? ' disabled' : ''}><span class="sch-msk" data-msk></span></div>
+      </div>
+      <div class="cfg-group"><h3>Переход на зимнее / летнее время</h3>
+        <div class="sch-shift">
+          <button type="button" class="btn btn--ghost" data-shift="-60">−1 ч</button>
+          <button type="button" class="btn btn--ghost" data-shift="60">+1 ч</button>
+          <span class="hint-inline">Сдвигает всё сразу: дни, рулетку, кино. У тебя перевели часы на зимнее время — «−1 ч», и у зрителей из РФ
+            всё останется как было; весной, на летнее, — «+1 ч». Уже назначенные показы не меняются.</span>
+        </div>
+      </div>
+      <div class="row"><button type="button" class="btn btn--solid" id="sch-save">${icon('check')}Сохранить расписание</button></div>`;
+
+    // Как время стримера выглядит по Москве (на ближайший такой день недели — с учётом перевода часов)
+    const msk = (hm, wd) => {
+      const t = today();
+      const d = siteTime.at(t.y, t.mo, t.d + (wd == null ? 0 : (wd - t.wd + 7) % 7), +hm.slice(0, 2), +hm.slice(3, 5));
+      const p = siteTime.parts(d, MSK);
+      const shift = wd == null ? 0 : (p.wd - wd + 7) % 7;
+      return `${pad(p.h)}:${pad(p.mi)}${shift ? ` (${DAY_NAMES[p.wd].toLowerCase()})` : ''}`;
+    };
+    const after = $('sch-after');
+    const refresh = () => {
+      box.querySelectorAll('.sch-days .sch-day').forEach(row => {
+        const on = row.querySelector('[data-on]').checked, wd = +row.dataset.day;
+        row.classList.toggle('is-off', !on);
+        row.querySelectorAll('input[type=time]').forEach(i => { i.disabled = !on; });
+        row.querySelector('[data-msk]').textContent = on ? `МСК ${msk(row.querySelector('[data-from]').value, wd)}–${msk(row.querySelector('[data-to]').value, wd)}` : 'выходной';
+      });
+      if (after.checked) $('sch-movie').value = $('sch-picker').value;
+      $('sch-movie').disabled = after.checked;
+      box.querySelector('[data-day="picker"] [data-msk]').textContent = `МСК ${msk($('sch-picker').value)}`;
+      box.querySelector('[data-day="movie"] [data-msk]').textContent = after.checked ? '' : `МСК ${msk($('sch-movie').value)}`;
+    };
+    box.addEventListener('input', refresh);
+    box.addEventListener('change', refresh);
+    refresh();
+
+    // −1 ч / +1 ч: сдвигаем все поля времени (сохраняется кнопкой «Сохранить»)
+    box.querySelectorAll('[data-shift]').forEach(b => b.addEventListener('click', () => {
+      const by = +b.dataset.shift;
+      box.querySelectorAll('input[type=time]').forEach(i => {
+        if (!i.value) return;
+        const m = ((+i.value.slice(0, 2) * 60 + +i.value.slice(3, 5) + by) % 1440 + 1440) % 1440;
+        i.value = `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
+      });
+      refresh();
+      toast(`Сдвинуто на ${by > 0 ? '+' : '−'}1 ч — проверь и нажми «Сохранить»`);
+    }));
+
+    $('sch-save').addEventListener('click', async e => {
+      const vals = {};
+      for (const row of box.querySelectorAll('.sch-days .sch-day')) {
+        const on = row.querySelector('[data-on]').checked;
+        const from = row.querySelector('[data-from]').value, to = row.querySelector('[data-to]').value;
+        if (on && (!from || !to)) return toast(`${DAY_NAMES[+row.dataset.day]}: укажи начало и конец стрима`, true);
+        vals['schedule_' + DAY_KEYS[+row.dataset.day]] = on ? `${from}-${to}` : '';
+      }
+      if (!$('sch-picker').value) return toast('Укажи время рулетки', true);
+      vals.picker_time = $('sch-picker').value;
+      vals.movie_time = after.checked ? vals.picker_time : $('sch-movie').value || vals.picker_time;
+      const changed = Object.keys(vals).filter(k => (c[k] || '') !== vals[k]);
+      if (!changed.length) return toast('Ничего не поменялось');
+      const ok = await save({ ...sec, id: 'config' }, 'изменено ' + changed.join(', '), data => {
+        changed.forEach(k => {
+          const row = data.items.find(r => r.key === k);
+          if (row) row.value = vals[k]; else data.items.push({ key: k, value: vals[k] });
+        });
+      }, e.currentTarget);
+      if (ok && current === sec) render();
+    });
+  },
+};
+
+// ===================== список разделов =====================
+// ===================== рулетки =====================
+// Правят тот же data/config.json, что и «Настройки», — одна копия на оба.
+const wheelsSection = {
+  id: 'wheels', data: 'config', label: 'Рулетки', icon: 'wheel', group: 'Сайт', path: 'data/config.json', form: true,
+  panel(sec, box) {
+    $('panel-title').innerHTML = icon('wheel') + 'Настройки рулеток';
+    const c = config();
+    box.innerHTML = wheelSettingsHTML(c);
+    wheelSettingsBind(sec, box, c);
+  },
+};
+
+const SECTIONS = [
+  ordersSection({ id: 'movies', list: 'movies', label: 'Фильмы', icon: 'film', page: 'movies.html', one: 'Фильм', statuses: WATCH, year: true, format: true, scheduled: true, tonight: true,
+    types: { movie: 'Фильм', youtube: 'YouTube', other: 'Другое' }, urlHint: 'пусто: робот сам найдёт Кинопоиск', urlPh: 'https://www.kinopoisk.ru/film/...' }),
+  ordersSection({ id: 'anime', list: 'anime', label: 'Аниме', icon: 'torii', page: 'anime.html', one: 'Аниме', statuses: WATCH, year: true, format: true, scheduled: true, progress: 'episodes',
+    urlHint: 'пусто: робот найдёт Кинопоиск или Shikimori' }),
+  ordersSection({ id: 'series', list: 'series', label: 'Сериалы', icon: 'tv', page: 'series.html', one: 'Сериал', statuses: WATCH, year: true, format: true, scheduled: true, progress: 'episodes',
+    urlHint: 'пусто: робот сам найдёт Кинопоиск' }),
+  ordersSection({ id: 'games', list: 'games', label: 'Игры', icon: 'gamepad', page: 'games.html', one: 'Игра', statuses: PLAY, progress: 'percent', doneDate: 'Закрыт',
+    urlHint: 'пусто: робот сам найдёт Steam', urlPh: 'https://store.steampowered.com/app/...' }),
+  painSection,
+  ticketsSection, viewersSection, winnersSection,
+  prizesSection, friendsSection, scheduleSection, configSection, modulesSection, wheelsSection,
+  templatesSection, screensSection, chatSection,
+];
+const SEC = Object.fromEntries(SECTIONS.map(s => [s.id, s]));
+let current = SECTIONS[0];
+const views = {}; // id → { filter, sort, q }
+
+// ===================== вкладки =====================
+// Страницы со своими настройками (не из data/*.json) — ссылкой рядом с вкладками
+const EXTERNAL_TABS = [
+  { group: 'Стрим', href: 'cards.html', icon: 'zap', label: 'Рулетка хаоса' },
+];
+function renderTabs() {
+  const groups = [...new Set(SECTIONS.map(s => s.group).concat(EXTERNAL_TABS.map(x => x.group)))];
+  $('tabs').innerHTML = groups.map(g => `<div class="tabs__group"><span class="tabs__label">${g}</span>${SECTIONS.filter(s => s.group === g)
+    .map(s => `<button type="button" class="chip${s === current ? ' is-active' : ''}" data-tab="${s.id}">${icon(s.icon)}${esc(s.label)}</button>`).join('')
+    + EXTERNAL_TABS.filter(x => x.group === g)
+      .map(x => `<a class="chip" href="${x.href}" target="_blank" rel="noopener" title="Настройки рулетки хаоса — на отдельной странице">${icon(x.icon)}${esc(x.label)}${icon('external')}</a>`).join('')}</div>`).join('');
+}
+$('tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) location.hash = b.dataset.tab; });
+window.addEventListener('hashchange', () => open(location.hash.slice(1)));
+
+async function open(id) {
+  const sec = SEC[id] || SECTIONS[0];
+  current = sec;
+  renderTabs();
+  const v = views[sec.id] || (views[sec.id] = { filter: 'all', sort: (sec.sorts || [{ id: '' }])[0].id, q: '' });
+  $('q').placeholder = sec.search || '';
+  $('q').value = v.q;
+  const key = sec.data || sec.id; // «Расписание» правит файл раздела «Настройки» — одна копия на оба
+  if (!files[key]) {
+    $('list').hidden = true; $('panel').hidden = true;
+    $('loading').hidden = false; $('loading').textContent = 'Загружаю...';
+    try { files[key] = await readFile(sec.path); }
+    catch (err) { $('loading').textContent = err.message; return; }
+    if (current !== sec) return; // пока грузили, переключились на другую вкладку
+    $('loading').hidden = true;
+  }
+  render();
+}
+
+// ===================== список =====================
+function render() {
+  const sec = current;
+  $('page-link').innerHTML = sec.page ? ` · <a href="${sec.page}" style="color:inherit">${esc(sec.label)} на сайте</a>` : '';
+  if (sec.panel) { $('panel').hidden = false; sec.panel(sec, $('panel-body')); } else $('panel').hidden = true;
+  $('list').hidden = !!sec.form;
+  if (sec.form) return;
+  const view = views[sec.id];
+  const all = items(sec.id);
+  $('add-label').textContent = sec.addLabel;
+  $('f-status').innerHTML = sec.filters.length > 1 ? sec.filters.map(f => `<button type="button" class="chip${view.filter === f.id ? ' is-active' : ''}" data-v="${f.id}">${esc(f.label)} <span class="count">${all.filter(f.fn).length}</span></button>`).join('') : '';
+  $('f-sort').innerHTML = sec.sorts.length > 1 ? sec.sorts.map(f => `<button type="button" class="chip${view.sort === f.id ? ' is-active' : ''}" data-v="${f.id}">${esc(f.label)}</button>`).join('') : '';
+  const filter = (sec.filters.find(f => f.id === view.filter) || sec.filters[0]).fn;
+  const sortFn = (sec.sorts.find(f => f.id === view.sort) || sec.sorts[0]).fn;
+  const q = low(view.q.trim());
+  let list = all.filter(filter).filter(it => !q || sec.match(it, q));
+  if (sortFn) list = list.slice().sort(sortFn);
+  $('count').textContent = (sec.note ? sec.note + ' ' : '') + `Показано ${list.length} из ${all.length}`;
+  $('items').innerHTML = list.map(it => {
+    const r = sec.row(it);
+    return `<li class="item${r.blank ? ' item--blank' : ''}${r.lines ? ' item--lines' : ''}" data-id="${esc(it.id)}" tabindex="0">
+      <div class="item__poster${r.shape ? ' item__poster--' + r.shape : ''}"${bg(r.poster)}></div>
+      <div><div class="item__title">${esc(r.title)}${r.small ? `<small>${esc(r.small)}</small>` : ''}</div><div class="item__sub">${esc(r.sub || '')}</div></div>
+      <div class="item__nick">${r.copy != null ? `<button type="button" class="copy-btn" data-copy>${icon('copy')}Копировать</button>` : esc(r.nick || '')}</div>
+      <div class="item__status">${r.tag ? `<span class="tag tag--${r.tag.tone}">${esc(r.tag.label)}</span>` : ''}</div>
+      <div class="item__rating">${esc(r.aux || '')}</div>
+      <div class="item__date">${r.date || ''}</div></li>`;
+  }).join('') || '<li class="empty-state" style="padding:20px">Ничего не нашлось</li>';
+  const nicks = new Set(items('viewers').map(v => v.nick).concat(all.map(it => it.nick)).filter(Boolean));
+  $('nicks').innerHTML = [...nicks].sort((a, b) => a.localeCompare(b)).map(n => `<option value="${esc(n)}">`).join('');
+}
+const view = () => views[current.id];
+$('f-status').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) { view().filter = b.dataset.v; render(); } });
+$('f-sort').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) { view().sort = b.dataset.v; render(); } });
+$('q').addEventListener('input', e => { view().q = e.target.value; render(); });
+// Кнопка «Копировать» (шаблоны) — текст в буфер, редактор не открываем
+async function copyFromList(btn) {
+  const it = items(current.id).find(x => x.id === btn.closest('.item').dataset.id);
+  const text = it ? current.row(it).copy : '';
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { // без доступа к буферу — через выделение
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0;top:0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { ok = document.execCommand('copy'); } catch (e2) { /* не вышло */ }
+    ta.remove();
+  }
+  if (!ok) return toast('Не вышло скопировать — открой шаблон и скопируй вручную.', true);
+  btn.classList.add('is-done');
+  btn.innerHTML = icon('check') + 'Скопировано';
+  setTimeout(() => { btn.classList.remove('is-done'); btn.innerHTML = icon('copy') + 'Копировать'; }, 1500);
+}
+const openFromList = e => {
+  const copyBtn = e.target.closest('[data-copy]');
+  if (copyBtn) { if (e.type === 'click') copyFromList(copyBtn); return; }
+  const li = e.target.closest('.item');
+  if (li && (e.type === 'click' || e.key === 'Enter')) openEditor(current, items(current.id).find(it => it.id === li.dataset.id));
+};
+$('items').addEventListener('click', openFromList);
+$('items').addEventListener('keydown', openFromList);
+// Кнопки «Изменить» в панелях
+$('panel-body').addEventListener('click', e => {
+  const b = e.target.closest('[data-edit]');
+  if (b) openEditor(current, items(current.id).find(it => it.id === b.dataset.edit));
+});
+
+// ===================== редактор =====================
+const ed = $('editor'), form = $('ed-form');
+let editing = null;
+function openEditor(sec, it) {
+  editing = { sec, it: it || null };
+  const v = it || sec.defaults();
+  $('ed-title').textContent = it ? sec.one : sec.addLabel;
+  $('ed-fields').innerHTML = sec.fields.map(f => fieldHTML(f, v[f.k] == null ? '' : v[f.k])).join('');
+  $('ed-delete').hidden = !it;
+  ed.showModal();
+  if (!it) { const first = $('ed-fields').querySelector('input,textarea,select'); if (first) first.focus(); }
+}
+// Превью картинки обновляется при вводе ссылки
+$('ed-fields').addEventListener('input', e => {
+  const p = $('ed-fields').querySelector(`[data-preview="${e.target.name}"]`);
+  if (p) p.setAttribute('style', `background-image:url("${e.target.value.trim().replace(/"/g, '%22')}")`);
+});
+const closeEditor = () => ed.close();
+$('ed-close').addEventListener('click', closeEditor);
+$('ed-cancel').addEventListener('click', closeEditor);
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  const { sec, it } = editing;
+  const vals = Object.fromEntries(sec.fields.map(f => [f.k, readField(form, f)]));
+  if (sec.normalize) sec.normalize(vals, it);
+  const name = sec.title(vals);
+  const ok = await save(sec, it ? `правка «${name}»` : `новая запись «${name}»`, data => {
+    if (it) Object.assign(byId(data, it.id), vals);
+    else data.items.push(blankItem(data, vals));
+  }, [$('ed-save'), $('ed-delete')]);
+  if (ok) closeEditor();
+});
+$('ed-delete').addEventListener('click', async () => {
+  const { sec, it } = editing;
+  if (!it || !confirm(`Удалить «${sec.title(it)}» насовсем?\nВернуть можно будет только через историю git.`)) return;
+  const ok = await save(sec, `удалено «${sec.title(it)}»`, data => {
+    byId(data, it.id);
+    data.items = data.items.filter(x => x.id !== it.id);
+  }, [$('ed-save'), $('ed-delete')]);
+  if (ok) closeEditor();
+});
+$('add').addEventListener('click', () => openEditor(current, null));
+
+// ===================== запуск =====================
+async function start() {
+  $('loading').hidden = false;
+  $('loading').textContent = 'Загружаю...';
+  $('auth').hidden = true;
+  $('app').hidden = true;
+  try {
+    // Настройки (расписание) и зрители (ники, аватарки) нужны всем вкладкам
+    const [cfg, viewers, om, pm, user] = await Promise.all([
+      readFile('data/config.json'), readFile('data/viewers.json'),
+      fetch('orders-meta.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+      fetch('pain-meta.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+      siteGit.user(),
+    ]);
+    files.config = cfg; files.viewers = viewers;
+    ordersMeta = (om && om.items) || {};
+    painMeta = (pm && pm.games) || {};
+    $('who').textContent = user.login ? 'Вход: ' + user.login : 'Токен подключён';
+    $('loading').hidden = true;
+    $('app').hidden = false;
+    await open(location.hash.slice(1));
+  } catch (err) {
+    console.error(err);
+    $('loading').hidden = true;
+    showAuth(err.message);
+  }
+}
+function showAuth(error) {
+  $('auth').hidden = false;
+  $('app').hidden = true;
+  $('auth-error').hidden = !error;
+  $('auth-error').textContent = error || '';
+}
+$('auth-form').addEventListener('submit', e => {
+  e.preventDefault();
+  siteGit.setToken($('auth-token').value.trim());
+  $('auth-token').value = '';
+  start();
+});
+$('logout').addEventListener('click', () => {
+  if (!confirm('Убрать токен из этого браузера? Чтобы снова править, понадобится вставить его заново.')) return;
+  siteGit.setToken('');
+  showAuth();
+});
+// Дата «сегодня» меняется в полночь — раз в несколько минут перерисовываем панель (если ничего не печатаем)
+setInterval(() => {
+  if (!files[current.id] || !current.panel || ed.open || (document.activeElement && document.activeElement.closest('#panel'))) return;
+  current.panel(current, $('panel-body'));
+}, 5 * 60000);
+
+if (siteGit.token) start(); else { $('loading').hidden = true; showAuth(); }
+})();

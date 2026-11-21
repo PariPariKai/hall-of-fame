@@ -1,0 +1,56 @@
+/* Стили страницы templates.html (раздел templates). Подключаются из templates.html. */
+.tpl-tabs { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 18px; }
+.tpl-tabs .chip { font-size: 13px; padding: 8px 15px; }
+
+.tpl-intro {
+  display: flex; gap: 14px 22px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  padding: 16px 20px; border-radius: 16px; margin-bottom: 22px;
+  background: linear-gradient(135deg, rgba(var(--ember-rgb),0.07), rgba(255,255,255,0.02));
+  border: 1px solid rgba(var(--gold-rgb),0.14);
+}
+.tpl-intro__text { flex: 1 1 380px; font-size: 14px; line-height: 1.6; color: var(--muted); }
+.tpl-intro__text b { color: #fff; }
+.tpl-intro__tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.tpl-intro__tools .search { width: 260px; }
+
+/* Выпавший случайный шаблон */
+.pick { margin-bottom: 26px; }
+.pick__label { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); margin-bottom: 10px; }
+.pick__title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+.pick__text { font-size: 16px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; margin-bottom: 16px; }
+.pick__foot { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.pick.is-new { animation: pick-in .45s cubic-bezier(.3,.9,.3,1); }
+@keyframes pick-in { from { opacity: 0; transform: translateY(8px) scale(.985); } }
+
+.tpl-grid { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 14px; align-items: start; }
+.tpl {
+  display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; border-radius: 14px;
+  background: rgba(20,25,41,0.7); border: 1px solid var(--line); transition: border-color .2s ease, box-shadow .2s ease;
+}
+.tpl:hover { border-color: rgba(var(--gold-rgb),0.3); }
+.tpl.is-picked { border-color: rgba(var(--gold-rgb),0.7); box-shadow: 0 0 22px rgba(var(--gold-rgb),0.15); }
+.tpl__title { font-size: 15px; font-weight: 700; color: var(--gold); }
+.tpl__text {
+  font-size: 14px; line-height: 1.6; color: rgba(255,255,255,0.88); white-space: pre-wrap; overflow-wrap: anywhere;
+  max-height: calc(1.6em * 10); overflow: hidden; position: relative;
+}
+.tpl__text.is-clamped::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 3em;
+  background: linear-gradient(transparent, rgb(20,25,41));
+}
+.tpl__text.is-open { max-height: none; }
+.tpl__text.is-open::after { display: none; }
+.tpl__more { align-self: flex-start; background: none; border: 0; padding: 0; color: var(--gold); font: inherit; font-size: 12px; cursor: pointer; }
+.tpl__more:hover { text-decoration: underline; }
+.tpl__foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: auto; }
+.len { font-size: 12px; color: var(--dim); }
+.len.is-over { color: var(--red); }
+.btn.is-done { color: var(--green); border-color: rgba(151,196,89,0.5); background: rgba(151,196,89,0.1); }
+
+.tpl-grid > .empty-state, .tpl-grid > .error-state { grid-column: 1 / -1; }
+.tpl-empty .btn { margin-top: 14px; }
+
+@media (max-width: 720px) {
+  .tpl-grid { grid-template-columns: 1fr; }
+  .tpl-intro__tools, .tpl-intro__tools .search { width: 100%; }
+}

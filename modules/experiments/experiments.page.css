@@ -1,0 +1,141 @@
+/* Стили страницы experiments.html (раздел experiments). Подключаются из experiments.html. */
+/* Общее (меню, шапка, шаги, фильтры, метки) — в site.css. Здесь только карточки экспериментов. */
+.xgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: 20px; list-style: none; align-items: start; }
+.xcard {
+  --accent: #555897;
+  display: flex; flex-direction: column; min-width: 0; overflow: hidden; border-radius: 18px;
+  background: var(--panel); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+  transition: border-color .2s ease, box-shadow .2s ease; scroll-margin-top: 90px;
+}
+.xcard:hover { border-color: rgba(var(--gold-rgb),0.35); }
+.xcard.is-testing { border-color: rgba(var(--ember-rgb),0.5); box-shadow: 0 10px 28px rgba(0,0,0,0.45), 0 0 24px rgba(var(--ember-rgb),0.16); }
+
+/* Обложка: картинка, если есть, иначе градиент цвета эксперимента с крупной цифрой */
+.xcard__cover {
+  position: relative; aspect-ratio: 16 / 7; overflow: hidden; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
+  padding: 16px 18px; background: radial-gradient(ellipse at 85% 10%, rgba(255,255,255,0.16), transparent 55%), linear-gradient(140deg, var(--accent), #10142a 85%);
+}
+.xcard__cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* С картинкой обложка в её пропорциях (3:2), а цифра — компактной плашкой в углу, чтобы не закрывать арт */
+.xcard__cover.has-img { aspect-ratio: 3 / 2; justify-content: flex-end; }
+.xcard__cover.has-img::before { content: ''; position: absolute; z-index: 1; inset: 0 0 auto; height: 60px; background: linear-gradient(rgba(6,8,16,0.5), transparent); pointer-events: none; }
+.xcard__cover.has-img .xcard__badge {
+  position: absolute; top: 12px; right: 12px; text-align: right; padding: 8px 12px; border-radius: 12px;
+  background: rgba(6,8,16,0.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.12);
+}
+.xcard__cover.has-img .xcard__badge b { font-size: 26px; }
+.xcard__cover.has-img .xcard__badge span { margin-top: 3px; font-size: 10px; }
+.xcard__kind-ic {
+  position: absolute; right: -18px; top: -24px; font-size: 150px; color: rgba(255,255,255,0.08); pointer-events: none;
+}
+.xcard__kind-ic .ic { stroke-width: 1.3; }
+.xcard__cover.has-img .xcard__kind-ic { display: none; }
+.xcard__badge { position: relative; z-index: 2; min-width: 0; }
+.xcard__badge b {
+  display: block; font-size: 44px; font-weight: 700; line-height: 1; letter-spacing: 1px; color: #fff;
+  text-shadow: 0 4px 24px rgba(0,0,0,0.45);
+}
+.xcard__badge span { display: block; margin-top: 6px; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.7); }
+.xcard__tags { position: absolute; top: 14px; left: 14px; z-index: 2; display: flex; flex-wrap: wrap; gap: 6px; }
+.xcard__tags .tag { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); background-color: rgba(10,14,26,0.6); }
+
+/* Галерея скриншотов в обложке: стрелки, точки, свайп, сама листается; клик — на весь экран */
+.xcard__cover.has-gallery { aspect-ratio: 16 / 9; }
+.xcard__cover.has-gallery::after { content: ''; position: absolute; z-index: 1; inset: auto 0 0; height: 80px; background: linear-gradient(transparent, rgba(6,8,16,0.6)); pointer-events: none; }
+.xgal { position: absolute; inset: 0; cursor: zoom-in; touch-action: pan-y; }
+.xgal img { opacity: 0; transition: opacity .5s ease; -webkit-user-drag: none; user-select: none; }
+.xgal img.is-on { opacity: 1; }
+.xgal__nav {
+  position: absolute; top: 50%; z-index: 2; transform: translateY(-50%); width: 40px; height: 40px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 18px; color: #fff; cursor: pointer; opacity: 0;
+  background: rgba(6,8,16,0.55); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  transition: opacity .2s ease, background .15s ease;
+}
+.xgal__nav--prev { left: 10px; }
+.xgal__nav--prev .ic { transform: scaleX(-1); }
+.xgal__nav--next { right: 10px; }
+.xcard__cover:hover .xgal__nav, .xgal__nav:focus-visible { opacity: 1; }
+.xgal__nav:hover { background: rgba(6,8,16,0.85); }
+.xgal__nav:focus-visible, .xgal__dot:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+@media (hover: none) { .xgal__nav { opacity: .8; } }
+.xgal__dots { position: absolute; left: 16px; bottom: 18px; z-index: 2; display: flex; align-items: center; gap: 6px; }
+.xgal__dot {
+  width: 8px; height: 8px; padding: 0; border: 0; border-radius: 999px; cursor: pointer;
+  background: rgba(255,255,255,0.5); box-shadow: 0 1px 4px rgba(0,0,0,0.6); transition: width .25s ease, background .25s ease;
+}
+.xgal__dot.is-on { width: 22px; background: var(--gold); }
+
+/* Просмотр скриншота на весь экран */
+.lightbox {
+  position: fixed; inset: 0; z-index: 500; display: grid; place-items: center; padding: 56px 72px;
+  background: rgba(4,6,12,0.95); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+}
+.lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+.lightbox__btn {
+  position: absolute; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; cursor: pointer;
+  color: #fff; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); transition: background .15s ease;
+}
+.lightbox__btn:hover { background: rgba(255,255,255,0.16); }
+.lightbox__btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.lightbox__close { top: 12px; right: 14px; }
+.lightbox__prev { left: 14px; top: 50%; transform: translateY(-50%); }
+.lightbox__prev .ic { transform: scaleX(-1); }
+.lightbox__next { right: 14px; top: 50%; transform: translateY(-50%); }
+.lightbox__count { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); font-size: 13px; letter-spacing: 1px; color: rgba(255,255,255,0.6); }
+
+.xcard__body { flex: 1 1 auto; display: flex; flex-direction: column; gap: 12px; padding: 18px 20px 20px; }
+.xcard__head { display: grid; gap: 5px; }
+.xcard__title { font-size: 21px; font-weight: 700; line-height: 1.25; color: var(--gold); overflow-wrap: anywhere; }
+.xcard__meta { font-size: 12px; color: var(--dim); letter-spacing: .3px; display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.xcard__meta b { color: rgba(255,255,255,0.75); font-weight: 600; }
+.xcard__summary { font-size: 14px; line-height: 1.55; color: rgba(255,255,255,0.8); }
+.xcard__list { list-style: none; display: grid; gap: 6px; font-size: 13px; line-height: 1.45; color: var(--muted); }
+.xcard__list li { display: flex; gap: 8px; }
+.xcard__list .ic { flex: 0 0 auto; margin-top: 2px; color: var(--gold); }
+.xcard__label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); margin-bottom: 7px; }
+.xcard__warn {
+  display: flex; gap: 9px; font-size: 12.5px; line-height: 1.45; color: #ffd9b8;
+  padding: 9px 12px; border-radius: 10px; background: rgba(var(--ember-rgb),0.1); border: 1px solid rgba(var(--ember-rgb),0.3);
+}
+.xcard__warn .ic { flex: 0 0 auto; margin-top: 1px; color: #ffb27a; }
+/* Кнопки-раскрывашки: "Что внутри" и полное пояснение прячутся, чтобы карточка оставалась короткой */
+.xcard__story summary {
+  cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 7px; user-select: none;
+  padding: 7px 13px; border-radius: 999px; font-size: 13px; color: var(--gold);
+  border: 1px solid rgba(var(--gold-rgb),0.3); background: rgba(var(--gold-rgb),0.05); transition: background .15s ease;
+}
+.xcard__story summary:hover { background: rgba(var(--gold-rgb),0.12); }
+.xcard__story summary::-webkit-details-marker { display: none; }
+.xcard__story summary .ic { transition: transform .2s ease; }
+.xcard__story[open] summary .ic { transform: rotate(90deg); }
+.xcard__story summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.xcard__story-text {
+  display: grid; gap: 10px; margin-top: 12px; padding: 14px 16px; border-radius: 12px;
+  background: rgba(255,255,255,0.025); border: 1px solid var(--line);
+  font-size: 13.5px; line-height: 1.6; color: rgba(255,255,255,0.75);
+}
+.xcard__story-title { font-size: 15px; font-weight: 700; line-height: 1.35; color: #fff; }
+.xcard__more { display: flex; flex-wrap: wrap; gap: 8px; }
+.xcard__more details[open] { flex-basis: 100%; }
+.xcard__story-text .xcard__list { color: rgba(255,255,255,0.78); }
+.xcard__actions { margin-top: auto; padding-top: 4px; display: flex; flex-wrap: wrap; gap: 8px; }
+.xcard__actions .btn { padding: 10px 16px; font-size: 13.5px; }
+.btn--main { background: linear-gradient(120deg, #F09F58, var(--gold)); color: #1a1208; border-color: transparent; box-shadow: 0 6px 18px rgba(var(--ember-rgb),0.25); }
+.btn--main:hover { background: linear-gradient(120deg, #f5ab6a, #ffd391); }
+/* Ссылки ещё нет — серая неактивная кнопка «· скоро» (даже если она главная) */
+.btn.is-off, .btn--main.is-off { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.14); color: rgba(255,255,255,0.5); box-shadow: none; cursor: default; pointer-events: none; }
+.btn.is-off .btn__logo { filter: grayscale(1); opacity: .6; }
+/* Логотип облака на кнопке скачивания — на белой плашке, чтобы его цвета не спорили с кнопкой */
+.btn__logo { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; background: #fff; }
+.btn__logo svg { width: 15px; height: 15px; display: block; }
+.btn__size { font-weight: 500; opacity: .7; }
+
+@media (max-width: 720px) {
+  .xgrid { gap: 14px; }
+  .xcard__badge b { font-size: 36px; }
+  .xcard__body { padding: 16px; }
+  .xcard__title { font-size: 19px; }
+  .lightbox { padding: 60px 8px 76px; }
+  .lightbox__prev, .lightbox__next { top: auto; bottom: 12px; transform: none; }
+  .lightbox__count { bottom: 26px; }
+}

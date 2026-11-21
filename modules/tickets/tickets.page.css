@@ -1,0 +1,299 @@
+/* Стили страницы tickets.html (раздел tickets). Подключаются из tickets.html. */
+/* Общее (меню, шапка, поиск) — в site.css. Здесь — таймер, подиум и карточки билетов. */
+
+/* ===== Таймер с баннером-фоном ===== */
+.timer-box {
+  position: relative;
+  text-align: center;
+  margin-bottom: 30px;
+  padding: 32px 24px;
+  border: 1px solid rgba(var(--gold-rgb),0.25);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #11172a; /* фолбэк */
+  display: none;
+}
+
+/* Фон-баннер */
+.timer-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  z-index: 0;
+  transition: background-image 0.3s ease;
+}
+/* Тёмная плашка поверх баннера для читаемости текста */
+.timer-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(10,14,26,0.55) 0%, rgba(10,14,26,0.85) 100%),
+    radial-gradient(ellipse at center, rgba(10,14,26,0.4) 0%, rgba(10,14,26,0.7) 100%);
+}
+
+/* Если фон-баннера нет — простой градиент */
+.timer-box.no-bg .timer-bg {
+  background-image: linear-gradient(180deg, rgba(127,119,221,0.12) 0%, rgba(var(--gold-rgb),0.06) 100%);
+}
+.timer-box.no-bg .timer-bg::after { content: none; }
+
+.timer-content {
+  position: relative;
+  z-index: 1;
+}
+
+.timer-event {
+  font-size: 18px;
+  letter-spacing: 3px;
+  color: var(--gold);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+  font-weight: 500;
+}
+
+.timer-countdown {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.timer-unit {
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(var(--gold-rgb),0.25);
+  border-radius: 10px;
+  padding: 12px 16px;
+  min-width: 80px;
+  backdrop-filter: blur(6px);
+}
+
+.timer-num {
+  font-size: 32px;
+  font-weight: 600;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.8);
+}
+
+.timer-label {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.7);
+  margin-top: 6px;
+}
+
+/* Когда розыгрыш: дата по часам стримера или (кнопка «Моё время») зрителя */
+.timer-when {
+  display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px 14px;
+  margin-top: 14px; text-shadow: 0 2px 6px rgba(0,0,0,0.8);
+}
+.timer-when__date { font-size: 16px; font-weight: 600; color: var(--gold); letter-spacing: .5px; }
+.timer-when__zone { flex-basis: 100%; text-align: center; }
+.timer-finished {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 20px;
+  color: #97C459;
+  margin-top: 14px;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.8);
+}
+
+/* ===== Контролы ===== */
+.controls {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 28px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+
+/* ===== Подиум ===== */
+.podium-title {
+  text-align: center;
+  font-size: 13px;
+  letter-spacing: 3px;
+  color: rgba(255,255,255,0.5);
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+.podium {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr 1fr;
+  gap: 16px;
+  align-items: end;
+  margin-bottom: 36px;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.podium-card {
+  background: #11172a;
+  border: 1px solid;
+  border-radius: 12px;
+  padding: 20px 14px 18px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease;
+}
+.podium-card:hover { transform: translateY(-4px); }
+
+.podium-card.p-1 {
+  border-color: var(--gold);
+  background: linear-gradient(180deg, #2a1d0a 0%, #11172a 70%);
+  box-shadow: 0 0 0 1px rgba(var(--gold-rgb),0.3), 0 12px 40px rgba(var(--gold-rgb),0.15);
+  padding-top: 28px;
+  padding-bottom: 24px;
+}
+.podium-card.p-1 .podium-avatar { width: 88px; height: 88px; font-size: 30px; }
+.podium-card.p-1 .podium-nick { font-size: 18px; }
+.podium-card.p-1::before {
+  content: '';
+  position: absolute;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: linear-gradient(45deg, transparent 30%, rgba(var(--gold-rgb),0.08) 50%, transparent 70%);
+  animation: shimmer 4s infinite linear;
+  pointer-events: none;
+  z-index: 0;
+}
+@keyframes shimmer {
+  0%   { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.podium-card.p-2 {
+  border-color: #C0C0D0;
+  background: linear-gradient(180deg, #1f2030 0%, #11172a 70%);
+}
+.podium-card.p-3 {
+  border-color: #CD7F32;
+  background: linear-gradient(180deg, #2a1a0a 0%, #11172a 70%);
+}
+
+.podium-medal {
+  width: 34px; height: 34px; margin: 0 auto 10px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 16px; font-weight: 700;
+  color: #1a1206; background: linear-gradient(160deg, #FFE3A8, #D99A35);
+  box-shadow: 0 0 14px rgba(var(--gold-rgb), 0.45);
+  position: relative; z-index: 1;
+}
+.p-2 .podium-medal { background: linear-gradient(160deg, #F2F2F8, #9A9AAE); box-shadow: 0 0 12px rgba(200,200,220,0.35); }
+.p-3 .podium-medal { background: linear-gradient(160deg, #F0B27A, #A8642A); box-shadow: 0 0 12px rgba(205,127,50,0.35); }
+.podium-avatar {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  border: 3px solid;
+  background-size: cover; background-position: center;
+  margin: 0 auto 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; font-weight: 500;
+  position: relative; z-index: 1;
+}
+.p-1 .podium-avatar { border-color: var(--gold); background-color: #412402; color: var(--gold); }
+.p-2 .podium-avatar { border-color: #C0C0D0; background-color: #2a2d3a; color: #C0C0D0; }
+.p-3 .podium-avatar { border-color: #CD7F32; background-color: #3a2510; color: #E89E5E; }
+
+.podium-nick {
+  font-size: 15px; font-weight: 500;
+  margin-bottom: 10px;
+  position: relative; z-index: 1;
+  word-break: break-word;
+}
+.podium-tickets {
+  display: flex; justify-content: center; gap: 10px;
+  position: relative; z-index: 1;
+}
+
+/* ===== Сетка остальных ===== */
+.grid-title {
+  text-align: center;
+  font-size: 13px;
+  letter-spacing: 3px;
+  color: rgba(255,255,255,0.5);
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+.ticket-card {
+  background: #11172a;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 14px 12px;
+  text-align: center;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+  position: relative;
+}
+.ticket-card:hover { transform: translateY(-2px); border-color: rgba(var(--gold-rgb),0.3); }
+.ticket-rank {
+  position: absolute; top: 8px; left: 10px;
+  font-size: 11px; color: rgba(255,255,255,0.4); letter-spacing: 1px;
+}
+.ticket-avatar {
+  width: 54px; height: 54px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.2);
+  background-size: cover; background-position: center;
+  background-color: #1a1f30;
+  margin: 4px auto 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; color: rgba(255,255,255,0.7);
+}
+.ticket-nick {
+  font-size: 14px; font-weight: 500;
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+.ticket-counts {
+  display: flex; justify-content: center; gap: 8px;
+}
+.ticket-pill {
+  font-size: 11px; padding: 2px 8px;
+  border-radius: 10px; font-weight: 500;
+  letter-spacing: 0.3px;
+  display: flex; align-items: center; gap: 4px;
+}
+.ticket-pill .ic { font-size: 12px; }
+.ticket-silver { background: rgba(192,192,208,0.15); color: #D8D8E0; }
+.ticket-gold   { background: rgba(var(--gold-rgb),0.15); color: var(--gold); }
+
+.status {
+  text-align: center;
+  color: rgba(255,255,255,0.5);
+  padding: 60px 20px;
+  font-size: 15px;
+}
+.status.error { color: #F09595; }
+.status code { background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 4px; font-family: monospace; }
+
+.no-results {
+  text-align: center;
+  color: rgba(255,255,255,0.4);
+  padding: 30px;
+  font-style: italic;
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 700px) {
+  .podium { grid-template-columns: 1fr; gap: 12px; max-width: 280px; }
+  .podium-card.p-1 { order: 1; }
+  .podium-card.p-2 { order: 2; }
+  .podium-card.p-3 { order: 3; }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .timer-unit { min-width: 64px; padding: 10px 12px; }
+  .timer-num { font-size: 24px; }
+  .timer-event { font-size: 14px; letter-spacing: 2px; }
+}

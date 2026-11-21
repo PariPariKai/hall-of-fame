@@ -1,0 +1,31 @@
+/* =====================================================================
+   Экран входа на страницы стримера (рулетки, карточки, «Боль»): код или токен GitHub.
+   Логика — siteGit.gate в core/github.js, разметка — #gate > form#gate-form (см. cards.html).
+   Подключение: <link rel="stylesheet" href="core/gate.css?v=1"> перед стилями страницы.
+   ===================================================================== */
+.gate { margin-top: 12vh; text-align: center; }
+.gate-title {
+  font-size: 14px; letter-spacing: 4px;
+  color: rgba(255,255,255,0.5);
+  text-transform: uppercase; margin-bottom: 18px;
+}
+.gate-input {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px; padding: 12px 16px;
+  color: #fff; font-family: inherit; font-size: 18px;
+  width: 260px; max-width: 100%; outline: none; text-align: center; letter-spacing: 4px;
+}
+.gate-input:focus { border-color: rgba(var(--gold-rgb),0.5); }
+.gate-hint { color: rgba(255,255,255,.45); font-size: 12px; margin-top: 10px; }
+.gate-error { color: #F09595; font-size: 13px; margin-top: 12px; min-height: 18px; }
+.gate-button {
+  margin-top: 14px; background: transparent;
+  border: 1px solid rgba(var(--gold-rgb),0.4);
+  color: var(--gold); padding: 10px 24px;
+  font-family: inherit; font-size: 13px; letter-spacing: 2px;
+  text-transform: uppercase; border-radius: 8px; cursor: pointer;
+  transition: all 0.15s ease;
+}
+.gate-button:hover { background: rgba(var(--gold-rgb),0.1); }
+.gate.hidden { display: none; }

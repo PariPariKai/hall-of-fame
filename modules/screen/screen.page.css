@@ -1,0 +1,167 @@
+/* Стили страницы screen.html (раздел screen). Подключаются из screen.html. */
+:root {
+  --font: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --gold: #FAC775;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+/* 1rem = 16px на ширине 1920 — оверлей одинаково выглядит в любом размере источника */
+html { font-size: calc(100vw / 120); }
+html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
+body { font-family: var(--font); color: #fff; -webkit-font-smoothing: antialiased; }
+[hidden] { display: none !important; }
+
+/* ---------- надпись ---------- */
+.head {
+  position: absolute; left: 50%; transform: translateX(-50%); z-index: 2;
+  display: flex; flex-direction: column; align-items: center; gap: 1rem; text-align: center;
+  width: max-content; max-width: 90vw; opacity: 0; transition: opacity 1.6s ease;
+}
+.head.is-on { opacity: 1; }
+.head--top { top: 7vh; }
+.head--center { top: 50%; transform: translate(-50%, -50%); }
+.head--bottom { bottom: 8vh; }
+
+.title {
+  font-size: 4.6rem; font-weight: 300; letter-spacing: .14em; line-height: 1.15; white-space: pre-wrap;
+  animation: breathe 9s ease-in-out infinite;
+}
+/* Цветовая волна: каждая буква проходит по палитре ночного города со сдвигом — цвет плывёт по слову */
+.title .ch {
+  display: inline-block; white-space: pre;
+  animation: hue 12s linear infinite, float 6s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -0.32s), calc(var(--i) * -0.22s);
+  text-shadow: 0 0 .35em currentColor, 0 0 1.2em rgba(0,0,0,.55);
+}
+@keyframes hue {
+  0%, 100% { color: #FAC775; }
+  20% { color: #FF9EB5; }
+  40% { color: #C5A9F8; }
+  60% { color: #8FD3FF; }
+  80% { color: #9EF0D8; }
+}
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-.1em); } }
+@keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: .8; } }
+
+/* Мягкое затемнение под надписью — чтобы не терялась на пёстром видео */
+.head::before {
+  content: ""; position: absolute; inset: -3rem -7rem; z-index: -1; pointer-events: none;
+  background: radial-gradient(ellipse closest-side, rgba(4,6,14,.55), rgba(4,6,14,.3) 55%, transparent);
+}
+/* Обводка — тёмная тень в восемь сторон (text-stroke на тонком шрифте рвёт буквы) */
+.sub, .timer { --ol: rgba(4,6,14,.92); }
+.sub {
+  font-size: 1.6rem; font-weight: 400; letter-spacing: .1em; color: #fff;
+  text-shadow: -.08rem -.08rem 0 var(--ol), .08rem -.08rem 0 var(--ol), -.08rem .08rem 0 var(--ol), .08rem .08rem 0 var(--ol),
+    0 -.1rem 0 var(--ol), 0 .1rem 0 var(--ol), -.1rem 0 0 var(--ol), .1rem 0 0 var(--ol), 0 0 1rem rgba(0,0,0,.8);
+}
+.timer {
+  font-size: 2.8rem; font-weight: 600; letter-spacing: .1em; font-variant-numeric: tabular-nums; color: #fff;
+  text-shadow: -.12rem -.12rem 0 var(--ol), .12rem -.12rem 0 var(--ol), -.12rem .12rem 0 var(--ol), .12rem .12rem 0 var(--ol),
+    0 -.15rem 0 var(--ol), 0 .15rem 0 var(--ol), -.15rem 0 0 var(--ol), .15rem 0 0 var(--ol),
+    0 0 .9rem rgba(143,211,255,.7), 0 0 1.8rem rgba(0,0,0,.85);
+  transition: opacity .8s ease;
+}
+.timer.is-done { font-size: 2.1rem; letter-spacing: .08em; animation: breathe 3.2s ease-in-out infinite; }
+
+/* ---------- пузыри ---------- */
+.stage { position: absolute; inset: 0; z-index: 1; }
+.bub {
+  --h: 200;
+  position: absolute; max-width: 27rem; visibility: hidden;
+  opacity: 0; transform: translateY(.8rem) scale(.94);
+  transition: opacity .8s ease, transform 1s cubic-bezier(.2,.8,.2,1), filter 1s ease;
+}
+.bub.is-placed { visibility: visible; }
+.bub.is-in { opacity: 1; transform: none; }
+.bub.is-out { opacity: 0; transform: translateY(-1rem) scale(.97); filter: blur(.25rem); }
+.bub__body {
+  position: relative; padding: .7rem 1.05rem .8rem; border-radius: 1.15rem;
+  background: hsla(var(--h), 42%, 11%, .76);
+  border: 1px solid hsla(var(--h), 85%, 72%, .5);
+  box-shadow: 0 0 1.4rem hsla(var(--h), 90%, 62%, .22), inset 0 0 1rem hsla(var(--h), 90%, 70%, .07);
+  font-size: 1.3rem; line-height: 1.38; overflow-wrap: anywhere;
+  animation: drift var(--life, 10s) linear forwards;
+}
+@keyframes drift { from { transform: translateY(0); } to { transform: translateY(-1.2rem); } }
+/* хвостик вниз и огонёк под ним — будто фразу сказали из окна */
+.bub__body::after {
+  content: ""; position: absolute; top: 100%; left: var(--tail, 50%); width: .9rem; height: .9rem;
+  margin: -.45rem 0 0 -.45rem; transform: rotate(45deg);
+  background: hsla(var(--h), 42%, 11%, .76);
+  border-right: 1px solid hsla(var(--h), 85%, 72%, .5); border-bottom: 1px solid hsla(var(--h), 85%, 72%, .5);
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+.bub__dot {
+  position: absolute; top: calc(100% + 1.25rem); left: var(--tail, 50%); width: .42rem; height: .42rem; margin-left: -.21rem;
+  border-radius: 50%; background: hsl(var(--h), 95%, 78%);
+  box-shadow: 0 0 .5rem .15rem hsla(var(--h), 95%, 65%, .8);
+  animation: glow 2.4s ease-in-out infinite;
+}
+@keyframes glow { 0%, 100% { opacity: .55; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.15); } }
+.bub__nick { display: block; font-size: .82em; font-weight: 600; letter-spacing: .02em; margin-bottom: .15rem; }
+.bub__badge {
+  display: inline-block; margin-left: .45rem; padding: .05rem .45rem; border-radius: 999px; vertical-align: .1em;
+  font-size: .68em; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  color: hsl(var(--h), 95%, 82%); background: hsla(var(--h), 90%, 60%, .18);
+}
+.bub__text { color: rgba(255,255,255,.95); }
+.bub--note .bub__text { white-space: pre-line; } /* переносы строк из админки — шутки с диалогом */
+.emote { height: 1.55em; width: auto; vertical-align: -.42em; margin: 0 .05em; }
+.bub--first .bub__body { box-shadow: 0 0 2.2rem hsla(var(--h), 95%, 62%, .45), inset 0 0 1rem hsla(var(--h), 90%, 70%, .12); }
+
+/* фразы из админки: тёплые, без хвостика, чуть крупнее */
+.bub--note { max-width: 32rem; }
+.bub--note .bub__body {
+  background: rgba(28, 22, 12, .78); border-color: rgba(250, 199, 117, .5);
+  box-shadow: 0 0 1.8rem rgba(250, 199, 117, .2), inset 0 0 1rem rgba(250, 199, 117, .06);
+  font-size: 1.45rem; font-weight: 300; padding: .9rem 1.3rem 1rem;
+}
+.bub--note .bub__body::after, .bub--note .bub__dot { display: none; }
+.bub__label { display: block; font-size: .62em; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); margin-bottom: .3rem; }
+
+/* ---------- пиксельный фон и пиксельный стиль (фон «pixel») ---------- */
+/* город всегда 16:9: на источнике другой формы обрезается по краям, а не растягивается */
+.city { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; object-fit: cover; image-rendering: pixelated; image-rendering: crisp-edges; }
+.size-warn {
+  position: absolute; left: 1rem; bottom: 1rem; z-index: 5; max-width: 40rem; padding: .6rem .9rem; border-radius: .5rem;
+  background: rgba(120, 20, 30, .9); color: #fff; font: 600 1rem/1.4 var(--font); transition: opacity 1s ease;
+}
+body.px { --p: .3125rem; } /* один «пиксель» города: 5 точек на 1920 */
+/* Martian Mono — ретро-терминал, все буквы различимы. Чисто пиксельные шрифты с кириллицей (Press Start 2P, Tiny5,
+   Pixelify Sans) не годятся: «а» и «о», «А» и «О» сливаются; у Tektur «д» как латинская «g» */
+body.px .title, body.px .timer, body.px .sub, body.px .bub__body { font-family: "Martian Mono", var(--font); }
+body.px .title { font-size: 3.8rem; font-weight: 700; letter-spacing: .02em; line-height: 1.2; }
+body.px .title .ch { text-shadow: 0 0 .3em currentColor, var(--p) var(--p) 0 rgba(4,6,14,.85); animation-timing-function: linear, steps(4); }
+body.px .timer { font-size: 2.4rem; font-weight: 700; letter-spacing: .02em; }
+body.px .timer.is-done { font-size: 1.8rem; }
+body.px .sub { font-size: 1.5rem; font-weight: 500; letter-spacing: .02em; }
+body.px .head::before { background: radial-gradient(ellipse closest-side, rgba(4,6,14,.45), rgba(4,6,14,.2) 55%, transparent); }
+/* рамка «лесенкой», как у окошек в старых играх: тени на один пиксель в четыре стороны */
+body.px .bub__body {
+  --bc: hsl(var(--h), 85%, 70%);
+  border: 0; border-radius: 0; padding: .55rem .95rem .7rem; font-size: 1.25rem; font-weight: 500; line-height: 1.35; letter-spacing: 0;
+  background: hsla(var(--h), 45%, 11%, .9);
+  box-shadow: 0 calc(var(--p) * -1) 0 0 var(--bc), 0 var(--p) 0 0 var(--bc), calc(var(--p) * -1) 0 0 0 var(--bc), var(--p) 0 0 0 var(--bc),
+    calc(var(--p) * 2) calc(var(--p) * 2) 0 0 rgba(4,6,14,.55);
+}
+body.px .bub--first .bub__body { background: hsla(var(--h), 55%, 18%, .92); }
+body.px .bub__body::after {
+  top: calc(100% + var(--p)); width: var(--p); height: var(--p); margin: 0 0 0 calc(var(--p) / -2);
+  transform: none; clip-path: none; border: 0; background: var(--bc);
+  box-shadow: calc(var(--p) * -1) 0 0 0 var(--bc), var(--p) 0 0 0 var(--bc), 0 var(--p) 0 0 var(--bc);
+}
+body.px .bub__dot { border-radius: 0; width: var(--p); height: var(--p); margin-left: calc(var(--p) / -2); top: calc(100% + 1.6rem); }
+body.px .bub__badge { border-radius: 0; }
+body.px .bub--note .bub__body { --bc: #FAC775; background: rgba(30, 22, 10, .9); font-weight: 400; }
+body.px .demo-lights { display: none; }
+
+/* ---------- предпросмотр (&demo) ---------- */
+body.demo {
+  background: radial-gradient(ellipse at 50% 120%, #2a2440 0%, #0d1224 45%, #05070f 100%);
+}
+.demo-lights { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.demo-lights i { position: absolute; border-radius: 50%; background: #ffd9a0; box-shadow: 0 0 6px 1px rgba(255, 210, 140, .6); }
+.demo-note {
+  position: absolute; left: 1rem; bottom: 1rem; z-index: 3; font-size: .85rem; color: rgba(255,255,255,.5);
+  letter-spacing: .04em;
+}

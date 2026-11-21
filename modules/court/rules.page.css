@@ -1,0 +1,53 @@
+/* Стили страницы rules.html (раздел court). Подключаются из rules.html. */
+.manifesto { display: grid; gap: 10px; }
+.manifesto p { font-size: 15px; line-height: 1.65; color: rgba(255,255,255,0.82); max-width: 860px; }
+.manifesto p.lead { font-size: 20px; font-weight: 700; color: var(--gold); letter-spacing: .3px; }
+.manifesto .sign { font-size: 13px; color: var(--dim); font-style: italic; }
+
+.section-title {
+  display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--gold); margin: 6px 0 16px;
+}
+.section-title .ic { font-size: 18px; }
+
+.notes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: -12px 0 34px; }
+.notes div { font-size: 13px; line-height: 1.55; color: var(--muted); padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,0.025); border: 1px solid var(--line); }
+.notes b { color: #fff; }
+
+.levels { display: flex; flex-direction: column; gap: 14px; margin-bottom: 38px; }
+.level {
+  display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 22px; padding: 18px 20px; border-radius: 16px;
+  background: linear-gradient(135deg, rgba(var(--lvl-rgb),0.07), rgba(255,255,255,0.015) 55%);
+  border: 1px solid rgba(var(--lvl-rgb),0.22);
+}
+.level__head { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.level__name { font-size: 20px; font-weight: 700; color: var(--lvl); letter-spacing: .3px; }
+.level__head .odds { width: 100%; }
+.level__rules { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 22px; align-content: start; }
+.level__rules li { font-size: 13px; line-height: 1.5; color: var(--muted); padding-left: 12px; border-left: 2px solid rgba(var(--lvl-rgb),0.45); }
+.level__rules b { display: block; font-size: 14.5px; color: #fff; margin-bottom: 2px; }
+
+.code { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.code li {
+  display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 4px 12px; align-content: start; padding: 16px 18px; border-radius: 14px;
+  background: linear-gradient(135deg, rgba(var(--lvl-rgb),0.06), rgba(255,255,255,0.015) 60%); border: 1px solid rgba(var(--lvl-rgb),0.2);
+}
+.code__num { grid-row: span 3; font-size: 30px; font-weight: 800; line-height: 1; color: var(--lvl); }
+.code__title { font-size: 16px; font-weight: 700; color: #fff; }
+.code__text { font-size: 13.5px; line-height: 1.55; color: var(--muted); }
+.code .lvl-badge { justify-self: start; margin-top: 6px; }
+.code-foot { display: grid; gap: 8px; margin-bottom: 38px; }
+.code-foot p { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.55; color: rgba(255,255,255,0.82); }
+.code-foot .ic { flex: 0 0 auto; margin-top: 3px; color: var(--gold); }
+.code-foot .sign { color: var(--gold); font-weight: 600; }
+
+.history-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.history-tools .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.history-zone { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: flex-end; margin-bottom: 12px; }
+
+@media (max-width: 900px) {
+  .notes { grid-template-columns: 1fr; }
+  .level { grid-template-columns: 1fr; gap: 14px; }
+  .level__rules { grid-template-columns: 1fr; }
+  .code { grid-template-columns: 1fr; }
+}

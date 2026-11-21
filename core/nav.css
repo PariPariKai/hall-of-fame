@@ -1,0 +1,72 @@
+/* =====================================================================
+   Верхнее меню сайта (строит core/site.js). Единственное место его стилей.
+   Страницы на site.css получают его сами (@import), рулетки без site.css подключают
+   <link rel="stylesheet" href="core/nav.css?v=1"> перед своими стилями и правят у себя только отличия.
+   ===================================================================== */
+.site-nav {
+  position: sticky; top: 0; z-index: 100; margin: 0 -20px 28px;
+  background: rgba(20, 25, 40, 0.85);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.site-nav__inner {
+  max-width: calc(var(--page) + 48px); margin: 0 auto; padding: 12px 24px;
+  display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+}
+.site-nav__brand {
+  font-size: 13px; letter-spacing: 3px; color: var(--gold); text-decoration: none; text-transform: uppercase;
+  text-shadow: 0 0 8px rgba(var(--gold-rgb),0.25); flex: 0 0 auto;
+}
+.site-nav__links { display: flex; list-style: none; margin: 0; padding: 0; gap: 22px; flex-wrap: wrap; }
+.site-nav__links a {
+  color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 4px 0; border-bottom: 2px solid transparent;
+  transition: color 0.2s ease, border-color 0.2s ease, text-shadow 0.2s ease;
+}
+.site-nav__links a:hover { color: var(--gold); }
+.site-nav__links a.is-active { color: var(--gold); border-bottom-color: var(--gold); text-shadow: 0 0 8px rgba(var(--gold-rgb),0.5); }
+.site-nav__dd { position: relative; }
+.site-nav__dd-btn {
+  background: none; border: none; cursor: pointer; font-family: inherit;
+  color: rgba(255,255,255,0.7); font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 4px 0; border-bottom: 2px solid transparent; display: inline-flex; align-items: center; gap: 6px;
+  transition: color .2s ease, border-color .2s ease, text-shadow .2s ease;
+}
+.site-nav__dd-btn:hover, .site-nav__dd.is-open > .site-nav__dd-btn { color: var(--gold); }
+.site-nav__dd.is-active > .site-nav__dd-btn { color: var(--gold); border-bottom-color: var(--gold); text-shadow: 0 0 8px rgba(var(--gold-rgb),0.5); }
+.site-nav__caret { font-size: 10px; transition: transform .2s ease; }
+.site-nav__dd.is-open .site-nav__caret { transform: rotate(180deg); }
+.site-nav__menu {
+  position: absolute; top: calc(100% + 10px); left: 50%; transform: translate(-50%, -6px);
+  min-width: 210px; list-style: none; margin: 0; padding: 8px;
+  background: rgba(20, 25, 40, 0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease, visibility .18s; z-index: 120;
+}
+.site-nav__menu::before { content: ''; position: absolute; top: -12px; left: 0; right: 0; height: 12px; }
+.site-nav__dd:hover > .site-nav__menu, .site-nav__dd.is-open > .site-nav__menu, .site-nav__dd:focus-within > .site-nav__menu {
+  opacity: 1; visibility: visible; pointer-events: auto; transform: translate(-50%, 0);
+}
+.site-nav__menu li { display: block; flex: none; }
+.site-nav__links .site-nav__menu a {
+  display: block; padding: 9px 14px; border-radius: 8px; border-bottom: none; text-transform: none; letter-spacing: .3px;
+  font-size: 14px; color: rgba(255,255,255,0.8); white-space: nowrap; text-shadow: none;
+}
+.site-nav__links .site-nav__menu a:hover { background: rgba(255,255,255,0.06); color: var(--gold); }
+.site-nav__links .site-nav__menu a.is-active { color: var(--gold); background: rgba(var(--gold-rgb),0.08); }
+@media (max-width: 720px) {
+  .site-nav__inner { padding: 10px 16px; gap: 12px; justify-content: center; }
+  .site-nav__brand { display: none; }
+  .site-nav__links { gap: 14px; justify-content: center; }
+  .site-nav__links a, .site-nav__dd-btn { font-size: 12px; letter-spacing: 1px; }
+  .site-nav__dd { position: static; }
+  .site-nav__menu { position: absolute; left: 16px; right: 16px; top: calc(100% + 4px); transform: none; min-width: 0; }
+  .site-nav__dd:hover > .site-nav__menu { opacity: 0; visibility: hidden; pointer-events: none; }
+  .site-nav__dd.is-open > .site-nav__menu, .site-nav__dd:focus-within > .site-nav__menu { opacity: 1; visibility: visible; pointer-events: auto; transform: none; }
+}
+@media (max-width: 480px) {
+  .site-nav__links { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; padding-bottom: 4px; }
+  .site-nav__links::-webkit-scrollbar { height: 0; display: none; }
+  .site-nav__links li { flex: 0 0 auto; }
+}

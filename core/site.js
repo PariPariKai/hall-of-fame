@@ -1,5 +1,5 @@
 // Общее для страниц сайта: верхнее меню и набор иконок.
-// Подключается синхронно в начале <body>, сразу после core.js: <script src="core.js?v=1"></script><script src="site.js?v=19"></script> — меню появляется сразу, без мигания.
+// Подключается синхронно в начале <body>, сразу после core.js: <script src="core/core.js?v=1"></script><script src="core/site.js?v=19"></script> — меню появляется сразу, без мигания.
 // Иконки — SVG вместо эмодзи: эмодзи на каждом устройстве рисуются по-своему и ломают дизайн.
 // В разметке: <svg class="ic"><use href="#i-film"></use></svg>, в скриптах: icon('film').
 // ===== Разделы сайта (модули) и профиль стримера =====
@@ -276,7 +276,7 @@
   if (SEASON !== 'winter' || !window.siteSeason) return;
   // оверлеи для OBS — без зимы: страницы без меню и прозрачный фон (cards.html?stream&bg=transparent)
   if ((me && me.dataset.nav === 'off') || /[?&]bg=transparent\b/.test(location.search)) return;
-  const css = '<link rel="stylesheet" href="winter.css?v=1">';
+  const css = '<link rel="stylesheet" href="core/winter.css?v=1">';
   // Пока страница грузится — синхронно, чтобы не мелькнули старые цвета
   if (document.readyState === 'loading') document.write(css);
   else document.head.insertAdjacentHTML('beforeend', css);
