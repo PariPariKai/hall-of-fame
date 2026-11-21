@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Боль стримера — виджет</title>
+<style>
+/* Маленький виджет для угла экрана в OBS. Прозрачный, пока ничего не происходит.
+   ?align=right — прижать к правому краю. ?demo=reminder / ?demo=timer — показать для настройки позиции. */
+*{box-sizing:border-box}
+html,body{margin:0;background:transparent;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden}
+.stage{position:relative;width:380px;height:120px;padding:10px}
+.right .stage{margin-left:auto}
+.card{position:absolute;top:10px;left:10px;right:10px;display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:18px;
+  background:#0a0e1ae6;border:1px solid #fac77566;box-shadow:0 8px 28px #0008,0 0 24px #fac77522;
+  opacity:0;transform:translateY(-14px) scale(.96);transition:opacity .45s ease,transform .45s cubic-bezier(.2,.9,.3,1.3);pointer-events:none}
+.card.show{opacity:1;transform:none}
+.icon{flex:0 0 auto;display:grid;place-items:center;width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#f3ad79,#fac775);
+  color:#261b27;font-size:24px;font-weight:900}
+.text{min-width:0}
+.title{font-size:21px;font-weight:800;letter-spacing:-.3px;white-space:nowrap}
+.sub{font-size:13px;color:#cfd4e3;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#reminder.show .icon{animation:pulse 2.4s ease-in-out infinite}
+#reminder.fresh{animation:shake .7s ease}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 #fac77577}50%{box-shadow:0 0 0 10px #fac77500}}
+@keyframes shake{0%,100%{rotate:0deg}20%{rotate:-3deg}40%{rotate:3deg}60%{rotate:-2deg}80%{rotate:1deg}}
+#timer{border-color:#9fe8b555;box-shadow:0 8px 28px #0008,0 0 24px #9fe8b51c}
+#timer .icon{background:linear-gradient(135deg,#7fd79b,#9fe8b5)}
+.clock{font-size:34px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;color:#9fe8b5}
+#timer .sub{max-width:230px}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="card" id="reminder">
+    <div class="icon">🔥</div>
+    <div class="text"><div class="title" id="remTitle">Боль подана, сэр</div><div class="sub" id="remSub"></div></div>
+  </div>
+  <div class="card" id="timer">
+    <div class="icon">⏳</div>
+    <div class="text"><div class="sub" id="game"></div><div class="clock" id="clock">0:00:00</div></div>
+  </div>
+</div>
+<script src="bridge.js"></script>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const params = new URLSearchParams(location.search), demo = params.get('demo');
+if (params.get('align') === 'right') document.body.classList.add('right');
+let S = null, lastCredits = null;
+
+function view() {
+  if (demo === 'timer') return 'timer';
+  if (demo) return 'reminder';
+  if (!S || Bridge.revealing(S)) return null;
+  if (S.timer.running && Bridge.timerLeft(S) > 0) return 'timer';
+  if (S.painCredits > 0 || S.timeCredits > 0) return 'reminder';
+  return null; // пауза или ничего не оплачено — полностью прозрачно
+}
+function tick() {
+  const v = view();
+  $('reminder').classList.toggle('show', v === 'reminder');
+  $('timer').classList.toggle('show', v === 'timer');
+  if (v === 'timer') {
+    $('clock').textContent = demo ? '3:59:59' : Bridge.clock(Bridge.timerLeft(S));
+    $('game').textContent = demo ? 'Dark Souls 2' : S.game?.name || '';
+  }
+  if (v === 'reminder') {
+    const pain = demo ? 1 : S.painCredits, time = demo ? 0 : S.timeCredits;
+    $('remTitle').textContent = pain > 0 ? 'Боль подана, сэр' : 'Время подано, сэр';
+    const parts = [];
+    if (pain > 1) parts.push(`круток игры: ${pain}`);
+    if (pain > 0 && time > 0) parts.push(`+ круток времени: ${time}`);
+    if (!pain && time > 1) parts.push(`круток времени: ${time}`);
+    $('remSub').textContent = parts.join(' ') || (pain > 0 ? 'Рулетка ждёт стримера' : 'Стример будет терпеть дольше');
+  }
+}
+Bridge.listen(state => {
+  S = state;
+  // Новая оплаченная крутка — встряхиваем напоминалку.
+  const credits = S.painCredits + S.timeCredits;
+  if (lastCredits !== null && credits > lastCredits) {
+    const el = $('reminder'); el.classList.remove('fresh'); void el.offsetWidth; el.classList.add('fresh');
+  }
+  lastCredits = credits;
+  tick();
+});
+setInterval(tick, 250);
+tick();
+</script>
+</body>
+</html>

@@ -21,9 +21,11 @@
        и вставь результат сюда.
 
      ГДЕ ЛЕЖАТ ДАННЫЕ
-       Все карточки хранятся в localStorage этого браузера (ключ ppk_cards_v1).
-       Вкладка «Данные» → «Скачать JSON» делает бэкап, «Загрузить JSON» —
-       переносит базу на другой компьютер/браузер. Делай бэкап после крупных правок.
+       Рабочая копия — localStorage этого браузера (ключ ppk_cards_v1).
+       Копия на сайте — data/cards.json в репозитории: при входе токеном GitHub
+       правки сами уходят туда (через 30 секунд, крутки — раз в 30 минут), а пустой
+       браузер (переустановка Windows, OBS, другой ПК) сам подтягивает базу оттуда.
+       Кто новее (savedAt), тот и прав. «Скачать JSON» — ручной бэкап на всякий случай.
      ============================================================ -->
 <script>
   const CARDS_ACCESS_HASH = "fc8ee83f14149d6acca42377fc006a9ed55198c380953f09067532fd5ee7fe09";
@@ -655,7 +657,7 @@
   }
 </style>
 <script src="site.js?v=17"></script>
-<script src="github.js?v=3"></script>
+<script src="github.js?v=5"></script>
 
 <!-- ===== ВХОД ПО КОДУ ===== -->
 <div class="gate" id="gate">
@@ -878,9 +880,10 @@
       </div>
       <input type="file" id="file-input" accept=".json,application/json" hidden>
       <div class="note">
-        Всё живёт в localStorage этого браузера. Чистка данных сайта или другой компьютер —
-        и база пропадёт, поэтому после крупной ротации скачивай JSON.
-        Последний бэкап: <b id="last-backup">никогда</b>.
+        База живёт в этом браузере, а копия — на сайте (data/cards.json): новый браузер, OBS
+        или переустановленная Windows подтянут её сами. Копия на сайте: <b id="cloud-status">…</b>
+        <button class="btn btn--sm" id="btn-cloud-push" hidden>Сохранить на сайт сейчас</button><br>
+        Последний скачанный JSON: <b id="last-backup">никогда</b>.
       </div>
     </div>
 
@@ -1035,7 +1038,8 @@ function seedState() {
     })),
     history: [],
     settings: { cooldown: 5, modHideMin: 60 },
-    lastBackup: null
+    lastBackup: null,
+    savedAt: 0              // 0 — стартовый набор, на сайт не уходит, пока его не поправят
   };
 }
 
@@ -1056,7 +1060,10 @@ let ui = {
 };
 
 let storageWarned = false;
-function save() {
+// keepStamp — записать как есть (база пришла с сайта или стартовый набор), иначе это правка: время обновляется
+function save(keepStamp) {
+  if (!keepStamp) state.savedAt = Date.now();
+  cloudSchedule();
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {
@@ -1096,7 +1103,8 @@ function normalize(obj) {
       modHideMin: obj.settings && obj.settings.modHideMin != null
         ? Math.max(0, Math.min(1440, Math.round(Number(obj.settings.modHideMin)) || 0)) : 60
     },
-    lastBackup: obj.lastBackup || null
+    lastBackup: obj.lastBackup || null,
+    savedAt: Number(obj.savedAt) || legacyStamp(obj)
   };
   if (!obj.settings) s.settings.cooldown = 5;
   s.rarities = s.rarities.map(r => ({
@@ -1137,6 +1145,136 @@ function normalize(obj) {
   });
   return s;
 }
+
+// База до появления savedAt: свежесть — по последнему действию в ней (крутка, правка, скамейка)
+function legacyStamp(obj) {
+  let t = 0;
+  (obj.history || []).forEach(h => { t = Math.max(t, Number(h && h.at) || 0); });
+  (obj.items || []).forEach(it => {
+    if (it) t = Math.max(t, Number(it.lastRoll) || 0, Number(it.activatedAt) || 0, Number(it.benchedAt) || 0);
+  });
+  return t;
+}
+
+// ============================================================
+// КОПИЯ НА САЙТЕ — data/cards.json в репозитории
+// Пишет только полная страница (не ?stream) и только при входе токеном GitHub.
+// Правка карточек уходит через 30 секунд тишины, одни крутки/история — не чаще раза в 30 минут.
+// Перед записью читаем свежую копию: если она новее нашей (правили в другом браузере) — берём её.
+// ============================================================
+const CLOUD_PATH = 'data/cards.json';
+const CLOUD_EDIT_DELAY = 30e3;
+const CLOUD_STATS_EVERY = 30 * 60e3;
+var cloud = { ready: false, sha: null, savedAt: 0, sig: '', pushedAt: 0, timer: null, busy: false, status: '', seededHere: false };
+
+// «Содержимое» базы без счётчиков круток: по нему понятно, правка это или просто крутили
+function cardsSig(s) {
+  return JSON.stringify([s.rarities, s.groups, s.settings,
+    s.items.map(({ rolls, lastRoll, ...rest }) => rest)]);
+}
+function cloudOn() { return cloud.ready && !IS_STREAM && !!siteGit.token; }
+
+function cloudSchedule() {
+  if (!cloudOn()) return;
+  clearTimeout(cloud.timer);
+  if (!state.savedAt || state.savedAt <= cloud.savedAt) return;
+  const edit = cardsSig(state) !== cloud.sig;
+  const wait = edit ? CLOUD_EDIT_DELAY : Math.max(CLOUD_EDIT_DELAY, cloud.pushedAt + CLOUD_STATS_EVERY - Date.now());
+  cloud.timer = setTimeout(cloudPush, wait);
+  cloudStatus('ждёт сохранения');
+}
+
+function cloudAdopt(data, why) {
+  snapshot('копия с сайта');
+  state = normalize(data);
+  save(true);
+  if (typeof renderAll === 'function' && $('#app').style.display === 'block') renderAll();
+  toast(why, 'откатить', undo);
+}
+
+async function cloudPush() {
+  if (!cloudOn() || cloud.busy) return;
+  clearTimeout(cloud.timer);
+  cloud.busy = true;
+  cloudStatus('сохраняю…');
+  try {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const remote = await siteGit.readJson(CLOUD_PATH);
+      const remoteAt = remote ? Number(remote.data.savedAt) || 0 : 0;
+      if (remote && remoteAt > state.savedAt) {
+        cloudAdopt(remote.data, 'В другом браузере база новее — взял её с сайта');
+        cloudRemember(remote.sha, state);
+        return;
+      }
+      if (!state.savedAt || (remote && remoteAt === state.savedAt)) { cloudRemember(remote && remote.sha, state); return; }
+      try {
+        const snap = JSON.parse(JSON.stringify(state));
+        const sha = await siteGit.writeJson(CLOUD_PATH, snap, remote && remote.sha, 'Карточки: копия базы рулетки');
+        cloudRemember(sha, snap);
+        return;
+      } catch (err) {
+        if (err.status !== 409 && err.status !== 422) throw err;
+      }
+    }
+    throw new Error('файл одновременно меняют с другого устройства');
+  } catch (err) {
+    cloudStatus('не сохранилась: ' + err.message);
+  } finally {
+    cloud.busy = false;
+    cloudSchedule();
+  }
+}
+function cloudRemember(sha, s) {
+  cloud.sha = sha || null;
+  cloud.savedAt = s.savedAt || 0;
+  cloud.sig = cardsSig(s);
+  cloud.pushedAt = Date.now();
+  cloudStatus(cloud.savedAt ? 'сохранена ' + new Date(cloud.savedAt).toLocaleString('ru-RU') : 'пока не сохранялась');
+}
+function cloudStatus(text) {
+  cloud.status = text;
+  const el = document.getElementById('cloud-status');
+  if (el) el.textContent = text;
+  const btn = document.getElementById('btn-cloud-push');
+  if (btn) btn.hidden = !cloudOn();
+}
+
+// Пустой браузер: берём базу с сайта (без токена — опубликованную копию, она может отставать на пару минут)
+async function cloudFetch() {
+  try {
+    if (siteGit.token) { const r = await siteGit.readJson(CLOUD_PATH); return r && r.data; }
+    const res = await fetch(CLOUD_PATH + '?t=' + Date.now(), { cache: 'no-store' });
+    return res.ok ? await res.json() : null;
+  } catch (e) { return null; }
+}
+
+// Полная страница при входе токеном: сверяемся с сайтом и включаем автосохранение
+async function cloudInit() {
+  if (IS_STREAM) return;
+  if (!siteGit.token) { cloudStatus('сохраняется, только если войти токеном GitHub, а не кодом'); return; }
+  cloudStatus('проверяю…');
+  try {
+    const remote = await siteGit.readJson(CLOUD_PATH);
+    if (remote) {
+      const remoteAt = Number(remote.data.savedAt) || 0;
+      if (remoteAt > state.savedAt || (cloud.seededHere && remote.data.items && remote.data.items.length)) {
+        cloudAdopt(remote.data, 'Взял базу карточек с сайта — она новее, чем в этом браузере');
+      }
+      cloud.ready = true;
+      cloudRemember(remote.sha, normalize(remote.data));
+    } else {
+      cloud.ready = true;
+      cloudStatus('пока не сохранялась');
+    }
+    cloudSchedule();
+    if (!remote && state.savedAt) cloudPush();   // первый раз: переносим базу из браузера на сайт
+  } catch (err) {
+    cloudStatus('не проверить: ' + err.message);
+  }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && cloud.timer && cloudOn()) cloudPush();
+});
 
 // ---------- undo ----------
 function snapshot(label) {
@@ -3216,6 +3354,7 @@ function wireApp() {
   $$('[data-sim]').forEach(b => b.onclick = () => simulate(Number(b.dataset.sim)));
 
   $('#btn-export-json').onclick = exportJSON;
+  $('#btn-cloud-push').onclick = () => { if (!state.savedAt) save(); cloudPush(); };
   $('#btn-export-csv').onclick = exportCSV;
   $('#btn-export-txt').onclick = () => download(`cards-${stamp()}.txt`, $('#export-box').value);
   $('#btn-import-json').onclick = () => $('#file-input').click();
@@ -3307,9 +3446,14 @@ async function tryEnter() {
   }
 }
 
-function startApp() {
+async function startApp() {
   $('#gate').style.display = 'none';
-  if (!load()) { state = seedState(); save(); }
+  if (!load()) {
+    const remote = await cloudFetch();
+    if (remote && Array.isArray(remote.items)) { state = normalize(remote); save(true); toast('База карточек загружена с сайта'); }
+    else { state = seedState(); cloud.seededHere = true; save(true); }
+  }
+  cloudInit();
   modsPull();
   if (IS_STREAM) { startStream(); return; }
   $('#app').style.display = 'block';

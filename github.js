@@ -69,6 +69,18 @@
     throw new Error('Файл одновременно меняют с другого устройства. Обнови страницу и повтори.');
   }
 
+  // Произвольный JSON (не таблица columns/items) — например, база карточек рулетки.
+  // readJson: {sha, data} или null, если файла ещё нет. writeJson: новый sha; чужая правка поверх — ошибка 409/422.
+  async function readJson(path) {
+    try { return await readFile(path); } catch (err) { if (err.status === 404) return null; throw err; }
+  }
+  async function writeJson(path, data, sha, message) {
+    const res = await gh('/contents/' + path, { method: 'PUT', body: JSON.stringify({
+      message, branch: BRANCH, sha: sha || undefined, content: b64encode(JSON.stringify(data, null, 1) + '\n'),
+    }) });
+    return res.content.sha;
+  }
+
   // Папка репозитория: [{name, path, sha, size}], пустая или нет папки — []
   const enc = path => path.split('/').map(encodeURIComponent).join('/');
   async function listDir(path) {
@@ -126,6 +138,6 @@
 
   window.siteGit = {
     get token() { return token; },
-    setToken, readFile, writeFile, listDir, putFile, user, hasAccess, isToken, showGate,
+    setToken, readFile, writeFile, readJson, writeJson, listDir, putFile, user, hasAccess, isToken, showGate,
   };
 })();

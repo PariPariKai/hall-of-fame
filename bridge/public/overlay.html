@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Боль стримера — оверлей</title>
+<style>
+/* Прозрачный фон для OBS Browser Source. ?only=banks или ?only=timer — показать один блок. */
+*{box-sizing:border-box}
+html,body{margin:0;background:transparent;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.card{width:420px;padding:16px 18px;border-radius:18px;background:#0a0e1ad9;border:1px solid #ffffff1c;box-shadow:0 8px 30px #0007}
+.card+.card{margin-top:10px}
+.row{margin-top:10px}.row:first-child{margin-top:0}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:15px}
+.title{font-weight:700}.title .tag{color:#fac775}
+.sum{font-weight:800;color:#fac775;font-variant-numeric:tabular-nums}
+.bar{height:10px;border-radius:6px;background:#ffffff14;margin-top:6px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,#ef9eae,#fac775);transition:width .8s ease}
+.time .bar i{background:linear-gradient(90deg,#7d86e8,#9fd0e8)}
+.credits{font-size:12px;color:#fac775;margin-top:4px;min-height:15px}
+.label{font-size:11px;letter-spacing:3px;color:#fac775;text-transform:uppercase}
+.game{font-size:18px;font-weight:700;margin:4px 0 0;overflow-wrap:anywhere}
+.clock{font-size:40px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+.timer.running .clock{color:#9fe8b5}
+.state{font-size:12px;color:#aeb6cd}
+.pop{animation:pop .7s ease}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="card" id="banks">
+  <div class="row pain">
+    <div class="top"><span class="title">Боль · <span class="tag" id="painTag">#боль</span></span><span class="sum" id="painSum">0 / 1 000 ₽</span></div>
+    <div class="bar"><i id="painBar"></i></div>
+    <div class="credits" id="painCredits"></div>
+  </div>
+  <div class="row time">
+    <div class="top"><span class="title">Время · <span class="tag" id="timeTag">#время</span></span><span class="sum" id="timeSum">0 / 250 ₽</span></div>
+    <div class="bar"><i id="timeBar"></i></div>
+    <div class="credits" id="timeCredits"></div>
+  </div>
+</div>
+<div class="card timer" id="timer" hidden>
+  <div class="label">Стример страдает</div>
+  <div class="game" id="game"></div>
+  <div class="clock" id="clock">0:00:00</div>
+  <div class="state" id="state"></div>
+</div>
+<script src="bridge.js"></script>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const only = new URLSearchParams(location.search).get('only');
+let S = null, lastKey = '';
+function pop(el) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+function render() {
+  if (!S) return;
+  const c = S.config;
+  $('painTag').textContent = c.painTag; $('timeTag').textContent = c.timeTag;
+  $('painSum').textContent = `${Bridge.rub(S.painBank)} / ${Bridge.rub(c.painPrice)}`;
+  $('timeSum').textContent = `${Bridge.rub(S.timeBank)} / ${Bridge.rub(c.timePrice)}`;
+  $('painBar').style.width = `${Math.min(100, S.painBank / c.painPrice * 100)}%`;
+  $('timeBar').style.width = `${Math.min(100, S.timeBank / c.timePrice * 100)}%`;
+  $('painCredits').textContent = S.painCredits ? `Оплачено круток игры: ${S.painCredits}` : '';
+  $('timeCredits').textContent = S.timeCredits ? `Оплачено круток времени: ${S.timeCredits}` : '';
+  const key = [S.painBank, S.timeBank, S.painCredits, S.timeCredits].join();
+  if (lastKey && key !== lastKey) pop($('banks'));
+  lastKey = key;
+  $('banks').hidden = only === 'timer';
+  tick();
+}
+function tick() {
+  if (!S) return;
+  const box = $('timer'), revealing = Bridge.revealing(S), left = Bridge.timerLeft(S);
+  box.hidden = only === 'banks' || !S.game || (!revealing && left <= 0 && !S.timer.running);
+  box.classList.toggle('running', S.timer.running && !revealing);
+  $('game').textContent = revealing ? 'Крутим рулетку…' : S.game?.name || '';
+  $('clock').textContent = revealing ? '?:??:??' : Bridge.clock(left);
+  $('state').textContent = revealing ? '' : S.timer.running ? '' : 'на паузе';
+}
+Bridge.listen(state => { S = state; render(); });
+setInterval(tick, 250);
+</script>
+</body>
+</html>

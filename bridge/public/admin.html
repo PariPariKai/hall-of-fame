@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Мост боли</title>
+<style>
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;padding:28px 20px 48px;background:#0a0e1a;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
+main{max-width:760px;margin:auto}
+h1{font-size:28px;margin:0 0 6px}h1 span{color:#fac775}
+h2{font-size:16px;margin:0 0 12px}
+p{color:#aeb6cd;line-height:1.6;font-size:14px;margin:0}
+a{color:#fac775}
+.card{background:#141929b3;border:1px solid #ffffff12;border-radius:16px;padding:18px 20px;margin-top:16px}
+.status{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.status b{font-size:16px}
+.status .text{color:#cfd4e3;font-size:14px;flex:1 1 220px}
+.dot{width:10px;height:10px;border-radius:50%;background:#6b7280;flex:0 0 auto}
+.online .dot{background:#4ade80}.connecting .dot{background:#fac775}.error .dot{background:#f87171}
+.sub{margin-top:8px;font-size:13px;color:#8d95ad}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin-top:12px}
+label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:#b9c0d3;min-width:0}
+input{padding:10px 12px;border-radius:10px;border:1px solid #ffffff24;background:#0a0e1a;color:#fff;font:inherit;font-size:14px;min-width:0}
+button,.btn{font:inherit;font-size:14px;cursor:pointer;border:1px solid #ffffff24;border-radius:10px;background:#ffffff08;color:#e3e6f0;padding:9px 15px;text-decoration:none;display:inline-block}
+button.primary,.btn.primary{background:linear-gradient(120deg,#f3ad79,#fac775);color:#261b27;border:0;font-weight:800}
+button:hover,.btn:hover{filter:brightness(1.15)}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;align-items:center}
+.msg{font-size:13px;color:#9fe8b5}.msg.error{color:#ffacba}
+details{margin-top:14px;border-top:1px solid #ffffff12;padding-top:12px}
+summary{cursor:pointer;font-size:14px;color:#cfd4e3}
+ol{padding-left:20px;line-height:1.7;color:#cfd4e3;font-size:14px;margin:12px 0 0}
+code{background:#ffffff10;padding:2px 6px;border-radius:6px;font-size:13px;overflow-wrap:anywhere}
+.links{display:grid;gap:8px}
+.links div{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid #ffffff0d}
+.links div:last-child{border-bottom:0}
+.links span{min-width:150px;font-size:14px}
+.links code{flex:1 1 200px}
+@media(max-width:640px){.grid{grid-template-columns:1fr}body{padding:18px 12px 32px}}
+</style>
+</head>
+<body>
+<main>
+<h1>Мост <span>боли</span></h1>
+<p>Работает в фоне на этом ПК и ловит донаты. Копилки, крутки и таймер — в <a href="https://pariparikai.github.io/hall-of-fame/admin.html#pain" target="_blank" rel="noopener">админке сайта</a>, здесь только подключение и правила.</p>
+
+<section class="card">
+  <div class="status" id="st-da"><span class="dot"></span><b>DonationAlerts</b><span class="text">Проверяю...</span>
+    <button id="reconnect">Переподключить</button></div>
+  <div class="sub" id="st-sheet"></div>
+  <details id="keys">
+    <summary>Ключи и вход в DonationAlerts</summary>
+    <ol>
+      <li>На странице <a href="https://www.donationalerts.com/application/clients" target="_blank" rel="noopener">OAuth приложения API ↗</a> создай приложение:
+        имя любое, URL перенаправления ровно <code id="redirect"></code>.</li>
+      <li>Скопируй сюда <b>ID приложения</b> и <b>ключ API</b>, сохрани.</li>
+      <li>Нажми «Войти в DonationAlerts» и разреши доступ.</li>
+    </ol>
+    <div class="grid">
+      <label>ID приложения<input id="daClientId" autocomplete="off"></label>
+      <label>Ключ API<input id="daClientSecret" type="password" autocomplete="off"></label>
+    </div>
+    <div class="actions">
+      <button class="primary" id="saveKeys">Сохранить</button>
+      <a class="btn" href="/da/connect">Войти в DonationAlerts</a>
+      <span class="msg" id="keysMsg"></span>
+    </div>
+  </details>
+</section>
+
+<section class="card">
+  <h2>Правила</h2>
+  <div class="grid">
+    <label>Цена крутки игры, ₽<input id="painPrice" type="number" min="1"></label>
+    <label>Цена крутки времени, ₽<input id="timePrice" type="number" min="1"></label>
+    <label>Метка для игры<input id="painTag"></label>
+    <label>Метка для времени<input id="timeTag"></label>
+    <label>Время за игру, минуты через запятую<input id="gameMinutes"></label>
+    <label>Добавка времени, минуты через запятую<input id="extraMinutes"></label>
+  </div>
+  <div class="actions"><button class="primary" id="saveRules">Сохранить правила</button><span class="msg" id="rulesMsg"></span></div>
+</section>
+
+<section class="card">
+  <h2>Ссылки для OBS</h2>
+  <div class="links" id="links"></div>
+</section>
+</main>
+<script src="bridge.js"></script>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+function msg(id, text, error = false) { $(id).textContent = text; $(id).classList.toggle('error', error); }
+async function run(id, fn, ok) { try { await fn(); msg(id, ok); } catch (e) { msg(id, e.message, true); } }
+
+const LINKS = [['Рулетка для OBS (сайт)', '/pain?stream'], ['Виджет для угла', '/widget'], ['Оверлей-счётчик', '/overlay'], ['Старая рулетка (запасная)', '/pain-classic?stream']];
+$('links').innerHTML = LINKS.map(([name, path]) => `<div><span>${name}</span><code>${location.origin}${path}</code><a class="btn" href="${path}" target="_blank">Открыть</a></div>`).join('');
+
+async function loadConfig() {
+  const c = await Bridge.api('/api/config');
+  $('redirect').textContent = c.redirectUri;
+  $('daClientId').value = c.donationAlerts.clientId;
+  $('daClientSecret').placeholder = c.donationAlerts.hasSecret ? 'сохранён — впиши новый, чтобы заменить' : '';
+  if (!c.donationAlerts.clientId || !c.donationAlerts.hasSecret) $('keys').open = true;
+  $('painPrice').value = c.painPrice; $('timePrice').value = c.timePrice;
+  $('painTag').value = c.painTag; $('timeTag').value = c.timeTag;
+  $('gameMinutes').value = c.gameMinutes.join(', '); $('extraMinutes').value = c.extraMinutes.join(', ');
+}
+Bridge.listen(S => {
+  $('st-da').className = 'status ' + S.status.da.state;
+  $('st-da').querySelector('.text').textContent = S.status.da.text;
+  $('reconnect').hidden = S.status.da.state === 'online';
+  $('st-sheet').textContent = 'Список игр: ' + S.status.sheet.text;
+}, online => { if (!online) $('st-da').querySelector('.text').textContent = 'Мост не отвечает'; });
+$('saveKeys').onclick = () => run('keysMsg', async () => {
+  await Bridge.api('/api/config', {daClientId: $('daClientId').value, daClientSecret: $('daClientSecret').value});
+  $('daClientSecret').value = ''; await loadConfig();
+}, 'Сохранено. Теперь нажми «Войти в DonationAlerts».');
+$('saveRules').onclick = () => run('rulesMsg', async () => {
+  await Bridge.api('/api/config', {painPrice: $('painPrice').value, timePrice: $('timePrice').value, painTag: $('painTag').value,
+    timeTag: $('timeTag').value, gameMinutes: $('gameMinutes').value, extraMinutes: $('extraMinutes').value});
+  await loadConfig();
+}, 'Правила сохранены.');
+$('reconnect').onclick = () => Bridge.api('/api/reconnect', {});
+if (new URLSearchParams(location.search).get('da') === 'ok') { $('keys').open = true; msg('keysMsg', 'Вход в DonationAlerts выполнен.'); }
+loadConfig().catch(e => msg('keysMsg', e.message, true));
+</script>
+</body>
+</html>

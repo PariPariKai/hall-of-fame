@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Боль стримера — пульт</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:20px 20px 40px;background:#0a0e1a;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background-image:radial-gradient(ellipse at 15% 20%,#56233640,transparent 55%),radial-gradient(ellipse at 85% 80%,#39306b35,transparent 50%);min-height:100vh}
+main{max-width:1200px;margin:auto}
+header{text-align:center;padding:0 0 20px}
+.eyebrow{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#ef9eae}
+h1{font-size:clamp(28px,4vw,46px);letter-spacing:-1px;margin:10px 0;font-weight:800}h1 span{color:#fac775}
+p{line-height:1.6;color:#aeb6cd}
+header p{margin:0}
+.tag{color:#fac775;font-weight:700}
+.banks{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.bank{background:#141929b3;border:1px solid #ffffff12;border-radius:18px;padding:16px 20px}
+.bank-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.bank-title{font-weight:700}.bank-sum{color:#fac775;font-variant-numeric:tabular-nums;font-weight:700}
+.bar{height:12px;border-radius:8px;background:#ffffff10;margin:10px 0 8px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:8px;background:linear-gradient(90deg,#ef9eae,#fac775);transition:width .6s ease}
+.bank.time .bar i{background:linear-gradient(90deg,#7d86e8,#9fd0e8)}
+.credits{font-size:13px;color:#aeb6cd}.credits b{color:#fff;font-size:15px}
+.credits.has b{color:#fac775}
+.arena{display:grid;grid-template-columns:1.45fr 1fr;gap:24px;align-items:start}
+.panel{background:#141929b3;border:1px solid #ffffff12;border-radius:24px;padding:24px;text-align:center;min-width:0}
+.step{display:flex;align-items:center;justify-content:center;gap:10px;color:#d4d8e5;font-size:14px}
+.step b{display:grid;place-items:center;width:28px;height:28px;border:1px solid #ef9eae70;border-radius:50%;color:#ef9eae}
+.wheel-box{position:relative;margin:20px auto;width:min(100%,510px);aspect-ratio:1;filter:drop-shadow(0 10px 30px #0005)}
+.small .wheel-box{width:min(100%,300px)}
+canvas{display:block;width:100%;height:100%;border-radius:50%;border:7px solid #34354a;box-shadow:0 0 0 1px #ffffff25}
+.pointer{position:absolute;z-index:2;top:-8px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:30px solid #fac775;filter:drop-shadow(0 3px 3px #0008)}
+.hub{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:grid;place-items:center;width:17%;aspect-ratio:1;border-radius:50%;background:#171d30;border:3px solid #ffffff35;color:#fac775;font-size:clamp(18px,3vw,32px);font-weight:800;box-shadow:0 4px 15px #0008}
+.wheel-result{font-size:22px;font-weight:700;min-height:32px;margin:10px 0;overflow-wrap:anywhere}
+.hint{font-size:13px;color:#aeb6cd;min-height:20px}
+.timer{margin-top:18px;padding:18px;border-radius:18px;border:1px solid #fac77540;background:#fac77508}
+.timer-label{font-size:11px;letter-spacing:3px;color:#fac775;text-transform:uppercase}
+.timer-game{font-size:17px;font-weight:700;margin:8px 0 2px;overflow-wrap:anywhere}
+.timer-clock{font-size:clamp(34px,5vw,52px);font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:1px}
+.timer.running .timer-clock{color:#9fe8b5}
+.timer-state{font-size:13px;color:#aeb6cd;min-height:20px}
+.timer-buttons{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:12px}
+.timer-set{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px;margin-top:10px;font-size:13px;color:#aeb6cd}
+.timer-set input{width:64px;padding:8px;border-radius:8px;border:1px solid #ffffff24;background:#0a0e1a;color:#fff;font:inherit;text-align:center}
+.controls{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin:24px 0 12px}
+button{font:inherit;cursor:pointer}button:disabled{cursor:not-allowed;opacity:.4}
+.primary{background:linear-gradient(120deg,#f3ad79,#fac775);color:#261b27;font-weight:800;border:0;border-radius:12px;padding:16px 24px;min-width:245px;font-size:16px}
+.primary.alt{background:linear-gradient(120deg,#7d86e8,#9fd0e8)}
+.secondary,.text-link{border:1px solid #ffffff24;border-radius:10px;background:#ffffff06;color:#d9dceb;padding:10px 16px;text-decoration:none;font-size:13px}
+.danger{border-color:#ffacba55;color:#ffacba}
+button:not(:disabled):hover,.text-link:hover{filter:brightness(1.15)}
+:focus-visible{outline:3px solid #fac775;outline-offset:4px}
+.status{text-align:center;font-size:13px;color:#aeb6cd;min-height:22px;line-height:1.6}.status.error{color:#ffacba}
+.verdict{text-align:center;border:1px solid #fac77560;border-radius:18px;padding:24px;background:#fac77508;margin:22px 0}
+.verdict-label{font-size:11px;letter-spacing:3px;color:#fac775}
+.verdict h2{font-size:clamp(22px,3vw,34px);margin:10px 0;overflow-wrap:anywhere}.verdict p{margin:0}
+.toolbar{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin:20px 0}
+.details{margin-top:24px;border-top:1px solid #ffffff14;padding-top:20px}
+summary{cursor:pointer;color:#b9c0d3;font-size:14px}
+.history{padding-left:22px;color:#b9c0d3;font-size:14px;line-height:1.8;overflow-wrap:anywhere}
+.offline{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#3a1620;border:1px solid #ffacba70;color:#ffacba;padding:10px 16px;border-radius:12px;font-size:13px;z-index:10}
+[hidden]{display:none!important}
+.stream-mode .controls,.stream-mode .toolbar,.stream-mode .details,.stream-mode .status,.stream-mode .timer-buttons,.stream-mode .timer-set{display:none}
+.stream-mode{padding-top:12px}.stream-mode header{padding:0 0 12px}.stream-mode h1{font-size:30px}
+.stream-mode .wheel-box{width:min(100%,36vh,420px)}.stream-mode .small .wheel-box{width:min(100%,26vh,270px)}
+@media(max-width:720px){body{padding:16px 12px 24px}.banks,.arena{grid-template-columns:1fr;gap:16px}.panel{padding:18px}.small .wheel-box{width:230px}.wheel-box{max-width:390px}.primary{width:100%;min-width:0}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div class="eyebrow">Зрители заказывают · стример страдает</div>
+  <h1>Боль стримера <span>за шекели</span></h1>
+  <p>Донат с меткой <span class="tag" id="painTag">#боль</span> копит на крутку игры, с меткой <span class="tag" id="timeTag">#время</span> — на добавку времени.</p>
+</header>
+
+<div class="banks">
+  <div class="bank pain">
+    <div class="bank-top"><span class="bank-title">Копилка боли</span><span class="bank-sum" id="painSum">0 / 1 000 ₽</span></div>
+    <div class="bar"><i id="painBar"></i></div>
+    <div class="credits" id="painCreditsBox">Оплачено круток игры: <b id="painCredits">0</b></div>
+  </div>
+  <div class="bank time">
+    <div class="bank-top"><span class="bank-title">Копилка времени</span><span class="bank-sum" id="timeSum">0 / 250 ₽</span></div>
+    <div class="bar"><i id="timeBar"></i></div>
+    <div class="credits" id="timeCreditsBox">Оплачено круток времени: <b id="timeCredits">0</b></div>
+  </div>
+</div>
+
+<div class="arena">
+  <section class="panel">
+    <div class="step"><b>1</b> Во что играем</div>
+    <div class="wheel-box"><div class="pointer"></div><canvas id="gameWheel" width="1000" height="1000" role="img" aria-label="Рулетка игр"></canvas><div class="hub" aria-hidden="true">₪</div></div>
+    <div class="wheel-result" id="gameResult">Судьба ещё не решена</div>
+    <div class="hint" id="gameHint">Загружаем игры…</div>
+  </section>
+  <section class="panel small">
+    <div class="step"><b>2</b> Сколько терпим</div>
+    <div class="wheel-box"><div class="pointer"></div><canvas id="timeWheel" width="700" height="700" role="img" aria-label="Рулетка времени"></canvas><div class="hub" aria-hidden="true">◷</div></div>
+    <div class="wheel-result" id="timeResult">—</div>
+    <div class="hint" id="timeHint"></div>
+    <div class="timer" id="timerBox">
+      <div class="timer-label">Осталось терпеть</div>
+      <div class="timer-game" id="timerGame">Игра ещё не выбрана</div>
+      <div class="timer-clock" id="timerClock">0:00:00</div>
+      <div class="timer-state" id="timerState"></div>
+      <div class="timer-buttons">
+        <button class="secondary" id="timerToggle" disabled>▶ Старт</button>
+        <button class="secondary danger" id="timerReset">Сброс</button>
+      </div>
+      <div class="timer-set">
+        <input type="number" id="setHours" min="0" max="999" value="0" aria-label="Часы"> ч
+        <input type="number" id="setMinutes" min="0" max="59" value="0" aria-label="Минуты"> мин
+        <button class="secondary" id="timerSet">Задать</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="controls">
+  <button class="primary" id="spinGame" disabled>Крутить игру</button>
+  <button class="primary alt" id="spinTime" disabled>Крутить время</button>
+</div>
+<div class="status" id="status" role="status" aria-live="polite">Подключаемся к мосту…</div>
+
+<section class="verdict" id="verdict" hidden aria-live="polite">
+  <div class="verdict-label" id="verdictLabel">ШЕКЕЛИ ПРИНЯТЫ · СУДЬБА РЕШЕНА</div>
+  <h2 id="verdictText"></h2>
+  <p>Зрители довольны. Стример держится.</p>
+</section>
+
+<div class="toolbar">
+  <button class="secondary" id="refresh">Обновить список игр</button>
+  <button class="secondary" id="stream" aria-pressed="false">Режим для стрима</button>
+  <button class="secondary" id="sound" aria-pressed="true">Звук: вкл.</button>
+  <a class="text-link" href="/admin" target="_blank">Админка ↗</a>
+  <a class="text-link" href="/overlay" target="_blank">Оверлей ↗</a>
+</div>
+<details class="details"><summary>История</summary><ol class="history" id="history"></ol></details>
+</main>
+<div class="offline" id="offline" hidden>Нет связи с мостом. Он запущен?</div>
+<script src="bridge.js"></script>
+<script src="pain.js"></script>
+</body>
+</html>
