@@ -498,9 +498,14 @@
     "movies|барби: сказочная страна мермедия": {
       "list": "movies",
       "title": "Барби: Сказочная страна мермедия",
-      "checked": "2026-11-19T17:11:23.642Z",
-      "found": false,
-      "year": 2006
+      "checked": "2026-11-21T06:53:07.149Z",
+      "found": true,
+      "fromUrl": "252139",
+      "year": 2006,
+      "kp": "252139",
+      "url": "https://www.kinopoisk.ru/film/252139/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1599028/7b91bc75-332d-4550-b661-e93cb5615741/600x900",
+      "source": "kinopoisk"
     },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
