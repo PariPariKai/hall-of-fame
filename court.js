@@ -104,7 +104,6 @@
   }
 
   // ---------- разметка, общая для обеих страниц (стили — court.css) ----------
-  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const levelBadge = (lvl, label) => `<span class="lvl-badge lvl--${lvl}"><span class="lvl-dots">${
     Array.from({ length: MAX_LEVEL }, (_, i) => `<i${i < lvl ? ' class="on"' : ''}></i>`).join('')}</span>${esc(label || LEVELS[lvl].name)}</span>`;
   const sentence = it => `<span class="sentence" style="--ink:${outcomeOf(it).ink}">${esc(outcomeOf(it).label)}</span>`;

@@ -136,8 +136,68 @@
   }
   const isToken = s => /^(github_pat_|ghp_)/.test(s);
 
+  // ===== Вход на страницы стримера (рулетки, карточки, «Боль») — один на все страницы =====
+  // Пускает по токену GitHub с правом записи или по коду стримера. В файле хранится только SHA-256 хэш кода.
+  // Верный код запоминается в этом браузере (OBS не спрашивает при каждом запуске).
+  // Сменить код: в консоли браузера
+  //   crypto.subtle.digest('SHA-256', new TextEncoder().encode('новый_код'))
+  //     .then(b => console.log([...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('')))
+  // и вставить результат в CODE_HASH.
+  const CODE_HASH = 'fc8ee83f14149d6acca42377fc006a9ed55198c380953f09067532fd5ee7fe09';
+  const CODE_KEY = 'hof-code';
+  async function sha256Hex(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  function codeRemembered() {
+    try {
+      if (localStorage.getItem(CODE_KEY) === CODE_HASH) return true;
+      // старые отметки: «Боль» помнила код в pain.code, карточки — до закрытия вкладки
+      if (localStorage.getItem('pain.code') === CODE_HASH || sessionStorage.getItem('ppk_cards_gate') === '1') {
+        localStorage.setItem(CODE_KEY, CODE_HASH);
+        return true;
+      }
+    } catch (e) { /* без хранилища — спросим код */ }
+    return false;
+  }
+  // Разметка: #gate > form#gate-form > input#gate-input, #gate-error, кнопка type=submit.
+  // onEnter() открывает страницу; если вернёт false (например, не загрузились данные) — экран входа остаётся.
+  function gate(onEnter) {
+    const form = document.getElementById('gate-form');
+    const input = document.getElementById('gate-input');
+    const error = document.getElementById('gate-error');
+    const button = form && form.querySelector('[type=submit]');
+    let entered = false;
+    async function enter() {
+      if (entered) return true;
+      entered = true;
+      const ok = (await onEnter()) !== false;
+      if (!ok) { entered = false; showGate(); }
+      return ok;
+    }
+    if (codeRemembered()) enter();
+    else hasAccess().then(ok => { if (ok) enter(); });
+    if (!form) return;
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const value = input.value.trim();
+      error.textContent = '';
+      if (!value) { error.textContent = 'Введите код'; input.focus(); return; }
+      if (button) button.disabled = true;
+      let ok;
+      if (isToken(value)) ok = await hasAccess(value);
+      else if (!crypto.subtle) { error.textContent = 'Проверка кода работает только по https: открой страницу по адресу сайта.'; ok = null; }
+      else if ((ok = await sha256Hex(value) === CODE_HASH)) { try { localStorage.setItem(CODE_KEY, CODE_HASH); } catch (e) { /* только до перезагрузки */ } }
+      if (ok) ok = await enter();
+      else if (ok === false) { error.textContent = isToken(value) ? 'GitHub не принял токен' : 'Неверный код'; input.value = ''; }
+      if (button) button.disabled = false;
+      if (!ok) input.focus();
+    });
+    input.focus();
+  }
+
   window.siteGit = {
     get token() { return token; },
-    setToken, readFile, writeFile, readJson, writeJson, listDir, putFile, user, hasAccess, isToken, showGate,
+    setToken, readFile, writeFile, readJson, writeJson, listDir, putFile, user, hasAccess, isToken, showGate, gate,
   };
 })();

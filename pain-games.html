@@ -10,7 +10,7 @@
   // Тот же лист, из которого берёт игры рулетка «Боль стримера за шекели» (A — название, остальные колонки — сколько и когда играли).
   const PAIN_CSV_URL = "data/pain.json";
 </script>
-<link rel="stylesheet" href="site.css?v=6">
+<link rel="stylesheet" href="site.css?v=7">
 <style>
   /* Общее (меню, шапка, шаги, фильтры, карточки) — в site.css. Здесь только блок доната. */
   .donate {
@@ -45,7 +45,7 @@
 
 <body>
 
-<script src="site.js?v=17"></script>
+<script src="core.js?v=1"></script><script src="site.js?v=18"></script>
 
 <div class="wrap">
   <div class="header">
@@ -130,22 +130,6 @@ const MONTHS = ['янв.','февр.','марта','апр.','мая','июня'
 const state = {games: [], status: 'all', genre: 'all', sort: 'added', query: ''};
 const key = s => s.trim().replace(/\s+/g, ' ').toLocaleLowerCase('ru');
 
-function parseCSV(text) {
-  const rows = []; let row = [], cell = '', quoted = false;
-  text = text.replace(/^﻿/, '');
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (c === '"') {
-      if (quoted && text[i + 1] === '"') { cell += '"'; i++; } else quoted = !quoted;
-    } else if (c === ',' && !quoted) { row.push(cell); cell = ''; }
-    else if ((c === '\n' || c === '\r') && !quoted) {
-      if (c === '\r' && text[i + 1] === '\n') i++;
-      row.push(cell); rows.push(row); row = []; cell = '';
-    } else cell += c;
-  }
-  if (cell || row.length) { row.push(cell); rows.push(row); }
-  return rows;
-}
 // «12», «12,5» — часы; «12:30» — часы:минуты. Возвращает минуты или null.
 function parseHours(s) {
   s = (s || '').trim().replace(',', '.');
@@ -171,11 +155,6 @@ function fmtMinutes(min) {
   return h && m ? `${h} ч ${m} мин` : h ? `${h} ч` : `${m} мин`;
 }
 function fmtDate(ts) { const d = new Date(ts); return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`; }
-function plural(n, one, few, many) {
-  const t = n % 100, d = n % 10;
-  if (t >= 11 && t <= 14) return many;
-  return d === 1 ? one : d >= 2 && d <= 4 ? few : many;
-}
 function el(tag, cls, text) {
   const e = document.createElement(tag);
   if (cls) e.className = cls;

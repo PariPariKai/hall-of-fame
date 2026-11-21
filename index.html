@@ -29,14 +29,14 @@
   const GAMES_CSV_URL   = "data/games.json";
 </script>
 
-<link rel="stylesheet" href="site.css?v=6">
+<link rel="stylesheet" href="site.css?v=7">
 <style>
   /* Меню и иконки — общие (site.css / site.js). Остальное — своё у главной. */
 
   body {
     background: #0a0e1a;
     background-image:
-      radial-gradient(ellipse at top center, rgba(var(--gold-rgb, 250, 199, 117), 0.10), transparent 55%),
+      radial-gradient(ellipse at top center, rgba(var(--gold-rgb), 0.10), transparent 55%),
       radial-gradient(ellipse at bottom right, rgba(127, 119, 221, 0.08), transparent 55%);
     background-attachment: fixed;
     min-height: calc(100vh / var(--zoom, 1));
@@ -63,9 +63,9 @@
     text-decoration: none;
     color: #fff;
     background:
-      linear-gradient(100deg, rgba(var(--gold-rgb, 250, 199, 117),0.18), rgba(var(--gold-rgb, 250, 199, 117),0.04) 45%, rgba(127,119,221,0.10));
-    border: 1px solid rgba(var(--gold-rgb, 250, 199, 117),0.45);
-    box-shadow: 0 0 30px rgba(var(--gold-rgb, 250, 199, 117),0.12);
+      linear-gradient(100deg, rgba(var(--gold-rgb),0.18), rgba(var(--gold-rgb),0.04) 45%, rgba(127,119,221,0.10));
+    border: 1px solid rgba(var(--gold-rgb),0.45);
+    box-shadow: 0 0 30px rgba(var(--gold-rgb),0.12);
     position: relative;
     overflow: hidden;
     transition: box-shadow .2s ease, transform .2s ease;
@@ -80,20 +80,20 @@
     pointer-events: none;
   }
   @keyframes event-shine { 0%, 60% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
-  .event__inner:hover { transform: translateY(-2px); box-shadow: 0 0 40px rgba(var(--gold-rgb, 250, 199, 117),0.25); }
+  .event__inner:hover { transform: translateY(-2px); box-shadow: 0 0 40px rgba(var(--gold-rgb),0.25); }
   .event__badge {
     display: inline-flex; align-items: center; gap: 6px;
     font-size: 11px;
     letter-spacing: 2px;
     text-transform: uppercase;
     color: #0a0e1a;
-    background: var(--gold, #FAC775);
+    background: var(--gold);
     padding: 5px 10px;
     border-radius: 999px;
     font-weight: 700;
     white-space: nowrap;
   }
-  .event__title { font-size: 16px; font-weight: 600; color: var(--gold, #FAC775); letter-spacing: .5px; }
+  .event__title { font-size: 16px; font-weight: 600; color: var(--gold); letter-spacing: .5px; }
   .event__timer {
     font-variant-numeric: tabular-nums;
     font-size: 16px;
@@ -107,7 +107,7 @@
     font-size: 12px;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: var(--gold, #FAC775);
+    color: var(--gold);
     white-space: nowrap;
   }
 
@@ -133,13 +133,13 @@
     flex: 0 0 auto;
     border-radius: 50%;
     background: #1a2238;
-    border: 3px solid rgba(var(--gold-rgb, 250, 199, 117),0.55);
-    box-shadow: 0 0 0 6px rgba(var(--gold-rgb, 250, 199, 117),0.07), 0 0 40px rgba(var(--gold-rgb, 250, 199, 117),0.18), 0 8px 30px rgba(0,0,0,0.5);
+    border: 3px solid rgba(var(--gold-rgb),0.55);
+    box-shadow: 0 0 0 6px rgba(var(--gold-rgb),0.07), 0 0 40px rgba(var(--gold-rgb),0.18), 0 8px 30px rgba(0,0,0,0.5);
     overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--gold, #FAC775);
+    color: var(--gold);
     font-size: 40px;
     font-weight: 600;
     letter-spacing: 2px;
@@ -155,8 +155,8 @@
     font-weight: 600;
     letter-spacing: 4px;
     line-height: 1.05;
-    color: var(--gold, #FAC775);
-    text-shadow: 0 0 28px rgba(var(--gold-rgb, 250, 199, 117), 0.45);
+    color: var(--gold);
+    text-shadow: 0 0 28px rgba(var(--gold-rgb), 0.45);
     text-transform: uppercase;
     word-break: break-word;
   }
@@ -171,9 +171,9 @@
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    background: linear-gradient(135deg, rgba(var(--gold-rgb, 250, 199, 117),0.15), rgba(var(--gold-rgb, 250, 199, 117),0.05));
-    border: 1px solid rgba(var(--gold-rgb, 250, 199, 117),0.5);
-    color: var(--gold, #FAC775);
+    background: linear-gradient(135deg, rgba(var(--gold-rgb),0.15), rgba(var(--gold-rgb),0.05));
+    border: 1px solid rgba(var(--gold-rgb),0.5);
+    color: var(--gold);
     padding: 12px 26px;
     font-size: 13px;
     letter-spacing: 2.5px;
@@ -181,13 +181,13 @@
     text-decoration: none;
     border-radius: 10px;
     font-weight: 500;
-    box-shadow: 0 0 18px rgba(var(--gold-rgb, 250, 199, 117),0.18);
+    box-shadow: 0 0 18px rgba(var(--gold-rgb),0.18);
     transition: all 0.2s ease;
   }
   .hero__cta:hover {
     transform: translateY(-2px);
-    background: linear-gradient(135deg, rgba(var(--gold-rgb, 250, 199, 117),0.22), rgba(var(--gold-rgb, 250, 199, 117),0.08));
-    box-shadow: 0 0 30px rgba(var(--gold-rgb, 250, 199, 117),0.35);
+    background: linear-gradient(135deg, rgba(var(--gold-rgb),0.22), rgba(var(--gold-rgb),0.08));
+    box-shadow: 0 0 30px rgba(var(--gold-rgb),0.35);
     color: #fff;
   }
   .hero__cta--hidden { display: none; }
@@ -237,7 +237,7 @@
     border: 1px solid rgba(255,255,255,0.06);
     transition: border-color .18s ease, transform .18s ease;
   }
-  .now-item:hover { border-color: rgba(var(--gold-rgb, 250, 199, 117),0.45); transform: translateY(-2px); }
+  .now-item:hover { border-color: rgba(var(--gold-rgb),0.45); transform: translateY(-2px); }
   .now-item__glow {
     position: absolute;
     inset: -20px;
@@ -289,7 +289,7 @@
     font-size: 11px;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: var(--gold, #FAC775);
+    color: var(--gold);
   }
   .now-item__title {
     font-size: 18px;
@@ -313,8 +313,8 @@
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, #BA7517, var(--gold, #FAC775));
-    box-shadow: 0 0 10px rgba(var(--gold-rgb, 250, 199, 117),0.5);
+    background: linear-gradient(90deg, #BA7517, var(--gold));
+    box-shadow: 0 0 10px rgba(var(--gold-rgb),0.5);
   }
   .now-item__meta { font-size: 12px; color: rgba(255,255,255,0.55); font-variant-numeric: tabular-nums; }
   .now__skeleton {
@@ -332,7 +332,7 @@
   .now-item__when {
     font-size: 17px;
     font-weight: 600;
-    color: var(--gold, #FAC775);
+    color: var(--gold);
     letter-spacing: .3px;
     font-variant-numeric: tabular-nums;
   }
@@ -344,8 +344,8 @@
     text-transform: uppercase;
     padding: 3px 8px;
     border-radius: 999px;
-    background: rgba(var(--gold-rgb, 250, 199, 117),0.12);
-    color: var(--gold, #FAC775);
+    background: rgba(var(--gold-rgb),0.12);
+    color: var(--gold);
   }
   .now-item__rel--live { background: rgba(255,77,94,0.18); color: #ff8a95; }
   .now__sub {
@@ -371,13 +371,13 @@
     flex: 0 0 auto;
     font-size: 18px;
     font-weight: 600;
-    color: var(--gold, #FAC775);
+    color: var(--gold);
     font-variant-numeric: tabular-nums;
   }
   .ritual__time--after { font-size: 13px; letter-spacing: 1px; text-transform: uppercase; min-width: 52px; }
   .ritual__next { font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.5; }
   .ritual__next b { color: #fff; font-weight: 600; }
-  .ritual a { font-size: 12px; letter-spacing: 1px; color: var(--gold, #FAC775); text-decoration: none; }
+  .ritual a { font-size: 12px; letter-spacing: 1px; color: var(--gold); text-decoration: none; }
   .ritual a:hover { text-decoration: underline; }
 
   /* ----- Расписание недели ----- */
@@ -417,13 +417,13 @@
   .week__time { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; text-align: center; line-height: 1.3; }
   .week__day.is-off .week__time { color: rgba(255,255,255,0.35); font-weight: 400; font-size: 12px; }
   .week__day.is-today {
-    border-color: rgba(var(--gold-rgb, 250, 199, 117),0.55);
-    background: rgba(var(--gold-rgb, 250, 199, 117),0.08);
-    box-shadow: 0 0 16px rgba(var(--gold-rgb, 250, 199, 117),0.12);
+    border-color: rgba(var(--gold-rgb),0.55);
+    background: rgba(var(--gold-rgb),0.08);
+    box-shadow: 0 0 16px rgba(var(--gold-rgb),0.12);
   }
-  .week__day.is-today .week__name { color: var(--gold, #FAC775); }
+  .week__day.is-today .week__name { color: var(--gold); }
   .week__note { margin-top: 10px; font-size: 12px; line-height: 1.5; color: rgba(255,255,255,0.5); }
-  .week__note b { color: var(--gold, #FAC775); font-weight: 600; }
+  .week__note b { color: var(--gold); font-weight: 600; }
   @media (max-width: 480px) {
     .now-item--big .now-item__cover { width: 90px; height: 135px; }
     .now-item--big .now-item__title { font-size: 18px; }
@@ -449,7 +449,7 @@
   .section-head a {
     font-size: 12px;
     letter-spacing: 1px;
-    color: var(--gold, #FAC775);
+    color: var(--gold);
     text-decoration: none;
     opacity: .85;
   }
@@ -481,9 +481,9 @@
   }
   .page-card:hover {
     transform: translateY(-3px);
-    border-color: rgba(var(--gold-rgb, 250, 199, 117),0.45);
+    border-color: rgba(var(--gold-rgb),0.45);
     background: rgba(255,255,255,0.06);
-    box-shadow: 0 14px 32px rgba(0,0,0,0.4), 0 0 24px rgba(var(--gold-rgb, 250, 199, 117),0.1);
+    box-shadow: 0 14px 32px rgba(0,0,0,0.4), 0 0 24px rgba(var(--gold-rgb),0.1);
   }
   .page-card__art {
     position: relative;
@@ -493,7 +493,7 @@
     justify-content: center;
     overflow: hidden;
     border-bottom: 1px solid rgba(255,255,255,0.06);
-    background: radial-gradient(circle at 50% 120%, rgba(var(--gold-rgb, 250, 199, 117),0.12), transparent 65%);
+    background: radial-gradient(circle at 50% 120%, rgba(var(--gold-rgb),0.12), transparent 65%);
   }
   .page-card__bg {
     position: absolute;
@@ -509,11 +509,11 @@
     position: relative;
     font-size: 54px;
     line-height: 1;
-    color: var(--gold, #FAC775);
+    color: var(--gold);
     filter: drop-shadow(0 0 16px rgba(250,140,80,0.45));
   }
   .page-card__icon .ic { display: block; stroke-width: 1.5; }
-  .now-item__cover > .ic { font-size: 36px; color: var(--gold, #FAC775); stroke-width: 1.6; }
+  .now-item__cover > .ic { font-size: 36px; color: var(--gold); stroke-width: 1.6; }
   .fan { position: relative; width: 100%; height: 100%; }
   .fan__item {
     position: absolute;
@@ -553,7 +553,7 @@
     font-size: 15px;
     font-weight: 600;
     letter-spacing: 2px;
-    color: var(--gold, #FAC775);
+    color: var(--gold);
     text-transform: uppercase;
   }
   .page-card__count {
@@ -577,7 +577,7 @@
   .friends__stage { touch-action: pan-y; user-select: none; -webkit-user-select: none; }
   .friends__stage[data-count]:not([data-count="1"]) { cursor: grab; }
   .friends__stage.is-dragging { cursor: grabbing; }
-  .friends__stage:hover { border-color: rgba(var(--gold-rgb, 250, 199, 117),0.45); box-shadow: 0 14px 32px rgba(0,0,0,0.4), 0 0 24px rgba(var(--gold-rgb, 250, 199, 117),0.1); }
+  .friends__stage:hover { border-color: rgba(var(--gold-rgb),0.45); box-shadow: 0 14px 32px rgba(0,0,0,0.4), 0 0 24px rgba(var(--gold-rgb),0.1); }
   /* Слайды стоят в ряд; сдвиг каждого считает скрипт (лента бесконечная, по кругу) */
   .friend { position: absolute; inset: 0; display: block; color: #fff; text-decoration: none; will-change: transform; -webkit-user-drag: none; }
   .friend__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; -webkit-user-drag: none; }
@@ -603,9 +603,9 @@
     backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 4px 14px rgba(0,0,0,0.35);
   }
   .friend__live { width: 8px; height: 8px; border-radius: 50%; background: #9147ff; box-shadow: 0 0 8px #9147ff; }
-  .friend__go { color: var(--gold, #FAC775); font-weight: 500; display: inline-flex; align-items: center; gap: 3px; }
+  .friend__go { color: var(--gold); font-weight: 500; display: inline-flex; align-items: center; gap: 3px; }
   .friend__go .ic { font-size: 11px; }
-  .friend:focus-visible { outline: 2px solid var(--gold, #FAC775); outline-offset: -4px; border-radius: 16px; }
+  .friend:focus-visible { outline: 2px solid var(--gold); outline-offset: -4px; border-radius: 16px; }
   .friends__nav {
     position: absolute; top: 50%; width: 38px; height: 38px; margin-top: -19px; border-radius: 50%;
     display: grid; place-items: center; cursor: pointer; color: #fff; font-size: 18px;
@@ -617,13 +617,13 @@
   .friends__nav--next { right: 12px; }
   .friends__nav--prev .ic { transform: scaleX(-1); }
   .friends__stage:hover .friends__nav, .friends__nav:focus-visible { opacity: 1; }
-  .friends__nav:hover { background: rgba(var(--gold-rgb, 250, 199, 117),0.25); }
+  .friends__nav:hover { background: rgba(var(--gold-rgb),0.25); }
   .friends__dots { position: absolute; right: 14px; bottom: 16px; display: flex; gap: 6px; z-index: 2; }
   .friends__dot {
     width: 8px; height: 8px; padding: 0; border-radius: 999px; border: none; cursor: pointer;
     background: rgba(255,255,255,0.4); transition: width .3s ease, background .3s ease;
   }
-  .friends__dot.is-on { width: 22px; background: var(--gold, #FAC775); }
+  .friends__dot.is-on { width: 22px; background: var(--gold); }
   .friends__stage[data-count="1"] .friends__nav, .friends__stage[data-count="1"] .friends__dots { display: none; }
   @media (max-width: 720px) {
     /* На телефоне 5:1 было бы слишком узко: баннер выше, картинка обрезается по бокам */
@@ -681,7 +681,7 @@
 
 <body>
 
-<script src="site.js?v=17"></script>
+<script src="core.js?v=1"></script><script src="site.js?v=18"></script>
 
 <!-- Розыгрыш: виден, только когда в листе Config raffle_active = TRUE -->
 <section class="event" id="event" hidden aria-label="Розыгрыш">
@@ -766,29 +766,6 @@
 </section>
 
 <script>
-function parseCSV(text) {
-  const rows = [];
-  let row = [], cell = '', inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i], next = text[i + 1];
-    if (inQuotes) {
-      if (c === '"' && next === '"') { cell += '"'; i++; }
-      else if (c === '"') { inQuotes = false; }
-      else { cell += c; }
-    } else {
-      if (c === '"') { inQuotes = true; }
-      else if (c === ',') { row.push(cell); cell = ''; }
-      else if (c === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
-      else if (c === '\r') {}
-      else { cell += c; }
-    }
-  }
-  if (cell.length > 0 || row.length > 0) {
-    row.push(cell);
-    if (row.some(c => c.length > 0)) rows.push(row);
-  }
-  return rows;
-}
 
 // Строки CSV -> объекты по заголовкам (заголовки в нижнем регистре), пустые строки отбрасываются
 function rowsToObjects(rows) {
@@ -835,20 +812,7 @@ function isTruthy(v) {
   return ['true', 'yes', '1', 'да'].includes(String(v || '').trim().toLowerCase());
 }
 
-function esc(s) {
-  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  }[c]));
-}
 
-// plural(5, ['победа','победы','побед']) -> 'побед'
-function plural(n, forms) {
-  const a = Math.abs(n) % 100, b = a % 10;
-  if (a > 10 && a < 20) return forms[2];
-  if (b === 1) return forms[0];
-  if (b >= 2 && b <= 4) return forms[1];
-  return forms[2];
-}
 
 // ===== Часовые пояса — общие из site.js (siteTime) =====
 // Время в таблице — по часам стримера; кнопка «Моё время» показывает его в поясе зрителя.

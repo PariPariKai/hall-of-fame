@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex">
 <title>Рулетка наказаний — Hall of Fame</title>
-<link rel="stylesheet" href="site.css?v=6">
-<link rel="stylesheet" href="court.css?v=1">
+<link rel="stylesheet" href="site.css?v=7">
+<link rel="stylesheet" href="court.css?v=2">
 <!--
   Суд: стример выбирает нарушителя (ник подхватывается из чата Twitch — в том числе сам, когда ему дают мут)
   и статью из data/rules.json. Тяжесть статьи задаёт колесо из 20 делений (court.js), приговор сразу
@@ -249,7 +249,7 @@
 </style>
 </head>
 <body>
-<script src="site.js?v=17"></script>
+<script src="core.js?v=1"></script><script src="site.js?v=18"></script>
 
 <div class="wrap">
   <header class="header">
@@ -343,8 +343,8 @@
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="github.js?v=1"></script>
-<script src="court.js?v=4"></script>
+<script src="github.js?v=6"></script>
+<script src="court.js?v=5"></script>
 <script>
 (function () {
 'use strict';
@@ -550,7 +550,6 @@ function renderRecord() {
     <span><b>Рецидив</b> — статья на ступень тяжелее${court.isRepeat(items(), pick.nick) ? ` (попался снова за ${court.REPEAT_DAYS} дней)` : ''}</span></label>`;
   $('repeat').addEventListener('change', e => { pick.repeat = e.target.checked; if (verdictShown) closeVerdict(); renderCharge(); });
 }
-const plural = (n, one, few, many) => n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many;
 
 function renderArticles() {
   $('rules-edit').hidden = !!draft;

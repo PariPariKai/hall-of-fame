@@ -181,8 +181,9 @@
 <body>
 <div class="stack stack--tr" id="stack"></div>
 
+<script src="core.js?v=1"></script>
 <script>
-const VERSION = '2026-11-19.1';
+const VERSION = '2026-11-21.1';
 const qs = new URLSearchParams(location.search);
 const MODS_KEY = 'ppk_mods_v1';
 // ?bridge=http://127.0.0.1:3799 — другой порт моста, ?bridge=0 — без моста
@@ -200,9 +201,6 @@ if (scale > 0.3 && scale < 4) document.documentElement.style.setProperty('--scal
 let box = { mods: [], updatedAt: 0 };
 const shown = new Map(); // id мода → { el, mod }
 
-function esc(s) {
-  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
 function safeColor(c) { return /^#[0-9a-f]{3,8}$/i.test(c || '') ? c : '#FAC775'; }
 function fmtClock(ms) {
   const t = Math.max(0, Math.ceil(ms / 1000));

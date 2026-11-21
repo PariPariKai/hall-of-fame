@@ -635,9 +635,7 @@ window.WheelKit = (() => {
   applySettings({});
 
   // Страница может дождаться настроек: await WheelKit.ready
-  const ready = fetch('data/config.json', { cache: 'no-cache' })
-    .then(r => r.json())
-    .then(d => Object.fromEntries((d.items || []).map(r => [r.key, r.value])))
+  const ready = hof.config()
     .catch(() => ({}))
     .then(c => { applySettings(c); return settings; });
 

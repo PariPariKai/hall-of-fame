@@ -1,27 +1,10 @@
 /* =====================================================================
    Общий стиль сайта (образец — страница «Боль»).
-   Подключение: <link rel="stylesheet" href="site.css?v=2"> в <head>
-   и <script src="site.js?v=2"></script> первой строкой <body>.
+   Подключение: <link rel="stylesheet" href="site.css?v=7"> в <head>,
+   первыми строками <body>: <script src="core.js?v=1"></script><script src="site.js?v=18"></script>.
    Своё у страницы — только то, чего здесь нет.
    ===================================================================== */
-:root {
-  --bg: #0a0e1a;
-  --panel: #141929;
-  --gold: #FAC775;
-  --gold-rgb: 250, 199, 117;
-  --ember-rgb: 255, 140, 80;
-  --text: #fff;
-  --muted: rgba(255,255,255,0.62);
-  --dim: rgba(255,255,255,0.42);
-  --line: rgba(255,255,255,0.1);
-  --green: #97C459;
-  --blue: #88B4F5;
-  --red: #F38787;
-  --violet: #C5A9F8;
-  /* Ширина страницы — одна на весь сайт; меню выравнивается по ней же */
-  --page: 1240px;
-  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-}
+@import url("theme.css?v=1"); /* цвета и шрифт — theme.css */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 [hidden] { display: none !important; }

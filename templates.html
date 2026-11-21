@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Шаблоны — Hall of Fame</title>
 <meta name="description" content="Пасты для рейдов и шаблоны титров стрима ParipariKai: выбрать, скопировать, вставить.">
-<link rel="stylesheet" href="site.css?v=6">
+<link rel="stylesheet" href="site.css?v=7">
 <!--
   Текстовые шаблоны по вкладкам: пасты для рейдов, стили резюме для титров и т.д.
   Данные — data/templates.json (tab, title, text, id), правятся на admin.html#templates.
@@ -71,7 +71,7 @@
 </style>
 </head>
 <body>
-<script src="site.js?v=17"></script>
+<script src="core.js?v=1"></script><script src="site.js?v=18"></script>
 
 <div class="wrap">
   <header class="header">
@@ -98,7 +98,6 @@
 (function () {
 'use strict';
 const $ = id => document.getElementById(id);
-const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // Известные вкладки — в этом порядке, даже пустые. Остальные появятся после них по данным.
 // limit — лимит символов чата (Twitch режет сообщения длиннее 500)

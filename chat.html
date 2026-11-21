@@ -246,6 +246,7 @@
 <div class="area" id="area"><div class="feed" id="feed"></div></div>
 <div class="alerts" id="alerts"></div>
 
+<script src="core.js?v=1"></script>
 <script src="chat-kit.js?v=2"></script>
 <script>
 (function () {
@@ -257,10 +258,9 @@ const EMBED = qs.has('embed');            // предпросмотр в адм�
 const DEMO = qs.has('demo') || EMBED;     // ненастоящий чат
 // Версия страницы. Менять при каждой правке chat.html или chat-kit.js (и ?v= у chat-kit.js):
 // OBS держит копию страницы до 10 минут, а так оверлей сам замечает новую версию и перезагружается.
-const VERSION = '2026-11-20.4';
+const VERSION = '2026-11-21.1';
 
 const $ = id => document.getElementById(id);
-const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const rand = (a, b) => a + Math.random() * (b - a);
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const U = () => innerWidth / 1920; // один «пиксель» 1080p в точках экрана
@@ -992,17 +992,13 @@ function frameDown(e) {
 }
 
 // ===================== настройки с сайта =====================
-async function loadJSON(path) {
-  const r = await fetch(path + '?t=' + Date.now(), { cache: 'no-store' });
-  if (!r.ok) throw new Error(path + ': ' + r.status);
-  return r.json();
-}
+const loadJSON = path => hof.json(path, { fresh: true }); // оверлей висит часами — читаем мимо кэша
 async function loadSettings() {
   let c = null, d = null;
   try { c = await loadJSON('data/config.json'); } catch (e) { /* канал по умолчанию */ }
   try { d = await loadJSON('data/chat.json'); } catch (e) { console.warn('Нет настроек чата, работаю на умолчаниях', e); }
   if (c && !qs.get('channel')) {
-    const kv = Object.fromEntries((c.items || []).map(r => [r.key, r.value]));
+    const kv = hof.kv(c);
     const m = String(kv.streamer_twitch_url || '').match(/twitch\.tv\/([\w]+)/i);
     if (m) channel = m[1].toLowerCase();
   }

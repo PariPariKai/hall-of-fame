@@ -1,5 +1,5 @@
 // Общее для страниц сайта: верхнее меню и набор иконок.
-// Подключается синхронно первой строкой <body>: <script src="site.js?v=2"></script> — меню появляется сразу, без мигания.
+// Подключается синхронно в начале <body>, сразу после core.js: <script src="core.js?v=1"></script><script src="site.js?v=18"></script> — меню появляется сразу, без мигания.
 // Иконки — SVG вместо эмодзи: эмодзи на каждом устройстве рисуются по-своему и ломают дизайн.
 // В разметке: <svg class="ic"><use href="#i-film"></use></svg>, в скриптах: icon('film').
 (function () {
@@ -320,34 +320,4 @@
   };
 })();
 
-// ===== Данные сайта: data/*.json вместо листов Google =====
-// Разделы переезжают из таблицы в data/<раздел>.json (правятся на admin.html).
-// siteData.text(src) отдаёт текст в формате CSV и для JSON, и для старой ссылки на лист —
-// так страницы переходят на JSON заменой одной ссылки, а их разбор CSV остаётся прежним.
-// С 2026-10-25 в таблице ничего не осталось: все разделы — data/*.json.
-// Формат файла: { "columns": [...], "items": [{колонка: "строка"}, ...] }.
-(function () {
-  'use strict';
-  const cell = v => {
-    const s = v == null ? '' : String(v);
-    return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-  };
-  function toCSV(data) {
-    const cols = data.columns || [...new Set((data.items || []).flatMap(Object.keys))];
-    return [cols, ...(data.items || []).map(o => cols.map(c => o[c]))].map(r => r.map(cell).join(',')).join('\n') + '\n';
-  }
-  async function text(src, opts) {
-    const isJson = /\.json(\?|$)/.test(src);
-    const res = await fetch(src, Object.assign(isJson ? { cache: 'no-cache' } : {}, opts));
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    return isJson ? toCSV(await res.json()) : res.text();
-  }
-  // Замена fetch(ссылка) для кода, который сам проверяет res.ok и читает res.text():
-  // для data/*.json отдаёт ответ с тем же CSV-текстом, остальное — обычный fetch.
-  async function fetchData(src, opts) {
-    if (!/\.json(\?|$)/.test(src)) return fetch(src, opts);
-    const res = await fetch(src, Object.assign({ cache: 'no-cache' }, opts));
-    return res.ok ? new Response(toCSV(await res.json()), { status: 200 }) : res;
-  }
-  window.siteData = { text, toCSV, fetch: fetchData };
-})();
+// Данные сайта (siteData) и общие функции (esc, plural, hof.*) — в core.js, он подключается раньше site.js.

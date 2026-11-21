@@ -17,26 +17,6 @@ const $ = id => document.getElementById(id);
 const state = { items: [], status: 'all', type: 'all', sort: 'default', title: '', nick: '', signature: '' };
 
 // ---------- данные ----------
-function parseCSV(text) {
-  const rows = [];
-  let row = [], cell = '', inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i], next = text[i + 1];
-    if (inQuotes) {
-      if (c === '"' && next === '"') { cell += '"'; i++; }
-      else if (c === '"') inQuotes = false;
-      else cell += c;
-    } else if (c === '"') inQuotes = true;
-    else if (c === ',') { row.push(cell); cell = ''; }
-    else if (c === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
-    else if (c !== '\r') cell += c;
-  }
-  if (cell.length > 0 || row.length > 0) {
-    row.push(cell);
-    if (row.some(c => c.length > 0)) rows.push(row);
-  }
-  return rows;
-}
 
 function rowsToViewers(rows) {
   if (rows.length < 2) return {};
@@ -177,9 +157,6 @@ function upcomingTs(it) {
 }
 
 // ---------- мелочи ----------
-function esc(s) {
-  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
 function isHttpUrl(s) {
   try { const u = new URL(s); return u.protocol === 'http:' || u.protocol === 'https:'; } catch (e) { return false; }
 }
@@ -194,11 +171,6 @@ function initials(nick) {
   return (clean.length >= 2 ? clean[0] + clean[1] : clean[0] || '?').toUpperCase();
 }
 const fmtNum = n => Number.isInteger(n) ? String(n) : (Math.round(n * 10) / 10).toFixed(1);
-function plural(n, one, few, many) {
-  const t = n % 100, d = n % 10;
-  if (t >= 11 && t <= 14) return many;
-  return d === 1 ? one : d >= 2 && d <= 4 ? few : many;
-}
 // Подпись ссылки по сайту: «Кинопоиск ↗», «Shikimori ↗»…
 const LINK_SITES = [
   [/shikimori/, 'Shikimori'], [/kinopoisk/, 'Кинопоиск'], [/youtu\.?be/, 'YouTube'], [/steampowered|steamcommunity/, 'Steam'],

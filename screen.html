@@ -199,6 +199,7 @@
   <div class="timer" id="timer" hidden></div>
 </div>
 
+<script src="core.js?v=1"></script>
 <script src="pixel-city.js?v=6"></script>
 <script>
 (function () {
@@ -210,7 +211,7 @@ const SCREEN = ['start', 'brb', 'end'].includes(qs.get('s')) ? qs.get('s') : 'st
 const DEMO = qs.has('demo');
 // Версия страницы. Менять при каждой правке screen.html или pixel-city.js (и ?v= у pixel-city.js):
 // OBS держит копию страницы до 10 минут, а так оверлей сам замечает новую версию на сайте и перезагружается.
-const VERSION = '2026-11-09.1';
+const VERSION = '2026-11-21.1';
 const DEFAULTS = {
   start: { title: 'Стрим начинается', sub: '', timer: '5', timer_done: 'Вот-вот начнём', chat: 'TRUE', every: '35', pos: 'top', bg: 'video' },
   brb: { title: 'Скоро вернусь', sub: '', timer: '0', timer_done: 'Уже иду', chat: 'TRUE', every: '40', pos: 'top', bg: 'pixel' },
@@ -219,7 +220,6 @@ const DEFAULTS = {
 const COMMON = { life: '10', max: '7', ignore: 'nightbot, streamelements, moobot, fossabot, wizebot, streamlabs, soundalerts, sery_bot, commanderroot' };
 
 const $ = id => document.getElementById(id);
-const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const rand = (a, b) => a + Math.random() * (b - a);
 const truthy = s => /^(true|yes|1|да)$/i.test(String(s || '').trim());
 const num = (s, d) => { const n = parseFloat(String(s == null ? '' : s).replace(',', '.')); return isFinite(n) ? n : d; };
@@ -229,15 +229,11 @@ let cfg = Object.assign({}, DEFAULTS[SCREEN], COMMON);
 let phrases = [];
 let channel = (qs.get('channel') || '').toLowerCase().replace(/^#/, '');
 
-async function loadJSON(path) {
-  const r = await fetch(path + '?t=' + Date.now(), { cache: 'no-store' });
-  if (!r.ok) throw new Error(path + ': ' + r.status);
-  return r.json();
-}
+const loadJSON = path => hof.json(path, { fresh: true }); // оверлей висит часами — читаем мимо кэша
 async function loadSettings() {
   try {
     const [c, s] = await Promise.all([loadJSON('data/config.json'), loadJSON('data/screens.json')]);
-    const kv = Object.fromEntries((c.items || []).map(r => [r.key, r.value]));
+    const kv = hof.kv(c);
     const next = Object.assign({}, DEFAULTS[SCREEN], COMMON);
     Object.keys(DEFAULTS[SCREEN]).forEach(k => { const v = kv[`screen_${SCREEN}_${k}`]; if (v != null && v !== '') next[k] = v; });
     // подпись и текст после отсчёта можно и стереть — пустое значение тоже настройка

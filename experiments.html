@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <title>Эксперименты — Hall of Fame</title>
-<link rel="stylesheet" href="site.css?v=6">
+<link rel="stylesheet" href="site.css?v=7">
 <style>
   /* Общее (меню, шапка, шаги, фильтры, метки) — в site.css. Здесь только карточки экспериментов. */
   .xgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: 20px; list-style: none; align-items: start; }
@@ -153,7 +153,7 @@
 
 <body>
 
-<script src="site.js?v=17"></script>
+<script src="core.js?v=1"></script><script src="site.js?v=18"></script>
 
 <div class="wrap">
   <div class="header">
@@ -238,11 +238,6 @@ function iconEl(name) { const s = el('span'); s.innerHTML = icon(name); return s
 function fmtDate(s) {
   const m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s || '');
   return m ? `${+m[3]} ${MONTHS[m[2] - 1]} ${m[1]}` : '';
-}
-function plural(n, one, few, many) {
-  const t = n % 100, d = n % 10;
-  if (t >= 11 && t <= 14) return many;
-  return d === 1 ? one : d >= 2 && d <= 4 ? few : many;
 }
 const kindOf = x => KINDS[x.kind] ? x.kind : 'other';
 const list = v => (Array.isArray(v) ? v : []).filter(s => typeof s === 'string' && s.trim());

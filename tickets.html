@@ -21,7 +21,7 @@
   const HOME_URL = "./";
 </script>
 
-<link rel="stylesheet" href="site.css?v=6">
+<link rel="stylesheet" href="site.css?v=7">
 <style>
   /* Общее (меню, шапка, поиск) — в site.css. Здесь — таймер, подиум и карточки билетов. */
 
@@ -31,7 +31,7 @@
     text-align: center;
     margin-bottom: 30px;
     padding: 32px 24px;
-    border: 1px solid rgba(var(--gold-rgb, 250, 199, 117),0.25);
+    border: 1px solid rgba(var(--gold-rgb),0.25);
     border-radius: 12px;
     overflow: hidden;
     background: #11172a; /* фолбэк */
@@ -59,7 +59,7 @@
 
   /* Если фон-баннера нет — простой градиент */
   .timer-box.no-bg .timer-bg {
-    background-image: linear-gradient(180deg, rgba(127,119,221,0.12) 0%, rgba(var(--gold-rgb, 250, 199, 117),0.06) 100%);
+    background-image: linear-gradient(180deg, rgba(127,119,221,0.12) 0%, rgba(var(--gold-rgb),0.06) 100%);
   }
   .timer-box.no-bg .timer-bg::after { content: none; }
 
@@ -71,7 +71,7 @@
   .timer-event {
     font-size: 18px;
     letter-spacing: 3px;
-    color: var(--gold, #FAC775);
+    color: var(--gold);
     margin-bottom: 10px;
     text-transform: uppercase;
     text-shadow: 0 2px 8px rgba(0,0,0,0.8);
@@ -88,7 +88,7 @@
 
   .timer-unit {
     background: rgba(0,0,0,0.55);
-    border: 1px solid rgba(var(--gold-rgb, 250, 199, 117),0.25);
+    border: 1px solid rgba(var(--gold-rgb),0.25);
     border-radius: 10px;
     padding: 12px 16px;
     min-width: 80px;
@@ -117,7 +117,7 @@
     display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px 14px;
     margin-top: 14px; text-shadow: 0 2px 6px rgba(0,0,0,0.8);
   }
-  .timer-when__date { font-size: 16px; font-weight: 600; color: var(--gold, #FAC775); letter-spacing: .5px; }
+  .timer-when__date { font-size: 16px; font-weight: 600; color: var(--gold); letter-spacing: .5px; }
   .timer-when__zone { flex-basis: 100%; text-align: center; }
   .timer-finished {
     display: inline-flex; align-items: center; gap: 8px;
@@ -172,9 +172,9 @@
   .podium-card:hover { transform: translateY(-4px); }
 
   .podium-card.p-1 {
-    border-color: var(--gold, #FAC775);
+    border-color: var(--gold);
     background: linear-gradient(180deg, #2a1d0a 0%, #11172a 70%);
-    box-shadow: 0 0 0 1px rgba(var(--gold-rgb, 250, 199, 117),0.3), 0 12px 40px rgba(var(--gold-rgb, 250, 199, 117),0.15);
+    box-shadow: 0 0 0 1px rgba(var(--gold-rgb),0.3), 0 12px 40px rgba(var(--gold-rgb),0.15);
     padding-top: 28px;
     padding-bottom: 24px;
   }
@@ -185,7 +185,7 @@
     position: absolute;
     top: -50%; left: -50%;
     width: 200%; height: 200%;
-    background: linear-gradient(45deg, transparent 30%, rgba(var(--gold-rgb, 250, 199, 117),0.08) 50%, transparent 70%);
+    background: linear-gradient(45deg, transparent 30%, rgba(var(--gold-rgb),0.08) 50%, transparent 70%);
     animation: shimmer 4s infinite linear;
     pointer-events: none;
     z-index: 0;
@@ -223,7 +223,7 @@
     font-size: 24px; font-weight: 500;
     position: relative; z-index: 1;
   }
-  .p-1 .podium-avatar { border-color: var(--gold, #FAC775); background-color: #412402; color: var(--gold, #FAC775); }
+  .p-1 .podium-avatar { border-color: var(--gold); background-color: #412402; color: var(--gold); }
   .p-2 .podium-avatar { border-color: #C0C0D0; background-color: #2a2d3a; color: #C0C0D0; }
   .p-3 .podium-avatar { border-color: #CD7F32; background-color: #3a2510; color: #E89E5E; }
 
@@ -261,7 +261,7 @@
     transition: transform 0.15s ease, border-color 0.15s ease;
     position: relative;
   }
-  .ticket-card:hover { transform: translateY(-2px); border-color: rgba(var(--gold-rgb, 250, 199, 117),0.3); }
+  .ticket-card:hover { transform: translateY(-2px); border-color: rgba(var(--gold-rgb),0.3); }
   .ticket-rank {
     position: absolute; top: 8px; left: 10px;
     font-size: 11px; color: rgba(255,255,255,0.4); letter-spacing: 1px;
@@ -292,7 +292,7 @@
   }
   .ticket-pill .ic { font-size: 12px; }
   .ticket-silver { background: rgba(192,192,208,0.15); color: #D8D8E0; }
-  .ticket-gold   { background: rgba(var(--gold-rgb, 250, 199, 117),0.15); color: var(--gold, #FAC775); }
+  .ticket-gold   { background: rgba(var(--gold-rgb),0.15); color: var(--gold); }
 
   .status {
     text-align: center;
@@ -326,7 +326,7 @@
 
 <body>
 
-<script src="site.js?v=17"></script>
+<script src="core.js?v=1"></script><script src="site.js?v=18"></script>
 
   <div class="wrap">
     <div class="header">
@@ -368,30 +368,6 @@
   </div>
 
 <script>
-function parseCSV(text) {
-  const rows = [];
-  let row = [], cell = '', inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i], next = text[i + 1];
-    if (inQuotes) {
-      if (c === '"' && next === '"') { cell += '"'; i++; }
-      else if (c === '"') { inQuotes = false; }
-      else { cell += c; }
-    } else {
-      if (c === '"') { inQuotes = true; }
-      else if (c === ',') { row.push(cell); cell = ''; }
-      else if (c === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
-      else if (c === '\r') {}
-      else { cell += c; }
-    }
-  }
-  if (cell.length > 0 || row.length > 0) {
-    row.push(cell);
-    // Не добавляем строку, если она состоит только из пустых ячеек
-    if (row.some(c => c.length > 0)) rows.push(row);
-  }
-  return rows;
-}
 
 function rowsToViewers(rows) {
   if (rows.length < 2) return {};
@@ -461,11 +437,6 @@ function initials(nick) {
   return (clean[0] || '?').toUpperCase();
 }
 
-function esc(s) {
-  return String(s).replace(/[&<>"']/g, c => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  }[c]));
-}
 
 // ===== Таймер =====
 let raffleDate = null;

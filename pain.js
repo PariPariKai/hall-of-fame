@@ -8,28 +8,9 @@ const POINTER_ANGLE = 90;   // стрелка справа
 const GAME_COLORS = ['#a3263c', '#6e1828', '#c23b52', '#561222', '#b02f46', '#7f1d31', '#cf4d66', '#651627'];
 const TIME_COLORS = ['#a3263c', '#651627', '#c23b52'];
 const $ = id => document.getElementById(id);
-const esc = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 const key = s => String(s || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('ru');
 let games = [], meta = {}, busy = false, loading = false;
 
-function parseCSV(text) {
-  const rows = []; let row = [], cell = '', quoted = false;
-  text = text.replace(/^﻿/, '');
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (c === '"') {
-      if (quoted && text[i + 1] === '"') { cell += '"'; i++; }
-      else quoted = !quoted;
-    } else if (c === ',' && !quoted) { row.push(cell); cell = ''; }
-    else if ((c === '\n' || c === '\r') && !quoted) {
-      if (c === '\r' && text[i + 1] === '\n') i++;
-      row.push(cell); rows.push(row); row = []; cell = '';
-    } else cell += c;
-  }
-  if (quoted) throw new Error('Незакрытая кавычка в списке игр.');
-  if (cell || row.length) { row.push(cell); rows.push(row); }
-  return rows;
-}
 // Повторы и пустые строки пропускаем — у каждой уникальной игры равный шанс
 function readGames(text) {
   const rows = parseCSV(text);

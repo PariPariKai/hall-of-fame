@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex">
 <title>Админка — Hall of Fame</title>
-<link rel="stylesheet" href="site.css?v=6">
+<link rel="stylesheet" href="site.css?v=7">
 <!--
   Админка сайта: правит data/*.json прямо в репозитории через GitHub API (каждое сохранение — коммит в main,
   GitHub Pages обновляет сайт примерно за минуту, робот orders-meta сразу ищет обложки новым заказам).
@@ -268,8 +268,8 @@
 </style>
 </head>
 <body>
-<script src="site.js?v=17"></script>
-<script src="wheel-kit.js?v=3"></script>
+<script src="core.js?v=1"></script><script src="site.js?v=18"></script>
+<script src="wheel-kit.js?v=4"></script>
 <script src="chat-kit.js?v=2"></script>
 
 <div class="wrap">
@@ -343,7 +343,7 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="github.js?v=4"></script>
+<script src="github.js?v=6"></script>
 <script>
 (function () {
 'use strict';
@@ -353,7 +353,6 @@ const { readFile, writeFile } = siteGit;
 
 // ===================== мелочи =====================
 const $ = id => document.getElementById(id);
-const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const pad = n => String(n).padStart(2, '0');
 const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 const WEEKDAYS = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
