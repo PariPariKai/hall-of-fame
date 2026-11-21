@@ -2,7 +2,7 @@
   "columns": ["id","title","page","group","on"],
   "items": [
     {"id":"hall","title":"Зал Славы","page":"hall.html","group":"","on":"TRUE"},
-    {"id":"tickets","title":"Билеты","page":"tickets.html","group":"","on":"TRUE"},
+    {"id":"tickets","title":"Билеты","page":"tickets.html","group":"","on":"FALSE"},
     {"id":"anime","title":"Аниме","page":"anime.html","group":"Заказы зрителя","on":"TRUE"},
     {"id":"movies","title":"Фильмы","page":"movies.html","group":"Заказы зрителя","on":"TRUE"},
     {"id":"series","title":"Сериалы","page":"series.html","group":"Заказы зрителя","on":"TRUE"},
