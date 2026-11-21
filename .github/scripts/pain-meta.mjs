@@ -10,7 +10,7 @@ import {sleep, steamSearch, wikidataSteamId, steamDetails, igdbAuth, igdbSearch}
 
 const POOL = new URL('../../data/pain.json', import.meta.url);
 const OUT = new URL('../../pain-meta.json', import.meta.url);
-const UA = {'User-Agent': 'hall-of-fame-pain-meta/1.0 (https://pariparikai.github.io/hall-of-fame/)'};
+const UA = {'User-Agent': `hall-of-fame-pain-meta/1.0 (+https://github.com/${process.env.GITHUB_REPOSITORY || 'hall-of-fame'})`};
 const RETRY_MISSING_DAYS = 7; // ненайденные игры перепроверяем раз в неделю
 
 const key = s => s.trim().replace(/\s+/g, ' ').toLocaleLowerCase('ru');

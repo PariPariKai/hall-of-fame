@@ -249,7 +249,7 @@
 </style>
 </head>
 <body>
-<script src="core.js?v=1"></script><script src="site.js?v=18"></script>
+<script src="core.js?v=1"></script><script src="site.js?v=19"></script>
 
 <div class="wrap">
   <header class="header">
@@ -343,13 +343,13 @@
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="github.js?v=6"></script>
+<script src="github.js?v=7"></script>
 <script src="court.js?v=5"></script>
 <script>
 (function () {
 'use strict';
 const PATH = 'data/punishments.json';
-const CHANNEL = 'pariparikai';
+const CHANNEL = siteProfile.channel; // канал — из профиля (админка → «Настройки»)
 const BOTS = ['nightbot', 'streamelements', 'moobot', 'wizebot', 'streamlabs', 'fossabot', 'sery_bot', 'commanderroot'];
 const { OUTCOMES, LEVELS, SECTORS, MAX_LEVEL, esc } = court;
 const $ = id => document.getElementById(id);

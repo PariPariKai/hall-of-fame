@@ -45,7 +45,7 @@
 
 <body>
 
-<script src="core.js?v=1"></script><script src="site.js?v=18"></script>
+<script src="core.js?v=1"></script><script src="site.js?v=19"></script>
 
 <div class="wrap">
   <div class="header">
@@ -91,7 +91,7 @@
       <p class="donate__note">Копилки общие: донаты разных зрителей складываются, можно скидываться понемногу.</p>
     </div>
     <div class="donate__buttons">
-      <a class="donate__btn donate__btn--da" href="https://dalink.to/pariparikai" target="_blank" rel="noopener">
+      <a class="donate__btn donate__btn--da" id="donate-link" href="#" target="_blank" rel="noopener">
         <span class="donate__btn-name">DonationAlerts</span><span class="donate__btn-go">Задонатить <svg class="ic" aria-hidden="true"><use href="#i-external"></use></svg></span>
       </a>
     </div>
@@ -124,6 +124,15 @@
 
 <script>
 'use strict';
+// Кнопка доната — ссылка из профиля (админка → «Настройки» → «Стример»); пусто — кнопки нет
+function setDonate() {
+  const a = document.getElementById('donate-link');
+  if (siteProfile.donateUrl) a.href = siteProfile.donateUrl;
+  a.hidden = !siteProfile.donateUrl;
+}
+setDonate();
+siteModules.onChange(setDonate);
+
 // Цвета заглушки для игр без обложки — те же, что у секторов рулетки.
 const PALETTE = ['#8d4564','#555897','#ad704b','#487c87','#754d92','#9a5359','#687748','#455f95'];
 const MONTHS = ['янв.','февр.','марта','апр.','мая','июня','июля','авг.','сент.','окт.','нояб.','дек.'];

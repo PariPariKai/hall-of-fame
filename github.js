@@ -4,7 +4,13 @@
 // Токен хранится только в этом браузере (localStorage), один на все страницы стримера; подключается на admin.html.
 (function () {
   'use strict';
-  const REPO = 'PariPariKai/hall-of-fame';
+  // Репозиторий — по адресу сайта: <владелец>.github.io/<репозиторий>/. Копия сайта у другого стримера найдёт свой сама.
+  // На локальном сервере (проверка правок) — запасной вариант ниже.
+  const REPO = (() => {
+    const owner = /^([\w-]+)\.github\.io$/i.exec(location.hostname);
+    const repo = location.pathname.split('/').filter(Boolean)[0];
+    return owner && repo && !/\.html$/i.test(repo) ? owner[1] + '/' + repo : 'PariPariKai/hall-of-fame';
+  })();
   const BRANCH = 'main';
   const TOKEN_KEY = 'hof-gh-token';
   let token = '';
@@ -27,7 +33,7 @@
       let msg = '';
       try { msg = (await res.json()).message || ''; } catch (e) { /* пустой ответ */ }
       const err = new Error(res.status === 401 ? 'GitHub не принял токен — возможно, он истёк. Подключи новый.'
-        : res.status === 403 || res.status === 404 ? 'У токена нет доступа к репозиторию hall-of-fame (нужно Contents: Read and write).'
+        : res.status === 403 || res.status === 404 ? 'У токена нет доступа к репозиторию ' + REPO + ' (нужно Contents: Read and write).'
         : `GitHub: ${res.status} ${msg}`);
       err.status = res.status;
       throw err;
@@ -198,6 +204,7 @@
 
   window.siteGit = {
     get token() { return token; },
+    repo: REPO,
     setToken, readFile, writeFile, readJson, writeJson, listDir, putFile, user, hasAccess, isToken, showGate, gate,
   };
 })();

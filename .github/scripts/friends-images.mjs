@@ -15,7 +15,7 @@ import sharp from 'sharp';
 const ROOT = process.env.SITE_ROOT || fileURLToPath(new URL('../../', import.meta.url));
 const DIR = path.join(ROOT, 'friends');
 const META = path.join(ROOT, 'friends-meta.json');
-const UA = {'User-Agent': 'Mozilla/5.0 (compatible; hall-of-fame-friends/1.0; +https://pariparikai.github.io/hall-of-fame/)'};
+const UA = {'User-Agent': `Mozilla/5.0 (compatible; hall-of-fame-friends/1.0; +https://github.com/${process.env.GITHUB_REPOSITORY || 'hall-of-fame'})`};
 const MAX_W = 2500, MAX_H = 500, QUALITY = 82;
 const BG = '#0a0e1a'; // фон сайта — на него ляжет прозрачность PNG
 

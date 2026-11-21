@@ -19,7 +19,7 @@ import {steamSearch, wikidataSteamId, steamDetails, igdbSearch} from './lib/game
 
 const CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThU3PDQlG4EPkPHygpf1q54KuNuuc4WYWnGqZde3-8iD8buBBFLEkr3MIDdnvv-oekgEN0CXj7Bq6C/pub?single=true&output=csv&gid=';
 const OUT = new URL('../../orders-meta.json', import.meta.url);
-const UA = {'User-Agent': 'hall-of-fame-orders-meta/1.0 (https://pariparikai.github.io/hall-of-fame/)'};
+const UA = {'User-Agent': `hall-of-fame-orders-meta/1.0 (+https://github.com/${process.env.GITHUB_REPOSITORY || 'hall-of-fame'})`};
 const RETRY_MISSING_DAYS = 7; // ненайденное перепроверяем раз в неделю
 
 // want/avoid — подсказки по описанию в Wikidata, чтобы «Врата»-аниме не путались с «Вратами»-фильмом.

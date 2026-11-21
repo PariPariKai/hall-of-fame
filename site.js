@@ -1,7 +1,128 @@
 // Общее для страниц сайта: верхнее меню и набор иконок.
-// Подключается синхронно в начале <body>, сразу после core.js: <script src="core.js?v=1"></script><script src="site.js?v=18"></script> — меню появляется сразу, без мигания.
+// Подключается синхронно в начале <body>, сразу после core.js: <script src="core.js?v=1"></script><script src="site.js?v=19"></script> — меню появляется сразу, без мигания.
 // Иконки — SVG вместо эмодзи: эмодзи на каждом устройстве рисуются по-своему и ломают дизайн.
 // В разметке: <svg class="ic"><use href="#i-film"></use></svg>, в скриптах: icon('film').
+// ===== Разделы сайта (модули) и профиль стримера =====
+// Какие разделы включены и как они зовутся в меню — data/modules.json (админка → «Разделы»).
+// Профиль — ключи streamer_* и site_season в data/config.json (админка → «Настройки»).
+// Чтобы меню и тема появлялись сразу, последний известный вид хранится в браузере (localStorage 'hof-site'),
+// свежие файлы догружаются следом; если что-то поменялось — меню перерисуется само.
+// Выключенный раздел: пропадает из меню, ссылки на него прячутся на всех страницах,
+// а его страница показывает «Раздел закрыт». Главная и админка не выключаются.
+// Для страниц:
+//   siteModules.pageOn('movies.html') — страница открыта?  siteModules.on('movies') — то же по id раздела
+//   siteModules.list() — разделы по порядку; siteModules.ready — промис свежих данных; siteModules.onChange(fn)
+//   siteProfile.name / .channel / .twitchUrl / .tz / .season / .donateUrl
+//   В разметке: data-module="movies" — блок спрячется, если раздел выключен.
+(function () {
+  'use strict';
+  const DEFAULT_MODULES = [
+    ['hall', 'Зал Славы', 'hall.html', ''], ['tickets', 'Билеты', 'tickets.html', ''],
+    ['anime', 'Аниме', 'anime.html', 'Заказы зрителя'], ['movies', 'Фильмы', 'movies.html', 'Заказы зрителя'],
+    ['series', 'Сериалы', 'series.html', 'Заказы зрителя'], ['games', 'Игры', 'games.html', 'Заказы зрителя'],
+    ['pain-games', 'Боль', 'pain-games.html', 'Заказы зрителя'], ['picker', 'Рулетка заказов', 'picker.html', 'Заказы зрителя'],
+    ['experiments', 'Эксперименты', 'experiments.html', ''], ['rules', 'Правила', 'rules.html', ''],
+    ['admin', 'Админка сайта', 'admin.html', 'Для стримера'], ['chat-wheel', 'Чат-рулетка', 'chat-wheel.html', 'Для стримера'],
+    ['court', 'Рулетка наказаний', 'court.html', 'Для стримера'], ['templates', 'Шаблоны', 'templates.html', 'Для стримера'],
+    ['pain', 'Боль стримера за шекели', 'pain.html', 'Для стримера'], ['cards', 'Админка-рулетка', 'cards.html', 'Для стримера'],
+    ['cards-stream', 'Хаос-рулетка', 'cards.html?stream', 'Для стримера'],
+  ].map(([id, title, page, group]) => ({ id, title, page, group, on: 'TRUE' }));
+  const DEFAULT_PROFILE = { name: 'ParipariKai', channel: 'pariparikai', tz: 'Asia/Jerusalem', season: 'winter', donateUrl: 'https://dalink.to/pariparikai' };
+  const ALWAYS = ['index.html', 'admin.html'];   // эти страницы не закрываются никогда
+  const KEY = 'hof-site';
+
+  const truthy = v => /^(true|1|yes|да)$/i.test(String(v == null ? '' : v).trim());
+  const isOn = m => String(m.on == null ? '' : m.on).trim() === '' || truthy(m.on);
+  const fileOf = href => String(href || '').split(/[?#]/)[0];
+  const isZone = tz => { try { new Intl.DateTimeFormat('en-US', { timeZone: tz }); return true; } catch (e) { return false; } };
+
+  function profileFrom(c) {
+    const p = Object.assign({}, DEFAULT_PROFILE);
+    if (String(c.streamer_name || '').trim()) p.name = c.streamer_name.trim();
+    const m = String(c.streamer_twitch_url || '').match(/twitch\.tv\/(\w+)/i);
+    if (m) p.channel = m[1].toLowerCase();
+    if (isZone(String(c.streamer_timezone || '').trim())) p.tz = c.streamer_timezone.trim();
+    if ('site_season' in c) p.season = String(c.site_season || '').trim();
+    if ('streamer_donate_url' in c) p.donateUrl = String(c.streamer_donate_url || '').trim();
+    return p;
+  }
+
+  let state = null;
+  try { state = JSON.parse(localStorage.getItem(KEY)); } catch (e) { /* без хранилища — по умолчанию */ }
+  if (!state || !Array.isArray(state.modules) || !state.profile) state = { modules: DEFAULT_MODULES, profile: DEFAULT_PROFILE };
+  state.profile = Object.assign({}, DEFAULT_PROFILE, state.profile);
+
+  const profile = {};
+  Object.defineProperty(profile, 'twitchUrl', { enumerable: false, get: () => 'https://www.twitch.tv/' + profile.channel });
+  Object.assign(profile, state.profile);
+
+  function closedPages() {
+    const pages = {};
+    state.modules.forEach(m => { const f = fileOf(m.page); if (f) pages[f] = pages[f] || isOn(m); });
+    return Object.keys(pages).filter(f => !pages[f] && !ALWAYS.includes(f));
+  }
+  const here = () => location.pathname.split('/').pop() || 'index.html';
+
+  // Ссылки на выключенные разделы и блоки data-module прячем стилем — так прячется и то, что страница дорисует позже
+  function apply() {
+    const closed = closedPages();
+    const offIds = state.modules.filter(m => !isOn(m)).map(m => m.id);
+    const css = closed.map(f => `a[href="${f}"],a[href^="${f}?"],a[href^="${f}#"]`)
+      .concat(offIds.map(id => `[data-module~="${id}"]`)).join(',');
+    let st = document.getElementById('hof-modules-css');
+    if (!st) { st = document.createElement('style'); st.id = 'hof-modules-css'; document.head.appendChild(st); }
+    st.textContent = (css ? css + '{display:none!important}' : '') +
+      'html.hof-closed body>*:not(.site-nav):not(.hof-closed-box):not(.winter-snow){display:none!important}' +
+      '.hof-closed-box{max-width:520px;margin:18vh auto 0;padding:0 16px;text-align:center;font-family:var(--font,sans-serif);color:var(--text,#fff)}' +
+      '.hof-closed-box h1{font-size:28px;letter-spacing:2px;text-transform:uppercase;color:var(--gold,#FAC775);margin:0 0 12px}' +
+      '.hof-closed-box p{color:var(--muted,rgba(255,255,255,.62));line-height:1.6;margin:0 0 20px}' +
+      '.hof-closed-box a{color:var(--gold,#FAC775)}';
+    if (here() === 'index.html') document.title = profile.name;   // заголовок главной — имя стримера
+    const shut = closed.includes(here());
+    if (shut) document.title = 'Раздел закрыт · ' + profile.name;
+    document.documentElement.classList.toggle('hof-closed', shut);
+    let box = document.querySelector('.hof-closed-box');
+    if (shut && !box && document.body) {
+      box = document.createElement('div');
+      box.className = 'hof-closed-box';
+      box.innerHTML = '<h1>Раздел закрыт</h1><p>Сейчас его нет на сайте. Загляни на главную, там всё остальное.</p><a href="index.html">На главную</a>';
+      document.body.appendChild(box);
+    } else if (!shut && box) box.remove();
+  }
+
+  const listeners = [];
+  const api = {
+    list: () => state.modules.slice(),
+    on: id => { const m = state.modules.find(x => x.id === id); return !m || isOn(m); },
+    pageOn: href => !closedPages().includes(fileOf(href)),
+    onChange: fn => listeners.push(fn),
+    isOn,
+    ready: null,
+  };
+
+  api.ready = Promise.all([
+    window.hof ? hof.json('data/modules.json').then(d => d && d.items).catch(() => null) : null,
+    window.hof ? hof.config().catch(() => null) : null,
+  ]).then(([mods, cfg]) => {
+    const next = {
+      modules: Array.isArray(mods) && mods.length ? mods.map(m => ({ id: m.id, title: m.title, page: m.page, group: m.group || '', on: m.on })) : state.modules,
+      profile: cfg ? profileFrom(cfg) : state.profile,
+    };
+    if (JSON.stringify(next) === JSON.stringify(state)) return api;
+    state = next;
+    Object.assign(profile, state.profile);
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* в следующий раз догрузим снова */ }
+    apply();
+    listeners.forEach(fn => { try { fn(api); } catch (e) { console.error(e); } });
+    return api;
+  });
+
+  window.siteModules = api;
+  window.siteProfile = profile;
+  apply();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply);
+})();
+
 (function () {
   'use strict';
   // Контуры в стиле Lucide (24×24, обводка currentColor). Цвет иконки = цвет текста вокруг.
@@ -63,34 +184,18 @@
     copy: '<rect x="8" y="8" width="14" height="14" rx="2.5"/><path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"/>',
   };
 
-  const NAV_LINKS = `
-    <li><a href="hall.html">Зал Славы</a></li>
-    <li><a href="tickets.html">Билеты</a></li>
-    <li class="site-nav__dd">
-      <button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">Заказы зрителя <span class="site-nav__caret">▾</span></button>
-      <ul class="site-nav__menu">
-        <li><a href="anime.html">Аниме</a></li>
-        <li><a href="movies.html">Фильмы</a></li>
-        <li><a href="series.html">Сериалы</a></li>
-        <li><a href="games.html">Игры</a></li>
-        <li><a href="pain-games.html">Боль</a></li>
-        <li><a href="picker.html">Рулетка заказов</a></li>
-      </ul>
-    </li>
-    <li><a href="experiments.html">Эксперименты</a></li>
-    <li><a href="rules.html">Правила</a></li>
-    <li class="site-nav__dd">
-      <button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">Для стримера <span class="site-nav__caret">▾</span></button>
-      <ul class="site-nav__menu">
-        <li><a href="admin.html">Админка сайта</a></li>
-        <li><a href="chat-wheel.html">Чат-рулетка</a></li>
-        <li><a href="court.html">Рулетка наказаний</a></li>
-        <li><a href="templates.html">Шаблоны</a></li>
-        <li><a href="pain.html">Боль стримера за шекели</a></li>
-        <li><a href="cards.html">Админка-рулетка</a></li>
-        <li><a href="cards.html?stream">Хаос-рулетка</a></li>
-      </ul>
-    </li>`;
+  // Меню строится из разделов (siteModules): у раздела есть группа — он в выпадающем списке этой группы
+  function navLinks() {
+    const out = [], groups = {};
+    siteModules.list().filter(m => m.page && siteModules.isOn(m)).forEach(m => {
+      const li = `<li><a href="${esc(m.page)}">${esc(m.title)}</a></li>`;
+      if (!m.group) { out.push(li); return; }
+      if (!groups[m.group]) { groups[m.group] = { title: m.group, items: [] }; out.push(groups[m.group]); }
+      groups[m.group].items.push(li);
+    });
+    return out.map(x => typeof x === 'string' ? x
+      : `<li class="site-nav__dd"><button type="button" class="site-nav__dd-btn" aria-haspopup="true" aria-expanded="false">${esc(x.title)} <span class="site-nav__caret">▾</span></button><ul class="site-nav__menu">${x.items.join('')}</ul></li>`).join('');
+  }
 
   // Базовый вид иконок — и для страниц без site.css (рулетки со своими стилями).
   const ICON_CSS = '<style>.ic{width:1em;height:1em;flex:0 0 auto;display:inline-block;vertical-align:-0.14em;fill:none;stroke:currentColor;' +
@@ -113,7 +218,7 @@
   // data-nav="off" — страница без меню (оверлеи для OBS), но с иконками.
   const withNav = !me || me.dataset.nav !== 'off';
   const html = sprite + (withNav
-    ? `<nav class="site-nav"><div class="site-nav__inner"><a class="site-nav__brand" href="index.html">ParipariKai</a><ul class="site-nav__links">${NAV_LINKS}</ul></div></nav>`
+    ? `<nav class="site-nav"><div class="site-nav__inner"><a class="site-nav__brand" href="index.html">${esc(siteProfile.name)}</a><ul class="site-nav__links">${navLinks()}</ul></div></nav>`
     : '');
   if (me && me.parentNode) me.insertAdjacentHTML('afterend', html);
   else document.body.insertAdjacentHTML('afterbegin', html);
@@ -122,28 +227,36 @@
   // Меню: подсветка текущей страницы и открытие разделов по клику (для тач-экранов)
   const nav = document.querySelector('.site-nav');
   const here = (location.pathname.split('/').pop() || 'index.html') + location.search;
-  nav.querySelectorAll('.site-nav__links a').forEach(a => {
-    if (a.getAttribute('href') === here) {
+  function markActive() {
+    nav.querySelectorAll('.site-nav__links a').forEach(a => {
+      if (a.getAttribute('href') !== here) return;
       a.classList.add('is-active');
       const dd = a.closest('.site-nav__dd');
       if (dd) dd.classList.add('is-active');
-    }
+    });
+  }
+  markActive();
+  // Разделы поменялись (выключили, переименовали) — меню перерисовывается
+  siteModules.onChange(() => {
+    nav.querySelector('.site-nav__links').innerHTML = navLinks();
+    nav.querySelector('.site-nav__brand').textContent = siteProfile.name;
+    markActive();
   });
   const closeAll = () => nav.querySelectorAll('.site-nav__dd.is-open').forEach(dd => {
     dd.classList.remove('is-open');
     dd.querySelector('.site-nav__dd-btn').setAttribute('aria-expanded', 'false');
   });
-  nav.querySelectorAll('.site-nav__dd-btn').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      const dd = btn.parentElement;
-      const open = !dd.classList.contains('is-open');
-      closeAll();
-      if (open) {
-        dd.classList.add('is-open');
-        btn.setAttribute('aria-expanded', 'true');
-      }
-    });
+  nav.addEventListener('click', e => {
+    const btn = e.target.closest('.site-nav__dd-btn');
+    if (!btn) return;
+    e.stopPropagation();
+    const dd = btn.parentElement;
+    const open = !dd.classList.contains('is-open');
+    closeAll();
+    if (open) {
+      dd.classList.add('is-open');
+      btn.setAttribute('aria-expanded', 'true');
+    }
   });
   document.addEventListener('click', closeAll);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
@@ -151,10 +264,10 @@
 
 // ===== Сезонное оформление =====
 // SEASON = 'winter' — ледяные цвета (winter.css), кристаллы льда на фоне (winter-ice.svg) и лёгкий снег.
-// Выключить на весь сайт — SEASON = ''. Проверить без зимы на одной странице — ?season=off в адресе.
+// Включается в админке: «Настройки» → «Оформление» (ключ site_season в data/config.json). Проверить без зимы на одной странице — ?season=off в адресе.
 (function () {
   'use strict';
-  const SEASON = 'winter';
+  const SEASON = siteProfile.season; // 'winter' или '' — админка → «Настройки» → «Оформление»
   const me = document.currentScript;
   // Сезон виден страницам: window.siteSeason и класс season-winter на <html>
   // (по нему, например, шары Хаос-рулетки становятся ёлочными игрушками — и в OBS-оверлее тоже)
@@ -231,7 +344,7 @@
 // ?tz=America/New_York в адресе — посмотреть сайт глазами зрителя из другого пояса.
 (function () {
   'use strict';
-  const STREAMER = 'Asia/Jerusalem'; // переехали — поменять здесь
+  const STREAMER = siteProfile.tz; // часовой пояс стримера — админка → «Настройки» → «Стример»
   const isZone = tz => { try { new Intl.DateTimeFormat('en-US', { timeZone: tz }); return true; } catch (e) { return false; } };
   const forced = new URLSearchParams(location.search).get('tz');
   const VIEWER = forced && isZone(forced) ? forced

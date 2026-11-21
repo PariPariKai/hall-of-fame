@@ -18,7 +18,6 @@
      странице. Чистых лурков (ни одного сообщения) рулетка не видит.
      ============================================================ -->
 <script>
-  const DEFAULT_CHANNEL = "pariparikai";
   // Известные боты — исключаются из розыгрыша, если включён фильтр
   const KNOWN_BOTS = [
     "nightbot","streamelements","moobot","fossabot","wizebot","botrix",
@@ -639,9 +638,9 @@
       .site-nav__dd:focus-within > .site-nav__menu { opacity: 1; visibility: visible; pointer-events: auto; transform: none; }
     }
   </style>
-  <script src="core.js?v=1"></script><script src="site.js?v=18"></script>
+  <script src="core.js?v=1"></script><script src="site.js?v=19"></script>
   <script src="wheel-kit.js?v=4"></script>
-<script src="github.js?v=6"></script>
+<script src="github.js?v=7"></script>
 
   <!-- Экран входа -->
   <div class="gate" id="gate">
@@ -873,7 +872,7 @@ function agoText(ts) {
 // ============================================================
 const LS_KEY = 'chatwheel-settings-v1';
 const settings = Object.assign({
-  channel: DEFAULT_CHANNEL,
+  channel: siteProfile.channel,
   mode: 'activity',          // activity | keyword | manual
   windowMin: 10,             // 0 = всё время
   manualWindowMin: 0,        // окно списка в ручном наборе (своё, чтобы афк не прятались)
@@ -2081,7 +2080,7 @@ document.getElementById('btn-reset').addEventListener('click', () => {
 // Инициализация из настроек
 // ============================================================
 function initFromSettings() {
-  document.getElementById('channel-input').value = settings.channel || DEFAULT_CHANNEL;
+  document.getElementById('channel-input').value = settings.channel || siteProfile.channel;
   document.getElementById('keyword-input').value = settings.keyword || 'хочу';
   document.getElementById('ex-custom').value = settings.exCustom || '';
   document.getElementById('ex-mods').checked = settings.exMods;

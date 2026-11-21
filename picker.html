@@ -26,7 +26,6 @@
   // Сбор участников из чата: заказчик пишет одно из этих слов —
   // и его заказы попадают на колесо. Слово должно стоять первым
   // («я», «Я!», «я хочу» — да; «ясно» — нет).
-  const TWITCH_CHANNEL = 'pariparikai';
   let JOIN_WORDS = ['я'];   // заменяется словами из админки
 
   // Статусы из колонки status. Всё непонятное считаем «ещё не смотрели».
@@ -415,7 +414,7 @@
     .site-nav__dd:focus-within > .site-nav__menu { opacity: 1; visibility: visible; pointer-events: auto; transform: none; }
   }
 </style>
-<script src="core.js?v=1"></script><script src="site.js?v=18"></script>
+<script src="core.js?v=1"></script><script src="site.js?v=19"></script>
 <script src="wheel-kit.js?v=4"></script>
 
 <div class="wrap">
@@ -651,6 +650,9 @@ function avatarOf(nick) {
 async function loadAll() {
   // Что включено при открытии — из админки; дальше галочки живут своей жизнью
   await WheelKit.ready;
+  await siteModules.ready;
+  // Выключенный в админке раздел в рулетку не попадает
+  for (let i = SOURCES.length - 1; i >= 0; i--) if (!siteModules.on(SOURCES[i].id)) SOURCES.splice(i, 1);
   const srcOn = WheelKit.list('picker_sources'), statOn = WheelKit.list('picker_statuses');
   SOURCES.forEach(s => { if (!srcState[s.id]) srcState[s.id] = { on: srcOn.includes(s.id) }; srcState[s.id].error = false; });
   STATUSES.forEach(s => { if (!(s.id in statState)) statState[s.id] = statOn.includes(s.id); });
@@ -845,7 +847,7 @@ function updateCollectUi() {
   const words = JOIN_WORDS.map(w => `<b>«${esc(w)}»</b>`).join(' или ');
   document.getElementById('collect-hint').innerHTML = collecting
     ? `Заказчики пишут ${words} в чат — и их заказы появляются на колесе. Первая крутка закроет сбор.`
-    : `Снимет всех заказчиков и будет добавлять тех, кто напишет ${words} в чат #${esc(TWITCH_CHANNEL)}.`;
+    : `Снимет всех заказчиков и будет добавлять тех, кто напишет ${words} в чат #${esc(siteProfile.channel)}.`;
 }
 
 function addCollectLine(name, ok, why) {
@@ -871,7 +873,7 @@ function openChat() {
   ws.onopen = () => {
     ws.send('CAP REQ :twitch.tv/tags');
     ws.send('NICK justinfan' + Math.floor(10000 + Math.random() * 80000));
-    ws.send('JOIN #' + TWITCH_CHANNEL);
+    ws.send('JOIN #' + siteProfile.channel);
   };
   ws.onmessage = ev => ev.data.split('\r\n').forEach(line => { if (line) handleChatLine(line); });
   ws.onclose = () => {
@@ -895,7 +897,7 @@ function handleChatLine(line) {
 
   if (command === 'JOIN') {
     chatDelay = 1000;
-    setConnStatus('online', 'Слушаю чат #' + TWITCH_CHANNEL);
+    setConnStatus('online', 'Слушаю чат #' + siteProfile.channel);
   } else if (command === 'RECONNECT') {
     try { chatWs.close(); } catch (e) {}
   } else if (command === 'PRIVMSG') {

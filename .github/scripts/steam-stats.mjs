@@ -7,9 +7,19 @@
 
 import fs from 'node:fs';
 
-const STEAM_ID = '76561197995699569'; // steamcommunity.com/id/Pariparikai
 const KEY = process.env.STEAM_API_KEY || '';
 const ROOT = new URL('../../', import.meta.url);
+// SteamID64 стримера — ключ streamer_steam_id в data/config.json (админка → «Настройки» → «Стример»)
+const STEAM_ID = (() => {
+  try {
+    const cfg = JSON.parse(fs.readFileSync(new URL('data/config.json', ROOT), 'utf8'));
+    return String((cfg.items.find(r => r.key === 'streamer_steam_id') || {}).value || '').trim();
+  } catch (e) { return ''; }
+})();
+if (!STEAM_ID) {
+  console.log('Нет streamer_steam_id в data/config.json — пропускаю.');
+  process.exit(0);
+}
 const OUT = new URL('steam.json', ROOT);
 
 if (!KEY) {

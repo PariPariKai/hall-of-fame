@@ -177,6 +177,15 @@
 
   /* настройки сайта */
   .cfg-group { margin-bottom: 20px; }
+  /* вкладка «Разделы» */
+  .mods { display: grid; gap: 8px; }
+  .mods__row { display: grid; grid-template-columns: 130px minmax(160px, 1fr) minmax(140px, 220px) 150px auto; gap: 10px; align-items: center;
+    padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,0.02); }
+  .mods__row.is-off { opacity: 0.55; }
+  .mods__row .check-line { min-height: 0; }
+  .mods__page { font-size: 12px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mods__move { display: flex; gap: 4px; }
+  @media (max-width: 720px) { .mods__row { grid-template-columns: 1fr 1fr; } .mods__page { display: none; } }
   .cfg-group h3 { font-size: 12px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
   .cfg-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
   /* Вкладка «Расписание» */
@@ -268,7 +277,7 @@
 </style>
 </head>
 <body>
-<script src="core.js?v=1"></script><script src="site.js?v=18"></script>
+<script src="core.js?v=1"></script><script src="site.js?v=19"></script>
 <script src="wheel-kit.js?v=4"></script>
 <script src="chat-kit.js?v=2"></script>
 
@@ -286,7 +295,7 @@
       <ol>
         <li>Открой <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">создание токена</a> (Fine-grained token).</li>
         <li>Token name: <b>site-admin</b>, Expiration — не больше года (дольше GitHub молча не даст создать).</li>
-        <li>Repository access: <b>Only select repositories</b> → <b>hall-of-fame</b>.</li>
+        <li>Repository access: <b>Only select repositories</b> → <b class="repo-name">hall-of-fame</b>.</li>
         <li>Permissions → Repository permissions → <b>Contents: Read and write</b>. Больше ничего не нужно.</li>
         <li>Generate token, скопируй и вставь сюда. Токен хранится только в этом браузере.</li>
       </ol>
@@ -343,7 +352,7 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="github.js?v=6"></script>
+<script src="github.js?v=7"></script>
 <script>
 (function () {
 'use strict';
@@ -353,6 +362,8 @@ const { readFile, writeFile } = siteGit;
 
 // ===================== мелочи =====================
 const $ = id => document.getElementById(id);
+// Имя репозитория в подсказке про токен — то, где лежит этот сайт
+document.querySelectorAll('.repo-name').forEach(el => { el.textContent = siteGit.repo.split('/')[1]; });
 const pad = n => String(n).padStart(2, '0');
 const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 const WEEKDAYS = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
@@ -1722,9 +1733,82 @@ function wheelSettingsBind(sec, box, c) {
   });
 }
 
+// ===================== разделы сайта (data/modules.json) =====================
+// Включить/выключить раздел, переименовать в меню, сменить группу, переставить. Меню на сайте строит site.js.
+// Выключенный раздел пропадает из меню, ссылки на него прячутся, а страница показывает «Раздел закрыт».
+const LOCKED_MODULES = ['admin'];   // админку не выключить, иначе сюда не попасть
+const modulesSection = {
+  id: 'modules', label: 'Разделы', icon: 'sliders', group: 'Сайт', path: 'data/modules.json', form: true,
+  panel(sec, box) {
+    $('panel-title').innerHTML = icon('sliders') + 'Разделы сайта';
+    const list = items('modules').map(m => Object.assign({}, m, { group: m.group || '' }));
+    const groups = [...new Set(list.map(m => m.group).filter(Boolean))];
+    // Свой контейнер: обработчики не цепляются к общей панели админки
+    const root = document.createElement('div');
+    box.replaceChildren(root);
+    const draw = () => {
+      root.innerHTML = `<p class="hint-inline" style="margin-bottom:14px">Выключенный раздел пропадает из меню и со всех страниц, а по прямой ссылке показывает «Раздел закрыт». Данные раздела не удаляются: включишь обратно, и всё на месте. Группа: выпадающий список в меню, пусто означает отдельную ссылку.</p>
+        <datalist id="mod-groups">${groups.map(g => `<option value="${esc(g)}">`).join('')}</datalist>
+        <div class="mods">${list.map((m, i) => {
+          const locked = LOCKED_MODULES.includes(m.id);
+          const on = siteModules.isOn(m);
+          return `<div class="mods__row${on ? '' : ' is-off'}" data-i="${i}">
+            <label class="check-line" title="${locked ? 'Админку не выключить' : 'Раздел на сайте'}"><input type="checkbox" data-f="on"${on ? ' checked' : ''}${locked ? ' disabled' : ''}>${on ? 'Включён' : 'Выключен'}</label>
+            <input class="inp" data-f="title" value="${esc(m.title)}" aria-label="Название в меню">
+            <input class="inp" data-f="group" value="${esc(m.group)}" list="mod-groups" placeholder="без группы" aria-label="Группа в меню">
+            <a class="mods__page" href="${esc(m.page)}" target="_blank" rel="noopener">${esc(m.page)}</a>
+            <span class="mods__move"><button type="button" class="btn btn--sm" data-move="-1" title="Выше"${i ? '' : ' disabled'}>↑</button><button type="button" class="btn btn--sm" data-move="1" title="Ниже"${i < list.length - 1 ? '' : ' disabled'}>↓</button></span>
+          </div>`;
+        }).join('')}</div>
+        <div class="row" style="margin-top:14px"><button type="button" class="btn btn--solid" id="mods-save">${icon('check')}Сохранить разделы</button>
+        <span class="hint-inline">Зрители увидят изменения примерно через минуту.</span></div>`;
+    };
+    draw();
+    const edit = e => {
+      const row = e.target.closest('[data-i]'); const f = e.target.dataset.f;
+      if (!row || !f) return;
+      const m = list[+row.dataset.i];
+      if (f === 'on') { if (e.type === 'change') { m.on = e.target.checked ? 'TRUE' : 'FALSE'; draw(); } }
+      else m[f] = e.target.value.trim();
+    };
+    root.addEventListener('input', edit);
+    root.addEventListener('change', edit);
+    root.addEventListener('click', e => {
+      const b = e.target.closest('[data-move]');
+      if (b) {
+        const i = +b.closest('[data-i]').dataset.i, j = i + +b.dataset.move;
+        [list[i], list[j]] = [list[j], list[i]];
+        return draw();
+      }
+      if (!e.target.closest('#mods-save')) return;
+      if (list.some(m => !m.title)) return toast('У каждого раздела должно быть название', true);
+      const before = items('modules');
+      const changed = list.map(m => {
+        const was = before.find(x => x.id === m.id) || {};
+        if (was.on !== m.on) return (siteModules.isOn(m) ? 'включён ' : 'выключен ') + m.title;
+        if (was.title !== m.title || (was.group || '') !== m.group) return 'изменён ' + m.title;
+        return '';
+      }).filter(Boolean);
+      const moved = list.map(m => m.id).join() !== before.map(m => m.id).join();
+      if (!changed.length && !moved) return toast('Ничего не поменялось');
+      save(sec, changed.concat(moved ? ['порядок'] : []).join(', '), data => {
+        // Порядок и значения — как в редакторе; разделы, которых тут нет (добавлены с другого устройства), — в конец
+        const fresh = list.map(m => Object.assign(data.items.find(x => x.id === m.id) || {}, m));
+        data.items = fresh.concat(data.items.filter(x => !list.some(m => m.id === x.id)));
+      }, e.target.closest('#mods-save'));
+    });
+  },
+};
+
 // ===================== настройки сайта (config) =====================
+// Часовые пояса на выбор (ключ streamer_timezone); нужного нет — впиши его в data/config.json, админка его покажет
+const TIMEZONES = [['Asia/Jerusalem', 'Израиль'], ['Europe/Moscow', 'Москва'], ['Europe/Kyiv', 'Киев'], ['Europe/Minsk', 'Минск'],
+  ['Europe/Berlin', 'Берлин'], ['Europe/London', 'Лондон'], ['Asia/Almaty', 'Алматы'], ['Asia/Yekaterinburg', 'Екатеринбург'],
+  ['Asia/Novosibirsk', 'Новосибирск'], ['Asia/Vladivostok', 'Владивосток'], ['America/New_York', 'Нью-Йорк'], ['UTC', 'UTC']];
 const CONFIG_GROUPS = [
-  ['Стример', [['streamer_name', 'Имя'], ['streamer_twitch_url', 'Ссылка на Twitch', 'url'], ['streamer_avatar_url', 'Аватарка', 'url'], ['streamer_intro', 'Приветствие на главной', 'textarea']]],
+  ['Стример', [['streamer_name', 'Имя (в меню и на главной)'], ['streamer_twitch_url', 'Ссылка на Twitch (канал для чата и рулеток)', 'url'], ['streamer_avatar_url', 'Аватарка', 'url'],
+    ['streamer_timezone', 'Часовой пояс (время на сайте)', 'select', TIMEZONES], ['streamer_donate_url', 'Ссылка на донат', 'url'], ['streamer_steam_id', 'SteamID64 (часы в играх)'], ['streamer_intro', 'Приветствие на главной', 'textarea']]],
+  ['Оформление', [['site_season', 'Сезонная тема', 'select', [['winter', 'Зима: лёд и снег'], ['', 'Без сезона']]]]],
   ['Розыгрыш', [['raffle_active', 'Розыгрыш идёт', 'bool'], ['raffle_title', 'Подпись таймера'], ['raffle_date', 'Дата розыгрыша', 'raffle'], ['tickets_banner_url', 'Баннер над билетами', 'url']]],
 ];
 const configSection = {
@@ -1736,8 +1820,12 @@ const configSection = {
     const known = new Set(CONFIG_GROUPS.flatMap(g => g[1].map(x => x[0])).concat(DAY_KEYS.map(k => 'schedule_' + k), ['picker_time', 'movie_time'],
       Object.keys(c).filter(k => k.startsWith('screen_')), // заставки — на своей вкладке
       Object.keys(WheelKit.DEFAULTS))); // рулетки — своим блоком ниже
-    const input = ([k, label, type]) => {
+    const input = ([k, label, type, options]) => {
       const v = c[k] || '';
+      if (type === 'select') {
+        const opts = options.some(o => o[0] === v) ? options : options.concat([[v, v]]);
+        return `<label class="field" style="flex:1 1 240px"><span>${esc(label)}</span><select class="inp" data-k="${k}">${opts.map(([val, text]) => `<option value="${esc(val)}"${val === v ? ' selected' : ''}>${esc(text)}</option>`).join('')}</select></label>`;
+      }
       if (type === 'textarea') return `<label class="field" style="flex:1 1 100%"><span>${esc(label)}</span><textarea class="inp" data-k="${k}" rows="3">${esc(v)}</textarea></label>`;
       if (type === 'bool') return `<div class="field" style="flex:1 1 160px"><span>${esc(label)}</span><label class="check-line"><input type="checkbox" data-k="${k}"${truthy(v) ? ' checked' : ''}>Да</label></div>`;
       if (type === 'raffle') { // в Config дата розыгрыша — «YYYY-MM-DD HH:MM»
@@ -1773,8 +1861,8 @@ const configSection = {
 };
 
 // ===================== расписание стримов (data/config.json) =====================
-// Время — по часам стримера (Израиль, siteTime.streamer). Рядом с каждым днём — как это видят по Москве:
-// в РФ нет перехода на зимнее время, поэтому после перехода в Израиле всё сдвигают на час кнопкой «−1 ч» / «+1 ч».
+// Время — по часам стримера (siteTime.streamer, пояс из «Настроек»). Рядом с каждым днём — как это видят по Москве:
+// в РФ нет перехода на зимнее время, поэтому после перевода часов у стримера всё сдвигают на час кнопкой «−1 ч» / «+1 ч».
 // Кино «сразу после рулетки» хранится как movie_time = picker_time — так его понимают и главная, и быстрые панели.
 const MSK = 'Europe/Moscow';
 const scheduleSection = {
@@ -1787,7 +1875,7 @@ const scheduleSection = {
     const movie = /^\d{1,2}:\d{2}$/.test(c.movie_time || '') ? c.movie_time.padStart(5, '0') : '20:00';
     const offs = tz => siteTime.offsetLabel(siteTime.offset(tz));
     box.innerHTML = `
-      <div class="cfg-group"><h3>Дни <em class="hint-inline" style="text-transform:none;letter-spacing:0">— время по Израилю (${offs(siteTime.streamer)}), справа — по Москве (${offs(MSK)})</em></h3>
+      <div class="cfg-group"><h3>Дни <em class="hint-inline" style="text-transform:none;letter-spacing:0">— время по часам стримера (${offs(siteTime.streamer)}), справа — по Москве (${offs(MSK)})</em></h3>
         <div class="sch-days">${[1, 2, 3, 4, 5, 6, 0].map(d => {
           const [from, to] = range(c['schedule_' + DAY_KEYS[d]]);
           return `<div class="sch-day${from ? '' : ' is-off'}" data-day="${d}">
@@ -1810,13 +1898,13 @@ const scheduleSection = {
         <div class="sch-shift">
           <button type="button" class="btn btn--ghost" data-shift="-60">−1 ч</button>
           <button type="button" class="btn btn--ghost" data-shift="60">+1 ч</button>
-          <span class="hint-inline">Сдвигает всё сразу: дни, рулетку, кино. Израиль перешёл на зимнее время — «−1 ч», и у зрителей из РФ
+          <span class="hint-inline">Сдвигает всё сразу: дни, рулетку, кино. У тебя перевели часы на зимнее время — «−1 ч», и у зрителей из РФ
             всё останется как было; весной, на летнее, — «+1 ч». Уже назначенные показы не меняются.</span>
         </div>
       </div>
       <div class="row"><button type="button" class="btn btn--solid" id="sch-save">${icon('check')}Сохранить расписание</button></div>`;
 
-    // Как время по Израилю выглядит по Москве (на ближайший такой день недели — с учётом перевода часов)
+    // Как время стримера выглядит по Москве (на ближайший такой день недели — с учётом перевода часов)
     const msk = (hm, wd) => {
       const t = today();
       const d = siteTime.at(t.y, t.mo, t.d + (wd == null ? 0 : (wd - t.wd + 7) % 7), +hm.slice(0, 2), +hm.slice(3, 5));
@@ -1901,7 +1989,7 @@ const SECTIONS = [
     urlHint: 'пусто: робот сам найдёт Steam', urlPh: 'https://store.steampowered.com/app/...' }),
   painSection,
   ticketsSection, viewersSection, winnersSection,
-  prizesSection, friendsSection, scheduleSection, configSection, wheelsSection,
+  prizesSection, friendsSection, scheduleSection, configSection, modulesSection, wheelsSection,
   templatesSection, screensSection, chatSection,
 ];
 const SEC = Object.fromEntries(SECTIONS.map(s => [s.id, s]));

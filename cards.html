@@ -645,8 +645,8 @@
     .site-nav__dd:focus-within > .site-nav__menu { opacity: 1; visibility: visible; pointer-events: auto; transform: none; }
   }
 </style>
-<script src="core.js?v=1"></script><script src="site.js?v=18"></script>
-<script src="github.js?v=6"></script>
+<script src="core.js?v=1"></script><script src="site.js?v=19"></script>
+<script src="github.js?v=7"></script>
 
 <!-- ===== ВХОД ПО КОДУ ===== -->
 <div class="gate" id="gate">
@@ -827,7 +827,7 @@
           новый стрим не начался со вчерашним. 0 — не убирать (только вручную).
         </div>
       </div>
-      <div class="note">Browser source для OBS: <code>https://pariparikai.github.io/hall-of-fame/mods.html</code>, 1920×1080.
+      <div class="note">Browser source для OBS: <code class="mods-url">mods.html</code>, 1920×1080.
         Сюда попадают карточки типа «Модификатор» и все карточки с таймером. Если рулетка открыта не в OBS, а в обычном браузере,
         оверлей получает награды через мост (localhost:3777) — он должен быть запущен.</div>
     </div>
@@ -3318,6 +3318,8 @@ function renderAll() {
 // ПРИВЯЗКА СОБЫТИЙ
 // ============================================================
 function wireApp() {
+  // Адрес оверлея модификаторов — рядом с этой страницей, на том же сайте
+  document.querySelectorAll('.mods-url').forEach(el => { el.textContent = new URL('mods.html', location.href.split(/[?#]/)[0]).href; });
   $$('#tabs .tab').forEach(t => t.onclick = () => switchTab(t.dataset.tab));
 
   $('#search').oninput = e => { ui.search = e.target.value.trim().toLowerCase(); renderBoard(); };
