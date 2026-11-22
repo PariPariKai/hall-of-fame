@@ -465,6 +465,23 @@
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/42910/header.jpg?t=1726497076",
       "source": "steam",
       "steamUrl": "https://store.steampowered.com/app/42910/"
+    },
+    "sims 4": {
+      "name": "Sims 4",
+      "override": "",
+      "checked": "2026-11-22T19:00:43.650Z",
+      "found": true,
+      "appid": 1235760,
+      "title": "The Sims™ 4 На заднем дворе — Каталог",
+      "year": 2020,
+      "genres": [
+        "Симуляторы"
+      ],
+      "description": "Создайте уютное местечко на заднем дворе для отдыха симов с «The Sims 4 На заднем дворе — Каталог».",
+      "cover": null,
+      "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1235760/header_russian.jpg?t=1758492495",
+      "source": "steam",
+      "steamUrl": "https://store.steampowered.com/app/1235760/"
     }
   }
 }
