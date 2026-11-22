@@ -507,6 +507,16 @@
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1599028/7b91bc75-332d-4550-b661-e93cb5615741/600x900",
       "source": "kinopoisk"
     },
+    "movies|color out of space": {
+      "list": "movies",
+      "title": "Color Out of Space",
+      "checked": "2026-11-22T18:51:09.893Z",
+      "found": true,
+      "kp": "1233447",
+      "url": "https://www.kinopoisk.ru/film/1233447/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1600647/fa84fb95-962f-418f-b2da-710f32e6162e/600x900",
+      "source": "kinopoisk"
+    },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
       "title": "Неукротимый: Повелитель Чэньцин (сериал 2019)",
