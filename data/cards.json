@@ -160,8 +160,8 @@
    "createdAt": 1789035783488,
    "activatedAt": 1789035783488,
    "benchedAt": null,
-   "rolls": 18,
-   "lastRoll": 1795023762838
+   "rolls": 19,
+   "lastRoll": 1795361557181
   },
   {
    "id": "cmtvdppa81wz9",
@@ -180,8 +180,8 @@
    "createdAt": 1789035783488,
    "activatedAt": 1789035783488,
    "benchedAt": null,
-   "rolls": 15,
-   "lastRoll": 1795023507313
+   "rolls": 16,
+   "lastRoll": 1795360057800
   },
   {
    "id": "cmtvdppa81x8b",
@@ -320,8 +320,8 @@
    "createdAt": 1789035783488,
    "activatedAt": 1789035783488,
    "benchedAt": null,
-   "rolls": 15,
-   "lastRoll": 1795101363424
+   "rolls": 16,
+   "lastRoll": 1795361603217
   },
   {
    "id": "cmtvdppa825tf",
@@ -440,8 +440,8 @@
    "createdAt": 1789035783488,
    "activatedAt": 1789035783488,
    "benchedAt": null,
-   "rolls": 5,
-   "lastRoll": 1794497392634
+   "rolls": 6,
+   "lastRoll": 1795360245606
   },
   {
    "id": "cmtvdppa829z2",
@@ -1420,8 +1420,8 @@
    "createdAt": 1789229367854,
    "activatedAt": 1789229367854,
    "benchedAt": null,
-   "rolls": 16,
-   "lastRoll": 1795105096553
+   "rolls": 17,
+   "lastRoll": 1795360685134
   },
   {
    "id": "cmtykz8wd1you",
@@ -1480,8 +1480,8 @@
    "createdAt": 1789229406199,
    "activatedAt": 1789229406199,
    "benchedAt": null,
-   "rolls": 12,
-   "lastRoll": 1795178649581
+   "rolls": 13,
+   "lastRoll": 1795360958947
   },
   {
    "id": "cmtykzzsf21ed",
@@ -2025,6 +2025,48 @@
   }
  ],
  "history": [
+  {
+   "id": "cmtvdppa8247e",
+   "text": "1 минуту зло смеяться после каждой фразы",
+   "rarity": "common",
+   "at": 1795361603217,
+   "chance": 2.272727272727273
+  },
+  {
+   "id": "cmtvdppa81vln",
+   "text": "1 минуту хвалить любую фигню",
+   "rarity": "common",
+   "at": 1795361557182,
+   "chance": 2.272727272727273
+  },
+  {
+   "id": "cmtykzpiv203w",
+   "text": "Торжественный тост в честь победителя (с чаем)",
+   "rarity": "common",
+   "at": 1795360958947,
+   "chance": 2.272727272727273
+  },
+  {
+   "id": "cmtykyvxq1xb7",
+   "text": "Прочитать последнее сообщение чата максимально драматично, со слезами",
+   "rarity": "common",
+   "at": 1795360685134,
+   "chance": 2.272727272727273
+  },
+  {
+   "id": "cmtvdppa828zi",
+   "text": "Добавлять «сенпай» к нику победителя",
+   "rarity": "uncommon",
+   "at": 1795360245606,
+   "chance": 1.1363636363636365
+  },
+  {
+   "id": "cmtvdppa81wz9",
+   "text": "1 минуту покер-фейс",
+   "rarity": "common",
+   "at": 1795360057800,
+   "chance": 2.272727272727273
+  },
   {
    "id": "cmujpe9iu1spk",
    "text": "5 минут \"Ня!\"",
@@ -2682,48 +2724,6 @@
    "rarity": "rare",
    "at": 1794412069362,
    "chance": 1
-  },
-  {
-   "id": "cmtykzgz01zri",
-   "text": "Гороскоп для победителя на неделю",
-   "rarity": "common",
-   "at": 1794411513257,
-   "chance": 2.380952380952381
-  },
-  {
-   "id": "cmty8hdzf1s6z",
-   "text": "мут на 60 секунд",
-   "rarity": "common",
-   "at": 1794411194850,
-   "chance": 2.380952380952381
-  },
-  {
-   "id": "cmtvdppa92jwk",
-   "text": "Молчанка: мне нельзя говорить 5 минут",
-   "rarity": "rare",
-   "at": 1794411008393,
-   "chance": 1
-  },
-  {
-   "id": "cmtvdppa8247e",
-   "text": "1 минуту зло смеяться после каждой фразы",
-   "rarity": "common",
-   "at": 1794410960223,
-   "chance": 2.380952380952381
-  },
-  {
-   "id": "cmtyl0p0h23x1",
-   "text": "Пустышка: ничего не происходит, но все 30 секунд делаем вид, что выпало что-то грандиозное",
-   "rarity": "common",
-   "at": 1794328928298,
-   "chance": 2.380952380952381
-  },
-  {
-   "id": "cmtvdppa81wz9",
-   "text": "1 минуту покер-фейс",
-   "rarity": "common",
-   "at": 1794328629502,
-   "chance": 2.380952380952381
   }
  ],
  "settings": {
@@ -2731,5 +2731,5 @@
   "modHideMin": 60
  },
  "lastBackup": null,
- "savedAt": 1795192985479
+ "savedAt": 1795361603218
 }
