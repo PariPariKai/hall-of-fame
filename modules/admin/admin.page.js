@@ -1806,6 +1806,14 @@ async function start() {
   $('auth').hidden = true;
   $('app').hidden = true;
   try {
+    // Пускаем только с токеном, у которого есть право записи в этот репозиторий.
+    // Любой токен GitHub умеет читать публичный репозиторий, поэтому одного «токен работает» мало.
+    if (!(await siteGit.canWrite())) {
+      siteGit.setToken('');
+      $('loading').hidden = true;
+      showAuth('Этот токен не подходит: у него нет права записи в репозиторий ' + siteGit.repo + '.');
+      return;
+    }
     // Настройки (расписание) и зрители (ники, аватарки) нужны всем вкладкам
     const [cfg, viewers, om, pm, user] = await Promise.all([
       readFile('data/config.json'), readFile('data/viewers.json'),

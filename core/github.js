@@ -218,5 +218,6 @@
     get token() { return token; },
     repo: REPO,
     setToken, readFile, writeFile, readJson, writeJson, listDir, putFile, user, hasAccess, isToken, showGate, gate,
+    canWrite: () => canPush(token),
   };
 })();
