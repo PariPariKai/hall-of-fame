@@ -482,6 +482,25 @@
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1235760/header_russian.jpg?t=1758492495",
       "source": "steam",
       "steamUrl": "https://store.steampowered.com/app/1235760/"
+    },
+    "rob run": {
+      "name": "Rob Run",
+      "override": "",
+      "checked": "2026-11-22T19:02:10.312Z",
+      "found": true,
+      "appid": 4262460,
+      "title": "ROB RUN",
+      "year": 2026,
+      "genres": [
+        "Экшены",
+        "Ролевые игры",
+        "Симуляторы"
+      ],
+      "description": "ROB RUN — криминальная песочница, где вы сами творите историю. Занимайтесь грабежом, устраивайте клановые войны, захватывайте территории, стремитесь к богатству и уважению. Или попробуйте любым способом помешать тем, кто это делает.",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/4262460/69a7d94807fcdea67f649ecfa3da0aab369bd767/library_capsule.jpg?t=1793811654",
+      "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4262460/db8e0cf43c9475b96fb9446b4908de79fcb9f619/header.jpg?t=1793811654",
+      "source": "steam",
+      "steamUrl": "https://store.steampowered.com/app/4262460/"
     }
   }
 }
