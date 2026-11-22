@@ -214,6 +214,6 @@
     {"id":"6d829a43","nick":"AzamatUK11","title":"Бизнес по-казахски в Америке","year":"","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""},
     {"id":"dcd0f217","nick":"AzamatUK11","title":"Бизнес по-казахски в Африке","year":"","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""},
     {"id":"6fb5c328","nick":"AzamatUK11","title":"Брат или брак 2","year":"","type":"movie","url":"","status":"pending","rating":"","cover_url":"","date_added":"10.11.2026","date_completed":"","notes":"","scheduled_at":"","format":""},
-    {"id":"bc65c810","nick":"SI_ve","title":"Барби: Сказочная страна мермедия","year":"2006","type":"movie","url":"https://www.kinopoisk.ru/film/252139/","status":"watching","rating":"","cover_url":"","date_added":"19.11.2026","date_completed":"","notes":"","scheduled_at":"22.11.2026 19:00","format":""}
+    {"id":"bc65c810","nick":"SI_ve","title":"Барби: Сказочная страна мермедия","year":"2006","type":"movie","url":"https://www.kinopoisk.ru/film/252139/","status":"watched","rating":"4","cover_url":"","date_added":"19.11.2026","date_completed":"22.11.2026","notes":"Крабик самый краш","scheduled_at":"22.11.2026 19:00","format":""}
   ]
 }
