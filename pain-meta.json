@@ -447,6 +447,24 @@
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/916440/5700506bb522c60ca89754d3d887833d52debd65/header.jpg?t=1791465786",
       "source": "steam",
       "steamUrl": "https://store.steampowered.com/app/916440/"
+    },
+    "magicka": {
+      "name": "Magicka",
+      "override": "",
+      "checked": "2026-11-22T16:00:54.384Z",
+      "found": true,
+      "appid": 42910,
+      "title": "Magicka",
+      "year": 2011,
+      "genres": [
+        "Экшены",
+        "Ролевые игры"
+      ],
+      "description": "Комплект для четверых уже доступен!",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/42910/library_600x900.jpg?t=1726497076",
+      "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/42910/header.jpg?t=1726497076",
+      "source": "steam",
+      "steamUrl": "https://store.steampowered.com/app/42910/"
     }
   }
 }
