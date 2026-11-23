@@ -362,7 +362,7 @@ const QUIP_SYSTEM = `Ты пишешь подписи к карточкам на
 
 Примеры подписей для других заказов:`;
 // Заглушки вроде «пока не решила» подписывать не нужно
-const PLACEHOLDER = /не\s*реш|не\s*придум|пу-пу-пу|^\W*$/i;
+const PLACEHOLDER = /не\s*реш|не\s*придум|пу-пу-пу|^[^\p{L}\p{N}]*$/iu;
 
 async function makeQuips() {
   const file = fs.existsSync(QUIPS) ? JSON.parse(fs.readFileSync(QUIPS, 'utf8')) : {items: {}};
