@@ -273,7 +273,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/379720/library_600x900.jpg?t=1750784856",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/379720/header.jpg?t=1750784856",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/379720/"
+      "steamUrl": "https://store.steampowered.com/app/379720/",
+      "quip": "Ад, бензопила и музыка, под которую нельзя стоять на месте. А ты будешь стоять и считать патроны, пока тебя едят."
     },
     "war thunder": {
       "name": "War Thunder",
@@ -291,7 +292,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/236390/44a7800c8a2e665325739b15d6be13ff4fcd68d6/library_capsule.jpg?t=1790873564",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/236390/38881c549e623fe432af4e7b4bc3952b443906f5/header.jpg?t=1790873564",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/236390/"
+      "steamUrl": "https://store.steampowered.com/app/236390/",
+      "quip": "Сто часов гринда ради танка, который убьёт самолёт, вылетевший из-за горизонта. Ты даже не увидишь, кто тебя."
     },
     "stellar blade": {
       "name": "Stellar Blade",
@@ -310,7 +312,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/3489700/6f2bbe8f34fc283f42acbe4ab184e9a40f76ad51/library_600x900.jpg?t=1776466244",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3489700/header.jpg?t=1776466244",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/3489700/"
+      "steamUrl": "https://store.steampowered.com/app/3489700/",
+      "quip": "Парировать нужно в кадр, а ты жмёшь кнопку на полсекунды позже весь стрим. Босс будет учить тебя таймингу лично."
     },
     "enshrouded": {
       "name": "Enshrouded",
@@ -330,7 +333,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/1203620/0f641453e3418029205a49c1960e5ae5cb1ce382/library_capsule.jpg?t=1790934459",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1203620/731368301f231d622bd0b1e34afd2afcd86a1dcf/header.jpg?t=1790934459",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/1203620/"
+      "steamUrl": "https://store.steampowered.com/app/1203620/",
+      "quip": "Строишь замок, сносишь замок, умираешь в тумане и идёшь за новыми досками. Выживач, от которого ты не убежишь."
     },
     "watch_dogs 2": {
       "name": "Watch_Dogs 2",
@@ -348,7 +352,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/447040/library_600x900.jpg?t=1751986887",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/447040/header.jpg?t=1751986887",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/447040/"
+      "steamUrl": "https://store.steampowered.com/app/447040/",
+      "quip": "Ты хакер-хипстер, который ломает весь город с телефона. В жизни ты пароль от вайфая забываешь."
     },
     "kerbal space program": {
       "name": "Kerbal Space Program",
@@ -366,7 +371,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/220200/library_600x900.jpg?t=1738037585",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/220200/header.jpg?t=1738037585",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/220200/"
+      "steamUrl": "https://store.steampowered.com/app/220200/",
+      "quip": "Будешь строить ракету три часа и смотреть, как она взрывается на старте. Кербалы тебе не простят."
     },
     "i wanna be the boshy": {
       "name": "I Wanna be the Boshy",
@@ -374,7 +380,8 @@
       "checked": "2026-10-25T19:16:04.800Z",
       "found": true,
       "cover": "https://delicious-fruit.sfo3.digitaloceanspaces.com/11890_00000008",
-      "source": "таблица"
+      "source": "таблица",
+      "quip": "Платформер, где убивает всё, включая экран загрузки. Счётчик смертей перевалит за тысячу ещё до первого босса."
     },
     "digital combat simulator world": {
       "name": "Digital Combat Simulator World",
@@ -391,7 +398,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/223750/library_600x900.jpg?t=1784736456",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/223750/header.jpg?t=1784736456",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/223750/"
+      "steamUrl": "https://store.steampowered.com/app/223750/",
+      "quip": "Двадцать минут щёлкать тумблеры, чтобы просто завести самолёт. Взлетишь и тут же разобьёшься, мануал на 600 страниц."
     },
     "madison": {
       "name": "MADISON",
@@ -411,7 +419,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/1670870/library_600x900.jpg?t=1793030910",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1670870/15792fe34139dd41a26a3cc4832e21dc6ec0d04f/header.jpg?t=1793030910",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/1670870/"
+      "steamUrl": "https://store.steampowered.com/app/1670870/",
+      "quip": "Фотоаппарат, тёмный дом и что-то, что стоит у тебя за спиной на каждом снимке. Ты будешь бояться нажимать на кнопку."
     },
     "backpack battles": {
       "name": "Backpack Battles",
@@ -428,7 +437,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/2427700/6927abded4af092994d599dde629ee6b34c2234e/library_capsule.jpg?t=1793194385",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2427700/75fd59d3c14c32bbba9be83dcae2585b5e17eff5/header.jpg?t=1793194385",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/2427700/"
+      "steamUrl": "https://store.steampowered.com/app/2427700/",
+      "quip": "Собираешь рюкзак, как тетрис, а соперник выносит тебя одной сковородкой. Рандом решает, а ты злишься в чат."
     },
     "anno 1800": {
       "name": "Anno 1800",
@@ -446,7 +456,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/916440/library_600x900.jpg?t=1791465786",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/916440/5700506bb522c60ca89754d3d887833d52debd65/header.jpg?t=1791465786",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/916440/"
+      "steamUrl": "https://store.steampowered.com/app/916440/",
+      "quip": "Цепочки производства на три экрана, а рабочим вечно не хватает пива. Будешь управлять городом хуже, чем своим расписанием."
     },
     "magicka": {
       "name": "Magicka",
@@ -464,7 +475,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/42910/library_600x900.jpg?t=1726497076",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/42910/header.jpg?t=1726497076",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/42910/"
+      "steamUrl": "https://store.steampowered.com/app/42910/",
+      "quip": "Смешивай стихии, кастуй заклинания и случайно взрывай себя. Самый опасный маг в этой игре это ты, для себя же."
     },
     "sims 4": {
       "name": "Sims 4",
@@ -481,7 +493,8 @@
       "cover": null,
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1235760/header_russian.jpg?t=1758492495",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/1235760/"
+      "steamUrl": "https://store.steampowered.com/app/1235760/",
+      "quip": "Будешь три часа обставлять задний двор, а сим сгорит у гриля. Добро пожаловать в жизнь, которой у тебя нет."
     },
     "rob run": {
       "name": "Rob Run",
@@ -500,7 +513,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/4262460/69a7d94807fcdea67f649ecfa3da0aab369bd767/library_capsule.jpg?t=1793811654",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4262460/db8e0cf43c9475b96fb9446b4908de79fcb9f619/header.jpg?t=1793811654",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/4262460/"
+      "steamUrl": "https://store.steampowered.com/app/4262460/",
+      "quip": "Криминальная песочница, где грабят все и всех. Тебя ограбят первым, и ты будешь делать вид, что это план."
     },
     "modern warships": {
       "name": "Modern Warships",
@@ -518,7 +532,8 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/3144230/aaf9219b54b41d3042bea9c1a3d420264fd069ec/library_capsule.jpg?t=1790873757",
       "header": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3144230/c7d7de121a7329688849256b1dbb9418819c1132/header.jpg?t=1790873757",
       "source": "steam",
-      "steamUrl": "https://store.steampowered.com/app/3144230/"
+      "steamUrl": "https://store.steampowered.com/app/3144230/",
+      "quip": "Морские бои, где выигрывает тот, кто задонатил на эсминец побольше. Догадайся, кто будет на дне."
     }
   }
 }
