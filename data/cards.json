@@ -100,8 +100,8 @@
    "createdAt": 1789035783488,
    "activatedAt": 1789035783488,
    "benchedAt": null,
-   "rolls": 13,
-   "lastRoll": 1795177807885
+   "rolls": 14,
+   "lastRoll": 1795366015516
   },
   {
    "id": "cmtvdppa81tkp",
@@ -200,8 +200,8 @@
    "createdAt": 1789035783488,
    "activatedAt": 1789035783488,
    "benchedAt": null,
-   "rolls": 10,
-   "lastRoll": 1792767003485
+   "rolls": 11,
+   "lastRoll": 1795448676704
   },
   {
    "id": "cmtvdppa81y2m",
@@ -280,8 +280,8 @@
    "createdAt": 1789035783488,
    "activatedAt": 1789035783488,
    "benchedAt": null,
-   "rolls": 9,
-   "lastRoll": 1794758635053
+   "rolls": 10,
+   "lastRoll": 1795446558519
   },
   {
    "id": "cmtvdppa822p1",
@@ -314,14 +314,14 @@
    "active": true,
    "pinned": false,
    "pausedByGroup": false,
-   "durationSec": 0,
+   "durationSec": 60,
    "tags": [],
    "note": "",
    "createdAt": 1789035783488,
    "activatedAt": 1789035783488,
    "benchedAt": null,
-   "rolls": 16,
-   "lastRoll": 1795361603217
+   "rolls": 17,
+   "lastRoll": 1795447099869
   },
   {
    "id": "cmtvdppa825tf",
@@ -331,7 +331,7 @@
    "kind": "chaos",
    "target": "streamer",
    "weight": 1,
-   "active": true,
+   "active": false,
    "pinned": false,
    "pausedByGroup": false,
    "durationSec": 60,
@@ -339,7 +339,7 @@
    "note": "",
    "createdAt": 1789035783488,
    "activatedAt": 1789035783488,
-   "benchedAt": null,
+   "benchedAt": 1795361681574,
    "rolls": 14,
    "lastRoll": 1795013677337
   },
@@ -560,8 +560,8 @@
    "createdAt": 1789035783488,
    "activatedAt": 1789035783488,
    "benchedAt": null,
-   "rolls": 6,
-   "lastRoll": 1793112393013
+   "rolls": 7,
+   "lastRoll": 1795367205904
   },
   {
    "id": "cmtvdppa92f3k",
@@ -920,8 +920,8 @@
    "createdAt": 1789035783488,
    "activatedAt": 1789655510480,
    "benchedAt": null,
-   "rolls": 9,
-   "lastRoll": 1795186819227
+   "rolls": 10,
+   "lastRoll": 1795446579312
   },
   {
    "id": "cmtvdppa92xja",
@@ -1400,8 +1400,8 @@
    "createdAt": 1789229351305,
    "activatedAt": 1789229351305,
    "benchedAt": null,
-   "rolls": 16,
-   "lastRoll": 1795012276950
+   "rolls": 17,
+   "lastRoll": 1795363049700
   },
   {
    "id": "cmtykyvxq1xb7",
@@ -1420,8 +1420,8 @@
    "createdAt": 1789229367854,
    "activatedAt": 1789229367854,
    "benchedAt": null,
-   "rolls": 17,
-   "lastRoll": 1795360685134
+   "rolls": 18,
+   "lastRoll": 1795365064822
   },
   {
    "id": "cmtykz8wd1you",
@@ -1500,8 +1500,8 @@
    "createdAt": 1789229419503,
    "activatedAt": 1789229419503,
    "benchedAt": null,
-   "rolls": 14,
-   "lastRoll": 1795179720158
+   "rolls": 15,
+   "lastRoll": 1795362626666
   },
   {
    "id": "cmtyl07lc22ae",
@@ -1760,8 +1760,8 @@
    "createdAt": 1789229744961,
    "activatedAt": 1789229744961,
    "benchedAt": null,
-   "rolls": 12,
-   "lastRoll": 1795103706691
+   "rolls": 13,
+   "lastRoll": 1795362608107
   },
   {
    "id": "cmtyl78qa2g8l",
@@ -2025,6 +2025,76 @@
   }
  ],
  "history": [
+  {
+   "id": "cmtvdppa81x8b",
+   "text": "Крупный план 30 сек",
+   "rarity": "common",
+   "at": 1795448676704,
+   "chance": 2.380952380952381
+  },
+  {
+   "id": "cmtvdppa8247e",
+   "text": "1 минуту зло смеяться после каждой фразы",
+   "rarity": "common",
+   "at": 1795447099869,
+   "chance": 2.380952380952381
+  },
+  {
+   "id": "cmtvdppa92wlx",
+   "text": "10 минут играть иначе",
+   "rarity": "rare",
+   "at": 1795446579312,
+   "chance": 1.0666666666666667
+  },
+  {
+   "id": "cmtvdppa821z6",
+   "text": "3 минуты житель Майнкрафта",
+   "rarity": "common",
+   "at": 1795446558519,
+   "chance": 2.380952380952381
+  },
+  {
+   "id": "cmtvdppa92e1h",
+   "text": "«Если вы понимаете, о чём я» после каждой фразы",
+   "rarity": "uncommon",
+   "at": 1795367205904,
+   "chance": 1.1363636363636365
+  },
+  {
+   "id": "cmtvdppa81sg",
+   "text": "Говорить на английском 3 минуты",
+   "rarity": "common",
+   "at": 1795366015516,
+   "chance": 2.380952380952381
+  },
+  {
+   "id": "cmtykyvxq1xb7",
+   "text": "Прочитать последнее сообщение чата максимально драматично, со слезами",
+   "rarity": "common",
+   "at": 1795365064822,
+   "chance": 2.380952380952381
+  },
+  {
+   "id": "cmtykyj611wm9",
+   "text": "Пересказать сюжет игры за 30 секунд в стиле трейлера («В мире, где…»)",
+   "rarity": "common",
+   "at": 1795363049700,
+   "chance": 2.380952380952381
+  },
+  {
+   "id": "cmtykzzsf21ed",
+   "text": "Показать фотографию себя (победитель выбирает год и месяц)",
+   "rarity": "common",
+   "at": 1795362626666,
+   "chance": 2.380952380952381
+  },
+  {
+   "id": "cmtyl6ywx2ft6",
+   "text": "«Голос совести»: 10 минут в игре делаю то, что пишет победитель",
+   "rarity": "epic",
+   "at": 1795362608107,
+   "chance": 0.8750000000000001
+  },
   {
    "id": "cmtvdppa8247e",
    "text": "1 минуту зло смеяться после каждой фразы",
@@ -2654,76 +2724,6 @@
    "rarity": "uncommon",
    "at": 1794498971095,
    "chance": 1.1904761904761905
-  },
-  {
-   "id": "cmtyks3ch1slp",
-   "text": "не пить",
-   "rarity": "uncommon",
-   "at": 1794498225672,
-   "chance": 1.1904761904761905
-  },
-  {
-   "id": "cmtvdppa827u8",
-   "text": "Надеть / снять шапку",
-   "rarity": "uncommon",
-   "at": 1794497676157,
-   "chance": 1.1904761904761905
-  },
-  {
-   "id": "cmtyl5lk52d2y",
-   "text": "Титул позора: до конца стрима обращаюсь к победителю «Ваше Ничтожество»",
-   "rarity": "epic",
-   "at": 1794497645462,
-   "chance": 1
-  },
-  {
-   "id": "cmtvdppa828zi",
-   "text": "Добавлять «сенпай» к нику победителя",
-   "rarity": "rare",
-   "at": 1794497392634,
-   "chance": 1
-  },
-  {
-   "id": "cmtykyvxq1xb7",
-   "text": "Прочитать последнее сообщение чата максимально драматично, со слезами",
-   "rarity": "common",
-   "at": 1794497292405,
-   "chance": 2.380952380952381
-  },
-  {
-   "id": "cmtvdppa81tkp",
-   "text": "Говорить на иврите 3 минуты",
-   "rarity": "common",
-   "at": 1794496436532,
-   "chance": 2.380952380952381
-  },
-  {
-   "id": "cmtvdppa81zn7",
-   "text": "Сменить название стрима",
-   "rarity": "common",
-   "at": 1794412938025,
-   "chance": 2.380952380952381
-  },
-  {
-   "id": "cmtyl7vw72hqb",
-   "text": "Кубик наханок: d6 × 10 наханок",
-   "rarity": "rare",
-   "at": 1794412586522,
-   "chance": 1
-  },
-  {
-   "id": "cmujpe9iu1spk",
-   "text": "5 минут \"Ня!\"",
-   "rarity": "common",
-   "at": 1794412562501,
-   "chance": 2.380952380952381
-  },
-  {
-   "id": "cmtyl07lc22ae",
-   "text": "Скороговорка 3 раза без ошибок. Ошибка — 5 приседаний",
-   "rarity": "rare",
-   "at": 1794412069362,
-   "chance": 1
   }
  ],
  "settings": {
@@ -2731,5 +2731,5 @@
   "modHideMin": 60
  },
  "lastBackup": null,
- "savedAt": 1795361603218
+ "savedAt": 1795448676704
 }
