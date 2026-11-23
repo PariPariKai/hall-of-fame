@@ -144,10 +144,10 @@ html { zoom: var(--zoom, 1); }
 .pcard__back-bg { position: absolute; inset: -20px; background-size: cover; background-position: center; filter: blur(14px) brightness(.28) saturate(1.2); }
 .pcard__back-body { position: relative; height: 100%; display: flex; flex-direction: column; gap: 6px; padding: 13px 12px 12px; }
 .pcard__back-title {
-  flex: 0 0 auto; font-size: 14px; font-weight: 700; line-height: 1.25; color: var(--gold); overflow-wrap: anywhere;
+  flex: 0 0 auto; font-size: 15px; font-weight: 700; line-height: 1.25; color: var(--gold); overflow-wrap: anywhere;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.pcard__meta { flex: 0 0 auto; font-size: 11px; color: rgba(255,255,255,0.55); }
+.pcard__meta { flex: 0 0 auto; font-size: 12px; color: rgba(255,255,255,0.55); }
 .pcard__genres { flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 4px; }
 .pcard__genre { font-size: 9.5px; padding: 2px 7px; line-height: 1.4; border-radius: 999px; background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.85); }
 /* Текст занимает всё свободное место; не влез — прокручивается колёсиком. */
@@ -156,7 +156,7 @@ html { zoom: var(--zoom, 1); }
   scrollbar-width: thin; scrollbar-color: rgba(var(--ember-rgb),0.5) transparent;
 }
 .pcard__desc { font-size: 12px; line-height: 1.45; color: rgba(255,255,255,0.72); }
-.pcard__quip { font-size: 13px; line-height: 1.4; color: #ffe2c4; font-style: italic; padding-left: 9px; border-left: 2px solid rgba(var(--ember-rgb),0.6); margin-top: 2px; }
+.pcard__quip { font-size: 14px; line-height: 1.4; color: #ffe2c4; font-style: italic; padding-left: 9px; border-left: 2px solid rgba(var(--ember-rgb),0.6); margin-top: 2px; }
 .pcard__desc::-webkit-scrollbar, .pcard__quip::-webkit-scrollbar { width: 4px; }
 .pcard__desc::-webkit-scrollbar-thumb, .pcard__quip::-webkit-scrollbar-thumb { background: rgba(var(--ember-rgb),0.5); border-radius: 4px; }
 .pcard__spacer { flex: 1 1 auto; }
@@ -225,10 +225,23 @@ a.who__nick:hover { text-decoration: underline; }
 /* Заметка стримера из таблицы (колонка notes) — под подписью, своим цветом */
 .pcard__verdict {
   flex: 0 1 auto; min-height: 0; max-height: 40%; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
-  font-size: 12px; line-height: 1.4; color: rgba(255,255,255,0.85);
+  font-size: 13px; line-height: 1.4; color: rgba(255,255,255,0.85);
   padding: 7px 9px; border-radius: 8px; background: rgba(var(--gold-rgb),0.08); border: 1px solid rgba(var(--gold-rgb),0.2);
 }
 .pcard__verdict span { display: block; font-size: 9.5px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold); margin-bottom: 3px; }
+/* Крупные карточки: переключатель «Карточки» над списком заказов (orders.js, запоминается в браузере) */
+.grid.grid--large { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+.grid--large .pcard__title { font-size: 19px; }
+.grid--large .pcard__shade { padding: 60px 18px 16px; }
+.grid--large .pcard__shade .who { font-size: 14px; }
+.grid--large .pcard__back-body { padding: 18px 16px 16px; gap: 9px; }
+.grid--large .pcard__back-title { font-size: 19px; }
+.grid--large .pcard__meta { font-size: 13.5px; }
+.grid--large .pcard__genre { font-size: 11.5px; }
+.grid--large .pcard__quip { font-size: 17px; line-height: 1.45; padding-left: 11px; }
+.grid--large .pcard__verdict { font-size: 15px; padding: 9px 11px; }
+.grid--large .pcard__verdict span { font-size: 11px; }
+.grid--large .stat, .grid--large .pcard__link { font-size: 14.5px; }
 .pcard.is-done .pcard__front img, .pcard.is-done .pcard__placeholder { filter: grayscale(.6) brightness(.62); }
 .pcard.is-done:not(.is-flipped):hover .pcard__front img { filter: grayscale(.2) brightness(.85); }
 .pcard.is-dim .pcard__front img { filter: brightness(.8) saturate(.8); }
@@ -277,6 +290,10 @@ a.who__nick:hover { text-decoration: underline; }
   .pcard__back-body { padding: 11px 10px 10px; gap: 5px; }
   .pcard__back-title { font-size: 13px; }
   .pcard__quip { font-size: 12.5px; }
+  .grid.grid--large { grid-template-columns: 1fr; gap: 16px; }
+  .grid--large .pcard { aspect-ratio: 2 / 3; }
+  .grid--large .pcard__back-title { font-size: 18px; }
+  .grid--large .pcard__quip { font-size: 16.5px; }
   .stat { font-size: 11px; }
   .search { width: 100%; }
   .spotlight { padding: 16px; }

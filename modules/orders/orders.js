@@ -403,6 +403,7 @@ function render() {
     (!state.nick || it.nick.toLowerCase().includes(state.nick))
   ).sort(compare);
   const grid = $('grid');
+  grid.classList.toggle('grid--large', state.size === 'large');
   grid.replaceChildren(...shown.map(it => it.card));
   grid.hidden = !shown.length;
   const none = $('no-results');
@@ -436,6 +437,7 @@ function renderChips() {
   const sorts = [['default', 'По статусу'], ['date-desc', 'Сначала новые'], ['date-asc', 'Сначала старые']];
   if (Object.keys(steamGames).length) sorts.push(['steam-last', 'Последний запуск']);
   chipsRow('sort-filters', 'sort', sorts, 'Сортировка:');
+  chipsRow('size-filters', 'size', [['normal', 'Обычные'], ['large', 'Крупные']], 'Карточки:');
   const sub = $('subtitle');
   sub.innerHTML = CFG.summary(counts, state.items.length, n => `<span class="accent">${n}</span>`);
 }
@@ -496,9 +498,25 @@ async function load() {
   }
 }
 
+// Размер карточек: крупные легче читать. Выбор помним в браузере зрителя; ряд добавляем сами, чтобы не править
+// каждую страницу заказов.
+const SIZE_KEY = 'orders-card-size';
+try { state.size = localStorage.getItem(SIZE_KEY) === 'large' ? 'large' : 'normal'; } catch (_) { state.size = 'normal'; }
+if ($('sort-filters') && !$('size-filters')) {
+  const row = document.createElement('div');
+  row.className = 'toolbar__row';
+  row.id = 'size-filters';
+  $('sort-filters').after(row);
+}
+
 bindChips('status-filters', 'status');
 bindChips('type-filters', 'type');
 bindChips('sort-filters', 'sort');
+bindChips('size-filters', 'size');
+// после bindChips: к этому моменту state.size уже новый
+$('size-filters').addEventListener('click', e => {
+  if (e.target.closest('.chip')) try { localStorage.setItem(SIZE_KEY, state.size); } catch (_) { /* приватный режим */ }
+});
 $('search-title').addEventListener('input', e => { state.title = e.target.value.trim().toLowerCase(); render(); });
 $('search-nick').addEventListener('input', e => { state.nick = e.target.value.trim().toLowerCase(); render(); });
 load();
