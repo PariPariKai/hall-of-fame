@@ -35,6 +35,8 @@ const LISTS = {
   games:  {file: 'data/games.json', kind: 'game'},
 };
 
+// Название — хотя бы две буквы, не обязательно подряд («R.E.P.O»); «...» и «?» — не название
+const HAS_NAME = /\p{L}.*\p{L}/u;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const key = (list, title) => list + '|' + title.trim().replace(/\s+/g, ' ').toLocaleLowerCase('ru').replace(/ё/g, 'е');
 
@@ -107,7 +109,7 @@ function parseTitle(title) {
   });
   const tail = t.match(/\s((?:19|20)\d{2})\s*$/);
   if (tail) { year = year || Number(tail[1]); t = t.slice(0, tail.index); }
-  const names = t.split(/\s+\/\s+/).map(s => s.replace(/\s+/g, ' ').trim()).filter(s => /\p{L}{2}/u.test(s));
+  const names = t.split(/\s+\/\s+/).map(s => s.replace(/\s+/g, ' ').trim()).filter(s => HAS_NAME.test(s));
   return {names, year};
 }
 
@@ -279,7 +281,7 @@ for (const [list, cfg] of Object.entries(LISTS)) {
 
   for (const r of rows.slice(1)) {
     const title = (r[cTitle] || '').trim().replace(/\s+/g, ' ');
-    if (!title || !/\p{L}{2}/u.test(title)) continue;
+    if (!title || !HAS_NAME.test(title)) continue;
     seen.push({list, title, url: cUrl >= 0 ? (r[cUrl] || '').trim() : '', type: cType >= 0 ? (r[cType] || '').trim() : ''});
     if (cType >= 0 && /^youtube$/i.test((r[cType] || '').trim())) continue; // у YouTube обложку даёт сам сайт
     const url = cUrl >= 0 ? (r[cUrl] || '').trim() : '';

@@ -31,13 +31,30 @@ function tokens(s) {
   return s.toLowerCase().replace(/[™®©]/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(' ')
     .filter(Boolean).map(t => ROMAN[t] || t);
 }
+// Расстояние Левенштейна: опечатки в заказах («Ringhteous», «Headlines» вместо «Headliners») не мешают найти игру
+function lev(a, b) {
+  const d = Array.from({length: b.length + 1}, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let prev = d[0]; d[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const tmp = d[j];
+      d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = tmp;
+    }
+  }
+  return d[b.length];
+}
+// Одно и то же слово с опечаткой: только длинные слова без цифр (от 5 букв), 1 ошибка, у слов от 10 букв — 2.
+// Не мягче: «Headlines» и «Headlands» отличаются на 2 буквы, а это разные игры.
+const sameWord = (a, b) => a === b ||
+  (Math.min(a.length, b.length) >= 5 && !/\d/.test(a + b) && lev(a, b) <= (Math.min(a.length, b.length) >= 10 ? 2 : 1));
 // Доля слов запроса, найденных в названии кандидата; лишние слова кандидата слегка штрафуются.
+// Слово с опечаткой засчитывается чуть меньше точного, чтобы при прочих равных выигрывало точное название.
 function score(query, candidate) {
   const q = tokens(query), c = tokens(candidate);
   if (!q.length || !c.length) return 0;
-  const set = new Set(c);
-  const hit = q.filter(t => set.has(t)).length / q.length;
-  const extra = c.filter(t => !q.includes(t)).length;
+  const hit = q.reduce((sum, t) => sum + (c.includes(t) ? 1 : c.some(x => sameWord(t, x)) ? 0.97 : 0), 0) / q.length;
+  const extra = c.filter(x => !q.some(t => sameWord(t, x))).length;
   return hit - extra * 0.02 - (JUNK.test(candidate.toLowerCase()) ? 0.5 : 0);
 }
 
@@ -52,23 +69,46 @@ function score(query, candidate) {
 export async function steamSearch(name, {strict = false, exclude = new Set()} = {}) {
   const inRow = cand => {
     const q = tokens(name), c = tokens(cand);
-    for (let i = 0; i + q.length <= c.length; i++) if (q.every((t, j) => c[i + j] === t)) return true;
+    for (let i = 0; i + q.length <= c.length; i++) if (q.every((t, j) => sameWord(t, c[i + j]))) return true;
     return false;
   };
   const items = new Map();
-  for (const cc of ['RU', 'US']) {
-    const json = await getJSON(`https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(name)}&l=russian&cc=${cc}`);
-    for (const i of json?.items || []) if (i.type === 'app' || !i.type) items.set(i.id, i);
-    if (cc === 'RU') await sleep(800);
+  const collect = async term => {
+    for (const cc of ['RU', 'US']) {
+      const json = await getJSON(`https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(term)}&l=russian&cc=${cc}`);
+      for (const i of json?.items || []) if (!items.has(i.id) && (i.type === 'app' || !i.type)) items.set(i.id, i);
+      await sleep(800);
+    }
+  };
+  const pick = () => {
+    const cands = [...items.values()]
+      .map((item, rank) => ({id: item.id, name: item.name, rank, s: score(name, item.name)}))
+      .filter(c => c.s >= 0.6 && !exclude.has(c.id) && !(strict && c.s < 1 && !inRow(c.name)));
+    if (!cands.length) return null;
+    const exact = cands.filter(c => c.s >= 1 - 1e-9);
+    if (exact.length) return exact.sort((a, b) => a.id - b.id)[0];
+    const top = Math.max(...cands.map(c => c.s));
+    return cands.filter(c => c.s >= top - 0.1).sort((a, b) => a.rank - b.rank)[0];
+  };
+  await collect(name);
+  let hit = pick();
+  // Steam ищет по началу слов, и одна опечатка («Ringhteous») обнуляет выдачу. Тогда спрашиваем короче —
+  // кандидатов всё равно сравниваем с полным названием.
+  for (const term of shorterQueries(name)) {
+    if (hit) break;
+    await collect(term);
+    hit = pick();
   }
-  const cands = [...items.values()]
-    .map((item, rank) => ({id: item.id, name: item.name, rank, s: score(name, item.name)}))
-    .filter(c => c.s >= 0.6 && !exclude.has(c.id) && !(strict && c.s < 1 && !inRow(c.name)));
-  if (!cands.length) return null;
-  const exact = cands.filter(c => c.s >= 1 - 1e-9);
-  if (exact.length) return exact.sort((a, b) => a.id - b.id)[0];
-  const top = Math.max(...cands.map(c => c.s));
-  return cands.filter(c => c.s >= top - 0.1).sort((a, b) => a.rank - b.rank)[0];
+  return hit;
+}
+// «Pathfinder: Wrath of the Ringhteous» → «Pathfinder: Wrath of the» и «Pathf Wrath of the Ringh»;
+// «The Headlines» → «The Headl». Совсем короткие запросы («The») не задаём — найдут что угодно.
+function shorterQueries(name) {
+  const words = name.split(/\s+/).filter(Boolean);
+  const out = [];
+  if (words.length > 1) out.push(words.slice(0, -1).join(' '));
+  out.push(words.map(w => w.length > 6 ? w.slice(0, 5) : w).join(' '));
+  return [...new Set(out)].filter(q => q !== name && tokens(q).join('').length >= 5);
 }
 
 export async function wikidataSteamId(name) {

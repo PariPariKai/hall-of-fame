@@ -584,6 +584,16 @@
       "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/2747330/037b0dabbfc6909a0c09c7d75801be8eea3ae4a9/library_600x900.jpg?t=1790005206",
       "source": "steam"
     },
+    "games|r.e.p.o": {
+      "list": "games",
+      "title": "R.E.P.O",
+      "checked": "2026-11-23T22:16:24.576Z",
+      "found": true,
+      "appid": 3241660,
+      "url": "https://store.steampowered.com/app/3241660/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/3241660/46b4813ef1cd20664299c9e5de847f3579b44f2e/library_600x900.jpg?t=1793278962",
+      "source": "steam"
+    },
     "games|icarus": {
       "list": "games",
       "title": "Icarus",
@@ -777,7 +787,7 @@
     "games|maeve's academy": {
       "list": "games",
       "title": "Maeve's academy",
-      "checked": "2026-11-21T01:33:50.870Z",
+      "checked": "2026-11-23T22:16:29.764Z",
       "found": false
     },
     "games|gamble with your friends": {
@@ -833,8 +843,12 @@
     "games|meccha chameleion": {
       "list": "games",
       "title": "Meccha Chameleion",
-      "checked": "2026-11-21T01:33:55.846Z",
-      "found": false
+      "checked": "2026-11-23T22:16:40.530Z",
+      "found": true,
+      "appid": 4704690,
+      "url": "https://store.steampowered.com/app/4704690/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/4704690/ac3c3c6d61e772101de5f95ac08b425e1b878ca8/library_capsule.jpg?t=1789464996",
+      "source": "steam"
     },
     "games|burglin' gnomes": {
       "list": "games",
@@ -909,8 +923,12 @@
     "games|the headlines": {
       "list": "games",
       "title": "The Headlines",
-      "checked": "2026-11-21T01:33:59.045Z",
-      "found": false
+      "checked": "2026-11-23T22:16:47.868Z",
+      "found": true,
+      "appid": 3059070,
+      "url": "https://store.steampowered.com/app/3059070/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/3059070/eafcfab6ae1fd425c04cf41fd6617060fd3ac9b6/library_600x900.jpg?t=1794229130",
+      "source": "steam"
     },
     "games|subnautica: below zero": {
       "list": "games",
@@ -925,8 +943,12 @@
     "games|pathfinder: wrath of the ringhteous": {
       "list": "games",
       "title": "Pathfinder: Wrath of the Ringhteous",
-      "checked": "2026-11-21T01:34:03.781Z",
-      "found": false
+      "checked": "2026-11-23T22:16:54.723Z",
+      "found": true,
+      "appid": 1184370,
+      "url": "https://store.steampowered.com/app/1184370/",
+      "cover": "https://shared.steamstatic.com/store_item_assets/steam/apps/1184370/library_600x900.jpg?t=1793719076",
+      "source": "steam"
     },
     "games|under the waves": {
       "list": "games",
