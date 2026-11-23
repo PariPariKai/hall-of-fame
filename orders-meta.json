@@ -517,11 +517,15 @@
       "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/1600647/fa84fb95-962f-418f-b2da-710f32e6162e/600x900",
       "source": "kinopoisk"
     },
-    "movies|fare off": {
+    "movies|face off": {
       "list": "movies",
-      "title": "fare off",
-      "checked": "2026-11-22T19:00:42.451Z",
-      "found": false
+      "title": "face off",
+      "checked": "2026-11-23T17:06:59.280Z",
+      "found": true,
+      "kp": "4606",
+      "url": "https://www.kinopoisk.ru/film/4606/",
+      "cover": "https://avatars.mds.yandex.net/get-kinopoisk-image/4303601/5d386544-7486-4e1b-9500-969da749acb9/600x900",
+      "source": "kinopoisk"
     },
     "series|неукротимый: повелитель чэньцин (сериал 2019)": {
       "list": "series",
