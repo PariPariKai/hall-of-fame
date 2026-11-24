@@ -12,11 +12,11 @@
     {"id":"experiments","title":"Эксперименты","page":"experiments.html","group":"","on":"TRUE"},
     {"id":"rules","title":"Правила","page":"rules.html","group":"","on":"TRUE"},
     {"id":"admin","title":"Админка сайта","page":"admin.html","group":"Для стримера","on":"TRUE"},
+    {"id":"cards","title":"Админка-рулетка","page":"cards.html","group":"Для стримера","on":"TRUE"},
+    {"id":"cards-stream","title":"Хаос-рулетка","page":"cards.html?stream","group":"Для стримера","on":"TRUE"},
     {"id":"chat-wheel","title":"Чат-рулетка","page":"chat-wheel.html","group":"Для стримера","on":"TRUE"},
     {"id":"court","title":"Рулетка наказаний","page":"court.html","group":"Для стримера","on":"TRUE"},
-    {"id":"templates","title":"Шаблоны","page":"templates.html","group":"Для стримера","on":"TRUE"},
     {"id":"pain","title":"Боль стримера за шекели","page":"pain.html","group":"Для стримера","on":"TRUE"},
-    {"id":"cards","title":"Админка-рулетка","page":"cards.html","group":"Для стримера","on":"TRUE"},
-    {"id":"cards-stream","title":"Хаос-рулетка","page":"cards.html?stream","group":"Для стримера","on":"TRUE"}
+    {"id":"templates","title":"Шаблоны","page":"templates.html","group":"Для стримера","on":"TRUE"}
   ]
 }
