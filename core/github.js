@@ -16,12 +16,15 @@
   let token = '';
   try { token = localStorage.getItem(TOKEN_KEY) || ''; } catch (e) { /* без хранилища — спросим токен заново */ }
 
+  // Вход и выход видит меню сайта (site.js): разделы «только для меня» появляются и прячутся сразу
+  const authChanged = () => { try { window.dispatchEvent(new Event('hof-auth')); } catch (e) { /* старый браузер — увидит после обновления */ } };
   function setToken(value) {
     token = value || '';
     try {
       if (token) localStorage.setItem(TOKEN_KEY, token);
       else localStorage.removeItem(TOKEN_KEY);
     } catch (e) { /* только на эту вкладку */ }
+    authChanged();
   }
 
   async function gh(path, opts) {
@@ -204,7 +207,7 @@
       else {
         const hash = await hashReady;
         if (!hash) { error.textContent = 'Код ещё не задан в админке. Вставь токен GitHub.'; ok = null; }
-        else if ((ok = await sha256Hex(value) === hash)) { try { localStorage.setItem(CODE_KEY, hash); } catch (e) { /* только до перезагрузки */ } }
+        else if ((ok = await sha256Hex(value) === hash)) { try { localStorage.setItem(CODE_KEY, hash); authChanged(); } catch (e) { /* только до перезагрузки */ } }
       }
       if (ok) ok = await enter();
       else if (ok === false) { error.textContent = isToken(value) ? 'GitHub не принял токен' : 'Неверный код'; input.value = ''; }

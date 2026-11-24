@@ -1399,6 +1399,8 @@ const modulesSection = {
         if (last && last.name === null) last.items.push(m); else blocks.push({ name: null, items: [m] });
       }
     });
+    // Группа «только для меня» (priv): в меню её видит только браузер, где стример вошёл. В файле это колонка private у каждого раздела группы.
+    blocks.forEach(b => { b.priv = b.name !== null && b.items.some(m => siteModules.isPrivate(m)); });
     // Пустые «отдельные ссылки» убираем, соседние склеиваем. Пустые группы остаются, пока не сохранили.
     const normalize = () => {
       blocks = blocks.filter(b => b.name !== null || b.items.length).reduce((out, b) => {
@@ -1407,7 +1409,7 @@ const modulesSection = {
         return out;
       }, []);
     };
-    const flat = () => blocks.flatMap(b => b.items.map(m => Object.assign(m, { group: b.name || '' })));
+    const flat = () => blocks.flatMap(b => b.items.map(m => Object.assign(m, { group: b.name || '', private: b.name !== null && b.priv ? 'TRUE' : '' })));
     // Переложить раздел: из блока fb (место fr) в блок tb на место tr. tb === 'gap:k' — новой отдельной ссылкой перед блоком k.
     const moveRow = (fb, fr, tb, tr) => {
       const [m] = blocks[fb].items.splice(fr, 1);
@@ -1434,13 +1436,15 @@ const modulesSection = {
     const gap = k => `<div class="mods__gap" data-gap="${k}"></div>`;
     const draw = () => {
       root.innerHTML = `<p class="hint-inline" style="margin-bottom:14px">Выключенный раздел пропадает из меню и со всех страниц, а по прямой ссылке показывает «Раздел закрыт». Данные раздела не удаляются: включишь обратно, и всё на месте.<br>
-        Группа на сайте превращается в выпадающий список меню. Разделы перетаскивай за точки слева, группу за точки в её заголовке. Пустая группа не сохраняется.</p>
+        Группа на сайте превращается в выпадающий список меню. Разделы перетаскивай за точки слева, группу за точки в её заголовке. Пустая группа не сохраняется.<br>
+        «Только для меня»: посетители не видят группу в меню. Ты видишь её в браузере, где входил в админку или вводил код рулеток. На новом устройстве зажми своё имя в левом углу меню на секунду, откроется админка.</p>
         <div class="mods">${blocks.map((b, k) => gap(k) + (b.name === null
           ? `<section class="mods__group mods__group--loose" data-b="${k}"><div class="mods__head"><span class="mods__label">Отдельные ссылки в меню</span></div>`
           : `<section class="mods__group" data-b="${k}"><div class="mods__head">
               <span class="mods__grip" draggable="true" data-group-grip title="Перетащить группу"></span>
               <input class="inp mods__name" data-name="${k}" value="${esc(b.name)}" placeholder="Название группы" aria-label="Название группы">
               <span class="mods__label">выпадающий список</span>
+              <label class="check-line mods__priv" title="Посетители не видят эту группу в меню"><input type="checkbox" data-priv="${k}"${b.priv ? ' checked' : ''}>Только для меня</label>
               <button type="button" class="btn btn--sm" data-ungroup="${k}" title="Разделы станут отдельными ссылками в меню">${icon('x')}Убрать группу</button>
             </div>`)
           + `<div class="mods__rows" data-b="${k}">${b.items.length
@@ -1455,6 +1459,7 @@ const modulesSection = {
 
     const edit = e => {
       if (e.target.dataset.name !== undefined) { blocks[+e.target.dataset.name].name = e.target.value.trim(); return; }
+      if (e.target.dataset.priv !== undefined) { blocks[+e.target.dataset.priv].priv = e.target.checked; return; }
       const row = e.target.closest('[data-r]'); const f = e.target.dataset.f;
       if (!row || !f) return;
       const m = blocks[+row.dataset.b].items[+row.dataset.r];
@@ -1549,7 +1554,7 @@ const modulesSection = {
       if (e.target.closest('#mods-group')) {
         let name = 'Новая группа', n = 2;
         while (blocks.some(b => b.name === name)) name = 'Новая группа ' + n++;
-        blocks.push({ name, items: [] });
+        blocks.push({ name, items: [], priv: false });
         draw();
         const inp = root.querySelector(`[data-name="${blocks.length - 1}"]`);
         inp.focus(); inp.select();
@@ -1565,13 +1570,14 @@ const modulesSection = {
       const changed = list.map(m => {
         const was = before.find(x => x.id === m.id) || {};
         if (was.on !== m.on) return (siteModules.isOn(m) ? 'включён ' : 'выключен ') + m.title;
-        if (was.title !== m.title || (was.group || '') !== m.group) return 'изменён ' + m.title;
+        if (was.title !== m.title || (was.group || '') !== m.group || (was.private || '') !== m.private) return 'изменён ' + m.title;
         return '';
       }).filter(Boolean);
       const moved = list.map(m => m.id).join() !== before.map(m => m.id).join();
       if (!changed.length && !moved) return toast('Ничего не поменялось');
       save(sec, changed.concat(moved ? ['порядок'] : []).join(', '), data => {
         // Порядок и значения — как в редакторе; разделы, которых тут нет (добавлены с другого устройства), — в конец
+        if (!data.columns.includes('private')) data.columns.push('private');
         const fresh = list.map(m => Object.assign(data.items.find(x => x.id === m.id) || {}, m));
         data.items = fresh.concat(data.items.filter(x => !list.some(m => m.id === x.id)));
       }, e.target.closest('#mods-save'));

@@ -74,7 +74,7 @@ img/ sounds/ friends/ experiments/   картинки и звуки
   <script> /* настройки страницы (если есть): ссылки на данные, списки */ </script>
 </head>
 <body>
-  <script src="core/core.js?v=1"></script><script src="core/site.js?v=19"></script>
+  <script src="core/core.js?v=1"></script><script src="core/site.js?v=20"></script>
   ... разметка ...
   <script src="modules/hall/hall.page.js?v=1"></script>
 </body>
@@ -88,7 +88,7 @@ img/ sounds/ friends/ experiments/   картинки и звуки
 
 - `data/*.json` — всё, что правится в админке. Формат: `{ "columns": [...], "items": [{...}, ...] }`, одна запись на строку.
 - `data/config.json` — настройки сайта и профиль стримера (ключи `streamer_*`, `site_season`, расписание, рулетки).
-- `data/modules.json` — разделы: название в меню, группа, порядок, включён ли.
+- `data/modules.json` — разделы: название в меню, группа, порядок, включён ли, `private` (видит в меню только вошедший стример; тайный вход в админку: зажать имя в меню на секунду).
 - `data/cards.json` — копия базы рулетки хаоса (пишет сама `cards.html`).
 - Новому коду: `hof.table('anime')` — записи раздела, `hof.config()` — настройки.
 

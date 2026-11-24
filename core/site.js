@@ -1,5 +1,5 @@
 // Общее для страниц сайта: верхнее меню и набор иконок.
-// Подключается синхронно в начале <body>, сразу после core.js: <script src="core/core.js?v=1"></script><script src="core/site.js?v=19"></script> — меню появляется сразу, без мигания.
+// Подключается синхронно в начале <body>, сразу после core.js: <script src="core/core.js?v=1"></script><script src="core/site.js?v=20"></script> — меню появляется сразу, без мигания.
 // Иконки — SVG вместо эмодзи: эмодзи на каждом устройстве рисуются по-своему и ломают дизайн.
 // В разметке: <svg class="ic"><use href="#i-film"></use></svg>, в скриптах: icon('film').
 // ===== Разделы сайта (модули) и профиль стримера =====
@@ -12,6 +12,7 @@
 // Для страниц:
 //   siteModules.pageOn('movies.html') — страница открыта?  siteModules.on('movies') — то же по id раздела
 //   siteModules.list() — разделы по порядку; siteModules.ready — промис свежих данных; siteModules.onChange(fn)
+//   siteModules.isPrivate(m) — раздел «только для меня»; siteModules.streamer() — этот браузер вошёл (токен или код)
 //   siteProfile.name / .channel / .twitchUrl / .tz / .season / .donateUrl
 //   В разметке: data-module="movies" — блок спрячется, если раздел выключен.
 (function () {
@@ -26,13 +27,17 @@
     ['court', 'Рулетка наказаний', 'court.html', 'Для стримера'], ['templates', 'Шаблоны', 'templates.html', 'Для стримера'],
     ['pain', 'Боль стримера за шекели', 'pain.html', 'Для стримера'], ['cards', 'Админка-рулетка', 'cards.html', 'Для стримера'],
     ['cards-stream', 'Хаос-рулетка', 'cards.html?stream', 'Для стримера'],
-  ].map(([id, title, page, group]) => ({ id, title, page, group, on: 'TRUE' }));
+  ].map(([id, title, page, group]) => ({ id, title, page, group, on: 'TRUE', private: group === 'Для стримера' ? 'TRUE' : '' }));
   const DEFAULT_PROFILE = { name: 'ParipariKai', channel: 'pariparikai', tz: 'Asia/Jerusalem', season: 'winter', donateUrl: 'https://dalink.to/pariparikai' };
   const ALWAYS = ['index.html', 'admin.html'];   // эти страницы не закрываются никогда
   const KEY = 'hof-site';
 
   const truthy = v => /^(true|1|yes|да)$/i.test(String(v == null ? '' : v).trim());
   const isOn = m => String(m.on == null ? '' : m.on).trim() === '' || truthy(m.on);
+  const isPrivate = m => truthy(m.private);
+  // «Свой» браузер: здесь входили в админку (токен) или вводили код рулеток. Только он видит разделы «только для меня» в меню.
+  // Это не защита (страницы открываются по прямой ссылке и всё равно просят вход), а просто не дразним посетителей.
+  const streamer = () => { try { return !!(localStorage.getItem('hof-gh-token') || localStorage.getItem('hof-code') || localStorage.getItem('pain.code')); } catch (e) { return false; } };
   const fileOf = href => String(href || '').split(/[?#]/)[0];
   const isZone = tz => { try { new Intl.DateTimeFormat('en-US', { timeZone: tz }); return true; } catch (e) { return false; } };
 
@@ -96,7 +101,7 @@
     on: id => { const m = state.modules.find(x => x.id === id); return !m || isOn(m); },
     pageOn: href => !closedPages().includes(fileOf(href)),
     onChange: fn => listeners.push(fn),
-    isOn,
+    isOn, isPrivate, streamer,
     ready: null,
   };
 
@@ -105,7 +110,7 @@
     window.hof ? hof.config().catch(() => null) : null,
   ]).then(([mods, cfg]) => {
     const next = {
-      modules: Array.isArray(mods) && mods.length ? mods.map(m => ({ id: m.id, title: m.title, page: m.page, group: m.group || '', on: m.on })) : state.modules,
+      modules: Array.isArray(mods) && mods.length ? mods.map(m => ({ id: m.id, title: m.title, page: m.page, group: m.group || '', on: m.on, private: m.private || '' })) : state.modules,
       profile: cfg ? profileFrom(cfg) : state.profile,
     };
     if (JSON.stringify(next) === JSON.stringify(state)) return api;
@@ -184,10 +189,11 @@
     copy: '<rect x="8" y="8" width="14" height="14" rx="2.5"/><path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"/>',
   };
 
-  // Меню строится из разделов (siteModules): у раздела есть группа — он в выпадающем списке этой группы
+  // Меню строится из разделов (siteModules): у раздела есть группа — он в выпадающем списке этой группы.
+  // Разделы «только для меня» видны только в браузере, где стример вошёл (siteModules.streamer()).
   function navLinks() {
-    const out = [], groups = {};
-    siteModules.list().filter(m => m.page && siteModules.isOn(m)).forEach(m => {
+    const out = [], groups = {}, mine = siteModules.streamer();
+    siteModules.list().filter(m => m.page && siteModules.isOn(m) && (mine || !siteModules.isPrivate(m))).forEach(m => {
       const li = `<li><a href="${esc(m.page)}">${esc(m.title)}</a></li>`;
       if (!m.group) { out.push(li); return; }
       if (!groups[m.group]) { groups[m.group] = { title: m.group, items: [] }; out.push(groups[m.group]); }
@@ -236,12 +242,28 @@
     });
   }
   markActive();
-  // Разделы поменялись (выключили, переименовали) — меню перерисовывается
-  siteModules.onChange(() => {
+  // Разделы поменялись (выключили, переименовали) или стример вошёл/вышел — меню перерисовывается
+  const redraw = () => {
     nav.querySelector('.site-nav__links').innerHTML = navLinks();
     nav.querySelector('.site-nav__brand').textContent = siteProfile.name;
     markActive();
+  };
+  siteModules.onChange(redraw);
+  window.addEventListener('hof-auth', redraw);   // вход в этой вкладке (github.js)
+  window.addEventListener('storage', e => { if (!e.key || /^(hof-gh-token|hof-code|pain\.code)$/.test(e.key)) redraw(); });   // в другой вкладке
+  // Тайный вход: зажать имя стримера в меню на секунду — откроется админка (кнопки «Для стримера» посетители не видят)
+  const brand = nav.querySelector('.site-nav__brand');
+  let hold = null, held = false;
+  const stopHold = () => { clearTimeout(hold); hold = null; };
+  brand.addEventListener('pointerdown', e => {
+    if (e.button) return;
+    held = false;
+    hold = setTimeout(() => { held = true; hold = null; location.href = 'admin.html'; }, 1000);
   });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => brand.addEventListener(ev, stopHold));
+  brand.addEventListener('click', e => { if (held) e.preventDefault(); });
+  brand.addEventListener('contextmenu', e => { if (hold || held) e.preventDefault(); });   // на телефоне долгое нажатие не открывает меню ссылки
+  brand.addEventListener('dragstart', e => e.preventDefault());
   const closeAll = () => nav.querySelectorAll('.site-nav__dd.is-open').forEach(dd => {
     dd.classList.remove('is-open');
     dd.querySelector('.site-nav__dd-btn').setAttribute('aria-expanded', 'false');
