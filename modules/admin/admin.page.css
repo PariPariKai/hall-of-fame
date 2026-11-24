@@ -164,14 +164,48 @@ dialog.editor::backdrop { background: rgba(4,6,12,0.7); backdrop-filter: blur(3p
 /* настройки сайта */
 .cfg-group { margin-bottom: 20px; }
 /* вкладка «Разделы» */
-.mods { display: grid; gap: 8px; }
-.mods__row { display: grid; grid-template-columns: 130px minmax(160px, 1fr) minmax(140px, 220px) 150px auto; gap: 10px; align-items: center;
-  padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,0.02); }
+.mods { display: grid; }
+.mods__group { padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,0.015); }
+.mods__group--loose { border-style: dashed; background: none; }
+.mods__group.is-dragged { opacity: 0.4; }
+.mods__group.drop-into { border-color: var(--gold); background: rgba(var(--gold-rgb), 0.06); }
+.mods__head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; margin-bottom: 10px; }
+.mods__name { flex: 0 1 260px; font-weight: 600; }
+.mods__label { font-size: 12px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--dim); }
+.mods__head .btn { margin-left: auto; }
+.mods__rows { display: grid; gap: 8px; }
+.mods__empty { padding: 14px; border: 1px dashed var(--line); border-radius: 12px; text-align: center; font-size: 13px; color: var(--dim); }
+.mods__row { position: relative; display: grid; grid-template-columns: 18px 130px minmax(160px, 1fr) 150px auto; gap: 10px; align-items: center;
+  padding: 8px 12px 8px 8px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,0.02); }
 .mods__row.is-off { opacity: 0.55; }
+.mods__row.is-dragged { opacity: 0.3; }
+.mods__row.drop-before::before, .mods__row.drop-after::after { content: ''; position: absolute; left: 8px; right: 8px; height: 3px; border-radius: 2px; background: var(--gold); }
+.mods__row.drop-before::before { top: -6px; }
+.mods__row.drop-after::after { bottom: -6px; }
 .mods__row .check-line { min-height: 0; }
+/* Ручка перетаскивания: шесть точек */
+.mods__grip { width: 18px; height: 26px; flex: 0 0 auto; cursor: grab; border-radius: 6px; opacity: 0.5;
+  background: radial-gradient(circle, currentColor 1.6px, transparent 1.8px) 0 0 / 9px 8px; background-position: 0 1px; }
+.mods__grip:hover { opacity: 1; background-color: rgba(255,255,255,0.06); }
+.mods__grip:active { cursor: grabbing; }
 .mods__page { font-size: 12px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mods__page a { color: inherit; }
 .mods__move { display: flex; gap: 4px; }
-@media (max-width: 720px) { .mods__row { grid-template-columns: 1fr 1fr; } .mods__page { display: none; } }
+/* Промежутки между блоками; пока тащишь, раскрываются в зоны «положить сюда» */
+.mods__gap { height: 12px; border-radius: 12px; transition: height 0.15s; }
+.mods.is-drag-row .mods__gap, .mods.is-drag-group .mods__gap { height: 40px; margin: 4px 0; border: 1px dashed var(--line);
+  display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--dim); }
+.mods.is-drag-row .mods__gap::after { content: 'Отдельной ссылкой в меню'; }
+.mods.is-drag-group .mods__gap::after { content: 'Переместить группу сюда'; }
+.mods__gap.drop-gap { border-color: var(--gold) !important; color: var(--gold) !important; background: rgba(var(--gold-rgb), 0.06); }
+.mods__gap:first-child:not(.drop-gap) { height: 0; }
+.mods.is-drag-row .mods__gap:first-child, .mods.is-drag-group .mods__gap:first-child { height: 40px; }
+@media (max-width: 720px) {
+  .mods__row { grid-template-columns: 18px 1fr auto; }
+  .mods__row .mods__move { order: 1; }
+  .mods__row [data-f=title] { order: 2; grid-column: 1 / -1; }
+  .mods__page { display: none; }
+}
 .cfg-group h3 { font-size: 12px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
 .cfg-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
 /* Вкладка «Расписание» */

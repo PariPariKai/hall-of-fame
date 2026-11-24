@@ -1379,53 +1379,187 @@ function wheelSettingsBind(sec, box, c) {
 }
 
 // ===================== разделы сайта (data/modules.json) =====================
-// Включить/выключить раздел, переименовать в меню, сменить группу, переставить. Меню на сайте строит site.js.
+// Включить/выключить раздел, переименовать в меню, разложить по группам (выпадающие списки меню) перетаскиванием. Меню на сайте строит site.js.
 // Выключенный раздел пропадает из меню, ссылки на него прячутся, а страница показывает «Раздел закрыт».
 const LOCKED_MODULES = ['admin'];   // админку не выключить, иначе сюда не попасть
 const modulesSection = {
   id: 'modules', label: 'Разделы', icon: 'sliders', group: 'Сайт', path: 'data/modules.json', form: true,
   panel(sec, box) {
     $('panel-title').innerHTML = icon('sliders') + 'Разделы сайта';
-    const list = items('modules').map(m => Object.assign({}, m, { group: m.group || '' }));
-    const groups = [...new Set(list.map(m => m.group).filter(Boolean))];
-    // Свой контейнер: обработчики не цепляются к общей панели админки
+    // Список разделов собран в блоки: группа (выпадающий список в меню, name — её название)
+    // или отдельные ссылки (name === null). Блоки идут в том же порядке, что и в меню сайта.
+    let blocks = [];
+    items('modules').forEach(src => {
+      const m = Object.assign({}, src, { group: src.group || '' });
+      if (m.group) {
+        const g = blocks.find(b => b.name === m.group);
+        if (g) g.items.push(m); else blocks.push({ name: m.group, items: [m] });
+      } else {
+        const last = blocks[blocks.length - 1];
+        if (last && last.name === null) last.items.push(m); else blocks.push({ name: null, items: [m] });
+      }
+    });
+    // Пустые «отдельные ссылки» убираем, соседние склеиваем. Пустые группы остаются, пока не сохранили.
+    const normalize = () => {
+      blocks = blocks.filter(b => b.name !== null || b.items.length).reduce((out, b) => {
+        const last = out[out.length - 1];
+        if (b.name === null && last && last.name === null) last.items.push(...b.items); else out.push(b);
+        return out;
+      }, []);
+    };
+    const flat = () => blocks.flatMap(b => b.items.map(m => Object.assign(m, { group: b.name || '' })));
+    // Переложить раздел: из блока fb (место fr) в блок tb на место tr. tb === 'gap:k' — новой отдельной ссылкой перед блоком k.
+    const moveRow = (fb, fr, tb, tr) => {
+      const [m] = blocks[fb].items.splice(fr, 1);
+      let target = tb;
+      if (typeof tb === 'string') { target = { name: null, items: [] }; blocks.splice(+tb.slice(4), 0, target); tr = 0; }
+      else target = blocks[tb];
+      target.items.splice(Math.min(tr, target.items.length), 0, m);
+      normalize();
+    };
+
     const root = document.createElement('div');
     box.replaceChildren(root);
+    const rowHtml = (m, b, r, last) => {
+      const locked = LOCKED_MODULES.includes(m.id);
+      const on = siteModules.isOn(m);
+      return `<div class="mods__row${on ? '' : ' is-off'}" data-b="${b}" data-r="${r}">
+        <span class="mods__grip" draggable="true" title="Перетащить раздел"></span>
+        <label class="check-line" title="${locked ? 'Админку не выключить' : 'Раздел на сайте'}"><input type="checkbox" data-f="on"${on ? ' checked' : ''}${locked ? ' disabled' : ''}>${on ? 'Включён' : 'Выключен'}</label>
+        <input class="inp" data-f="title" value="${esc(m.title)}" aria-label="Название в меню">
+        <span class="mods__page">${on ? `<a href="${esc(m.page)}" target="_blank" rel="noopener">${esc(m.page)}</a>` : esc(m.page)}</span>
+        <span class="mods__move"><button type="button" class="btn btn--sm" data-move="-1" title="Выше"${b || r ? '' : ' disabled'}>↑</button><button type="button" class="btn btn--sm" data-move="1" title="Ниже"${last ? ' disabled' : ''}>↓</button></span>
+      </div>`;
+    };
+    const gap = k => `<div class="mods__gap" data-gap="${k}"></div>`;
     const draw = () => {
-      root.innerHTML = `<p class="hint-inline" style="margin-bottom:14px">Выключенный раздел пропадает из меню и со всех страниц, а по прямой ссылке показывает «Раздел закрыт». Данные раздела не удаляются: включишь обратно, и всё на месте. Группа: выпадающий список в меню, пусто означает отдельную ссылку.</p>
-        <datalist id="mod-groups">${groups.map(g => `<option value="${esc(g)}">`).join('')}</datalist>
-        <div class="mods">${list.map((m, i) => {
-          const locked = LOCKED_MODULES.includes(m.id);
-          const on = siteModules.isOn(m);
-          return `<div class="mods__row${on ? '' : ' is-off'}" data-i="${i}">
-            <label class="check-line" title="${locked ? 'Админку не выключить' : 'Раздел на сайте'}"><input type="checkbox" data-f="on"${on ? ' checked' : ''}${locked ? ' disabled' : ''}>${on ? 'Включён' : 'Выключен'}</label>
-            <input class="inp" data-f="title" value="${esc(m.title)}" aria-label="Название в меню">
-            <input class="inp" data-f="group" value="${esc(m.group)}" list="mod-groups" placeholder="без группы" aria-label="Группа в меню">
-            <a class="mods__page" href="${esc(m.page)}" target="_blank" rel="noopener">${esc(m.page)}</a>
-            <span class="mods__move"><button type="button" class="btn btn--sm" data-move="-1" title="Выше"${i ? '' : ' disabled'}>↑</button><button type="button" class="btn btn--sm" data-move="1" title="Ниже"${i < list.length - 1 ? '' : ' disabled'}>↓</button></span>
-          </div>`;
-        }).join('')}</div>
-        <div class="row" style="margin-top:14px"><button type="button" class="btn btn--solid" id="mods-save">${icon('check')}Сохранить разделы</button>
-        <span class="hint-inline">Зрители увидят изменения примерно через минуту.</span></div>`;
+      root.innerHTML = `<p class="hint-inline" style="margin-bottom:14px">Выключенный раздел пропадает из меню и со всех страниц, а по прямой ссылке показывает «Раздел закрыт». Данные раздела не удаляются: включишь обратно, и всё на месте.<br>
+        Группа на сайте превращается в выпадающий список меню. Разделы перетаскивай за точки слева, группу за точки в её заголовке. Пустая группа не сохраняется.</p>
+        <div class="mods">${blocks.map((b, k) => gap(k) + (b.name === null
+          ? `<section class="mods__group mods__group--loose" data-b="${k}"><div class="mods__head"><span class="mods__label">Отдельные ссылки в меню</span></div>`
+          : `<section class="mods__group" data-b="${k}"><div class="mods__head">
+              <span class="mods__grip" draggable="true" data-group-grip title="Перетащить группу"></span>
+              <input class="inp mods__name" data-name="${k}" value="${esc(b.name)}" placeholder="Название группы" aria-label="Название группы">
+              <span class="mods__label">выпадающий список</span>
+              <button type="button" class="btn btn--sm" data-ungroup="${k}" title="Разделы станут отдельными ссылками в меню">${icon('x')}Убрать группу</button>
+            </div>`)
+          + `<div class="mods__rows" data-b="${k}">${b.items.length
+            ? b.items.map((m, r) => rowHtml(m, k, r, k === blocks.length - 1 && r === b.items.length - 1)).join('')
+            : '<div class="mods__empty">Перетащи сюда разделы</div>'}</div></section>`).join('') + gap(blocks.length)}</div>
+        <div class="row" style="margin-top:14px">
+          <button type="button" class="btn" id="mods-group">${icon('plus')}Новая группа</button>
+          <button type="button" class="btn btn--solid" id="mods-save">${icon('check')}Сохранить разделы</button>
+          <span class="hint-inline">Зрители увидят изменения примерно через минуту.</span></div>`;
     };
     draw();
+
     const edit = e => {
-      const row = e.target.closest('[data-i]'); const f = e.target.dataset.f;
+      if (e.target.dataset.name !== undefined) { blocks[+e.target.dataset.name].name = e.target.value.trim(); return; }
+      const row = e.target.closest('[data-r]'); const f = e.target.dataset.f;
       if (!row || !f) return;
-      const m = list[+row.dataset.i];
+      const m = blocks[+row.dataset.b].items[+row.dataset.r];
       if (f === 'on') { if (e.type === 'change') { m.on = e.target.checked ? 'TRUE' : 'FALSE'; draw(); } }
       else m[f] = e.target.value.trim();
     };
     root.addEventListener('input', edit);
     root.addEventListener('change', edit);
+
+    // ---------- перетаскивание ----------
+    let drag = null;   // { row: [b, r] } или { group: b }
+    const clearMarks = () => root.querySelectorAll('.drop-before,.drop-after,.drop-into,.drop-gap')
+      .forEach(el => el.classList.remove('drop-before', 'drop-after', 'drop-into', 'drop-gap'));
+    // Куда упадёт то, что тащим, если отпустить над этим элементом
+    const dropTarget = e => {
+      const g = e.target.closest('.mods__gap');
+      if (g) {
+        const k = +g.dataset.gap;
+        if (drag.group !== undefined && (k === drag.group || k === drag.group + 1)) return null;   // группа и так здесь
+        return { el: g, cls: 'drop-gap', gap: k };
+      }
+      if (!drag.row) return null;   // группу кладём только между блоками
+      const row = e.target.closest('.mods__row');
+      if (row) {
+        const rect = row.getBoundingClientRect(), after = e.clientY > rect.top + rect.height / 2;
+        return { el: row, cls: after ? 'drop-after' : 'drop-before', b: +row.dataset.b, r: +row.dataset.r + (after ? 1 : 0) };
+      }
+      const grp = e.target.closest('.mods__group');
+      if (grp) { const b = +grp.dataset.b; return { el: grp, cls: 'drop-into', b, r: blocks[b].items.length }; }
+      return null;
+    };
+    root.addEventListener('dragstart', e => {
+      const grip = e.target.closest && e.target.closest('.mods__grip');
+      if (!grip) return;
+      const row = grip.closest('.mods__row');
+      const holder = row || grip.closest('.mods__group');
+      drag = row ? { row: [+row.dataset.b, +row.dataset.r] } : { group: +holder.dataset.b };
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', '');
+      e.dataTransfer.setDragImage(holder, 20, 20);
+      holder.classList.add('is-dragged');
+      // Зоны «между блоками» раскрываем после старта: правка разметки прямо в dragstart обрывает перетаскивание
+      setTimeout(() => root.querySelector('.mods').classList.add(row ? 'is-drag-row' : 'is-drag-group'), 0);
+    });
+    root.addEventListener('dragover', e => {
+      if (!drag) return;
+      const t = dropTarget(e);
+      clearMarks();
+      if (!t) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      t.el.classList.add(t.cls);
+    });
+    root.addEventListener('drop', e => {
+      if (!drag) return;
+      const t = dropTarget(e);
+      if (!t) return;
+      e.preventDefault();
+      if (drag.row) {
+        const [fb, fr] = drag.row;
+        if (t.gap !== undefined) moveRow(fb, fr, 'gap:' + t.gap);
+        else moveRow(fb, fr, t.b, t.b === fb && t.r > fr ? t.r - 1 : t.r);   // своё место в том же блоке сдвигается на один
+      } else {
+        const [g] = blocks.splice(drag.group, 1);
+        blocks.splice(t.gap > drag.group ? t.gap - 1 : t.gap, 0, g);
+        normalize();
+      }
+      drag = null;
+      draw();
+    });
+    root.addEventListener('dragend', () => {
+      drag = null;
+      clearMarks();
+      const list = root.querySelector('.mods');
+      if (list) list.classList.remove('is-drag-row', 'is-drag-group');
+      root.querySelectorAll('.is-dragged').forEach(el => el.classList.remove('is-dragged'));
+    });
+
     root.addEventListener('click', e => {
-      const b = e.target.closest('[data-move]');
-      if (b) {
-        const i = +b.closest('[data-i]').dataset.i, j = i + +b.dataset.move;
-        [list[i], list[j]] = [list[j], list[i]];
+      // ↑↓ для телефона: на краю группы раздел переходит в соседний блок
+      const mv = e.target.closest('[data-move]');
+      if (mv) {
+        const row = mv.closest('[data-r]'), b = +row.dataset.b, r = +row.dataset.r, d = +mv.dataset.move;
+        const items_ = blocks[b].items, j = r + d;
+        if (j >= 0 && j < items_.length) [items_[r], items_[j]] = [items_[j], items_[r]];
+        else if (d < 0 && b > 0) moveRow(b, r, b - 1, blocks[b - 1].items.length);
+        else if (d > 0 && b < blocks.length - 1) moveRow(b, r, b + 1, 0);
         return draw();
       }
+      const un = e.target.closest('[data-ungroup]');
+      if (un) { blocks[+un.dataset.ungroup].name = null; normalize(); return draw(); }
+      if (e.target.closest('#mods-group')) {
+        let name = 'Новая группа', n = 2;
+        while (blocks.some(b => b.name === name)) name = 'Новая группа ' + n++;
+        blocks.push({ name, items: [] });
+        draw();
+        const inp = root.querySelector(`[data-name="${blocks.length - 1}"]`);
+        inp.focus(); inp.select();
+        return;
+      }
       if (!e.target.closest('#mods-save')) return;
+      const named = blocks.filter(b => b.name !== null && b.items.length);
+      if (named.some(b => !b.name)) return toast('У группы должно быть название', true);
+      if (new Set(named.map(b => b.name)).size < named.length) return toast('Две группы с одинаковым названием: переименуй одну', true);
+      const list = flat();
       if (list.some(m => !m.title)) return toast('У каждого раздела должно быть название', true);
       const before = items('modules');
       const changed = list.map(m => {
