@@ -36,7 +36,7 @@
     {"screen":"all","label":"","text":"Твоя шутка может быть тут! Пиши её мне в личку телеграм канала!","active":"TRUE","id":"b489223b"},
     {"screen":"brb","label":"","text":"Метеорит! БЫСТРО ЗАГАДА... а поздно...","active":"TRUE","id":"7b5ff2ac"},
     {"screen":"all","label":"Мысли вслух","text":"Грудь возбуждает мужчину. А вымя... Возбуждает быка?","active":"TRUE","id":"932ccfa3"},
-    {"screen":"start","label":"Совет","text":"Заказывай музыку за баллы канала - создавай атмосферу","active":"TRUE","id":"0aced1aa"},
+    {"screen":"start","label":"","text":"Заказывай музыку за баллы канала - создавай атмосферу","active":"TRUE","id":"0aced1aa"},
     {"screen":"all","label":"","text":"Стрим для души - тут без политики","active":"TRUE","id":"7883444f"},
     {"screen":"all","label":"","text":"Уважай других. Сратся - это у других стримеров. А тут мут да бан","active":"TRUE","id":"1a5cca99"},
     {"screen":"start","label":"","text":"Я тебя могну","active":"TRUE","id":"8ef7f88c"},
